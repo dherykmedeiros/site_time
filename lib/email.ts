@@ -1,6 +1,16 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resend: Resend | null = null;
+
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === "re_xxxxxxxxxxxx") {
+    return null;
+  }
+  if (!resend) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resend;
+}
 
 const FROM_EMAIL = "noreply@sitetime.com";
 
@@ -11,12 +21,13 @@ interface SendEmailParams {
 }
 
 async function sendEmail({ to, subject, html }: SendEmailParams) {
-  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === "re_xxxxxxxxxxxx") {
+  const client = getResend();
+  if (!client) {
     console.warn(`[Email] Skipping email to ${to}: RESEND_API_KEY not configured`);
     return { success: true, skipped: true };
   }
 
-  const { error } = await resend.emails.send({
+  const { error } = await client.emails.send({
     from: FROM_EMAIL,
     to,
     subject,
