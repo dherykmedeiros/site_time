@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireAuth } from "@/lib/auth";
 import { generateUUID } from "@/lib/utils";
 import { createMatchSchema } from "@/lib/validations/match";
-import { Prisma } from "@prisma/client";
 
 // GET /api/matches — List matches for the team
 export async function GET(request: Request) {
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
   });
 
   // Create match and auto-create PENDING RSVPs for all ACTIVE players
-  const match = await prisma.$transaction(async (tx) => {
+  const match = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const newMatch = await tx.match.create({
       data: {
         date: matchDate,

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { processFriendlyRequestSchema } from "@/lib/validations/friendly-request";
@@ -110,7 +111,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const date = matchDate ? new Date(matchDate) : new Date();
 
     // Create match + update request in transaction
-    const [updatedRequest, match] = await prisma.$transaction(async (tx) => {
+    const [updatedRequest, match] = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const updated = await tx.friendlyRequest.update({
         where: { id },
         data: { status: "APPROVED" },
@@ -142,7 +143,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         });
       }
 
-      return [updated, createdMatch];
+      return [updated, createdMatch] as const;
     });
 
     // Send approval email (non-blocking)

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireAuth } from "@/lib/auth";
 import { updateMatchSchema } from "@/lib/validations/match";
@@ -261,7 +262,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   }
 
   // Cascade delete: stats, rsvps, then match
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.matchStats.deleteMany({ where: { matchId: id } });
     await tx.rSVP.deleteMany({ where: { matchId: id } });
     await tx.match.delete({ where: { id } });

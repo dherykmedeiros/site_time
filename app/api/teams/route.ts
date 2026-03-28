@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireAuth } from "@/lib/auth";
 import { generateSlug } from "@/lib/utils";
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
   }
 
   // Create team and link to admin user in a transaction
-  const team = await prisma.$transaction(async (tx) => {
+  const team = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const newTeam = await tx.team.create({
       data: {
         name,
