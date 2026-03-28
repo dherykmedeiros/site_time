@@ -1,0 +1,219 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  PLAYER
+}
+
+enum PlayerPosition {
+  GOALKEEPER
+  DEFENDER
+  MIDFIELDER
+  FORWARD
+}
+
+enum PlayerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum MatchType {
+  FRIENDLY
+  CHAMPIONSHIP
+}
+
+enum MatchStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum RSVPStatus {
+  PENDING
+  CONFIRMED
+  DECLINED
+}
+
+enum FriendlyRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionCategory {
+  MEMBERSHIP
+  FRIENDLY_FEE
+  VENUE_RENTAL
+  REFEREE
+  EQUIPMENT
+  OTHER
+}
+
+// ─── Models ───────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(PLAYER)
+  teamId       String?
+  team         Team?    @relation(fields: [teamId], references: [id])
+  playerId     String?  @unique
+  player       Player?  @relation(fields: [playerId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Team {
+  id               String              @id @default(cuid())
+  name             String
+  slug             String              @unique
+  badgeUrl         String?
+  description      String?
+  primaryColor     String?
+  secondaryColor   String?
+  defaultVenue     String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  users            User[]
+  players          Player[]
+  matches          Match[]
+  friendlyRequests FriendlyRequest[]
+  transactions     Transaction[]
+  inviteTokens     InviteToken[]
+
+  @@map("teams")
+}
+
+model Player {
+  id           String         @id @default(cuid())
+  name         String
+  position     PlayerPosition
+  shirtNumber  Int
+  photoUrl     String?
+  status       PlayerStatus   @default(ACTIVE)
+  teamId       String
+  team         Team           @relation(fields: [teamId], references: [id])
+  user         User?
+  rsvps        RSVP[]
+  matchStats   MatchStats[]
+  inviteTokens InviteToken[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@unique([teamId, shirtNumber])
+  @@map("players")
+}
+
+model Match {
+  id         String      @id @default(cuid())
+  date       DateTime
+  venue      String
+  opponent   String
+  type       MatchType
+  homeScore  Int?
+  awayScore  Int?
+  status     MatchStatus @default(SCHEDULED)
+  shareToken String      @unique @default(uuid())
+  teamId     String
+  team       Team        @relation(fields: [teamId], references: [id])
+  rsvps      RSVP[]
+  matchStats MatchStats[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@map("matches")
+}
+
+model RSVP {
+  id          String     @id @default(cuid())
+  status      RSVPStatus @default(PENDING)
+  playerId    String
+  player      Player     @relation(fields: [playerId], references: [id])
+  matchId     String
+  match       Match      @relation(fields: [matchId], references: [id])
+  respondedAt DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@unique([playerId, matchId])
+  @@map("rsvps")
+}
+
+model MatchStats {
+  id          String   @id @default(cuid())
+  goals       Int      @default(0)
+  assists     Int      @default(0)
+  yellowCards Int      @default(0)
+  redCards    Int      @default(0)
+  playerId    String
+  player      Player   @relation(fields: [playerId], references: [id])
+  matchId     String
+  match       Match    @relation(fields: [matchId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([playerId, matchId])
+  @@map("match_stats")
+}
+
+model FriendlyRequest {
+  id                String                @id @default(cuid())
+  requesterTeamName String
+  contactEmail      String
+  contactPhone      String?
+  suggestedDates    String
+  suggestedVenue    String?
+  proposedFee       Decimal?
+  status            FriendlyRequestStatus @default(PENDING)
+  rejectionReason   String?
+  teamId            String
+  team              Team                  @relation(fields: [teamId], references: [id])
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  @@map("friendly_requests")
+}
+
+model Transaction {
+  id          String              @id @default(cuid())
+  type        TransactionType
+  amount      Decimal
+  description String
+  category    TransactionCategory
+  date        DateTime
+  teamId      String
+  team        Team                @relation(fields: [teamId], references: [id])
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@map("transactions")
+}
+
+model InviteToken {
+  id        String    @id @default(cuid())
+  token     String    @unique @default(uuid())
+  teamId    String
+  team      Team      @relation(fields: [teamId], references: [id])
+  playerId  String
+  player    Player    @relation(fields: [playerId], references: [id])
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@map("invite_tokens")
+}

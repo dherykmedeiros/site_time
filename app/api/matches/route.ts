@@ -1,0 +1,178 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin, requireAuth } from "@/lib/auth";
+import { generateUUID } from "@/lib/utils";
+import { createMatchSchema } from "@/lib/validations/match";
+import { Prisma } from "@prisma/client";
+
+// GET /api/matches — List matches for the team
+export async function GET(request: Request) {
+  const { session, error } = await requireAuth();
+  if (error) return error;
+
+  if (!session.user.teamId) {
+    return NextResponse.json(
+      { error: "Usuário não possui time vinculado" },
+      { status: 404 }
+    );
+  }
+
+  const { searchParams } = new URL(request.url);
+  const status = searchParams.get("status");
+  const type = searchParams.get("type");
+  const from = searchParams.get("from");
+  const to = searchParams.get("to");
+
+  const where: Prisma.MatchWhereInput = {
+    teamId: session.user.teamId,
+  };
+
+  if (status) {
+    where.status = status as "SCHEDULED" | "COMPLETED" | "CANCELLED";
+  }
+  if (type) {
+    where.type = type as "FRIENDLY" | "CHAMPIONSHIP";
+  }
+  if (from || to) {
+    where.date = {};
+    if (from) where.date.gte = new Date(from);
+    if (to) where.date.lte = new Date(to);
+  }
+
+  const matches = await prisma.match.findMany({
+    where,
+    include: {
+      rsvps: {
+        select: { status: true },
+      },
+    },
+    orderBy: { date: "asc" },
+  });
+
+  const result = matches.map((match) => {
+    const confirmed = match.rsvps.filter((r) => r.status === "CONFIRMED").length;
+    const declined = match.rsvps.filter((r) => r.status === "DECLINED").length;
+    const pending = match.rsvps.filter((r) => r.status === "PENDING").length;
+
+    return {
+      id: match.id,
+      date: match.date.toISOString(),
+      venue: match.venue,
+      opponent: match.opponent,
+      type: match.type,
+      homeScore: match.homeScore,
+      awayScore: match.awayScore,
+      status: match.status,
+      shareToken: match.shareToken,
+      rsvpSummary: { confirmed, declined, pending },
+      createdAt: match.createdAt.toISOString(),
+    };
+  });
+
+  return NextResponse.json({ matches: result });
+}
+
+// POST /api/matches — Create a new match (ADMIN only)
+export async function POST(request: Request) {
+  const { session, error } = await requireAdmin();
+  if (error) return error;
+
+  if (!session.user.teamId) {
+    return NextResponse.json(
+      { error: "Usuário não possui time vinculado" },
+      { status: 404 }
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "JSON inválido", code: "VALIDATION_ERROR" },
+      { status: 400 }
+    );
+  }
+
+  const parsed = createMatchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: "Campos inválidos",
+        code: "VALIDATION_ERROR",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      { status: 400 }
+    );
+  }
+
+  const { date, venue, opponent, type } = parsed.data;
+  const matchDate = new Date(date);
+
+  if (matchDate <= new Date()) {
+    return NextResponse.json(
+      { error: "Data deve ser no futuro", code: "DATE_IN_PAST" },
+      { status: 400 }
+    );
+  }
+
+  const shareToken = generateUUID();
+  const teamId = session.user.teamId;
+
+  // Get team to build shareUrl
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: { slug: true },
+  });
+
+  // Create match and auto-create PENDING RSVPs for all ACTIVE players
+  const match = await prisma.$transaction(async (tx) => {
+    const newMatch = await tx.match.create({
+      data: {
+        date: matchDate,
+        venue,
+        opponent,
+        type,
+        shareToken,
+        teamId,
+      },
+    });
+
+    // Get all active players for this team
+    const activePlayers = await tx.player.findMany({
+      where: { teamId, status: "ACTIVE" },
+      select: { id: true },
+    });
+
+    // Auto-create PENDING RSVPs
+    if (activePlayers.length > 0) {
+      await tx.rSVP.createMany({
+        data: activePlayers.map((player) => ({
+          playerId: player.id,
+          matchId: newMatch.id,
+          status: "PENDING" as const,
+        })),
+      });
+    }
+
+    return newMatch;
+  });
+
+  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+  const shareUrl = `${baseUrl}/vitrine/${team?.slug}/matches/${match.id}`;
+
+  return NextResponse.json(
+    {
+      id: match.id,
+      date: match.date.toISOString(),
+      venue: match.venue,
+      opponent: match.opponent,
+      type: match.type,
+      status: match.status,
+      shareToken: match.shareToken,
+      shareUrl,
+      createdAt: match.createdAt.toISOString(),
+    },
+    { status: 201 }
+  );
+}
