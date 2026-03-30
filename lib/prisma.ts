@@ -1,21 +1,29 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
 function createPrismaClient() {
-  const rawUrl = process.env.DATABASE_URL!;
-  // Remove sslmode da URL para evitar o aviso de depreciação do pg;
-  // SSL é gerenciado explicitamente via { ssl: { rejectUnauthorized: true } }
-  const connectionString = rawUrl.replace(/[&?]sslmode=[^&]*/g, "");
-  const pool = new Pool({
-    connectionString,
-    ssl: { rejectUnauthorized: true },
-  });
-  const adapter = new PrismaPg(pool);
+  const rawUrl = process.env.DATABASE_URL;
+
+  if (!rawUrl) {
+    throw new Error("DATABASE_URL is not defined");
+  }
+
+  const url = new URL(rawUrl);
+
+  // Supabase + pg: evita warning de sslmode e mantém comportamento compatível.
+  if (!url.searchParams.has("sslmode")) {
+    url.searchParams.set("sslmode", "require");
+  }
+
+  if (!url.searchParams.has("uselibpqcompat")) {
+    url.searchParams.set("uselibpqcompat", "true");
+  }
+
+  const adapter = new PrismaPg({ connectionString: url.toString() });
   return new PrismaClient({ adapter });
 }
 
