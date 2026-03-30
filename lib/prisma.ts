@@ -7,8 +7,12 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient() {
+  const rawUrl = process.env.DATABASE_URL!;
+  // Remove sslmode da URL para evitar o aviso de depreciação do pg;
+  // SSL é gerenciado explicitamente via { ssl: { rejectUnauthorized: true } }
+  const connectionString = rawUrl.replace(/[&?]sslmode=[^&]*/g, "");
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString,
     ssl: { rejectUnauthorized: true },
   });
   const adapter = new PrismaPg(pool);
