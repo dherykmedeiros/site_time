@@ -89,6 +89,31 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.teamId = user.teamId;
       }
+
+      // Keep JWT claims fresh when user/team links change after login.
+      if (token.id) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id },
+            select: {
+              email: true,
+              name: true,
+              role: true,
+              teamId: true,
+            },
+          });
+
+          if (dbUser) {
+            token.email = dbUser.email;
+            token.name = dbUser.name;
+            token.role = dbUser.role;
+            token.teamId = dbUser.teamId;
+          }
+        } catch {
+          // Keep last known claims if DB is temporarily unavailable.
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
