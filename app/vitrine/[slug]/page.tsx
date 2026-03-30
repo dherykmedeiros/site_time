@@ -254,7 +254,7 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
         </div>
       </header>
 
-      <main className="mx-auto -mt-10 max-w-5xl px-4">
+      <main className="mx-auto -mt-6 max-w-5xl px-4">
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <article className="app-surface rounded-[22px] border border-[var(--border)] p-5 shadow-[var(--shadow-md)]">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
@@ -296,7 +296,7 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
         </section>
 
         {stats.totalMatches > 0 && (
-          <section id="retrospecto" className="scroll-mt-28 mt-10 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <section id="retrospecto" className="scroll-mt-40 mt-12 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="app-surface rounded-[24px] p-6 shadow-[var(--shadow-md)] sm:p-7">
               <h2 className="text-2xl font-bold text-[var(--text)]">Retrospecto da temporada</h2>
               <p className="mt-2 text-sm text-[var(--text-muted)]">
@@ -379,7 +379,7 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
         )}
 
         {team.players.length > 0 ? (
-          <section id="elenco" className="scroll-mt-28 mt-10">
+          <section id="elenco" className="scroll-mt-40 mt-10">
             <div className="mb-4 flex items-end justify-between gap-3">
               <h2 className="text-2xl font-bold text-[var(--text)]">Elenco</h2>
               <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-subtle)]">
@@ -424,7 +424,7 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
             </div>
           </section>
         ) : (
-          <section id="elenco" className="scroll-mt-28 mt-10">
+          <section id="elenco" className="scroll-mt-40 mt-10">
             <h2 className="mb-4 text-2xl font-bold text-[var(--text)]">Elenco</h2>
             <div className="app-surface rounded-[22px] border border-dashed border-[var(--border-strong)] p-8 text-center text-[var(--text-muted)]">
               Este time ainda nao publicou jogadores ativos na vitrine.
@@ -432,7 +432,7 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
           </section>
         )}
 
-        <section id="amistoso" className="scroll-mt-28 mt-10 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <section id="amistoso" className="scroll-mt-40 mt-10 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="app-surface rounded-[24px] p-6 shadow-[var(--shadow-md)] sm:p-7">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
               Agendar partida
