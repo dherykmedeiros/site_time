@@ -132,6 +132,13 @@ const positionLabels: Record<string, string> = {
   FORWARD: "Atacante",
 };
 
+const positionStyles: Record<string, string> = {
+  GOALKEEPER: "border-amber-200 bg-amber-50 text-amber-700",
+  DEFENDER: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  MIDFIELDER: "border-sky-200 bg-sky-50 text-sky-700",
+  FORWARD: "border-rose-200 bg-rose-50 text-rose-700",
+};
+
 export default async function VitrinePage({ params }: VitrinePageProps) {
   const { slug } = await params;
   const team = await getTeamBySlug(slug);
@@ -141,11 +148,21 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
   }
 
   const stats = await getTeamStats(team.id);
+  const goalBalance = stats.goalsScored - stats.goalsConceded;
+  const avgGoalsScored =
+    stats.totalMatches > 0 ? (stats.goalsScored / stats.totalMatches).toFixed(1) : "0.0";
+  const avgGoalsConceded =
+    stats.totalMatches > 0 ? (stats.goalsConceded / stats.totalMatches).toFixed(1) : "0.0";
+  const topScorer = stats.topScorers[0];
+  const summaryLine =
+    stats.totalMatches > 0
+      ? `${stats.wins}V · ${stats.draws}E · ${stats.losses}D`
+      : "Temporada em construção";
 
   return (
     <div className="min-h-screen bg-transparent pb-16">
       <header
-        className="relative overflow-hidden px-4 pb-20 pt-14 text-white"
+        className="relative overflow-hidden px-4 pb-28 pt-12 text-white"
         style={{
           backgroundColor: team.primaryColor || "#1e40af",
         }}
@@ -159,103 +176,170 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
             Ver outros times
           </Link>
         </div>
-        <div className="relative mx-auto mt-8 max-w-4xl text-center">
-          {team.badgeUrl ? (
-            <img
-              src={team.badgeUrl}
-              alt={`Escudo ${team.name}`}
-              className="mx-auto mb-4 h-28 w-28 rounded-full border-4 border-white/35 object-cover shadow-[0_18px_40px_rgba(0,0,0,0.22)]"
-            />
-          ) : (
-            <div
-              className="mx-auto mb-4 flex h-28 w-28 items-center justify-center rounded-full border-4 border-white/35 text-5xl shadow-[0_18px_40px_rgba(0,0,0,0.22)]"
-              style={{ backgroundColor: team.secondaryColor || "#3b82f6" }}
-            >
-              ⚽
+        <div className="relative mx-auto mt-8 grid max-w-5xl gap-8 lg:grid-cols-[1fr_320px] lg:items-end">
+          <div>
+            <div className="inline-flex items-center gap-3 rounded-full border border-white/35 bg-white/15 px-3 py-1.5">
+              {team.badgeUrl ? (
+                <img
+                  src={team.badgeUrl}
+                  alt={`Escudo ${team.name}`}
+                  className="h-8 w-8 rounded-full border border-white/35 object-cover"
+                />
+              ) : (
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-white/35 text-sm"
+                  style={{ backgroundColor: team.secondaryColor || "#3b82f6" }}
+                >
+                  ⚽
+                </div>
+              )}
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/85">
+                Perfil Oficial
+              </span>
             </div>
-          )}
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
-            Perfil Oficial
-          </p>
-          <h1 className="mt-2 text-balance font-display text-4xl font-bold sm:text-5xl">{team.name}</h1>
-          {team.description && (
-            <p className="mx-auto mt-4 max-w-2xl text-base text-white/85 sm:text-lg">{team.description}</p>
-          )}
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
-            <a
-              href="#retrospecto"
-              className="rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/25"
-            >
-              Retrospecto
-            </a>
-            <a
-              href="#elenco"
-              className="rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/25"
-            >
-              Elenco
-            </a>
-            <a
-              href="#amistoso"
-              className="rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/25"
-            >
-              Solicitar jogo
-            </a>
+
+            <h1 className="mt-4 text-balance font-display text-4xl font-bold sm:text-5xl lg:text-6xl">
+              {team.name}
+            </h1>
+            <p className="mt-3 max-w-3xl text-sm text-white/85 sm:text-base">
+              {team.description ||
+                `Acompanhe o momento do ${team.name}, conheça o elenco e envie proposta de amistoso.`}
+            </p>
+
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <a
+                href="#retrospecto"
+                className="rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/25"
+              >
+                Retrospecto
+              </a>
+              <a
+                href="#elenco"
+                className="rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/25"
+              >
+                Elenco
+              </a>
+              <a
+                href="#amistoso"
+                className="rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/25"
+              >
+                Solicitar amistoso
+              </a>
+            </div>
           </div>
+
+          <aside className="rounded-[24px] border border-white/25 bg-white/15 p-5 backdrop-blur-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/75">
+              Resumo da equipe
+            </p>
+            <p className="mt-2 text-sm font-semibold text-white">{summaryLine}</p>
+            <div className="mt-4 space-y-3">
+              <div className="rounded-2xl border border-white/25 bg-white/10 px-3 py-2">
+                <p className="text-xs text-white/75">Aproveitamento</p>
+                <p className="text-2xl font-bold text-white">{stats.winRate}%</p>
+              </div>
+              <div className="rounded-2xl border border-white/25 bg-white/10 px-3 py-2">
+                <p className="text-xs text-white/75">Média de gols pró</p>
+                <p className="text-2xl font-bold text-white">{avgGoalsScored}</p>
+              </div>
+            </div>
+          </aside>
         </div>
       </header>
 
-      <main className="mx-auto -mt-10 max-w-5xl px-4">
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="app-surface rounded-[22px] p-6 text-center shadow-[var(--shadow-md)]">
+      <main className="mx-auto -mt-14 max-w-5xl px-4">
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <article className="app-surface rounded-[22px] border border-[var(--border)] p-5 shadow-[var(--shadow-md)]">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
               Elenco
             </p>
-            <p className="text-3xl font-bold text-[var(--text)]">
-              {team._count.players}
-            </p>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">Jogadores</p>
-          </div>
-          <div className="app-surface rounded-[22px] p-6 text-center shadow-[var(--shadow-md)]">
+            <p className="mt-2 text-3xl font-bold text-[var(--text)]">{team._count.players}</p>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">Jogadores ativos</p>
+          </article>
+
+          <article className="app-surface rounded-[22px] border border-[var(--border)] p-5 shadow-[var(--shadow-md)]">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
               Temporada
             </p>
-            <p className="text-3xl font-bold text-[var(--text)]">
-              {stats.totalMatches}
-            </p>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">Partidas Disputadas</p>
-          </div>
-          <div className="app-surface rounded-[22px] p-6 text-center shadow-[var(--shadow-md)]">
+            <p className="mt-2 text-3xl font-bold text-[var(--text)]">{stats.totalMatches}</p>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">Partidas disputadas</p>
+          </article>
+
+          <article className="app-surface rounded-[22px] border border-[var(--border)] p-5 shadow-[var(--shadow-md)]">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
-              Performance
+              Saldo de gols
             </p>
-            <p className="text-3xl font-bold text-[var(--text)]">
-              {stats.winRate}%
+            <p className="mt-2 text-3xl font-bold text-[var(--text)]">{goalBalance >= 0 ? `+${goalBalance}` : goalBalance}</p>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">
+              {stats.goalsScored} pró · {stats.goalsConceded} contra
             </p>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">Aproveitamento</p>
-          </div>
-        </div>
+          </article>
+
+          <article className="app-surface rounded-[22px] border border-[var(--border)] p-5 shadow-[var(--shadow-md)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+              Artilheiro
+            </p>
+            <p className="mt-2 line-clamp-1 text-lg font-bold text-[var(--text)]">
+              {topScorer?.playerName || "Sem registro"}
+            </p>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">
+              {topScorer ? `${topScorer.total} gols` : "Ainda sem gols computados"}
+            </p>
+          </article>
+        </section>
 
         {stats.totalMatches > 0 && (
-          <section id="retrospecto" className="mt-10">
-            <h2 className="mb-4 text-2xl font-bold text-[var(--text)]">Retrospecto</h2>
-            <div className="grid gap-4 sm:grid-cols-4">
-              <div className="app-surface rounded-[18px] border border-emerald-100 p-4 text-center">
-                <p className="text-2xl font-bold text-green-600">{stats.wins}</p>
-                <p className="text-sm text-[var(--text-muted)]">Vitórias</p>
+          <section id="retrospecto" className="mt-10 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="app-surface rounded-[24px] p-6 shadow-[var(--shadow-md)] sm:p-7">
+              <h2 className="text-2xl font-bold text-[var(--text)]">Retrospecto da temporada</h2>
+              <p className="mt-2 text-sm text-[var(--text-muted)]">
+                Panorama de resultados e força ofensiva/defensiva da equipe.
+              </p>
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4 text-center">
+                  <p className="text-3xl font-bold text-emerald-700">{stats.wins}</p>
+                  <p className="text-sm text-emerald-700/80">Vitórias</p>
+                </div>
+                <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4 text-center">
+                  <p className="text-3xl font-bold text-amber-700">{stats.draws}</p>
+                  <p className="text-sm text-amber-700/80">Empates</p>
+                </div>
+                <div className="rounded-2xl border border-rose-100 bg-rose-50/70 p-4 text-center">
+                  <p className="text-3xl font-bold text-rose-700">{stats.losses}</p>
+                  <p className="text-sm text-rose-700/80">Derrotas</p>
+                </div>
               </div>
-              <div className="app-surface rounded-[18px] border border-amber-100 p-4 text-center">
-                <p className="text-2xl font-bold text-yellow-600">{stats.draws}</p>
-                <p className="text-sm text-[var(--text-muted)]">Empates</p>
+              <div className="mt-5 rounded-2xl border border-[var(--border)] bg-white/60 p-4">
+                <div className="mb-2 flex items-center justify-between text-sm text-[var(--text-muted)]">
+                  <span>Aproveitamento</span>
+                  <span>{stats.winRate}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-[color-mix(in_oklab,var(--surface-soft)_70%,white_30%)]">
+                  <div
+                    className="h-full rounded-full bg-[var(--brand)]"
+                    style={{ width: `${stats.winRate}%` }}
+                  />
+                </div>
               </div>
-              <div className="app-surface rounded-[18px] border border-rose-100 p-4 text-center">
-                <p className="text-2xl font-bold text-red-600">{stats.losses}</p>
-                <p className="text-sm text-[var(--text-muted)]">Derrotas</p>
-              </div>
-              <div className="app-surface rounded-[18px] p-4 text-center">
-                <p className="text-2xl font-bold text-[var(--text)]">
-                  {stats.goalsScored} : {stats.goalsConceded}
-                </p>
-                <p className="text-sm text-[var(--text-muted)]">Gols (Pró : Contra)</p>
+            </div>
+
+            <div className="app-surface rounded-[24px] p-6 shadow-[var(--shadow-md)] sm:p-7">
+              <h3 className="text-lg font-semibold text-[var(--text)]">Números por partida</h3>
+              <div className="mt-4 space-y-3">
+                <div className="rounded-2xl border border-[var(--border)] bg-white/60 p-4">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-subtle)]">Média gols pró</p>
+                  <p className="mt-1 text-3xl font-bold text-[var(--brand)]">{avgGoalsScored}</p>
+                </div>
+                <div className="rounded-2xl border border-[var(--border)] bg-white/60 p-4">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-subtle)]">Média gols contra</p>
+                  <p className="mt-1 text-3xl font-bold text-rose-600">{avgGoalsConceded}</p>
+                </div>
+                <div className="rounded-2xl border border-[var(--border)] bg-white/60 p-4">
+                  <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-subtle)]">Saldo da temporada</p>
+                  <p className="mt-1 text-3xl font-bold text-[var(--text)]">
+                    {goalBalance >= 0 ? `+${goalBalance}` : goalBalance}
+                  </p>
+                </div>
               </div>
             </div>
           </section>
@@ -263,17 +347,20 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
 
         {stats.topScorers.length > 0 && (
           <section className="mt-10">
-            <h2 className="mb-4 text-2xl font-bold text-[var(--text)]">Artilheiros</h2>
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <h2 className="text-2xl font-bold text-[var(--text)]">Artilheiros em destaque</h2>
+              <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-subtle)]">Top 5</p>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               {stats.topScorers.map((scorer, i) => (
                 <article
-                  key={scorer.playerName}
-                  className="app-surface rounded-[18px] p-4 text-center shadow-[var(--shadow-sm)]"
+                  key={`${scorer.playerName}-${i}`}
+                  className="app-surface rounded-[18px] border border-[var(--border)] p-4 text-center shadow-[var(--shadow-sm)]"
                 >
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                     #{i + 1}
                   </p>
-                  <p className="mt-2 line-clamp-2 text-sm font-semibold text-[var(--text)]">
+                  <p className="mt-2 line-clamp-2 min-h-10 text-sm font-semibold text-[var(--text)]">
                     {scorer.playerName}
                   </p>
                   <p className="mt-1 text-3xl font-bold text-[var(--brand)]">{scorer.total}</p>
@@ -286,37 +373,46 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
 
         {team.players.length > 0 ? (
           <section id="elenco" className="mt-10">
-            <h2 className="mb-4 text-2xl font-bold text-[var(--text)]">Elenco</h2>
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <h2 className="text-2xl font-bold text-[var(--text)]">Elenco</h2>
+              <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+                {team.players.length} atletas ativos
+              </p>
+            </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {team.players.map((player) => (
-                <div
+                <article
                   key={player.id}
-                  className="app-surface flex items-center gap-4 rounded-[18px] p-4 shadow-[var(--shadow-sm)]"
+                  className="app-surface rounded-[20px] border border-[var(--border)] p-4 shadow-[var(--shadow-sm)]"
                 >
-                  {player.photoUrl ? (
-                    <img
-                      src={player.photoUrl}
-                      alt={player.name}
-                      className="h-12 w-12 rounded-full border border-[var(--border)] object-cover"
-                    />
-                  ) : (
-                    <div
-                      className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 text-lg font-bold text-white"
-                      style={{
-                        backgroundColor: team.primaryColor || "#1e40af",
-                      }}
-                    >
-                      {player.shirtNumber}
+                  <div className="flex items-center gap-3">
+                    {player.photoUrl ? (
+                      <img
+                        src={player.photoUrl}
+                        alt={player.name}
+                        className="h-12 w-12 rounded-full border border-[var(--border)] object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 text-lg font-bold text-white"
+                        style={{ backgroundColor: team.primaryColor || "#1e40af" }}
+                      >
+                        {player.shirtNumber}
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-semibold text-[var(--text)]">{player.name}</p>
+                      <p className="text-sm text-[var(--text-muted)]">#{player.shirtNumber}</p>
                     </div>
-                  )}
-                  <div>
-                    <p className="font-semibold text-[var(--text)]">{player.name}</p>
-                    <p className="text-sm text-[var(--text-muted)]">
-                      {positionLabels[player.position] || player.position} •{" "}
-                      #{player.shirtNumber}
-                    </p>
                   </div>
-                </div>
+                  <div className="mt-3">
+                    <span
+                      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${positionStyles[player.position] || "border-[var(--border)] bg-white/60 text-[var(--text-muted)]"}`}
+                    >
+                      {positionLabels[player.position] || player.position}
+                    </span>
+                  </div>
+                </article>
               ))}
             </div>
           </section>
@@ -329,21 +425,30 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
           </section>
         )}
 
-        <section id="amistoso" className="mt-10">
-          <h2 className="mb-4 text-2xl font-bold text-[var(--text)]">
-            Solicitar Amistoso
-          </h2>
+        <section id="amistoso" className="mt-10 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="app-surface rounded-[24px] p-6 shadow-[var(--shadow-md)] sm:p-7">
-            <p className="mb-4 text-sm text-[var(--text-muted)]">
-              Quer marcar um amistoso com o {team.name}? Preencha o formulário abaixo.
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+              Agendar partida
             </p>
+            <h2 className="mt-2 text-balance text-3xl font-bold text-[var(--text)]">
+              Solicitar amistoso com o {team.name}
+            </h2>
+            <p className="mt-3 text-sm text-[var(--text-muted)]">
+              Compartilhe sua proposta com datas, local e contato para acelerar a resposta da equipe.
+            </p>
+            <div className="mt-5 rounded-2xl border border-[var(--border)] bg-white/55 p-4 text-sm text-[var(--text-muted)]">
+              Dica: inclua opcoes de horario e informacoes de estrutura do campo para facilitar a negociacao.
+            </div>
+          </div>
+
+          <div className="app-surface rounded-[24px] p-6 shadow-[var(--shadow-md)] sm:p-7">
             <FriendlyRequestForm teamSlug={slug} />
           </div>
         </section>
 
         {(team.primaryColor || team.secondaryColor) && (
           <section className="mt-10">
-            <h2 className="mb-4 text-2xl font-bold text-[var(--text)]">Cores</h2>
+            <h2 className="mb-4 text-2xl font-bold text-[var(--text)]">Identidade visual</h2>
             <div className="flex flex-wrap gap-3">
               {team.primaryColor && (
                 <div className="app-surface flex items-center gap-2 rounded-full px-4 py-2 shadow-[var(--shadow-sm)]">
@@ -366,6 +471,21 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
             </div>
           </section>
         )}
+
+        <section className="mt-10 rounded-[24px] border border-dashed border-[var(--border-strong)] bg-[color-mix(in_oklab,var(--surface-soft)_75%,white_25%)] px-6 py-8 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-subtle)]">
+            Quer conhecer mais equipes?
+          </p>
+          <h3 className="mt-2 text-2xl font-bold text-[var(--text)]">
+            Explore outras vitrines publicas da plataforma
+          </h3>
+          <Link
+            href="/vitrine"
+            className="mt-5 inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--brand)] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-strong)]"
+          >
+            Voltar para a vitrine
+          </Link>
+        </section>
       </main>
 
       <footer className="mt-14 border-t border-[var(--border)] py-8 text-center text-sm text-[var(--text-muted)]">
