@@ -94,6 +94,10 @@ export default function FinancesPage() {
   const [summaryMonth, setSummaryMonth] = useState(new Date().getMonth() + 1);
   const [summaryYear, setSummaryYear] = useState(new Date().getFullYear());
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   async function loadTransactions(page = 1) {
     setLoading(true);
@@ -131,11 +135,21 @@ export default function FinancesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Deseja excluir esta transação?")) return;
+    setDeleteLoading(true);
+    setActionError(null);
+
     const res = await fetch(`/api/finances/${id}`, { method: "DELETE" });
+
     if (res.ok) {
-      loadTransactions(pagination.page);
+      setDeleteTarget(null);
+      setFeedback("Transação excluída com sucesso.");
+      await loadTransactions(pagination.page);
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setActionError(data.error || "Erro ao excluir transação");
     }
+
+    setDeleteLoading(false);
   }
 
   useEffect(() => {
@@ -156,6 +170,18 @@ export default function FinancesPage() {
         <h1 className="text-2xl font-bold text-gray-900">Finanças</h1>
         <Button onClick={() => setShowForm(true)}>+ Nova Transação</Button>
       </div>
+
+      {feedback && (
+        <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+          {feedback}
+        </div>
+      )}
+
+      {actionError && (
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+          {actionError}
+        </div>
+      )}
 
       {/* Balance Card */}
       <Card>
@@ -257,7 +283,10 @@ export default function FinancesPage() {
                         {formatCurrency(t.amount)}
                       </span>
                       <button
-                        onClick={() => handleDelete(t.id)}
+                        onClick={() => {
+                          setDeleteTarget(t.id);
+                          setActionError(null);
+                        }}
                         className="text-xs text-red-500 hover:text-red-700"
                       >
                         Excluir
@@ -435,6 +464,37 @@ export default function FinancesPage() {
           }}
           onCancel={() => setShowForm(false)}
         />
+      </Modal>
+
+      <Modal
+        open={!!deleteTarget}
+        onClose={() => {
+          if (deleteLoading) return;
+          setDeleteTarget(null);
+        }}
+        title="Excluir transação"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Deseja realmente excluir esta transação?
+          </p>
+          <div className="flex gap-3">
+            <Button
+              variant="danger"
+              onClick={() => deleteTarget && handleDelete(deleteTarget)}
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? "Excluindo..." : "Confirmar exclusão"}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleteLoading}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

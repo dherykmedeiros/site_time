@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { createFriendlyRequestSchema } from "@/lib/validations/friendly-request";
+import { extractClientIp } from "@/lib/request-ip";
 
 // GET /api/friendly-requests — List friendly requests (ADMIN)
 export async function GET(request: Request) {
@@ -49,11 +50,8 @@ export async function GET(request: Request) {
 
 // POST /api/friendly-requests — Create friendly request (PUBLIC, rate-limited)
 export async function POST(request: Request) {
-  // Rate limiting by IP
-  const forwarded = request.headers.get("x-forwarded-for");
-  const ip = forwarded?.split(",")[0]?.trim() || "unknown";
-
-  const { allowed, retryAfterMinutes } = rateLimit(ip);
+  const ip = extractClientIp(request);
+  const { allowed, retryAfterMinutes } = await rateLimit(ip);
   if (!allowed) {
     return NextResponse.json(
       {

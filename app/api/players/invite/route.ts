@@ -3,11 +3,25 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { invitePlayerSchema } from "@/lib/validations/player";
 import { sendInviteEmail } from "@/lib/email";
+import { rateLimitInvite } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 // POST /api/players/invite — Generate invite token and send email
 export async function POST(request: Request) {
   const { session, error } = await requireAdmin();
   if (error) return error;
+
+  const ip = extractClientIp(request);
+  const { allowed, retryAfterMinutes } = await rateLimitInvite(ip);
+  if (!allowed) {
+    return NextResponse.json(
+      {
+        error: `Muitas tentativas de convite. Tente novamente em ${retryAfterMinutes} minutos.`,
+        code: "RATE_LIMITED",
+      },
+      { status: 429 }
+    );
+  }
 
   if (!session.user.teamId) {
     return NextResponse.json(
@@ -82,12 +96,24 @@ export async function POST(request: Request) {
   // Send invite email
   const inviteUrl = `${process.env.NEXTAUTH_URL}/invite/${inviteToken.token}`;
 
-  await sendInviteEmail({
-    to: email,
-    playerName: player.name,
-    teamName: team?.name ?? "Time",
-    inviteUrl,
-  });
+  try {
+    await sendInviteEmail({
+      to: email,
+      playerName: player.name,
+      teamName: team?.name ?? "Time",
+      inviteUrl,
+    });
+  } catch {
+    await prisma.inviteToken.delete({ where: { id: inviteToken.id } });
+
+    return NextResponse.json(
+      {
+        error: "Falha ao enviar convite por e-mail. Tente novamente.",
+        code: "EMAIL_SEND_FAILED",
+      },
+      { status: 502 }
+    );
+  }
 
   return NextResponse.json(
     {

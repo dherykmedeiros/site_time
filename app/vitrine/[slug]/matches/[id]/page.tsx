@@ -4,9 +4,12 @@ import type { Metadata } from "next";
 
 interface PublicMatchPageProps {
   params: Promise<{ slug: string; id: string }>;
+  searchParams: Promise<{ t?: string }>;
 }
 
-async function getMatchData(slug: string, matchId: string) {
+async function getMatchData(slug: string, matchId: string, token?: string) {
+  if (!token) return null;
+
   const team = await prisma.team.findUnique({
     where: { slug },
     select: {
@@ -21,11 +24,11 @@ async function getMatchData(slug: string, matchId: string) {
   if (!team) return null;
 
   const match = await prisma.match.findFirst({
-    where: { id: matchId, teamId: team.id },
+    where: { id: matchId, teamId: team.id, shareToken: token },
     include: {
       rsvps: {
-        include: {
-          player: { select: { name: true, position: true } },
+        select: {
+          status: true,
         },
         orderBy: { createdAt: "asc" },
       },
@@ -43,10 +46,12 @@ async function getMatchData(slug: string, matchId: string) {
 }
 
 export async function generateMetadata({
+  searchParams,
   params,
 }: PublicMatchPageProps): Promise<Metadata> {
   const { slug, id } = await params;
-  const data = await getMatchData(slug, id);
+  const { t } = await searchParams;
+  const data = await getMatchData(slug, id, t);
 
   if (!data) {
     return { title: "Partida não encontrada" };
@@ -67,7 +72,7 @@ export async function generateMetadata({
       title,
       description,
       type: "website",
-      url: `/vitrine/${slug}/matches/${id}`,
+      url: `/vitrine/${slug}/matches/${id}?t=${t}`,
       siteName: "Site Time",
       locale: "pt_BR",
       ...(data.team.badgeUrl && { images: [{ url: data.team.badgeUrl, width: 200, height: 200, alt: `Escudo ${data.team.name}` }] }),
@@ -94,17 +99,13 @@ const statusLabels: Record<string, string> = {
   CANCELLED: "Cancelada",
 };
 
-const rsvpStatusLabels: Record<string, string> = {
-  PENDING: "Pendente",
-  CONFIRMED: "✅ Confirmado",
-  DECLINED: "❌ Recusado",
-};
-
 export default async function PublicMatchPage({
+  searchParams,
   params,
 }: PublicMatchPageProps) {
   const { slug, id } = await params;
-  const data = await getMatchData(slug, id);
+  const { t } = await searchParams;
+  const data = await getMatchData(slug, id, t);
 
   if (!data) {
     notFound();
@@ -218,21 +219,9 @@ export default async function PublicMatchPage({
                 <p className="text-sm text-gray-500">Pendentes</p>
               </div>
             </div>
-            <div className="space-y-2">
-              {match.rsvps.map((rsvp) => (
-                <div
-                  key={rsvp.playerId}
-                  className="flex items-center justify-between rounded-md bg-gray-50 px-4 py-2"
-                >
-                  <span className="text-sm font-medium text-gray-900">
-                    {rsvp.player.name}
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    {rsvpStatusLabels[rsvp.status]}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <p className="text-sm text-gray-500">
+              Por privacidade, os nomes e respostas individuais não são exibidos publicamente.
+            </p>
           </div>
         )}
 

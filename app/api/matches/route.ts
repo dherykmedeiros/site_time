@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireAuth } from "@/lib/auth";
 import { generateUUID } from "@/lib/utils";
-import { createMatchSchema } from "@/lib/validations/match";
+import { createMatchSchema, matchListQuerySchema } from "@/lib/validations/match";
 
 // GET /api/matches — List matches for the team
 export async function GET(request: Request) {
@@ -18,10 +18,25 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const status = searchParams.get("status");
-  const type = searchParams.get("type");
-  const from = searchParams.get("from");
-  const to = searchParams.get("to");
+  const parsedQuery = matchListQuerySchema.safeParse({
+    status: searchParams.get("status") ?? undefined,
+    type: searchParams.get("type") ?? undefined,
+    from: searchParams.get("from") ?? undefined,
+    to: searchParams.get("to") ?? undefined,
+  });
+
+  if (!parsedQuery.success) {
+    return NextResponse.json(
+      {
+        error: "Parâmetros de busca inválidos",
+        code: "VALIDATION_ERROR",
+        details: parsedQuery.error.flatten().fieldErrors,
+      },
+      { status: 400 }
+    );
+  }
+
+  const { status, type, from, to } = parsedQuery.data;
 
   const where: Prisma.MatchWhereInput = {
     teamId: session.user.teamId,
@@ -159,7 +174,7 @@ export async function POST(request: Request) {
   });
 
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-  const shareUrl = `${baseUrl}/vitrine/${team?.slug}/matches/${match.id}`;
+  const shareUrl = `${baseUrl}/vitrine/${team?.slug}/matches/${match.id}?t=${match.shareToken}`;
 
   return NextResponse.json(
     {

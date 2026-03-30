@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+const optionalIsoDate = z
+  .string()
+  .refine((val) => !isNaN(Date.parse(val)), "Data inválida")
+  .optional();
+
 export const createMatchSchema = z.object({
   date: z
     .string()
@@ -83,7 +88,26 @@ export const createMatchStatsSchema = z.object({
     .min(1, "Pelo menos 1 jogador é necessário"),
 });
 
+export const matchListQuerySchema = z
+  .object({
+    status: z.enum(["SCHEDULED", "COMPLETED", "CANCELLED"]).optional(),
+    type: z.enum(["FRIENDLY", "CHAMPIONSHIP"]).optional(),
+    from: optionalIsoDate,
+    to: optionalIsoDate,
+  })
+  .refine(
+    (data) => {
+      if (!data.from || !data.to) return true;
+      return new Date(data.from) <= new Date(data.to);
+    },
+    {
+      message: "Parâmetro 'from' deve ser menor ou igual a 'to'",
+      path: ["from"],
+    }
+  );
+
 export type CreateMatchInput = z.infer<typeof createMatchSchema>;
 export type UpdateMatchInput = z.infer<typeof updateMatchSchema>;
 export type RsvpResponseInput = z.infer<typeof rsvpResponseSchema>;
 export type CreateMatchStatsInput = z.infer<typeof createMatchStatsSchema>;
+export type MatchListQueryInput = z.infer<typeof matchListQuerySchema>;

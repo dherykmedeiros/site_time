@@ -4,11 +4,12 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { registerFromInviteSchema } from "@/lib/validations/auth";
 import { rateLimitRegister } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 // POST /api/auth/register-from-invite — Create account from invite token
 export async function POST(request: Request) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  const { allowed, retryAfterMinutes } = rateLimitRegister(ip);
+  const ip = extractClientIp(request);
+  const { allowed, retryAfterMinutes } = await rateLimitRegister(ip);
   if (!allowed) {
     return NextResponse.json(
       { error: "Muitas tentativas. Tente novamente em " + retryAfterMinutes + " minutos.", code: "RATE_LIMITED" },

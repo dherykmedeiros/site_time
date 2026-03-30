@@ -41,6 +41,11 @@ export default function SquadPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteMsg, setInviteMsg] = useState("");
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"delete" | "promote" | null>(null);
+  const [actionPlayer, setActionPlayer] = useState<Player | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchPlayers = useCallback(async () => {
     setLoading(true);
@@ -63,21 +68,17 @@ export default function SquadPage() {
   }, [fetchPlayers]);
 
   async function handleDelete(player: Player) {
-    if (!confirm(`Remover ${player.name} do elenco? O jogador será marcado como inativo.`)) {
-      return;
-    }
-
     const res = await fetch(`/api/players/${player.id}`, { method: "DELETE" });
     if (res.ok) {
-      fetchPlayers();
+      await fetchPlayers();
+      setFeedback(`${player.name} foi marcado como inativo.`);
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setActionError(data.error || "Erro ao remover jogador");
     }
   }
 
   async function handlePromote(player: Player) {
-    if (!confirm(`Promover ${player.name} para Admin (Diretoria)?`)) {
-      return;
-    }
-
     const res = await fetch(`/api/players/${player.id}/promote`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -85,11 +86,29 @@ export default function SquadPage() {
     });
 
     if (res.ok) {
-      fetchPlayers();
+      await fetchPlayers();
+      setFeedback(`${player.name} foi promovido para Admin.`);
     } else {
-      const data = await res.json();
-      alert(data.error || "Erro ao promover jogador");
+      const data = await res.json().catch(() => ({}));
+      setActionError(data.error || "Erro ao promover jogador");
     }
+  }
+
+  async function handleConfirmAction() {
+    if (!actionPlayer || !confirmAction) return;
+
+    setActionLoading(true);
+    setActionError(null);
+
+    if (confirmAction === "delete") {
+      await handleDelete(actionPlayer);
+    } else {
+      await handlePromote(actionPlayer);
+    }
+
+    setActionLoading(false);
+    setConfirmAction(null);
+    setActionPlayer(null);
   }
 
   async function handleInvite() {
@@ -131,6 +150,18 @@ export default function SquadPage() {
         <h1 className="text-2xl font-bold text-gray-900">Elenco</h1>
         <Button onClick={() => setShowAddModal(true)}>+ Adicionar Jogador</Button>
       </div>
+
+      {feedback && (
+        <div className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-700">
+          {feedback}
+        </div>
+      )}
+
+      {actionError && (
+        <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
+          {actionError}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="mb-4 flex gap-2">
@@ -233,7 +264,11 @@ export default function SquadPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handlePromote(player)}
+                      onClick={() => {
+                        setActionPlayer(player);
+                        setConfirmAction("promote");
+                        setActionError(null);
+                      }}
                     >
                       Promover
                     </Button>
@@ -249,7 +284,11 @@ export default function SquadPage() {
                     <Button
                       variant="danger"
                       size="sm"
-                      onClick={() => handleDelete(player)}
+                      onClick={() => {
+                        setActionPlayer(player);
+                        setConfirmAction("delete");
+                        setActionError(null);
+                      }}
                     >
                       Remover
                     </Button>
@@ -335,6 +374,43 @@ export default function SquadPage() {
               {inviteLoading ? "Enviando..." : "Enviar Convite"}
             </Button>
             <Button variant="secondary" onClick={() => setInviteModal(null)}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!confirmAction && !!actionPlayer}
+        onClose={() => {
+          if (actionLoading) return;
+          setConfirmAction(null);
+          setActionPlayer(null);
+        }}
+        title={confirmAction === "delete" ? "Remover jogador" : "Promover jogador"}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            {confirmAction === "delete"
+              ? `Remover ${actionPlayer?.name} do elenco? O jogador será marcado como inativo.`
+              : `Promover ${actionPlayer?.name} para Admin (Diretoria)?`}
+          </p>
+          <div className="flex gap-3">
+            <Button
+              variant={confirmAction === "delete" ? "danger" : "default"}
+              onClick={handleConfirmAction}
+              disabled={actionLoading}
+            >
+              {actionLoading ? "Processando..." : "Confirmar"}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setConfirmAction(null);
+                setActionPlayer(null);
+              }}
+              disabled={actionLoading}
+            >
               Cancelar
             </Button>
           </div>

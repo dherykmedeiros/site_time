@@ -3,11 +3,12 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations/auth";
 import { rateLimitRegister } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 export async function POST(request: Request) {
   try {
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    const { allowed, retryAfterMinutes } = rateLimitRegister(ip);
+    const ip = extractClientIp(request);
+    const { allowed, retryAfterMinutes } = await rateLimitRegister(ip);
     if (!allowed) {
       return NextResponse.json(
         { error: "RATE_LIMITED", message: `Muitas tentativas. Tente novamente em ${retryAfterMinutes} minutos.` },
@@ -25,7 +26,26 @@ export async function POST(request: Request) {
       );
     }
 
-    const { email, password, name } = parsed.data;
+    const { email, password, name, registrationCode } = parsed.data;
+
+    const allowPublicAdminRegister =
+      process.env.ALLOW_PUBLIC_ADMIN_REGISTER === "true";
+    const adminCount = await prisma.user.count({
+      where: { role: "ADMIN" },
+    });
+
+    if (!allowPublicAdminRegister && adminCount > 0) {
+      const expectedCode = process.env.ADMIN_REGISTRATION_CODE;
+      if (!expectedCode || registrationCode !== expectedCode) {
+        return NextResponse.json(
+          {
+            error: "REGISTRATION_LOCKED",
+            message: "Cadastro administrativo indisponível no momento",
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {

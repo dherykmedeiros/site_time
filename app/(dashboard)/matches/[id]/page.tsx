@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
+import { Modal } from "@/components/ui/Modal";
 
 const PostGameForm = dynamic(
   () => import("@/components/forms/PostGameForm").then((m) => ({ default: m.PostGameForm })),
@@ -85,6 +86,11 @@ export default function MatchDetailPage() {
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [showPostGame, setShowPostGame] = useState(false);
   const [copyMsg, setCopyMsg] = useState("");
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchMatch = useCallback(async () => {
     setLoading(true);
@@ -115,44 +121,59 @@ export default function MatchDetailPage() {
       });
       if (res.ok) {
         fetchMatch();
+        setFeedback("Presença registrada com sucesso.");
       } else {
         const data = await res.json();
-        alert(data.error || "Erro ao registrar presença");
+        setActionError(data.error || "Erro ao registrar presença");
       }
     } catch {
-      alert("Erro de conexão");
+      setActionError("Erro de conexão");
     } finally {
       setRsvpLoading(false);
     }
   }
 
-  async function handleCancel() {
-    if (!confirm("Cancelar esta partida?")) return;
+  async function handleCancelConfirm() {
+    setActionLoading(true);
+    setActionError(null);
+
     const res = await fetch(`/api/matches/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "CANCELLED" }),
     });
+
     if (res.ok) {
-      fetchMatch();
+      setConfirmCancelOpen(false);
+      setFeedback("Partida cancelada com sucesso.");
+      await fetchMatch();
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setActionError(data.error || "Erro ao cancelar partida");
     }
+
+    setActionLoading(false);
   }
 
-  async function handleDelete() {
+  async function handleDeleteConfirm() {
     if (!match) return;
-    const msg =
-      match.stats.length > 0
-        ? "Esta partida tem estatísticas. Excluir permanentemente?"
-        : "Excluir esta partida?";
-    if (!confirm(msg)) return;
+
+    setActionLoading(true);
+    setActionError(null);
 
     const confirm_param = match.stats.length > 0 ? "?confirm=true" : "";
     const res = await fetch(`/api/matches/${id}${confirm_param}`, {
       method: "DELETE",
     });
+
     if (res.ok) {
       router.push("/matches");
+      return;
     }
+
+    const data = await res.json().catch(() => ({}));
+    setActionError(data.error || "Erro ao excluir partida");
+    setActionLoading(false);
   }
 
   function handleCopyLink() {
@@ -203,11 +224,11 @@ export default function MatchDetailPage() {
             🔗 Compartilhar
           </Button>
           {match.status === "SCHEDULED" && (
-            <Button variant="danger" onClick={handleCancel}>
+            <Button variant="danger" onClick={() => setConfirmCancelOpen(true)}>
               Cancelar Partida
             </Button>
           )}
-          <Button variant="danger" onClick={handleDelete}>
+          <Button variant="danger" onClick={() => setConfirmDeleteOpen(true)}>
             Excluir
           </Button>
         </div>
@@ -216,6 +237,18 @@ export default function MatchDetailPage() {
       {copyMsg && (
         <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
           {copyMsg}
+        </div>
+      )}
+
+      {feedback && (
+        <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+          {feedback}
+        </div>
+      )}
+
+      {actionError && (
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+          {actionError}
         </div>
       )}
 
@@ -429,6 +462,64 @@ export default function MatchDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <Modal
+        open={confirmCancelOpen}
+        onClose={() => setConfirmCancelOpen(false)}
+        title="Cancelar partida"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Tem certeza que deseja cancelar esta partida?
+          </p>
+          <div className="flex gap-3">
+            <Button
+              variant="danger"
+              onClick={handleCancelConfirm}
+              disabled={actionLoading}
+            >
+              {actionLoading ? "Cancelando..." : "Confirmar cancelamento"}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setConfirmCancelOpen(false)}
+              disabled={actionLoading}
+            >
+              Voltar
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        title="Excluir partida"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            {match.stats.length > 0
+              ? "Esta partida possui estatísticas e será excluída permanentemente. Deseja continuar?"
+              : "Deseja excluir esta partida permanentemente?"}
+          </p>
+          <div className="flex gap-3">
+            <Button
+              variant="danger"
+              onClick={handleDeleteConfirm}
+              disabled={actionLoading}
+            >
+              {actionLoading ? "Excluindo..." : "Confirmar exclusão"}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setConfirmDeleteOpen(false)}
+              disabled={actionLoading}
+            >
+              Voltar
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

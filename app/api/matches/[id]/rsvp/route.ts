@@ -47,6 +47,16 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 
+  if (player.teamId !== session.user.teamId) {
+    return NextResponse.json(
+      {
+        error: "Jogador não pertence ao mesmo time da sessão",
+        code: "FORBIDDEN",
+      },
+      { status: 403 }
+    );
+  }
+
   // Find the match
   const match = await prisma.match.findFirst({
     where: { id: matchId, teamId: session.user.teamId },

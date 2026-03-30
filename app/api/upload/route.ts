@@ -3,6 +3,8 @@ import { requireAuth } from "@/lib/auth";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { generateUUID } from "@/lib/utils";
+import { rateLimitUpload } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 
@@ -29,6 +31,18 @@ function detectImageType(buffer: Buffer): string | null {
 export async function POST(request: Request) {
   const { error } = await requireAuth();
   if (error) return error;
+
+  const ip = extractClientIp(request);
+  const { allowed, retryAfterMinutes } = await rateLimitUpload(ip);
+  if (!allowed) {
+    return NextResponse.json(
+      {
+        error: `Muitas tentativas de upload. Tente novamente em ${retryAfterMinutes} minutos.`,
+        code: "RATE_LIMITED",
+      },
+      { status: 429 }
+    );
+  }
 
   try {
     const formData = await request.formData();

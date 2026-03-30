@@ -36,6 +36,8 @@ export default function RegisterPage() {
       const body = await res.json();
       if (body.error === "EMAIL_EXISTS") {
         setError("Este e-mail já está cadastrado");
+      } else if (body.error === "REGISTRATION_LOCKED") {
+        setError("Cadastro administrativo bloqueado. Solicite o código de cadastro ao responsável pela liga.");
       } else {
         setError("Erro ao criar conta. Tente novamente.");
       }
@@ -128,6 +130,26 @@ export default function RegisterPage() {
             {errors.password && (
               <p className="mt-1 text-sm text-red-600">
                 {errors.password.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label
+              htmlFor="registrationCode"
+              className="mb-1 block text-sm font-medium text-gray-700"
+            >
+              Código de cadastro administrativo (opcional)
+            </label>
+            <Input
+              id="registrationCode"
+              type="text"
+              placeholder="Informe se sua liga forneceu"
+              {...register("registrationCode")}
+            />
+            {errors.registrationCode && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.registrationCode.message}
               </p>
             )}
           </div>
