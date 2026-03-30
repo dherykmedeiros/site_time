@@ -12,22 +12,22 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     return (
       <div className="space-y-1">
         {label && (
-          <label htmlFor={textareaId} className="block text-sm font-medium text-gray-700">
+          <label htmlFor={textareaId} className="block text-sm font-semibold text-[var(--text)]">
             {label}
           </label>
         )}
         <textarea
           ref={ref}
           id={textareaId}
-          className={`block w-full rounded-md border px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 ${
+          className={`block w-full rounded-[12px] border bg-white px-3 py-2 text-sm text-[var(--text)] shadow-sm transition-colors focus:outline-none ${
             error
-              ? "border-red-300 focus:border-red-500 focus:ring-red-500"
-              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              ? "border-[#e2a79b] focus:border-[var(--danger)]"
+              : "border-[var(--border)] focus:border-[var(--brand)]"
           } ${className}`}
           rows={4}
           {...props}
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
       </div>
     );
   }

@@ -100,16 +100,22 @@ export default function MatchesPage() {
   }, [fetchMatches]);
 
   return (
-    <div>
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Jogos</h1>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 rounded-[22px] border border-[#b7d8ce] bg-gradient-to-r from-[#e4f3ed] via-[#eff7ef] to-[#f7f1e7] p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.17em] text-[#2a6f60]">
+            Agenda esportiva
+          </p>
+          <h1 className="text-2xl font-bold text-[var(--text)]">Jogos do Time</h1>
+        </div>
         <Button onClick={() => setShowAddModal(true)}>+ Agendar Partida</Button>
       </div>
 
       {/* Filters */}
-      <div className="mb-6 flex flex-wrap gap-4">
+      <div className="app-surface flex flex-wrap gap-4 rounded-[16px] p-4">
         <div className="w-48">
           <Select
+            label="Status"
             options={statusFilterOptions}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -117,6 +123,7 @@ export default function MatchesPage() {
         </div>
         <div className="w-48">
           <Select
+            label="Tipo"
             options={typeFilterOptions}
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
@@ -128,7 +135,7 @@ export default function MatchesPage() {
       {loading ? (
         <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-lg border border-gray-200 bg-white p-4">
+            <div key={i} className="app-surface rounded-[14px] p-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <div className="h-4 w-48 animate-pulse rounded bg-gray-200" />
@@ -144,9 +151,9 @@ export default function MatchesPage() {
           ))}
         </div>
       ) : matches.length === 0 ? (
-        <Card className="p-8 text-center">
-          <p className="text-gray-500">Nenhuma partida encontrada.</p>
-          <p className="mt-2 text-sm text-gray-400">
+        <Card className="rounded-[18px] p-8 text-center shadow-sm">
+          <p className="text-[var(--text-muted)]">Nenhuma partida encontrada.</p>
+          <p className="mt-2 text-sm text-[var(--text-muted)]/80">
             Agende a primeira partida do time!
           </p>
         </Card>
@@ -154,11 +161,11 @@ export default function MatchesPage() {
         <div className="space-y-4">
           {matches.map((match) => (
             <Link key={match.id} href={`/matches/${match.id}`}>
-              <Card className="p-4 transition-shadow hover:shadow-md">
+              <Card className="rounded-[18px] p-4 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-semibold text-[var(--text)]">
                         vs {match.opponent}
                       </span>
                       <Badge variant={statusVariants[match.status]}>
@@ -166,19 +173,20 @@ export default function MatchesPage() {
                       </Badge>
                       <Badge variant="default">{typeLabels[match.type]}</Badge>
                     </div>
-                    <div className="mt-1 flex gap-4 text-sm text-gray-500">
+                    <div className="mt-1 flex flex-wrap gap-4 text-sm text-[var(--text-muted)]">
                       <span>📅 {formatMatchDate(match.date)}</span>
                       <span>📍 {match.venue}</span>
                     </div>
                     {match.status === "COMPLETED" &&
                       match.homeScore !== null &&
                       match.awayScore !== null && (
-                        <div className="mt-1 text-sm font-medium text-gray-700">
+                        <div className="mt-1 text-sm font-semibold text-[var(--text)]">
                           Placar: {match.homeScore} x {match.awayScore}
                         </div>
                       )}
                   </div>
-                  <div className="flex items-center gap-3 text-sm">
+                  <div className="rounded-xl border border-[#e5ece5] bg-[#f8fbf8] px-3 py-2 text-sm">
+                    <div className="flex items-center gap-3">
                     <span className="text-green-600">
                       ✅ {match.rsvpSummary.confirmed}
                     </span>
@@ -188,6 +196,7 @@ export default function MatchesPage() {
                     <span className="text-yellow-600">
                       ⏳ {match.rsvpSummary.pending}
                     </span>
+                    </div>
                   </div>
                 </div>
               </Card>

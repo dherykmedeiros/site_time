@@ -166,27 +166,32 @@ export default function FinancesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Finanças</h1>
+      <div className="flex flex-col gap-4 rounded-[22px] border border-[#b7d8ce] bg-gradient-to-r from-[#e4f3ed] via-[#eff7ef] to-[#f7f1e7] p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.17em] text-[#2a6f60]">
+            Controle financeiro
+          </p>
+          <h1 className="text-2xl font-bold text-[var(--text)]">Financas</h1>
+        </div>
         <Button onClick={() => setShowForm(true)}>+ Nova Transação</Button>
       </div>
 
       {feedback && (
-        <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
+        <div className="rounded-[12px] border border-[#bde0d3] bg-[#e9f8f1] p-3 text-sm text-[#1d5f4f]">
           {feedback}
         </div>
       )}
 
       {actionError && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-[12px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[var(--danger)]">
           {actionError}
         </div>
       )}
 
       {/* Balance Card */}
-      <Card>
+      <Card className="rounded-[18px]">
         <CardContent className="py-6 text-center">
-          <p className="text-sm text-gray-500">Saldo Total</p>
+          <p className="text-sm text-[var(--text-muted)]">Saldo Total</p>
           <p
             className={`text-3xl font-bold ${
               balance >= 0 ? "text-green-600" : "text-red-600"
@@ -198,23 +203,23 @@ export default function FinancesPage() {
       </Card>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="app-surface flex w-fit gap-2 rounded-full border p-1">
         <button
           onClick={() => setActiveTab("list")}
-          className={`px-4 py-2 text-sm font-medium ${
+          className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
             activeTab === "list"
-              ? "border-b-2 border-blue-600 text-blue-600"
-              : "text-gray-500 hover:text-gray-700"
+              ? "bg-[var(--brand)] text-white"
+              : "text-[var(--text-muted)] hover:bg-[#eef2ee]"
           }`}
         >
           Transações
         </button>
         <button
           onClick={() => setActiveTab("summary")}
-          className={`px-4 py-2 text-sm font-medium ${
+          className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
             activeTab === "summary"
-              ? "border-b-2 border-blue-600 text-blue-600"
-              : "text-gray-500 hover:text-gray-700"
+              ? "bg-[var(--brand)] text-white"
+              : "text-[var(--text-muted)] hover:bg-[#eef2ee]"
           }`}
         >
           Resumo Mensal
@@ -224,7 +229,7 @@ export default function FinancesPage() {
       {activeTab === "list" && (
         <>
           {/* Filters */}
-          <div className="flex flex-wrap gap-4">
+          <div className="app-surface flex flex-wrap gap-4 rounded-[16px] p-4">
             <div className="w-40">
               <Select
                 label="Tipo"
@@ -245,27 +250,27 @@ export default function FinancesPage() {
 
           {/* List */}
           {loading ? (
-            <p className="text-center text-gray-500">Carregando...</p>
+            <p className="text-center text-[var(--text-muted)]">Carregando...</p>
           ) : transactions.length === 0 ? (
-            <Card>
+            <Card className="rounded-[18px]">
               <CardContent className="py-12 text-center">
-                <p className="text-gray-500">Nenhuma transação encontrada.</p>
+                <p className="text-[var(--text-muted)]">Nenhuma transação encontrada.</p>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-3">
               {transactions.map((t) => (
-                <Card key={t.id}>
+                <Card key={t.id} className="rounded-[18px]">
                   <CardContent className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">
                         {t.type === "INCOME" ? "💰" : "💸"}
                       </span>
                       <div className="min-w-0">
-                        <p className="font-medium text-gray-900 truncate">
+                        <p className="truncate font-medium text-[var(--text)]">
                           {t.description}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-[var(--text-muted)]">
                           {categoryLabels[t.category] || t.category} •{" "}
                           {new Date(t.date).toLocaleDateString("pt-BR")}
                         </p>
@@ -287,7 +292,7 @@ export default function FinancesPage() {
                           setDeleteTarget(t.id);
                           setActionError(null);
                         }}
-                        className="text-xs text-red-500 hover:text-red-700"
+                        className="text-xs font-semibold text-[var(--danger)] hover:underline"
                       >
                         Excluir
                       </button>
@@ -309,7 +314,7 @@ export default function FinancesPage() {
               >
                 Anterior
               </Button>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-[var(--text-muted)]">
                 Página {pagination.page} de {pagination.totalPages}
               </span>
               <Button
@@ -354,30 +359,30 @@ export default function FinancesPage() {
           </div>
 
           {summaryLoading ? (
-            <p className="text-center text-gray-500">Carregando resumo...</p>
+            <p className="text-center text-[var(--text-muted)]">Carregando resumo...</p>
           ) : summary ? (
             <div className="space-y-4">
               {/* Totals */}
               <div className="grid gap-4 sm:grid-cols-3">
-                <Card>
+                <Card className="rounded-[18px]">
                   <CardContent className="py-4 text-center">
-                    <p className="text-sm text-gray-500">Receitas</p>
+                    <p className="text-sm text-[var(--text-muted)]">Receitas</p>
                     <p className="text-2xl font-bold text-green-600">
                       {formatCurrency(summary.totalIncome)}
                     </p>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card className="rounded-[18px]">
                   <CardContent className="py-4 text-center">
-                    <p className="text-sm text-gray-500">Despesas</p>
+                    <p className="text-sm text-[var(--text-muted)]">Despesas</p>
                     <p className="text-2xl font-bold text-red-600">
                       {formatCurrency(summary.totalExpense)}
                     </p>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card className="rounded-[18px]">
                   <CardContent className="py-4 text-center">
-                    <p className="text-sm text-gray-500">Balanço</p>
+                    <p className="text-sm text-[var(--text-muted)]">Balanco</p>
                     <p
                       className={`text-2xl font-bold ${
                         summary.balance >= 0
@@ -393,9 +398,9 @@ export default function FinancesPage() {
 
               {/* By Category */}
               {summary.byCategory.length > 0 && (
-                <Card>
+                <Card className="rounded-[18px]">
                   <CardHeader>
-                    <h3 className="font-semibold text-gray-900">
+                    <h3 className="font-semibold text-[var(--text)]">
                       Detalhamento por Categoria
                     </h3>
                   </CardHeader>
@@ -404,7 +409,7 @@ export default function FinancesPage() {
                       {summary.byCategory.map((entry, i) => (
                         <div
                           key={i}
-                          className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2"
+                          className="flex items-center justify-between rounded-lg border border-[#e5ece5] bg-[#f8fbf8] px-4 py-2"
                         >
                           <div className="flex items-center gap-2">
                             <Badge
@@ -418,16 +423,16 @@ export default function FinancesPage() {
                                 ? "Receita"
                                 : "Despesa"}
                             </Badge>
-                            <span className="text-sm text-gray-900">
+                            <span className="text-sm text-[var(--text)]">
                               {categoryLabels[entry.category] ||
                                 entry.category}
                             </span>
                           </div>
                           <div className="text-right">
-                            <span className="font-medium text-gray-900">
+                            <span className="font-medium text-[var(--text)]">
                               {formatCurrency(entry.total)}
                             </span>
-                            <span className="ml-2 text-xs text-gray-500">
+                            <span className="ml-2 text-xs text-[var(--text-muted)]">
                               ({entry.count} lançamento
                               {entry.count !== 1 ? "s" : ""})
                             </span>
@@ -440,9 +445,9 @@ export default function FinancesPage() {
               )}
             </div>
           ) : (
-            <Card>
+            <Card className="rounded-[18px]">
               <CardContent className="py-12 text-center">
-                <p className="text-gray-500">
+                <p className="text-[var(--text-muted)]">
                   Nenhum dado para o período selecionado.
                 </p>
               </CardContent>
@@ -475,7 +480,7 @@ export default function FinancesPage() {
         title="Excluir transação"
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-[var(--text-muted)]">
             Deseja realmente excluir esta transação?
           </p>
           <div className="flex gap-3">

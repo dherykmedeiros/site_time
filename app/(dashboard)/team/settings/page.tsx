@@ -32,7 +32,6 @@ export default function TeamSettingsPage() {
         setHasTeam(true);
       }
     } catch {
-      // Will show create form
       setHasTeam(false);
     } finally {
       setLoading(false);
@@ -46,26 +45,31 @@ export default function TeamSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-gray-500">Carregando...</p>
+        <p className="text-[var(--text-muted)]">Carregando...</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">
-        {hasTeam ? "Configurações do Time" : "Criar Time"}
-      </h1>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div className="rounded-[22px] border border-[#b7d8ce] bg-gradient-to-r from-[#e4f3ed] via-[#eff7ef] to-[#f7f1e7] p-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.17em] text-[#2a6f60]">
+          Identidade do clube
+        </p>
+        <h1 className="mt-1 text-2xl font-bold text-[var(--text)]">
+          {hasTeam ? "Configuracoes do Time" : "Criar Time"}
+        </h1>
+      </div>
 
       {!hasTeam && (
-        <div className="rounded-md bg-blue-50 p-4 text-sm text-blue-700">
-          Você ainda não criou um time. Preencha as informações abaixo para começar.
+        <div className="rounded-[14px] border border-[#bde0d3] bg-[#e9f8f1] p-4 text-sm text-[#1d5f4f]">
+          Voce ainda nao criou um time. Preencha as informacoes abaixo para comecar.
         </div>
       )}
 
-      <Card>
+      <Card className="rounded-[18px]">
         <CardHeader>
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-semibold text-[var(--text)]">
             {hasTeam ? "Perfil do Time" : "Novo Time"}
           </h2>
         </CardHeader>
@@ -77,8 +81,8 @@ export default function TeamSettingsPage() {
                 ? {
                     name: team.name,
                     description: team.description || "",
-                    primaryColor: team.primaryColor || "#0000FF",
-                    secondaryColor: team.secondaryColor || "#FFFFFF",
+                    primaryColor: team.primaryColor || "#0c6f5d",
+                    secondaryColor: team.secondaryColor || "#f6f8f5",
                     defaultVenue: team.defaultVenue || "",
                     badgeUrl: team.badgeUrl || "",
                   }
@@ -93,15 +97,15 @@ export default function TeamSettingsPage() {
       </Card>
 
       {team?.slug && (
-        <Card>
+        <Card className="rounded-[18px]">
           <CardContent className="py-4">
-            <p className="text-sm text-gray-600">
-              <strong>Vitrine pública:</strong>{" "}
+            <p className="text-sm text-[var(--text-muted)]">
+              <strong>Vitrine publica:</strong>{" "}
               <a
                 href={`/vitrine/${team.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline"
+                className="font-semibold text-[var(--brand)] hover:underline"
               >
                 /vitrine/{team.slug}
               </a>

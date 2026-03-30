@@ -145,34 +145,39 @@ export default function SquadPage() {
   }
 
   return (
-    <div>
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Elenco</h1>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 rounded-[22px] border border-[#b7d8ce] bg-gradient-to-r from-[#e4f3ed] via-[#eff7ef] to-[#f7f1e7] p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.17em] text-[#2a6f60]">
+            Gestao de atletas
+          </p>
+          <h1 className="text-2xl font-bold text-[var(--text)]">Elenco</h1>
+        </div>
         <Button onClick={() => setShowAddModal(true)}>+ Adicionar Jogador</Button>
       </div>
 
       {feedback && (
-        <div className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-700">
+        <div className="rounded-[12px] border border-[#bde0d3] bg-[#e9f8f1] p-3 text-sm text-[#1d5f4f]">
           {feedback}
         </div>
       )}
 
       {actionError && (
-        <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-[12px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[var(--danger)]">
           {actionError}
         </div>
       )}
 
       {/* Filters */}
-      <div className="mb-4 flex gap-2">
+      <div className="app-surface flex flex-wrap gap-2 rounded-[16px] p-3">
         {["ALL", "ACTIVE", "INACTIVE"].map((s) => (
           <button
             key={s}
             onClick={() => setStatusFilter(s)}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
               statusFilter === s
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                ? "bg-[var(--brand)] text-white"
+                : "bg-[#edf2ed] text-[var(--text-muted)] hover:bg-[#e1ebe1]"
             }`}
           >
             {s === "ALL" ? "Todos" : s === "ACTIVE" ? "Ativos" : "Inativos"}
@@ -184,7 +189,7 @@ export default function SquadPage() {
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-4 rounded-lg border border-gray-200 bg-white p-4">
+            <div key={i} className="app-surface flex items-center gap-4 rounded-[14px] p-4">
               <div className="h-12 w-12 animate-pulse rounded-full bg-gray-200" />
               <div className="flex-1 space-y-2">
                 <div className="h-4 w-40 animate-pulse rounded bg-gray-200" />
@@ -194,8 +199,8 @@ export default function SquadPage() {
           ))}
         </div>
       ) : players.length === 0 ? (
-        <Card>
-          <div className="p-8 text-center text-gray-500">
+        <Card className="rounded-[18px]">
+          <div className="p-8 text-center text-[var(--text-muted)]">
             <p className="text-lg">Nenhum jogador cadastrado</p>
             <p className="mt-1 text-sm">Adicione jogadores ao elenco para começar.</p>
           </div>
@@ -203,7 +208,7 @@ export default function SquadPage() {
       ) : (
         <div className="space-y-3">
           {players.map((player) => (
-            <Card key={player.id}>
+            <Card key={player.id} className="rounded-[18px]">
               <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-4">
                   {player.photoUrl ? (
@@ -213,18 +218,18 @@ export default function SquadPage() {
                       className="h-12 w-12 flex-shrink-0 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-lg font-bold text-white">
+                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[var(--brand)] text-lg font-bold text-white">
                       {player.shirtNumber}
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-[var(--text)]">
                       {player.name}{" "}
-                      <span className="text-sm font-normal text-gray-500">
+                      <span className="text-sm font-normal text-[var(--text-muted)]">
                         #{player.shirtNumber}
                       </span>
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-[var(--text-muted)]">
                       {positionLabels[player.position] || player.position}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-2 sm:hidden">

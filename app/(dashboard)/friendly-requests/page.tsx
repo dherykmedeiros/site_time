@@ -131,14 +131,17 @@ export default function FriendlyRequestsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">
+      <div className="rounded-[22px] border border-[#b7d8ce] bg-gradient-to-r from-[#e4f3ed] via-[#eff7ef] to-[#f7f1e7] p-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.17em] text-[#2a6f60]">
+          Relacionamento entre times
+        </p>
+        <h1 className="mt-1 text-2xl font-bold text-[var(--text)]">
           Solicitações de Amistoso
         </h1>
       </div>
 
       {/* Filter */}
-      <div className="w-48">
+      <div className="app-surface w-full max-w-xs rounded-[16px] p-4">
         <Select
           label="Status"
           value={statusFilter}
@@ -149,65 +152,65 @@ export default function FriendlyRequestsPage() {
 
       {/* List */}
       {loading ? (
-        <p className="text-center text-gray-500">Carregando...</p>
+        <p className="text-center text-[var(--text-muted)]">Carregando...</p>
       ) : requests.length === 0 ? (
-        <Card>
+        <Card className="rounded-[18px]">
           <CardContent className="py-12 text-center">
-            <p className="text-gray-500">Nenhuma solicitação encontrada.</p>
+            <p className="text-[var(--text-muted)]">Nenhuma solicitação encontrada.</p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
           {requests.map((req) => (
-            <Card key={req.id}>
+            <Card key={req.id} className="rounded-[18px]">
               <CardContent className="py-4">
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-900">
+                      <h3 className="font-semibold text-[var(--text)]">
                         {req.requesterTeamName}
                       </h3>
                       <Badge variant={statusVariants[req.status]}>
                         {statusLabels[req.status]}
                       </Badge>
                     </div>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[var(--text-muted)]">
                       📧 {req.contactEmail}
                       {req.contactPhone && ` • 📞 ${req.contactPhone}`}
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[var(--text-muted)]">
                       📅 {req.suggestedDates}
                     </p>
                     {req.suggestedVenue && (
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-[var(--text-muted)]">
                         📍 {req.suggestedVenue}
                       </p>
                     )}
                     {req.proposedFee != null && (
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-[var(--text-muted)]">
                         💰 R$ {req.proposedFee.toFixed(2)}
                       </p>
                     )}
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-[var(--text-muted)]/85">
                       Recebido em{" "}
                       {new Date(req.createdAt).toLocaleDateString("pt-BR")}
                     </p>
                   </div>
 
                   {req.status === "PENDING" && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 self-start">
                       <Button
                         size="sm"
                         onClick={() => openApproveModal(req)}
                       >
-                        ✅ Aprovar
+                        Aprovar
                       </Button>
                       <Button
                         size="sm"
                         variant="danger"
                         onClick={() => openRejectModal(req)}
                       >
-                        ❌ Rejeitar
+                        Rejeitar
                       </Button>
                     </div>
                   )}
@@ -226,9 +229,9 @@ export default function FriendlyRequestsPage() {
       >
         <div className="space-y-4">
           {actionError && (
-            <p className="text-sm text-red-600">{actionError}</p>
+            <p className="rounded-[12px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[var(--danger)]">{actionError}</p>
           )}
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-[var(--text-muted)]">
             Ao aprovar, uma partida será criada automaticamente no calendário do
             time.
           </p>
@@ -263,7 +266,7 @@ export default function FriendlyRequestsPage() {
       >
         <div className="space-y-4">
           {actionError && (
-            <p className="text-sm text-red-600">{actionError}</p>
+            <p className="rounded-[12px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[var(--danger)]">{actionError}</p>
           )}
           <Textarea
             label="Motivo da rejeição"
