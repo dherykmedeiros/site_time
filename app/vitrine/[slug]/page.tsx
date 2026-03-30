@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { FriendlyRequestForm } from "./FriendlyRequestForm";
 
 interface VitrinePageProps {
@@ -142,16 +143,23 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
   const stats = await getTeamStats(team.id);
 
   return (
-    <div className="min-h-screen bg-transparent">
-      {/* Header */}
+    <div className="min-h-screen bg-transparent pb-16">
       <header
-        className="relative overflow-hidden py-20 text-white"
+        className="relative overflow-hidden px-4 pb-20 pt-14 text-white"
         style={{
           backgroundColor: team.primaryColor || "#1e40af",
         }}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(255,255,255,0.2),transparent_35%),radial-gradient(circle_at_85%_0%,rgba(255,219,178,0.35),transparent_30%)]" />
-        <div className="mx-auto max-w-4xl px-4 text-center">
+        <div className="relative mx-auto max-w-5xl">
+          <Link
+            href="/vitrine"
+            className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-white/25"
+          >
+            Ver outros times
+          </Link>
+        </div>
+        <div className="relative mx-auto mt-8 max-w-4xl text-center">
           {team.badgeUrl ? (
             <img
               src={team.badgeUrl}
@@ -166,29 +174,60 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
               ⚽
             </div>
           )}
-          <h1 className="text-4xl font-bold sm:text-5xl">{team.name}</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
+            Perfil Oficial
+          </p>
+          <h1 className="mt-2 text-balance font-display text-4xl font-bold sm:text-5xl">{team.name}</h1>
           {team.description && (
             <p className="mx-auto mt-4 max-w-2xl text-base text-white/85 sm:text-lg">{team.description}</p>
           )}
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
+            <a
+              href="#retrospecto"
+              className="rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/25"
+            >
+              Retrospecto
+            </a>
+            <a
+              href="#elenco"
+              className="rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/25"
+            >
+              Elenco
+            </a>
+            <a
+              href="#amistoso"
+              className="rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/25"
+            >
+              Solicitar jogo
+            </a>
+          </div>
         </div>
       </header>
 
-      {/* Info Cards */}
-      <main className="mx-auto -mt-10 max-w-5xl px-4 pb-20">
+      <main className="mx-auto -mt-10 max-w-5xl px-4">
         <div className="grid gap-6 md:grid-cols-3">
-          <div className="app-surface rounded-[20px] p-6 text-center shadow-[var(--shadow-md)]">
+          <div className="app-surface rounded-[22px] p-6 text-center shadow-[var(--shadow-md)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+              Elenco
+            </p>
             <p className="text-3xl font-bold text-[var(--text)]">
               {team._count.players}
             </p>
             <p className="mt-1 text-sm text-[var(--text-muted)]">Jogadores</p>
           </div>
-          <div className="app-surface rounded-[20px] p-6 text-center shadow-[var(--shadow-md)]">
+          <div className="app-surface rounded-[22px] p-6 text-center shadow-[var(--shadow-md)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+              Temporada
+            </p>
             <p className="text-3xl font-bold text-[var(--text)]">
               {stats.totalMatches}
             </p>
             <p className="mt-1 text-sm text-[var(--text-muted)]">Partidas Disputadas</p>
           </div>
-          <div className="app-surface rounded-[20px] p-6 text-center shadow-[var(--shadow-md)]">
+          <div className="app-surface rounded-[22px] p-6 text-center shadow-[var(--shadow-md)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+              Performance
+            </p>
             <p className="text-3xl font-bold text-[var(--text)]">
               {stats.winRate}%
             </p>
@@ -196,24 +235,23 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
           </div>
         </div>
 
-        {/* Team Record */}
         {stats.totalMatches > 0 && (
-          <section className="mt-10">
+          <section id="retrospecto" className="mt-10">
             <h2 className="mb-4 text-2xl font-bold text-[var(--text)]">Retrospecto</h2>
             <div className="grid gap-4 sm:grid-cols-4">
-              <div className="app-surface rounded-[16px] p-4 text-center">
+              <div className="app-surface rounded-[18px] border border-emerald-100 p-4 text-center">
                 <p className="text-2xl font-bold text-green-600">{stats.wins}</p>
                 <p className="text-sm text-[var(--text-muted)]">Vitórias</p>
               </div>
-              <div className="app-surface rounded-[16px] p-4 text-center">
+              <div className="app-surface rounded-[18px] border border-amber-100 p-4 text-center">
                 <p className="text-2xl font-bold text-yellow-600">{stats.draws}</p>
                 <p className="text-sm text-[var(--text-muted)]">Empates</p>
               </div>
-              <div className="app-surface rounded-[16px] p-4 text-center">
+              <div className="app-surface rounded-[18px] border border-rose-100 p-4 text-center">
                 <p className="text-2xl font-bold text-red-600">{stats.losses}</p>
                 <p className="text-sm text-[var(--text-muted)]">Derrotas</p>
               </div>
-              <div className="app-surface rounded-[16px] p-4 text-center">
+              <div className="app-surface rounded-[18px] p-4 text-center">
                 <p className="text-2xl font-bold text-[var(--text)]">
                   {stats.goalsScored} : {stats.goalsConceded}
                 </p>
@@ -223,56 +261,47 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
           </section>
         )}
 
-        {/* Top Scorers */}
         {stats.topScorers.length > 0 && (
           <section className="mt-10">
             <h2 className="mb-4 text-2xl font-bold text-[var(--text)]">Artilheiros</h2>
-            <div className="app-surface overflow-hidden rounded-[20px] shadow-[var(--shadow-md)]">
-              <table className="w-full text-sm">
-                <thead className="bg-[#f3f7f3] text-left text-xs uppercase tracking-wider text-[var(--text-muted)]">
-                  <tr>
-                    <th className="px-4 py-3">#</th>
-                    <th className="px-4 py-3">Jogador</th>
-                    <th className="px-4 py-3 text-right">Gols</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#e6ece6]">
-                  {stats.topScorers.map((scorer, i) => (
-                    <tr key={i}>
-                      <td className="px-4 py-2 font-medium text-[var(--text-muted)]">{i + 1}</td>
-                      <td className="px-4 py-2 font-medium text-[var(--text)]">
-                        {scorer.playerName}
-                      </td>
-                      <td className="px-4 py-2 text-right font-bold text-[var(--text)]">
-                        {scorer.total}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {stats.topScorers.map((scorer, i) => (
+                <article
+                  key={scorer.playerName}
+                  className="app-surface rounded-[18px] p-4 text-center shadow-[var(--shadow-sm)]"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+                    #{i + 1}
+                  </p>
+                  <p className="mt-2 line-clamp-2 text-sm font-semibold text-[var(--text)]">
+                    {scorer.playerName}
+                  </p>
+                  <p className="mt-1 text-3xl font-bold text-[var(--brand)]">{scorer.total}</p>
+                  <p className="text-xs text-[var(--text-muted)]">gols</p>
+                </article>
+              ))}
             </div>
           </section>
         )}
 
-        {/* Squad */}
-        {team.players.length > 0 && (
-          <section className="mt-10">
+        {team.players.length > 0 ? (
+          <section id="elenco" className="mt-10">
             <h2 className="mb-4 text-2xl font-bold text-[var(--text)]">Elenco</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {team.players.map((player) => (
                 <div
                   key={player.id}
-                  className="app-surface flex items-center gap-4 rounded-[16px] p-4"
+                  className="app-surface flex items-center gap-4 rounded-[18px] p-4 shadow-[var(--shadow-sm)]"
                 >
                   {player.photoUrl ? (
                     <img
                       src={player.photoUrl}
                       alt={player.name}
-                      className="h-12 w-12 rounded-full object-cover"
+                      className="h-12 w-12 rounded-full border border-[var(--border)] object-cover"
                     />
                   ) : (
                     <div
-                      className="flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold text-white"
+                      className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 text-lg font-bold text-white"
                       style={{
                         backgroundColor: team.primaryColor || "#1e40af",
                       }}
@@ -291,14 +320,20 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
               ))}
             </div>
           </section>
+        ) : (
+          <section id="elenco" className="mt-10">
+            <h2 className="mb-4 text-2xl font-bold text-[var(--text)]">Elenco</h2>
+            <div className="app-surface rounded-[22px] border border-dashed border-[var(--border-strong)] p-8 text-center text-[var(--text-muted)]">
+              Este time ainda nao publicou jogadores ativos na vitrine.
+            </div>
+          </section>
         )}
 
-        {/* Friendly Request Form */}
-        <section className="mt-10">
+        <section id="amistoso" className="mt-10">
           <h2 className="mb-4 text-2xl font-bold text-[var(--text)]">
             Solicitar Amistoso
           </h2>
-          <div className="app-surface rounded-[20px] p-6 shadow-[var(--shadow-md)]">
+          <div className="app-surface rounded-[24px] p-6 shadow-[var(--shadow-md)] sm:p-7">
             <p className="mb-4 text-sm text-[var(--text-muted)]">
               Quer marcar um amistoso com o {team.name}? Preencha o formulário abaixo.
             </p>
@@ -306,13 +341,12 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
           </div>
         </section>
 
-        {/* Colors */}
         {(team.primaryColor || team.secondaryColor) && (
           <section className="mt-10">
             <h2 className="mb-4 text-2xl font-bold text-[var(--text)]">Cores</h2>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-3">
               {team.primaryColor && (
-                <div className="app-surface flex items-center gap-2 rounded-full px-4 py-2">
+                <div className="app-surface flex items-center gap-2 rounded-full px-4 py-2 shadow-[var(--shadow-sm)]">
                   <div
                     className="h-8 w-8 rounded-full border border-gray-200"
                     style={{ backgroundColor: team.primaryColor }}
@@ -321,7 +355,7 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
                 </div>
               )}
               {team.secondaryColor && (
-                <div className="app-surface flex items-center gap-2 rounded-full px-4 py-2">
+                <div className="app-surface flex items-center gap-2 rounded-full px-4 py-2 shadow-[var(--shadow-sm)]">
                   <div
                     className="h-8 w-8 rounded-full border border-gray-200"
                     style={{ backgroundColor: team.secondaryColor }}
@@ -334,8 +368,7 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-[var(--border)] py-6 text-center text-sm text-[var(--text-muted)]">
+      <footer className="mt-14 border-t border-[var(--border)] py-8 text-center text-sm text-[var(--text-muted)]">
         <p>Powered by Site Time</p>
       </footer>
     </div>

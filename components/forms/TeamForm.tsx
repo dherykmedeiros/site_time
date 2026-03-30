@@ -66,22 +66,21 @@ export function TeamForm({ defaultValues, onSuccess, isCreating = false }: TeamF
 
       setBadgePreview(data.url);
 
-      // Update team badge
-      await fetch("/api/teams", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
+      if (isCreating) {
+        setSuccessMsg("Escudo enviado. Salve o time para concluir.");
+      } else {
+        const patchRes = await fetch("/api/teams", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ badgeUrl: data.url }),
+        });
 
-      // We need to update the badgeUrl on the team separately
-      const patchRes = await fetch("/api/teams/badge", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ badgeUrl: data.url }),
-      });
+        const patchData = await patchRes.json().catch(() => ({}));
+        if (!patchRes.ok) {
+          setErrorMsg(patchData.error || "Imagem enviada, mas não foi possível salvar no time");
+          return;
+        }
 
-      // If the badge endpoint doesn't exist yet, it's fine — badge will be shown from upload
-      if (patchRes.ok) {
         setSuccessMsg("Escudo atualizado!");
       }
     } catch {
@@ -101,7 +100,10 @@ export function TeamForm({ defaultValues, onSuccess, isCreating = false }: TeamF
       const res = await fetch("/api/teams", {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          badgeUrl: badgePreview ?? undefined,
+        }),
       });
 
       const result = await res.json();

@@ -1,6 +1,13 @@
 import { z } from "zod";
 
 const hexColorRegex = /^#[0-9A-Fa-f]{6}$/;
+const badgeUrlSchema = z
+  .string()
+  .max(2048, "URL do escudo muito longa")
+  .refine(
+    (value) => value.startsWith("/uploads/") || value.startsWith("http://") || value.startsWith("https://"),
+    "URL do escudo inválida"
+  );
 
 export const createTeamSchema = z.object({
   name: z
@@ -23,6 +30,7 @@ export const createTeamSchema = z.object({
     .string()
     .max(200, "Local padrão deve ter no máximo 200 caracteres")
     .optional(),
+  badgeUrl: badgeUrlSchema.optional(),
 });
 
 export const updateTeamSchema = z.object({
@@ -47,6 +55,7 @@ export const updateTeamSchema = z.object({
     .string()
     .max(200, "Local padrão deve ter no máximo 200 caracteres")
     .optional(),
+  badgeUrl: badgeUrlSchema.optional().nullable(),
 });
 
 export type CreateTeamInput = z.infer<typeof createTeamSchema>;

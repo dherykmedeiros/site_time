@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
 
 interface FriendlyRequestFormProps {
   teamSlug: string;
@@ -54,13 +57,29 @@ export function FriendlyRequestForm({ teamSlug }: FriendlyRequestFormProps) {
 
   if (success) {
     return (
-      <div className="rounded-[16px] border border-[#bde0d3] bg-[#e9f8f1] p-6 text-center">
+      <div className="rounded-[18px] border border-[#bde0d3] bg-[#e9f8f1] p-6 text-center">
         <p className="text-lg font-semibold text-[#1c5a4b]">
-          ✅ Solicitação enviada com sucesso!
+          Solicitacao enviada com sucesso!
         </p>
         <p className="mt-2 text-sm text-[#2f6f5f]">
-          Você receberá uma resposta por e-mail.
+          Voce recebera uma resposta por e-mail.
         </p>
+        <Button
+          type="button"
+          variant="secondary"
+          className="mt-4"
+          onClick={() => {
+            setSuccess(false);
+            setRequesterTeamName("");
+            setContactEmail("");
+            setContactPhone("");
+            setSuggestedDates("");
+            setSuggestedVenue("");
+            setProposedFee("");
+          }}
+        >
+          Enviar nova solicitacao
+        </Button>
       </div>
     );
   }
@@ -73,102 +92,76 @@ export function FriendlyRequestForm({ teamSlug }: FriendlyRequestFormProps) {
         </div>
       )}
 
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          Nome do seu time *
-        </label>
-        <input
-          type="text"
-          value={requesterTeamName}
-          onChange={(e) => setRequesterTeamName(e.target.value)}
-          required
-          minLength={2}
-          maxLength={100}
-          className="w-full rounded-[12px] border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--brand)] focus:outline-none"
-          placeholder="Ex: FC Amigos"
-        />
-      </div>
+      <Input
+        label="Nome do seu time *"
+        type="text"
+        value={requesterTeamName}
+        onChange={(e) => setRequesterTeamName(e.target.value)}
+        required
+        minLength={2}
+        maxLength={100}
+        placeholder="Ex: FC Amigos"
+      />
 
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          E-mail de contato *
-        </label>
-        <input
-          type="email"
-          value={contactEmail}
-          onChange={(e) => setContactEmail(e.target.value)}
-          required
-          className="w-full rounded-[12px] border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--brand)] focus:outline-none"
-          placeholder="contato@seutime.com"
-        />
-      </div>
+      <Input
+        label="E-mail de contato *"
+        type="email"
+        value={contactEmail}
+        onChange={(e) => setContactEmail(e.target.value)}
+        required
+        placeholder="contato@seutime.com"
+      />
 
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          Telefone
-        </label>
-        <input
-          type="tel"
-          value={contactPhone}
-          onChange={(e) => setContactPhone(e.target.value)}
-          maxLength={20}
-          className="w-full rounded-[12px] border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--brand)] focus:outline-none"
-          placeholder="(11) 99999-9999"
-        />
-      </div>
+      <Input
+        label="Telefone"
+        type="tel"
+        value={contactPhone}
+        onChange={(e) => setContactPhone(e.target.value)}
+        maxLength={20}
+        placeholder="(11) 99999-9999"
+      />
 
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          Datas/horários sugeridos *
-        </label>
-        <textarea
-          value={suggestedDates}
-          onChange={(e) => setSuggestedDates(e.target.value)}
-          required
-          minLength={5}
-          maxLength={500}
-          rows={3}
-          className="w-full rounded-[12px] border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--brand)] focus:outline-none"
-          placeholder="Ex: Sábados à tarde, preferencialmente 15h ou 16h"
-        />
-      </div>
+      <Textarea
+        label="Datas/horarios sugeridos *"
+        value={suggestedDates}
+        onChange={(e) => setSuggestedDates(e.target.value)}
+        required
+        minLength={5}
+        maxLength={500}
+        rows={3}
+        placeholder="Ex: Sabados a tarde, preferencialmente 15h ou 16h"
+      />
 
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          Local sugerido
-        </label>
-        <input
-          type="text"
-          value={suggestedVenue}
-          onChange={(e) => setSuggestedVenue(e.target.value)}
-          maxLength={200}
-          className="w-full rounded-[12px] border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--brand)] focus:outline-none"
-          placeholder="Ex: Campo do Parque, Rua das Flores"
-        />
-      </div>
+      <Input
+        label="Local sugerido"
+        type="text"
+        value={suggestedVenue}
+        onChange={(e) => setSuggestedVenue(e.target.value)}
+        maxLength={200}
+        placeholder="Ex: Campo do Parque, Rua das Flores"
+      />
 
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          Valor de cota proposto (R$)
-        </label>
-        <input
-          type="number"
-          value={proposedFee}
-          onChange={(e) => setProposedFee(e.target.value)}
-          min="0"
-          step="0.01"
-          className="w-full rounded-[12px] border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--brand)] focus:outline-none"
-          placeholder="0.00"
-        />
-      </div>
+      <Input
+        label="Valor de cota proposto (R$)"
+        type="number"
+        value={proposedFee}
+        onChange={(e) => setProposedFee(e.target.value)}
+        min="0"
+        step="0.01"
+        placeholder="0.00"
+      />
 
-      <button
+      <p className="text-xs text-[var(--text-subtle)]">
+        Campos com * sao obrigatorios. Quanto mais detalhes, mais rapida a resposta.
+      </p>
+
+      <Button
         type="submit"
-        disabled={loading}
-        className="w-full rounded-[12px] bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--brand-strong)] disabled:opacity-50"
+        loading={loading}
+        className="w-full"
       >
         {loading ? "Enviando..." : "Enviar Solicitação"}
-      </button>
+      </Button>
     </form>
   );
 }

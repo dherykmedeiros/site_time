@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { name, description, primaryColor, secondaryColor, defaultVenue } =
+  const { name, description, primaryColor, secondaryColor, defaultVenue, badgeUrl } =
     parsed.data;
 
   const slug = generateSlug(name);
@@ -64,6 +64,7 @@ export async function POST(request: Request) {
         primaryColor: primaryColor ?? null,
         secondaryColor: secondaryColor ?? null,
         defaultVenue: defaultVenue ?? null,
+        badgeUrl: badgeUrl ?? null,
       },
     });
 
@@ -179,6 +180,7 @@ export async function PATCH(request: Request) {
   if (data.primaryColor !== undefined) updateData.primaryColor = data.primaryColor;
   if (data.secondaryColor !== undefined) updateData.secondaryColor = data.secondaryColor;
   if (data.defaultVenue !== undefined) updateData.defaultVenue = data.defaultVenue;
+  if (data.badgeUrl !== undefined) updateData.badgeUrl = data.badgeUrl;
 
   // If name changed, regenerate slug and check uniqueness
   if (data.name) {
