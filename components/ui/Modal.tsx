@@ -27,15 +27,15 @@ export function Modal({ open, onClose, title, children, className = "" }: ModalP
   return (
     <dialog
       ref={dialogRef}
-      className={`rounded-lg p-0 backdrop:bg-black/50 ${className}`}
+      className={`m-auto w-[min(92vw,560px)] rounded-[20px] border border-[var(--border)] bg-[var(--bg-elevated)] p-0 shadow-[var(--shadow-md)] backdrop:bg-[#0d1518]/55 ${className}`}
       onClose={onClose}
     >
-      <div className="min-w-[400px] max-w-lg">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+      <div className="w-full">
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4 sm:px-6">
+          <h2 className="text-lg font-semibold text-[var(--text)]">{title}</h2>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-gray-400 hover:text-gray-600"
+            className="rounded-md p-1 text-[var(--text-muted)] hover:bg-[#eef2ee] hover:text-[var(--text)]"
             aria-label="Fechar"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -43,7 +43,7 @@ export function Modal({ open, onClose, title, children, className = "" }: ModalP
             </svg>
           </button>
         </div>
-        <div className="px-6 py-4">{children}</div>
+        <div className="px-5 py-4 sm:px-6">{children}</div>
       </div>
     </dialog>
   );

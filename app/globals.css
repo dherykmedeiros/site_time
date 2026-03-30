@@ -1,26 +1,64 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #f6f8f5;
+  --bg-elevated: #ffffff;
+  --text: #17212c;
+  --text-muted: #5b6976;
+  --border: #dce3db;
+  --brand: #0c6f5d;
+  --brand-strong: #095445;
+  --brand-soft: #d8f0e8;
+  --danger: #b9422b;
+  --danger-soft: #fbe6e1;
+  --shadow-sm: 0 1px 2px rgb(23 33 44 / 0.08);
+  --shadow-md: 0 10px 30px rgb(23 33 44 / 0.08);
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --font-sans: var(--font-manrope);
+  --font-mono: var(--font-space-grotesk);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background:
+    radial-gradient(circle at 15% -10%, #dbefe3 0%, transparent 40%),
+    radial-gradient(circle at 85% -25%, #f9e8d5 0%, transparent 35%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font-manrope), "Segoe UI", sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-space-grotesk), "Segoe UI", sans-serif;
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background: #a8dcca;
+  color: #0f2b21;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #0c6f5d;
+  outline-offset: 2px;
+}
+
+.app-surface {
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 }
