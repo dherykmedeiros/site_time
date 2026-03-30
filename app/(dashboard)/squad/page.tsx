@@ -397,7 +397,7 @@ export default function SquadPage() {
           </p>
           <div className="flex gap-3">
             <Button
-              variant={confirmAction === "delete" ? "danger" : "default"}
+              variant={confirmAction === "delete" ? "danger" : "primary"}
               onClick={handleConfirmAction}
               disabled={actionLoading}
             >
