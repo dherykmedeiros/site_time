@@ -254,7 +254,7 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
         </div>
       </header>
 
-      <main className="mx-auto -mt-6 max-w-5xl px-4">
+      <main className="mx-auto mt-6 max-w-5xl px-4">
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <article className="app-surface rounded-[22px] border border-[var(--border)] p-5 shadow-[var(--shadow-md)]">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
