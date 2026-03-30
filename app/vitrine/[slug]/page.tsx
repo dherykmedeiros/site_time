@@ -162,13 +162,15 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
   return (
     <div className="min-h-screen bg-transparent pb-16">
       <header
-        className="relative overflow-hidden px-4 pb-28 pt-12 text-white"
+        className="relative overflow-hidden px-4 pb-20 pt-10 text-white lg:pb-24"
         style={{
           backgroundColor: team.primaryColor || "#1e40af",
         }}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(255,255,255,0.2),transparent_35%),radial-gradient(circle_at_85%_0%,rgba(255,219,178,0.35),transparent_30%)]" />
-        <div className="relative mx-auto max-w-5xl">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_22%,rgba(255,255,255,0.25),transparent_35%),radial-gradient(circle_at_84%_6%,rgba(255,214,163,0.33),transparent_30%),linear-gradient(140deg,rgba(0,0,0,0.38),rgba(0,0,0,0.62)_55%,rgba(0,0,0,0.38))]" />
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-[rgba(17,20,18,0.35)]" />
+
+        <div className="relative mx-auto max-w-6xl">
           <Link
             href="/vitrine"
             className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-white/25"
@@ -176,69 +178,74 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
             Ver outros times
           </Link>
         </div>
-        <div className="relative mx-auto mt-8 grid max-w-5xl gap-8 lg:grid-cols-[1fr_320px] lg:items-end">
+
+        <div className="relative mx-auto mt-7 grid max-w-6xl gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:items-center">
           <div>
-            <div className="inline-flex items-center gap-3 rounded-full border border-white/35 bg-white/15 px-3 py-1.5">
+            <div className="flex items-center gap-4">
               {team.badgeUrl ? (
                 <img
                   src={team.badgeUrl}
                   alt={`Escudo ${team.name}`}
-                  className="h-8 w-8 rounded-full border border-white/35 object-cover"
+                  className="h-16 w-16 rounded-2xl border border-white/35 bg-black/10 object-cover shadow-[0_14px_28px_rgba(0,0,0,0.26)]"
                 />
               ) : (
                 <div
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-white/35 text-sm"
+                  className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/35 text-2xl shadow-[0_14px_28px_rgba(0,0,0,0.26)]"
                   style={{ backgroundColor: team.secondaryColor || "#3b82f6" }}
                 >
                   ⚽
                 </div>
               )}
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/85">
-                Perfil Oficial
-              </span>
+
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/10 px-3 py-1.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-300" aria-hidden="true" />
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/90">
+                  Perfil Oficial
+                </span>
+              </div>
             </div>
 
-            <h1 className="mt-4 text-balance font-display text-4xl font-bold sm:text-5xl lg:text-6xl">
+            <h1 className="mt-5 text-balance font-display text-4xl font-bold leading-[1.04] sm:text-5xl lg:text-6xl">
               {team.name}
             </h1>
-            <p className="mt-3 max-w-3xl text-sm text-white/85 sm:text-base">
+            <p className="mt-4 max-w-3xl text-sm text-white/86 sm:text-base">
               {team.description ||
                 `Acompanhe o momento do ${team.name}, conheça o elenco e envie proposta de amistoso.`}
             </p>
 
-            <div className="mt-6 flex flex-wrap items-center gap-2">
+            <div className="mt-7 flex flex-wrap items-center gap-2.5">
               <a
                 href="#retrospecto"
-                className="rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/25"
+                className="rounded-full border border-white/35 bg-white/12 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/22"
               >
                 Retrospecto
               </a>
               <a
                 href="#elenco"
-                className="rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/25"
+                className="rounded-full border border-white/35 bg-white/12 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/22"
               >
                 Elenco
               </a>
               <a
                 href="#amistoso"
-                className="rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/25"
+                className="rounded-full border border-white/35 bg-white/12 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/22"
               >
                 Solicitar amistoso
               </a>
             </div>
           </div>
 
-          <aside className="rounded-[24px] border border-white/25 bg-white/15 p-5 backdrop-blur-sm">
+          <aside className="max-w-md rounded-[24px] border border-white/30 bg-white/14 p-5 shadow-[0_18px_38px_rgba(0,0,0,0.28)] backdrop-blur-sm lg:ml-auto lg:w-full">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/75">
               Resumo da equipe
             </p>
             <p className="mt-2 text-sm font-semibold text-white">{summaryLine}</p>
-            <div className="mt-4 space-y-3">
-              <div className="rounded-2xl border border-white/25 bg-white/10 px-3 py-2">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <div className="rounded-2xl border border-white/25 bg-white/10 px-3 py-2.5">
                 <p className="text-xs text-white/75">Aproveitamento</p>
                 <p className="text-2xl font-bold text-white">{stats.winRate}%</p>
               </div>
-              <div className="rounded-2xl border border-white/25 bg-white/10 px-3 py-2">
+              <div className="rounded-2xl border border-white/25 bg-white/10 px-3 py-2.5">
                 <p className="text-xs text-white/75">Média de gols pró</p>
                 <p className="text-2xl font-bold text-white">{avgGoalsScored}</p>
               </div>
