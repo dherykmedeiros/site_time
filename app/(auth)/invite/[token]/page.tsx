@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
 import { registerFromInviteSchema, type RegisterFromInviteInput } from "@/lib/validations/auth";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -77,10 +78,21 @@ export default function InvitePage() {
 
   if (tokenValid === false) {
     return (
-      <Card>
-        <div className="p-8 text-center">
-          <h1 className="mb-2 text-2xl font-bold text-gray-900">Convite Inválido</h1>
-          <p className="text-gray-600">O link de convite não é válido. Verifique o link ou solicite um novo convite.</p>
+      <Card className="border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
+        <div className="space-y-4 p-8 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-subtle)]">
+            Convite de Acesso
+          </p>
+          <h1 className="font-display text-3xl font-bold text-[var(--text)]">Convite Invalido</h1>
+          <p className="text-sm text-[var(--text-muted)]">
+            O link recebido nao e valido. Verifique o endereco completo ou solicite um novo convite ao administrador.
+          </p>
+          <Link
+            href="/login"
+            className="inline-flex items-center justify-center rounded-full border border-[var(--border-strong)] px-5 py-2 text-sm font-semibold text-[var(--text)] transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
+          >
+            Voltar para login
+          </Link>
         </div>
       </Card>
     );
@@ -88,27 +100,31 @@ export default function InvitePage() {
 
   if (success) {
     return (
-      <Card>
-        <div className="p-8 text-center">
-          <h1 className="mb-2 text-2xl font-bold text-green-700">Conta Criada!</h1>
-          <p className="text-gray-600">Redirecionando...</p>
+      <Card className="border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
+        <div className="space-y-4 p-8 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-subtle)]">
+            Convite Confirmado
+          </p>
+          <h1 className="font-display text-3xl font-bold text-emerald-700">Conta Criada</h1>
+          <p className="text-sm text-[var(--text-muted)]">Acesso autorizado. Redirecionando para o painel...</p>
         </div>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <div className="p-6">
-        <h1 className="mb-2 text-center text-2xl font-bold text-gray-900">
-          Aceitar Convite
-        </h1>
-        <p className="mb-6 text-center text-sm text-gray-600">
-          Crie sua conta para acessar o time.
-        </p>
+    <Card className="border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
+      <div className="space-y-6 p-6 sm:p-7">
+        <div className="space-y-2 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-subtle)]">
+            Convite de Jogador
+          </p>
+          <h1 className="font-display text-3xl font-bold text-[var(--text)]">Aceitar Convite</h1>
+          <p className="text-sm text-[var(--text-muted)]">Crie sua conta para entrar no elenco e acessar o ambiente do time.</p>
+        </div>
 
         {error && (
-          <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
           </div>
         )}
@@ -117,27 +133,27 @@ export default function InvitePage() {
           <input type="hidden" {...register("token")} />
 
           <div>
-            <label htmlFor="name" className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor="name" className="mb-1.5 block text-sm font-semibold text-[var(--text)]">
               Nome
             </label>
             <Input id="name" type="text" placeholder="Seu nome" {...register("name")} />
             {errors.name && (
-              <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+              <p className="mt-1.5 text-sm text-rose-700">{errors.name.message}</p>
             )}
           </div>
 
           <div>
-            <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-[var(--text)]">
               E-mail
             </label>
             <Input id="email" type="email" placeholder="seu@email.com" {...register("email")} />
             {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+              <p className="mt-1.5 text-sm text-rose-700">{errors.email.message}</p>
             )}
           </div>
 
           <div>
-            <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor="password" className="mb-1.5 block text-sm font-semibold text-[var(--text)]">
               Senha
             </label>
             <Input
@@ -147,7 +163,7 @@ export default function InvitePage() {
               {...register("password")}
             />
             {errors.password && (
-              <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+              <p className="mt-1.5 text-sm text-rose-700">{errors.password.message}</p>
             )}
           </div>
 

@@ -42,14 +42,20 @@ export default function LoginPage() {
   }
 
   return (
-    <Card>
-      <div className="p-6">
-        <h1 className="mb-6 text-center text-2xl font-bold text-gray-900">
-          Entrar
-        </h1>
+    <Card className="border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-md)]">
+      <div className="space-y-6 p-6 sm:p-7">
+        <div className="space-y-2 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-subtle)]">
+            Area Administrativa
+          </p>
+          <h1 className="font-display text-3xl font-bold text-[var(--text)]">Entrar</h1>
+          <p className="text-sm text-[var(--text-muted)]">
+            Acesse seu painel para gerenciar elenco, partidas e resultados.
+          </p>
+        </div>
 
         {error && (
-          <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
           </div>
         )}
@@ -58,7 +64,7 @@ export default function LoginPage() {
           <div>
             <label
               htmlFor="email"
-              className="mb-1 block text-sm font-medium text-gray-700"
+              className="mb-1.5 block text-sm font-semibold text-[var(--text)]"
             >
               E-mail
             </label>
@@ -69,7 +75,7 @@ export default function LoginPage() {
               {...register("email")}
             />
             {errors.email && (
-              <p className="mt-1 text-sm text-red-600">
+              <p className="mt-1.5 text-sm text-rose-700">
                 {errors.email.message}
               </p>
             )}
@@ -78,7 +84,7 @@ export default function LoginPage() {
           <div>
             <label
               htmlFor="password"
-              className="mb-1 block text-sm font-medium text-gray-700"
+              className="mb-1.5 block text-sm font-semibold text-[var(--text)]"
             >
               Senha
             </label>
@@ -89,20 +95,20 @@ export default function LoginPage() {
               {...register("password")}
             />
             {errors.password && (
-              <p className="mt-1 text-sm text-red-600">
+              <p className="mt-1.5 text-sm text-rose-700">
                 {errors.password.message}
               </p>
             )}
           </div>
 
-          <Button type="submit" className="w-full" loading={isSubmitting}>
+          <Button type="submit" className="mt-1 w-full" loading={isSubmitting}>
             Entrar
           </Button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-gray-600">
+        <p className="text-center text-sm text-[var(--text-muted)]">
           Não tem conta?{" "}
-          <Link href="/register" className="text-blue-600 hover:underline">
+          <Link href="/register" className="font-semibold text-[var(--brand)] hover:text-[var(--brand-strong)]">
             Criar conta
           </Link>
         </p>
