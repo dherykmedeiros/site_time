@@ -14,6 +14,73 @@ const MAGIC_BYTES: Record<string, { bytes: number[]; ext: string }> = {
   webp: { bytes: [0x52, 0x49, 0x46, 0x46], ext: "webp" },
 };
 
+const MIME_BY_EXT: Record<string, string> = {
+  jpg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+};
+
+const SUPABASE_STORAGE_ENDPOINT = process.env.SUPABASE_STORAGE_ENDPOINT;
+const SUPABASE_STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+function getSupabaseStorageApiBase(endpoint: string): string {
+  const normalized = endpoint.endsWith("/") ? endpoint.slice(0, -1) : endpoint;
+  return normalized.endsWith("/storage/v1/s3")
+    ? normalized.slice(0, -3)
+    : normalized;
+}
+
+function canUseSupabaseStorage() {
+  return (
+    Boolean(SUPABASE_STORAGE_ENDPOINT) &&
+    Boolean(SUPABASE_STORAGE_BUCKET) &&
+    Boolean(SUPABASE_SERVICE_ROLE_KEY)
+  );
+}
+
+async function uploadToSupabaseStorage(
+  buffer: Buffer,
+  fileName: string,
+  mimeType: string
+): Promise<string> {
+  if (!SUPABASE_STORAGE_ENDPOINT || !SUPABASE_STORAGE_BUCKET || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Supabase storage is not fully configured");
+  }
+
+  const storageApiBase = getSupabaseStorageApiBase(SUPABASE_STORAGE_ENDPOINT);
+  const objectKey = `uploads/${fileName}`;
+  const uploadUrl = `${storageApiBase}/object/${SUPABASE_STORAGE_BUCKET}/${objectKey}`;
+
+  const uploadResponse = await fetch(uploadUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      "Content-Type": mimeType,
+      "x-upsert": "false",
+    },
+    body: new Uint8Array(buffer),
+  });
+
+  if (!uploadResponse.ok) {
+    const details = await uploadResponse.text().catch(() => "");
+    throw new Error(`Storage upload failed (${uploadResponse.status}): ${details}`);
+  }
+
+  return `${storageApiBase}/object/public/${SUPABASE_STORAGE_BUCKET}/${objectKey}`;
+}
+
+async function uploadToLocalStorage(buffer: Buffer, fileName: string): Promise<string> {
+  const uploadDir = path.join(process.cwd(), "public", "uploads");
+  await mkdir(uploadDir, { recursive: true });
+
+  const filePath = path.join(uploadDir, fileName);
+  await writeFile(filePath, buffer);
+
+  return `/uploads/${fileName}`;
+}
+
 function detectImageType(buffer: Buffer): string | null {
   for (const [, { bytes, ext }] of Object.entries(MAGIC_BYTES)) {
     if (bytes.every((b, i) => buffer[i] === b)) {
@@ -74,14 +141,14 @@ export async function POST(request: Request) {
     }
 
     const fileName = `${generateUUID()}.${ext}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadDir, { recursive: true });
+    const mimeType = MIME_BY_EXT[ext];
+    const url = canUseSupabaseStorage()
+      ? await uploadToSupabaseStorage(buffer, fileName, mimeType)
+      : await uploadToLocalStorage(buffer, fileName);
 
-    const filePath = path.join(uploadDir, fileName);
-    await writeFile(filePath, buffer);
-
-    return NextResponse.json({ url: `/uploads/${fileName}` }, { status: 201 });
-  } catch {
+    return NextResponse.json({ url }, { status: 201 });
+  } catch (err) {
+    console.error("Upload failed", err);
     return NextResponse.json(
       { error: "Falha ao processar upload" },
       { status: 500 }
