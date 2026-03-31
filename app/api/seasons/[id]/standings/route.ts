@@ -52,7 +52,7 @@ export async function GET(_request: Request, context: RouteContext) {
       homeScore: true,
       awayScore: true,
       isHome: true,
-      stats: {
+      matchStats: {
         select: {
           playerId: true,
           goals: true,
@@ -77,7 +77,7 @@ export async function GET(_request: Request, context: RouteContext) {
     const drawn = teamGoalsFor === teamGoalsAgainst;
     const lost = teamGoalsFor < teamGoalsAgainst;
 
-    for (const stat of match.stats) {
+    for (const stat of match.matchStats) {
       if (!rows[stat.playerId]) {
         rows[stat.playerId] = {
           playerId: stat.playerId,
