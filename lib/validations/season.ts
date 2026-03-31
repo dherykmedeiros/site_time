@@ -2,8 +2,8 @@ import { z } from "zod";
 
 export const createSeasonSchema = z.object({
   name: z.string().trim().min(2, "Nome obrigatório").max(80),
-  type: z.enum(["LEAGUE", "CUP", "TOURNAMENT"], {
-    errorMap: () => ({ message: "Tipo inválido" }),
+  type: z.enum(["LEAGUE", "CUP", "TOURNAMENT"] as const, {
+    error: () => ({ message: "Tipo inválido" }),
   }),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
   endDate: z
