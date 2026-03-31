@@ -151,7 +151,7 @@ export default function DashboardLayout({
             <span>
               <strong className="block text-lg font-bold tracking-tight">VARzea</strong>
               <span className="text-xs font-medium uppercase tracking-[0.15em] text-[#cde7df]">
-                Area administrativa
+                Painel VARzea
               </span>
             </span>
           </Link>
@@ -263,7 +263,7 @@ export default function DashboardLayout({
               <h1 className="mt-1 text-2xl font-bold text-[var(--text)]">{activeItem.label}</h1>
             </div>
             <div className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm font-medium text-[var(--text-muted)] shadow-[var(--shadow-sm)]">
-              Gestao centralizada na VARzea
+              Operacao da equipe na VARzea
             </div>
           </div>
         </header>

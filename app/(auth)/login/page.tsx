@@ -46,11 +46,11 @@ export default function LoginPage() {
       <div className="space-y-6 p-6 sm:p-7">
         <div className="space-y-2 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-subtle)]">
-            Area Administrativa
+            Acesso VARzea
           </p>
           <h1 className="font-display text-3xl font-bold text-[var(--text)]">Entrar</h1>
           <p className="text-sm text-[var(--text-muted)]">
-            Acesse seu painel para gerenciar elenco, partidas e resultados.
+            Acesse o painel da sua equipe para gerenciar elenco, partidas e resultados.
           </p>
         </div>
 

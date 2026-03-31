@@ -115,7 +115,7 @@ export default function DashboardHomePage() {
       <div className="mx-auto max-w-2xl rounded-[20px] border border-[var(--border)] bg-[var(--bg-elevated)] px-8 py-12 text-center shadow-[var(--shadow-md)]">
         <h1 className="text-3xl font-bold text-[var(--text)]">Bem-vindo ao VARzea</h1>
         <p className="mt-3 text-[var(--text-muted)]">
-          Você ainda não criou um time. Configure seu time para começar.
+          Voce ainda nao criou uma equipe. Configure a equipe para comecar.
         </p>
         <Link href="/team/settings">
           <Button className="mt-7">Criar meu primeiro time</Button>

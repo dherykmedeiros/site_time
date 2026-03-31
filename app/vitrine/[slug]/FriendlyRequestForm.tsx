@@ -93,7 +93,7 @@ export function FriendlyRequestForm({ teamSlug }: FriendlyRequestFormProps) {
       )}
 
       <Input
-        label="Nome do seu time *"
+        label="Nome da sua equipe *"
         type="text"
         value={requesterTeamName}
         onChange={(e) => setRequesterTeamName(e.target.value)}
@@ -109,7 +109,7 @@ export function FriendlyRequestForm({ teamSlug }: FriendlyRequestFormProps) {
         value={contactEmail}
         onChange={(e) => setContactEmail(e.target.value)}
         required
-        placeholder="contato@seutime.com"
+        placeholder="contato@suaequipe.com"
       />
 
       <Input

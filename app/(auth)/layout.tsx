@@ -12,10 +12,10 @@ export default function AuthLayout({
             Plataforma VARzea
           </p>
           <h1 className="mt-4 font-display text-4xl font-bold leading-tight text-[var(--text)]">
-            Gestao inteligente para o seu time amador.
+            Gestao inteligente para equipes de varzea.
           </h1>
           <p className="mt-4 max-w-md text-sm text-[var(--text-muted)]">
-            Organize elenco, partidas e financeiro em um painel unico. Compartilhe a vitrine do time com visual profissional e fluxo seguro.
+            Organize elenco, partidas e financeiro em um painel unico. Compartilhe a vitrine da equipe com visual profissional e fluxo seguro.
           </p>
           <div className="mt-10 space-y-3">
             <div className="rounded-2xl border border-[var(--border)] bg-white/65 px-4 py-3 text-sm text-[var(--text-muted)]">
@@ -25,7 +25,7 @@ export default function AuthLayout({
               Controle de amistosos, RSVP e estatisticas por partida.
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-white/65 px-4 py-3 text-sm text-[var(--text-muted)]">
-              Vitrine publica para fortalecer a imagem do clube.
+              Vitrine publica para fortalecer a imagem da equipe.
             </div>
           </div>
         </aside>

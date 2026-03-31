@@ -69,7 +69,7 @@ export default function RegisterPage() {
           </p>
           <h1 className="font-display text-3xl font-bold text-[var(--text)]">Criar Conta</h1>
           <p className="text-sm text-[var(--text-muted)]">
-            Inicie seu painel e comece a organizar a temporada com seu time.
+            Inicie seu painel e comece a organizar a temporada da sua equipe.
           </p>
         </div>
 
@@ -159,7 +159,7 @@ export default function RegisterPage() {
               </p>
             )}
             <p className="mt-1.5 text-xs text-[var(--text-subtle)]">
-              Use este campo apenas se a liga forneceu um codigo para habilitar novos administradores.
+              Use este campo apenas se a liga forneceu um codigo para habilitar novos gestores.
             </p>
           </div>
 

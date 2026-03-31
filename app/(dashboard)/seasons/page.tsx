@@ -119,7 +119,7 @@ export default function SeasonsPage() {
         <div>
           <h1 className="text-3xl font-bold text-[var(--text)]">Temporadas</h1>
           <p className="mt-1 text-sm text-[var(--text-subtle)]">
-            Gerencie ligas, copas e torneios do seu time
+            Gerencie ligas, copas e torneios da equipe
           </p>
         </div>
         {isAdmin && (

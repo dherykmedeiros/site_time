@@ -19,10 +19,10 @@ export default async function Home() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#2a6f60]">Plataforma VARzea</p>
             <h1 className="mt-3 text-balance font-display text-4xl font-bold leading-tight text-[#163e36] sm:text-5xl">
-              Organize seu futebol de forma profissional sem perder a identidade da varzea.
+              Organize seu futebol de forma profissional sem perder a identidade da VARzea.
             </h1>
             <p className="mt-4 max-w-2xl text-sm text-[#36544d] sm:text-base">
-              Centralize elenco, partidas, financeiro, convocacoes e vitrine publica do time em um unico painel.
+              Centralize elenco, partidas, financeiro, convocacoes e vitrine publica da equipe em um unico painel.
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3">
@@ -36,7 +36,7 @@ export default async function Home() {
                 href="/login"
                 className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#0a584b] px-6 text-sm font-semibold text-white transition hover:bg-[#084a3f]"
               >
-                Entrar na area do time
+                Entrar na area da equipe
               </Link>
             </div>
           </div>
@@ -47,7 +47,7 @@ export default async function Home() {
               <li className="rounded-xl border border-[#dcebe6] bg-white px-4 py-3">⚽ Agenda de jogos com RSVP por posicao</li>
               <li className="rounded-xl border border-[#dcebe6] bg-white px-4 py-3">👥 Gestao completa de elenco e convites</li>
               <li className="rounded-xl border border-[#dcebe6] bg-white px-4 py-3">📈 Rankings, estatisticas e retrospecto</li>
-              <li className="rounded-xl border border-[#dcebe6] bg-white px-4 py-3">🌐 Vitrine publica para divulgar o time</li>
+              <li className="rounded-xl border border-[#dcebe6] bg-white px-4 py-3">🌐 Vitrine publica para divulgar sua equipe</li>
             </ul>
           </div>
         </div>

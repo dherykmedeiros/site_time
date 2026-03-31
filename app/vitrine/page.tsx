@@ -7,9 +7,9 @@ interface VitrineIndexPageProps {
 }
 
 export const metadata: Metadata = {
-  title: "Vitrine de Times",
+  title: "Vitrine VARzea",
   description:
-    "Conheca os times, estatisticas e elenco em uma vitrine publica pronta para compartilhar.",
+    "Conheca equipes, estatisticas e elenco em uma vitrine publica pronta para compartilhar.",
 };
 
 async function getTeams(query?: string) {
@@ -57,23 +57,23 @@ export default async function VitrineIndexPage({ searchParams }: VitrineIndexPag
             VARzea
           </p>
           <h1 className="mt-3 text-balance font-display text-4xl font-bold text-[var(--text)] sm:text-5xl">
-            Vitrine de Times
+            Vitrine VARzea
           </h1>
           <p className="mx-auto mt-3 max-w-3xl text-sm text-[var(--text-muted)] sm:text-base">
             Explore perfis publicos com elenco, retrospecto e detalhes para amistosos.
-            Compartilhe o link do seu time e fortaleça a presenca da equipe.
+            Compartilhe o link da sua equipe e fortaleça a presenca no futebol amador.
           </p>
 
           <form action="/vitrine" className="mx-auto mt-6 max-w-xl">
             <label htmlFor="team-search" className="sr-only">
-              Buscar time
+              Buscar equipe
             </label>
             <div className="flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-white/80 p-2 shadow-[var(--shadow-sm)]">
               <input
                 id="team-search"
                 name="q"
                 defaultValue={q ?? ""}
-                placeholder="Buscar por nome do time"
+                placeholder="Buscar por nome da equipe"
                 className="h-10 flex-1 rounded-full bg-transparent px-4 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-subtle)]"
               />
               <button
@@ -90,7 +90,7 @@ export default async function VitrineIndexPage({ searchParams }: VitrineIndexPag
       <main className="mx-auto mt-8 max-w-5xl px-4">
         <div className="mb-4 flex items-center justify-between gap-3">
           <p className="text-sm text-[var(--text-muted)]">
-            {teams.length} {teams.length === 1 ? "time encontrado" : "times encontrados"}
+            {teams.length} {teams.length === 1 ? "equipe encontrada" : "equipes encontradas"}
           </p>
           {q ? (
             <Link
@@ -105,7 +105,7 @@ export default async function VitrineIndexPage({ searchParams }: VitrineIndexPag
         {teams.length === 0 ? (
           <section className="app-surface rounded-[28px] border border-dashed border-[var(--border-strong)] px-6 py-12 text-center shadow-[var(--shadow-sm)]">
             <h2 className="font-display text-3xl font-bold text-[var(--text)]">
-              Nenhum time encontrado
+              Nenhuma equipe encontrada
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-sm text-[var(--text-muted)] sm:text-base">
               Nao encontramos um perfil com esse termo. Tente outra palavra-chave ou remova o filtro da busca.
@@ -114,7 +114,7 @@ export default async function VitrineIndexPage({ searchParams }: VitrineIndexPag
               href="/vitrine"
               className="mt-6 inline-flex items-center justify-center rounded-full border border-[var(--border-strong)] px-5 py-2 text-sm font-semibold text-[var(--text)] transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
             >
-              Ver todos os times
+              Ver todas as equipes
             </Link>
           </section>
         ) : (
@@ -152,7 +152,7 @@ export default async function VitrineIndexPage({ searchParams }: VitrineIndexPag
                 </div>
 
                 <p className="mt-4 line-clamp-3 text-sm text-[var(--text-muted)]">
-                  {team.description || "Time em desenvolvimento. Em breve mais informacoes de elenco e temporada."}
+                  {team.description || "Equipe em desenvolvimento. Em breve mais informacoes de elenco e temporada."}
                 </p>
 
                 <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl border border-[var(--border)] bg-white/45 p-3 text-center">
