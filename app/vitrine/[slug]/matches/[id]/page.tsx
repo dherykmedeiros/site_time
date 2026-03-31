@@ -75,13 +75,23 @@ export async function generateMetadata({
       url: `/vitrine/${slug}/matches/${id}?t=${t}`,
       siteName: "Site Time",
       locale: "pt_BR",
-      ...(data.team.badgeUrl && { images: [{ url: data.team.badgeUrl, width: 200, height: 200, alt: `Escudo ${data.team.name}` }] }),
+      images:
+        data.match.status === "COMPLETED"
+          ? [{ url: `/api/og/match/${id}`, width: 1200, height: 630, alt: `${data.team.name} vs ${data.match.opponent}` }]
+          : data.team.badgeUrl
+          ? [{ url: data.team.badgeUrl, width: 200, height: 200, alt: `Escudo ${data.team.name}` }]
+          : [],
     },
     twitter: {
-      card: "summary",
+      card: data.match.status === "COMPLETED" ? "summary_large_image" : "summary",
       title,
       description,
-      ...(data.team.badgeUrl && { images: [data.team.badgeUrl] }),
+      images:
+        data.match.status === "COMPLETED"
+          ? [`/api/og/match/${id}`]
+          : data.team.badgeUrl
+          ? [data.team.badgeUrl]
+          : [],
     },
   };
 }

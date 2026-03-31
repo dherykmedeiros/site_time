@@ -85,6 +85,7 @@ export default function MatchDetailPage() {
   const [loading, setLoading] = useState(true);
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [showPostGame, setShowPostGame] = useState(false);
+  const [showConvocacao, setShowConvocacao] = useState(false);
   const [copyMsg, setCopyMsg] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -184,6 +185,64 @@ export default function MatchDetailPage() {
     });
   }
 
+  function buildConvocacaoText() {
+    if (!match) return "";
+
+    const dateStr = new Intl.DateTimeFormat("pt-BR", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(new Date(match.date));
+
+    const confirmedNames = match.rsvps
+      .filter((r) => r.status === "CONFIRMED")
+      .map((r) => r.playerName);
+    const pendingNames = match.rsvps
+      .filter((r) => r.status === "PENDING")
+      .map((r) => r.playerName);
+
+    const lines: string[] = [
+      `⚽ JOGO MARCADO!`,
+      ``,
+      `📅 ${dateStr}`,
+      `📍 ${match.venue}`,
+      `🏆 vs ${match.opponent}`,
+      ``,
+    ];
+
+    if (confirmedNames.length > 0) {
+      lines.push(`✅ Confirmados (${confirmedNames.length}): ${confirmedNames.join(", ")}`);
+    }
+    if (pendingNames.length > 0) {
+      lines.push(`⏳ Aguardando (${pendingNames.length}): ${pendingNames.join(", ")}`);
+    }
+
+    lines.push(``, `👉 Confirme aqui: ${match.shareUrl}`);
+    return lines.join("\n");
+  }
+
+  function buildResultText() {
+    if (!match || match.homeScore === null || match.awayScore === null) return "";
+
+    const home = match.homeScore;
+    const away = match.awayScore;
+    const result = home > away ? "✅ Vitória" : home < away ? "❌ Derrota" : "🟡 Empate";
+    const scorers = match.stats
+      .filter((s) => s.goals > 0)
+      .map((s) => `${s.playerName} (${s.goals})`)
+      .join(", ");
+
+    const lines = [
+      `⚽ RESULTADO`,
+      ``,
+      `${result}: ${home} × ${away}`,
+      `🏆 vs ${match.opponent}`,
+      ...(scorers ? [`⚽ Gols: ${scorers}`] : []),
+      ``,
+      `👉 Ver partida: ${match.shareUrl}`,
+    ];
+    return lines.join("\n");
+  }
+
   if (loading) {
     return <p className="text-gray-500">Carregando...</p>;
   }
@@ -219,10 +278,18 @@ export default function MatchDetailPage() {
             </Badge>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={handleCopyLink}>
-            🔗 Compartilhar
+            🖗 Compartilhar
           </Button>
+          {match.status === "SCHEDULED" && (
+            <Button
+              variant="secondary"
+              onClick={() => setShowConvocacao((v) => !v)}
+            >
+              📋 Gerar Convocação
+            </Button>
+          )}
           {match.status === "SCHEDULED" && (
             <Button variant="danger" onClick={() => setConfirmCancelOpen(true)}>
               Cancelar Partida
@@ -238,6 +305,52 @@ export default function MatchDetailPage() {
         <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">
           {copyMsg}
         </div>
+      )}
+
+      {/* F-007: WhatsApp convocation generator */}
+      {showConvocacao && match.status === "SCHEDULED" && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Convocação para WhatsApp</h2>
+              <button
+                onClick={() => setShowConvocacao(false)}
+                className="rounded-md px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                aria-label="Fechar convocação"
+              >
+                Fechar
+              </button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <pre className="whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 p-4 font-sans text-sm text-gray-800">
+              {buildConvocacaoText()}
+            </pre>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  navigator.clipboard.writeText(buildConvocacaoText());
+                  setCopyMsg("Convocação copiada!");
+                  setTimeout(() => setCopyMsg(""), 2500);
+                }}
+              >
+                📋 Copiar texto
+              </Button>
+              <Button
+                onClick={() => {
+                  window.open(
+                    `https://wa.me/?text=${encodeURIComponent(buildConvocacaoText())}`,
+                    "_blank",
+                    "noopener,noreferrer"
+                  );
+                }}
+              >
+                📱 Abrir no WhatsApp
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {feedback && (
@@ -462,6 +575,41 @@ export default function MatchDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* F-002: Share result card */}
+      {match.status === "COMPLETED" &&
+        match.stats.length > 0 &&
+        match.homeScore !== null &&
+        match.awayScore !== null && (
+          <Card className="border-blue-200 bg-blue-50">
+            <CardContent>
+              <div className="flex flex-col gap-4 py-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold text-blue-800">Compartilhar resultado</p>
+                  <p className="text-sm text-blue-600">
+                    {match.homeScore} × {match.awayScore} vs {match.opponent} — divulgue o card de resultado!
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" onClick={handleCopyLink}>
+                    🔗 Copiar link
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      window.open(
+                        `https://wa.me/?text=${encodeURIComponent(buildResultText())}`,
+                        "_blank",
+                        "noopener,noreferrer"
+                      );
+                    }}
+                  >
+                    📱 Compartilhar no WhatsApp
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
       <Modal
         open={confirmCancelOpen}

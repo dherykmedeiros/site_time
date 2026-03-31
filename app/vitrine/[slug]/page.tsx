@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { FriendlyRequestForm } from "./FriendlyRequestForm";
 
+// F-001: player cards are now links to /vitrine/[slug]/jogadores/[id]
+
 interface VitrinePageProps {
   params: Promise<{ slug: string }>;
 }
@@ -388,9 +390,14 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {team.players.map((player) => (
-                <article
+                <Link
                   key={player.id}
-                  className="app-surface rounded-[20px] border border-[var(--border)] p-4 shadow-[var(--shadow-sm)]"
+                  href={`/vitrine/${slug}/jogadores/${player.id}`}
+                  className="block"
+                  aria-label={`Ver perfil de ${player.name}`}
+                >
+                <article
+                  className="app-surface rounded-[20px] border border-[var(--border)] p-4 shadow-[var(--shadow-sm)] transition hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-md)]"
                 >
                   <div className="flex items-center gap-3">
                     {player.photoUrl ? (
@@ -412,14 +419,18 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
                       <p className="text-sm text-[var(--text-muted)]">#{player.shirtNumber}</p>
                     </div>
                   </div>
-                  <div className="mt-3">
+                  <div className="mt-3 flex items-center justify-between">
                     <span
                       className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${positionStyles[player.position] || "border-[var(--border)] bg-white/60 text-[var(--text-muted)]"}`}
                     >
                       {positionLabels[player.position] || player.position}
                     </span>
+                    <span className="text-xs text-[var(--text-muted)] opacity-0 transition-opacity group-hover:opacity-100">
+                      Ver perfil →
+                    </span>
                   </div>
                 </article>
+                </Link>
               ))}
             </div>
           </section>
