@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 const navItems = [
   { href: "/", label: "Painel", icon: "⌂" },
   { href: "/squad", label: "Elenco", icon: "◉" },
+    { href: "/squad/mensalidade", label: "Mensalidade", icon: "💰" },
   { href: "/matches", label: "Jogos", icon: "◍", badgeKey: "upcomingMatches" as const },
   { href: "/finances", label: "Finanças", icon: "◈" },
   { href: "/friendly-requests", label: "Amistosos", icon: "◎", badgeKey: "pendingRequests" as const },

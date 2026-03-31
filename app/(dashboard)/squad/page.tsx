@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import Link from "next/link";
 
 const PlayerForm = dynamic(
   () => import("@/components/forms/PlayerForm").then((m) => ({ default: m.PlayerForm })),
@@ -153,7 +154,15 @@ export default function SquadPage() {
           </p>
           <h1 className="text-2xl font-bold text-[var(--text)]">Elenco</h1>
         </div>
-        <Button onClick={() => setShowAddModal(true)}>+ Adicionar Jogador</Button>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/squad/mensalidade"
+            className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+          >
+            💰 Mensalidade
+          </Link>
+          <Button onClick={() => setShowAddModal(true)}>+ Adicionar Jogador</Button>
+        </div>
       </div>
 
       {feedback && (

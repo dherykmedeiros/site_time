@@ -97,6 +97,7 @@ model Team {
   friendlyRequests FriendlyRequest[]
   transactions     Transaction[]
   inviteTokens     InviteToken[]
+  membershipPayments MembershipPayment[]
 
   @@map("teams")
 }
@@ -114,6 +115,7 @@ model Player {
   rsvps        RSVP[]
   matchStats   MatchStats[]
   inviteTokens InviteToken[]
+  membershipPayments MembershipPayment[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -203,6 +205,8 @@ model Transaction {
 
   @@map("transactions")
 }
+  membershipPayment MembershipPayment?
+}
 
 model InviteToken {
   id        String    @id @default(cuid())
@@ -216,4 +220,21 @@ model InviteToken {
   createdAt DateTime  @default(now())
 
   @@map("invite_tokens")
+
+model MembershipPayment {
+  id            String       @id @default(cuid())
+  playerId      String
+  teamId        String
+  month         Int
+  year          Int
+  amount        Decimal      @db.Decimal(10, 2)
+  paidAt        DateTime     @default(now())
+  transactionId String?      @unique
+  player        Player       @relation(fields: [playerId], references: [id])
+  team          Team         @relation(fields: [teamId], references: [id])
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+
+  @@unique([playerId, month, year])
+  @@map("membership_payments")
+}
 }
