@@ -152,6 +152,7 @@ model Match {
   type       MatchType
   homeScore  Int?
   awayScore  Int?
+  isHome     Boolean     @default(true)
   status     MatchStatus @default(SCHEDULED)
   shareToken String      @unique @default(uuid())
   teamId     String
