@@ -131,6 +131,23 @@ export async function POST(request: Request) {
     );
   }
 
+  // Extract optional seasonId from body (not in Zod schema, validated here)
+  const rawBody = body as Record<string, unknown>;
+  const seasonId = typeof rawBody.seasonId === "string" ? rawBody.seasonId : null;
+
+  // If seasonId provided, verify it belongs to the team
+  if (seasonId) {
+    const season = await prisma.season.findFirst({
+      where: { id: seasonId, teamId: session.user.teamId },
+    });
+    if (!season) {
+      return NextResponse.json(
+        { error: "Temporada não encontrada", code: "SEASON_NOT_FOUND" },
+        { status: 404 }
+      );
+    }
+  }
+
   const shareToken = generateUUID();
   const teamId = session.user.teamId;
 
@@ -150,6 +167,7 @@ export async function POST(request: Request) {
         type,
         shareToken,
         teamId,
+        ...(seasonId && { seasonId }),
       },
     });
 

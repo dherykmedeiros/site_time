@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireAuth } from "@/lib/auth";
 import { createMatchStatsSchema } from "@/lib/validations/match";
+import { awardAchievements } from "@/lib/achievements";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -173,6 +174,9 @@ export async function POST(request: Request, { params }: RouteParams) {
   const createdStats = await prisma.matchStats.findMany({
     where: { matchId, playerId: { in: playerIds } },
   });
+
+  // F-004: award badges asynchronously (non-blocking)
+  awardAchievements(matchId).catch(() => {/* silent — badges are bonus, not critical */});
 
   return NextResponse.json(
     {

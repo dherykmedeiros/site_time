@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
@@ -11,6 +11,12 @@ import {
   type CreateMatchInput,
 } from "@/lib/validations/match";
 
+interface Season {
+  id: string;
+  name: string;
+  type: string;
+}
+
 interface MatchFormProps {
   defaultValues?: {
     id?: string;
@@ -18,6 +24,7 @@ interface MatchFormProps {
     venue?: string;
     opponent?: string;
     type?: string;
+    seasonId?: string;
   };
   onSuccess?: () => void;
   onCancel?: () => void;
@@ -28,10 +35,29 @@ const typeOptions = [
   { value: "CHAMPIONSHIP", label: "Campeonato" },
 ];
 
+const typeLabels: Record<string, string> = {
+  LEAGUE: "Liga",
+  CUP: "Copa",
+  TOURNAMENT: "Torneio",
+};
+
 export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps) {
   const isEditing = !!defaultValues?.id;
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [seasonId, setSeasonId] = useState<string>(defaultValues?.seasonId ?? "");
+
+  useEffect(() => {
+    fetch("/api/seasons")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.seasons) {
+          setSeasons(d.seasons.filter((s: Season & { status: string }) => s.status === "ACTIVE"));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Format date for datetime-local input
   const formatDateForInput = (isoDate?: string) => {
@@ -67,10 +93,12 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
       const method = isEditing ? "PATCH" : "POST";
 
       // Convert datetime-local to ISO string
-      const body = {
+      const body: Record<string, unknown> = {
         ...data,
         date: new Date(data.date).toISOString(),
       };
+
+      if (seasonId) body.seasonId = seasonId;
 
       const res = await fetch(url, {
         method,
@@ -134,6 +162,26 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         {...register("type")}
       />
 
+      {seasons.length > 0 && (
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-[var(--text-subtle)]">
+            Temporada (opcional)
+          </label>
+          <select
+            value={seasonId}
+            onChange={(e) => setSeasonId(e.target.value)}
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
+          >
+            <option value="">— Nenhuma temporada —</option>
+            {seasons.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({typeLabels[s.type] || s.type})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div className="flex gap-3 pt-2">
         <Button type="submit" disabled={loading}>
           {loading ? "Salvando..." : isEditing ? "Atualizar" : "Agendar"}
@@ -147,3 +195,4 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
     </form>
   );
 }
+

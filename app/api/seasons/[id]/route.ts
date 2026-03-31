@@ -1,0 +1,106 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
+import { updateSeasonSchema } from "@/lib/validations/season";
+
+interface RouteContext {
+  params: Promise<{ id: string }>;
+}
+
+// GET /api/seasons/:id
+export async function GET(_request: Request, context: RouteContext) {
+  const { session, error } = await requireAdmin();
+  if (error) return error;
+
+  const { id } = await context.params;
+
+  const season = await prisma.season.findFirst({
+    where: { id, teamId: session.user.teamId! },
+    include: {
+      matches: {
+        orderBy: { date: "asc" },
+        select: {
+          id: true,
+          date: true,
+          opponent: true,
+          type: true,
+          homeScore: true,
+          awayScore: true,
+          status: true,
+        },
+      },
+      _count: { select: { matches: true } },
+    },
+  });
+
+  if (!season) {
+    return NextResponse.json({ error: "Temporada não encontrada" }, { status: 404 });
+  }
+
+  return NextResponse.json({ season });
+}
+
+// PATCH /api/seasons/:id
+export async function PATCH(request: Request, context: RouteContext) {
+  const { session, error } = await requireAdmin();
+  if (error) return error;
+
+  const { id } = await context.params;
+
+  const body = await request.json().catch(() => null);
+  const parsed = updateSeasonSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Dados inválidos", details: parsed.error.flatten() },
+      { status: 422 }
+    );
+  }
+
+  const existing = await prisma.season.findFirst({
+    where: { id, teamId: session.user.teamId! },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Temporada não encontrada" }, { status: 404 });
+  }
+
+  const { name, type, startDate, endDate, status } = parsed.data;
+
+  const season = await prisma.season.update({
+    where: { id },
+    data: {
+      ...(name !== undefined && { name }),
+      ...(type !== undefined && { type }),
+      ...(startDate !== undefined && { startDate: new Date(startDate) }),
+      ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
+      ...(status !== undefined && { status }),
+    },
+  });
+
+  return NextResponse.json({ season });
+}
+
+// DELETE /api/seasons/:id
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { session, error } = await requireAdmin();
+  if (error) return error;
+
+  const { id } = await context.params;
+
+  const existing = await prisma.season.findFirst({
+    where: { id, teamId: session.user.teamId! },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Temporada não encontrada" }, { status: 404 });
+  }
+
+  // Unlink matches before deleting
+  await prisma.$transaction([
+    prisma.match.updateMany({ where: { seasonId: id }, data: { seasonId: null } }),
+    prisma.season.delete({ where: { id } }),
+  ]);
+
+  return new NextResponse(null, { status: 204 });
+}

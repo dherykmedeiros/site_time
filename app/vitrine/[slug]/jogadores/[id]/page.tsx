@@ -38,7 +38,7 @@ async function getPlayerProfile(slug: string, playerId: string) {
 
   if (!player) return null;
 
-  const [statsAggregate, recentStats] = await Promise.all([
+  const [statsAggregate, recentStats, achievements] = await Promise.all([
     prisma.matchStats.aggregate({
       where: { playerId: player.id },
       _sum: { goals: true, assists: true, yellowCards: true, redCards: true },
@@ -59,6 +59,11 @@ async function getPlayerProfile(slug: string, playerId: string) {
       },
       orderBy: { match: { date: "desc" } },
       take: 5,
+    }),
+    prisma.achievement.findMany({
+      where: { playerId: player.id },
+      orderBy: { awardedAt: "desc" },
+      select: { id: true, type: true, awardedAt: true },
     }),
   ]);
 
@@ -82,6 +87,7 @@ async function getPlayerProfile(slug: string, playerId: string) {
       yellowCards: s.yellowCards,
       redCards: s.redCards,
     })),
+    achievements,
   };
 }
 
@@ -130,6 +136,21 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
     { label: "Amarelos", value: player.career.totalYellowCards },
     { label: "Vermelhos", value: player.career.totalRedCards },
   ];
+
+  const achievementMeta: Record<string, { emoji: string; label: string }> = {
+    HAT_TRICK: { emoji: "⚽⚽⚽", label: "Hat-trick" },
+    TOP_SCORER_ROUND: { emoji: "🥇", label: "Artilheiro da Rodada" },
+    VETERAN: { emoji: "👑", label: "Veterano" },
+    ASSIST_MASTER: { emoji: "🎯", label: "Mestre das Assistências" },
+    FULL_ATTENDANCE_MONTH: { emoji: "🛡️", label: "Presença 100%" },
+  };
+
+  // Deduplicate by type for display (show count if earned multiple times)
+  const achievementCounts: Record<string, number> = {};
+  for (const a of player.achievements) {
+    achievementCounts[a.type] = (achievementCounts[a.type] || 0) + 1;
+  }
+  const uniqueAchievements = Object.entries(achievementCounts);
 
   return (
     <div className="min-h-screen bg-transparent pb-16">
@@ -207,6 +228,34 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
             </article>
           ))}
         </section>
+
+        {/* Achievements */}
+        {uniqueAchievements.length > 0 && (
+          <section className="mt-10" aria-label="Conquistas">
+            <h2 className="mb-4 text-2xl font-bold text-[var(--text)]">Conquistas</h2>
+            <div className="flex flex-wrap gap-3">
+              {uniqueAchievements.map(([type, count]) => {
+                const meta = achievementMeta[type];
+                if (!meta) return null;
+                return (
+                  <div
+                    key={type}
+                    className="app-surface flex items-center gap-2 rounded-full border border-[var(--border)] px-4 py-2 shadow-[var(--shadow-sm)]"
+                    title={`Conquistado ${count}x`}
+                  >
+                    <span className="text-xl">{meta.emoji}</span>
+                    <span className="text-sm font-semibold text-[var(--text)]">{meta.label}</span>
+                    {count > 1 && (
+                      <span className="rounded-full bg-[var(--surface-soft)] px-1.5 py-0.5 text-xs font-bold text-[var(--text-subtle)]">
+                        ×{count}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Recent matches */}
         <section className="mt-10" aria-label="Últimas partidas">

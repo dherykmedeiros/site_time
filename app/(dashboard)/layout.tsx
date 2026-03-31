@@ -10,6 +10,7 @@ const navItems = [
   { href: "/squad", label: "Elenco", icon: "◉" },
     { href: "/squad/mensalidade", label: "Mensalidade", icon: "💰" },
   { href: "/matches", label: "Jogos", icon: "◍", badgeKey: "upcomingMatches" as const },
+  { href: "/seasons", label: "Temporadas", icon: "🏆" },
   { href: "/finances", label: "Finanças", icon: "◈" },
   { href: "/friendly-requests", label: "Amistosos", icon: "◎", badgeKey: "pendingRequests" as const },
   { href: "/team/settings", label: "Configurações", icon: "⋯" },
