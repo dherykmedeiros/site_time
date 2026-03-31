@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireAuth } from "@/lib/auth";
 import { createMatchStatsSchema } from "@/lib/validations/match";
 import { awardAchievements } from "@/lib/achievements";
+import { notifyMatchResultPosted } from "@/lib/push";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -177,6 +178,12 @@ export async function POST(request: Request, { params }: RouteParams) {
 
   // F-004: award badges asynchronously (non-blocking)
   awardAchievements(matchId).catch(() => {/* silent — badges are bonus, not critical */});
+
+  try {
+    await notifyMatchResultPosted(matchId);
+  } catch (err) {
+    console.error("Failed to notify match result", err);
+  }
 
   return NextResponse.json(
     {

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireAuth } from "@/lib/auth";
 import { generateUUID } from "@/lib/utils";
 import { createMatchSchema, matchListQuerySchema } from "@/lib/validations/match";
+import { notifyScheduledMatch } from "@/lib/push";
 
 // GET /api/matches — List matches for the team
 export async function GET(request: Request) {
@@ -189,6 +190,12 @@ export async function POST(request: Request) {
 
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
   const shareUrl = `${baseUrl}/vitrine/${team?.slug}/matches/${match.id}?t=${match.shareToken}`;
+
+  try {
+    await notifyScheduledMatch(match.id);
+  } catch (err) {
+    console.error("Failed to notify scheduled match", err);
+  }
 
   return NextResponse.json(
     {
