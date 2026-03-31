@@ -52,7 +52,9 @@ export default function InvitePage() {
         TOKEN_NOT_FOUND: "Token de convite inválido.",
         TOKEN_EXPIRED: "Este convite expirou. Solicite um novo convite.",
         TOKEN_USED: "Este convite já foi utilizado.",
-        EMAIL_EXISTS: "Este e-mail já está cadastrado.",
+        INVALID_CREDENTIALS: "Este e-mail ja existe. Informe a senha correta dessa conta para vincular o convite.",
+        USER_ALREADY_LINKED: "Esta conta ja esta vinculada a outro jogador.",
+        TEAM_MISMATCH: "Esta conta ja esta vinculada a outro time.",
       };
       setError(messages[body.code] || body.error || "Erro ao criar conta.");
       return;

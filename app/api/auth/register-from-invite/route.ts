@@ -78,9 +78,55 @@ export async function POST(request: Request) {
   });
 
   if (existingUser) {
+    if (existingUser.playerId && existingUser.playerId !== inviteToken.playerId) {
+      return NextResponse.json(
+        { error: "Conta ja vinculada a outro jogador", code: "USER_ALREADY_LINKED" },
+        { status: 409 }
+      );
+    }
+
+    if (existingUser.teamId && existingUser.teamId !== inviteToken.teamId) {
+      return NextResponse.json(
+        { error: "Conta vinculada a outro time", code: "TEAM_MISMATCH" },
+        { status: 409 }
+      );
+    }
+
+    const passwordMatches = await bcrypt.compare(password, existingUser.passwordHash);
+    if (!passwordMatches) {
+      return NextResponse.json(
+        { error: "Credenciais invalidas para conta existente", code: "INVALID_CREDENTIALS" },
+        { status: 401 }
+      );
+    }
+
+    const linkedUser = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const updatedUser = await tx.user.update({
+        where: { id: existingUser.id },
+        data: {
+          playerId: existingUser.playerId ?? inviteToken.playerId,
+          teamId: existingUser.teamId ?? inviteToken.teamId,
+        },
+      });
+
+      await tx.inviteToken.update({
+        where: { id: inviteToken.id },
+        data: { usedAt: new Date() },
+      });
+
+      return updatedUser;
+    });
+
     return NextResponse.json(
-      { error: "E-mail já cadastrado", code: "EMAIL_EXISTS" },
-      { status: 409 }
+      {
+        id: linkedUser.id,
+        email: linkedUser.email,
+        name: linkedUser.name,
+        role: linkedUser.role,
+        teamId: linkedUser.teamId,
+        playerId: linkedUser.playerId,
+      },
+      { status: 200 }
     );
   }
 
