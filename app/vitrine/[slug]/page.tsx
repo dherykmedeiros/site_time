@@ -69,12 +69,118 @@ async function getTeamStats(teamId: string) {
     take: 5,
   });
 
-  const scorerPlayerIds = topScorers.map((s) => s.playerId);
+  const scorerPlayerIds = topScorers.map((s: (typeof topScorers)[number]) => s.playerId);
   const scorerPlayers = await prisma.player.findMany({
     where: { id: { in: scorerPlayerIds } },
     select: { id: true, name: true },
   });
-  const scorerMap = new Map(scorerPlayers.map((p) => [p.id, p.name]));
+  const scorerMap = new Map(
+    scorerPlayers.map((p: (typeof scorerPlayers)[number]) => [p.id, p.name])
+  );
+
+  const activeSeason = await prisma.season.findFirst({
+    where: { teamId, status: "ACTIVE" },
+    orderBy: { startDate: "desc" },
+    select: { id: true, name: true },
+  });
+
+  let activeSeasonStandings: Array<{
+    playerId: string;
+    playerName: string;
+    shirtNumber: number | null;
+    points: number;
+    played: number;
+    won: number;
+    drawn: number;
+    lost: number;
+    goalDiff: number;
+  }> = [];
+
+  if (activeSeason) {
+    const seasonMatches = await prisma.match.findMany({
+      where: {
+        teamId,
+        seasonId: activeSeason.id,
+        type: "CHAMPIONSHIP",
+        status: "COMPLETED",
+        homeScore: { not: null },
+        awayScore: { not: null },
+      },
+      select: {
+        homeScore: true,
+        awayScore: true,
+        isHome: true,
+        matchStats: {
+          select: {
+            playerId: true,
+            player: { select: { name: true, shirtNumber: true } },
+          },
+        },
+      },
+    });
+
+    const standingMap: Record<
+      string,
+      {
+        playerId: string;
+        playerName: string;
+        shirtNumber: number | null;
+        points: number;
+        played: number;
+        won: number;
+        drawn: number;
+        lost: number;
+        goalsFor: number;
+        goalsAgainst: number;
+        goalDiff: number;
+      }
+    > = {};
+
+    for (const match of seasonMatches) {
+      const teamGoalsFor = match.isHome ? match.homeScore ?? 0 : match.awayScore ?? 0;
+      const teamGoalsAgainst = match.isHome ? match.awayScore ?? 0 : match.homeScore ?? 0;
+      const won = teamGoalsFor > teamGoalsAgainst;
+      const drawn = teamGoalsFor === teamGoalsAgainst;
+      const lost = teamGoalsFor < teamGoalsAgainst;
+
+      for (const stat of match.matchStats) {
+        if (!standingMap[stat.playerId]) {
+          standingMap[stat.playerId] = {
+            playerId: stat.playerId,
+            playerName: stat.player.name,
+            shirtNumber: stat.player.shirtNumber,
+            points: 0,
+            played: 0,
+            won: 0,
+            drawn: 0,
+            lost: 0,
+            goalsFor: 0,
+            goalsAgainst: 0,
+            goalDiff: 0,
+          };
+        }
+
+        const row = standingMap[stat.playerId];
+        row.played += 1;
+        row.goalsFor += teamGoalsFor;
+        row.goalsAgainst += teamGoalsAgainst;
+        if (won) {
+          row.won += 1;
+          row.points += 3;
+        } else if (drawn) {
+          row.drawn += 1;
+          row.points += 1;
+        } else if (lost) {
+          row.lost += 1;
+        }
+        row.goalDiff = row.goalsFor - row.goalsAgainst;
+      }
+    }
+
+    activeSeasonStandings = Object.values(standingMap)
+      .sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.won - a.won)
+      .map(({ goalsFor, goalsAgainst, ...row }) => row);
+  }
 
   return {
     totalMatches,
@@ -85,11 +191,13 @@ async function getTeamStats(teamId: string) {
     goalsScored,
     goalsConceded,
     topScorers: topScorers
-      .filter((s) => (s._sum.goals ?? 0) > 0)
-      .map((s) => ({
+      .filter((s: (typeof topScorers)[number]) => (s._sum.goals ?? 0) > 0)
+      .map((s: (typeof topScorers)[number]) => ({
         playerName: scorerMap.get(s.playerId) || "Desconhecido",
         total: s._sum.goals ?? 0,
       })),
+    activeSeason,
+    activeSeasonStandings,
   };
 }
 
@@ -228,6 +336,14 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
               >
                 Elenco
               </a>
+              {stats.activeSeason && (
+                <a
+                  href="#classificacao"
+                  className="rounded-full border border-white/35 bg-white/12 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/22"
+                >
+                  Classificação
+                </a>
+              )}
               <a
                 href="#amistoso"
                 className="rounded-full border border-white/35 bg-white/12 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-white/22"
@@ -377,6 +493,69 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
                 </article>
               ))}
             </div>
+          </section>
+        )}
+
+        {stats.activeSeason && (
+          <section id="classificacao" className="scroll-mt-40 mt-10">
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <div>
+                <h2 className="text-2xl font-bold text-[var(--text)]">Classificação</h2>
+                <p className="text-sm text-[var(--text-muted)]">{stats.activeSeason.name}</p>
+              </div>
+              <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+                Temporada ativa
+              </p>
+            </div>
+
+            {stats.activeSeasonStandings.length > 0 ? (
+              <div className="app-surface overflow-hidden rounded-[22px] border border-[var(--border)] shadow-[var(--shadow-sm)]">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-[var(--border)] bg-[var(--surface-soft)]">
+                        <th className="px-4 py-3 font-semibold text-[var(--text-subtle)]">#</th>
+                        <th className="px-4 py-3 font-semibold text-[var(--text-subtle)]">Jogador</th>
+                        <th className="px-3 py-3 text-center font-semibold text-[var(--text-subtle)]">J</th>
+                        <th className="px-3 py-3 text-center font-semibold text-[var(--text-subtle)]">V</th>
+                        <th className="px-3 py-3 text-center font-semibold text-[var(--text-subtle)]">E</th>
+                        <th className="px-3 py-3 text-center font-semibold text-[var(--text-subtle)]">D</th>
+                        <th className="px-3 py-3 text-center font-semibold text-[var(--text-subtle)]">SG</th>
+                        <th className="px-4 py-3 text-center font-bold text-[var(--text)]">PTS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.activeSeasonStandings.map((row, idx) => (
+                        <tr
+                          key={row.playerId}
+                          className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-soft)]"
+                        >
+                          <td className="px-4 py-3 font-bold text-[var(--text-subtle)]">{idx + 1}</td>
+                          <td className="px-4 py-3">
+                            <p className="font-semibold text-[var(--text)]">{row.playerName}</p>
+                            <p className="text-xs text-[var(--text-muted)]">#{row.shirtNumber ?? "—"}</p>
+                          </td>
+                          <td className="px-3 py-3 text-center text-[var(--text)]">{row.played}</td>
+                          <td className="px-3 py-3 text-center text-emerald-700">{row.won}</td>
+                          <td className="px-3 py-3 text-center text-[var(--text-subtle)]">{row.drawn}</td>
+                          <td className="px-3 py-3 text-center text-rose-700">{row.lost}</td>
+                          <td className="px-3 py-3 text-center text-[var(--text)]">
+                            {row.goalDiff > 0 ? `+${row.goalDiff}` : row.goalDiff}
+                          </td>
+                          <td className="px-4 py-3 text-center text-lg font-bold text-[var(--text)]">
+                            {row.points}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div className="app-surface rounded-[22px] border border-dashed border-[var(--border-strong)] p-8 text-center text-[var(--text-muted)]">
+                A classificação será exibida quando houver partidas de campeonato concluídas nesta temporada.
+              </div>
+            )}
           </section>
         )}
 

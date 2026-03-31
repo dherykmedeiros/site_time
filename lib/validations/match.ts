@@ -21,6 +21,7 @@ export const createMatchSchema = z.object({
   type: z.enum(["FRIENDLY", "CHAMPIONSHIP"], {
     message: "Tipo inválido",
   }),
+  seasonId: z.string().min(1, "Temporada inválida").optional().nullable(),
 });
 
 export const updateMatchSchema = z.object({
@@ -43,6 +44,7 @@ export const updateMatchSchema = z.object({
       message: "Tipo inválido",
     })
     .optional(),
+  seasonId: z.string().min(1, "Temporada inválida").optional().nullable(),
   status: z
     .enum(["CANCELLED"], {
       message: "Apenas CANCELLED é aceito",

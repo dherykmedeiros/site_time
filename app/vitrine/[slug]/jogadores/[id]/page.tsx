@@ -76,7 +76,7 @@ async function getPlayerProfile(slug: string, playerId: string) {
       totalYellowCards: statsAggregate._sum.yellowCards ?? 0,
       totalRedCards: statsAggregate._sum.redCards ?? 0,
     },
-    recentMatches: recentStats.map((s) => ({
+    recentMatches: recentStats.map((s: (typeof recentStats)[number]) => ({
       matchId: s.match.id,
       date: s.match.date.toISOString(),
       opponent: s.match.opponent,

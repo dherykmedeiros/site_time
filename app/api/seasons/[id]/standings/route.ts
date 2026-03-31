@@ -43,6 +43,7 @@ export async function GET(_request: Request, context: RouteContext) {
     where: {
       seasonId: id,
       teamId: session.user.teamId!,
+      type: "CHAMPIONSHIP",
       status: "COMPLETED",
       homeScore: { not: null },
       awayScore: { not: null },

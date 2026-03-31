@@ -37,6 +37,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         },
       },
       team: { select: { slug: true } },
+      season: { select: { id: true, name: true, type: true, status: true } },
     },
   });
 
@@ -62,6 +63,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     homeScore: match.homeScore,
     awayScore: match.awayScore,
     status: match.status,
+    season: match.season,
     shareToken: match.shareToken,
     shareUrl,
     rsvps: match.rsvps.map((rsvp) => ({
@@ -133,6 +135,20 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   const data = parsed.data;
 
+  if (data.seasonId !== undefined && data.seasonId !== null) {
+    const season = await prisma.season.findFirst({
+      where: { id: data.seasonId, teamId: session.user.teamId },
+      select: { id: true },
+    });
+
+    if (!season) {
+      return NextResponse.json(
+        { error: "Temporada não encontrada", code: "SEASON_NOT_FOUND" },
+        { status: 404 }
+      );
+    }
+  }
+
   // Handle CANCELLED transition
   if (data.status === "CANCELLED") {
     if (match.status !== "SCHEDULED") {
@@ -156,6 +172,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           include: { player: { select: { name: true } } },
         },
         team: { select: { slug: true } },
+        season: { select: { id: true, name: true, type: true, status: true } },
       },
     });
 
@@ -189,6 +206,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           include: { player: { select: { name: true } } },
         },
         team: { select: { slug: true } },
+        season: { select: { id: true, name: true, type: true, status: true } },
       },
     });
 
@@ -201,6 +219,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   if (data.venue) updateData.venue = data.venue;
   if (data.opponent) updateData.opponent = data.opponent;
   if (data.type) updateData.type = data.type;
+  if (data.seasonId !== undefined) updateData.seasonId = data.seasonId;
 
   const updated = await prisma.match.update({
     where: { id },
@@ -213,6 +232,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         include: { player: { select: { name: true } } },
       },
       team: { select: { slug: true } },
+      season: { select: { id: true, name: true, type: true, status: true } },
     },
   });
 
@@ -282,6 +302,7 @@ function buildMatchDetailResponse(
     homeScore: number | null;
     awayScore: number | null;
     status: string;
+    season: { id: string; name: string; type: string; status: string } | null;
     shareToken: string;
     createdAt: Date;
     updatedAt: Date;
@@ -316,6 +337,7 @@ function buildMatchDetailResponse(
     homeScore: match.homeScore,
     awayScore: match.awayScore,
     status: match.status,
+    season: match.season,
     shareToken: match.shareToken,
     shareUrl,
     rsvps: match.rsvps.map((rsvp) => ({

@@ -121,7 +121,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { date, venue, opponent, type } = parsed.data;
+  const { date, venue, opponent, type, seasonId } = parsed.data;
   const matchDate = new Date(date);
 
   if (matchDate <= new Date()) {
@@ -130,10 +130,6 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-
-  // Extract optional seasonId from body (not in Zod schema, validated here)
-  const rawBody = body as Record<string, unknown>;
-  const seasonId = typeof rawBody.seasonId === "string" ? rawBody.seasonId : null;
 
   // If seasonId provided, verify it belongs to the team
   if (seasonId) {
