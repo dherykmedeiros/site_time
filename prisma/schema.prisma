@@ -131,9 +131,13 @@ model Team {
 model Player {
   id           String         @id @default(cuid())
   name         String
+  fullName     String?
   position     PlayerPosition
   shirtNumber  Int
   photoUrl     String?
+  age          Int?
+  phone        String?
+  description  String?
   status       PlayerStatus   @default(ACTIVE)
   teamId       String
   team         Team           @relation(fields: [teamId], references: [id])

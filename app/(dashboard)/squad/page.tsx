@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { PlayerSelfProfileForm } from "@/components/forms/PlayerSelfProfileForm";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 
@@ -177,6 +178,8 @@ export default function SquadPage() {
           )}
         </div>
       </div>
+
+      <PlayerSelfProfileForm />
 
       {feedback && (
         <div className="rounded-[12px] border border-[#bde0d3] bg-[#e9f8f1] p-3 text-sm text-[#1d5f4f]">
