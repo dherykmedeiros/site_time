@@ -214,7 +214,7 @@ export async function GET(_request: Request, context: RouteContext) {
             letterSpacing: "0.06em",
           }}
         >
-          Site Time
+          VARzea
         </div>
       </div>
     ),

@@ -222,7 +222,7 @@ export async function generateMetadata({
       description,
       type: "website",
       url: `/vitrine/${slug}`,
-      siteName: "Site Time",
+      siteName: "VARzea",
       locale: "pt_BR",
       ...(team.badgeUrl && { images: [{ url: team.badgeUrl, width: 200, height: 200, alt: `Escudo ${team.name}` }] }),
     },
@@ -696,7 +696,7 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
       </main>
 
       <footer className="mt-14 border-t border-[var(--border)] py-8 text-center text-sm text-[var(--text-muted)]">
-        <p>Powered by Site Time</p>
+        <p>Powered by VARzea</p>
       </footer>
     </div>
   );

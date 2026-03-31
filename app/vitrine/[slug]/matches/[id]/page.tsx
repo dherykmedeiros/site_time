@@ -73,7 +73,7 @@ export async function generateMetadata({
       description,
       type: "website",
       url: `/vitrine/${slug}/matches/${id}?t=${t}`,
-      siteName: "Site Time",
+      siteName: "VARzea",
       locale: "pt_BR",
       images:
         data.match.status === "COMPLETED"

@@ -15,7 +15,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Site Time - Gestão de Times Esportivos",
+  title: "VARzea - Gestao de Times Esportivos",
   description: "Plataforma para gestão de times esportivos amadores",
   manifest: "/manifest.webmanifest",
 };

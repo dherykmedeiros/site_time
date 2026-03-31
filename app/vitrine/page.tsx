@@ -54,7 +54,7 @@ export default async function VitrineIndexPage({ searchParams }: VitrineIndexPag
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_10%_15%,rgba(58,120,99,0.18),transparent_35%),radial-gradient(circle_at_85%_0%,rgba(232,163,82,0.22),transparent_33%)]" />
         <div className="relative mx-auto max-w-5xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-subtle)]">
-            Site Time
+            VARzea
           </p>
           <h1 className="mt-3 text-balance font-display text-4xl font-bold text-[var(--text)] sm:text-5xl">
             Vitrine de Times

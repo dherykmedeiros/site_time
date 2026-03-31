@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Site Time",
-    short_name: "Site Time",
+    name: "VARzea",
+    short_name: "VARzea",
     description: "Gestão de times esportivos amadores",
     start_url: "/",
     display: "standalone",

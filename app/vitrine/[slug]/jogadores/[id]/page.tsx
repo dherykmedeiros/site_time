@@ -111,7 +111,7 @@ export async function generateMetadata({ params }: PlayerPageProps): Promise<Met
       title: `${player.name} — ${player.team.name}`,
       description,
       type: "profile",
-      siteName: "Site Time",
+      siteName: "VARzea",
       locale: "pt_BR",
       ...(player.photoUrl && {
         images: [{ url: player.photoUrl, width: 400, height: 400, alt: player.name }],
@@ -350,7 +350,7 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
       </main>
 
       <footer className="mt-14 border-t border-[var(--border)] py-8 text-center text-sm text-[var(--text-muted)]">
-        <p>Powered by Site Time</p>
+        <p>Powered by VARzea</p>
       </footer>
     </div>
   );

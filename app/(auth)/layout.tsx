@@ -9,7 +9,7 @@ export default function AuthLayout({
       <div className="relative grid w-full max-w-6xl overflow-hidden rounded-[32px] border border-[var(--border)] bg-[color-mix(in_oklab,var(--surface-soft)_80%,white_20%)] shadow-[var(--shadow-lg)] lg:grid-cols-[1.05fr_0.95fr]">
         <aside className="hidden border-r border-[var(--border)] p-10 lg:block">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-subtle)]">
-            Plataforma Site Time
+            Plataforma VARzea
           </p>
           <h1 className="mt-4 font-display text-4xl font-bold leading-tight text-[var(--text)]">
             Gestao inteligente para o seu time amador.

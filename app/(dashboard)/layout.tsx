@@ -149,7 +149,7 @@ export default function DashboardLayout({
               ⚽
             </span>
             <span>
-              <strong className="block text-lg font-bold tracking-tight">Site Time Studio</strong>
+              <strong className="block text-lg font-bold tracking-tight">VARzea</strong>
               <span className="text-xs font-medium uppercase tracking-[0.15em] text-[#cde7df]">
                 Area administrativa
               </span>
@@ -197,7 +197,7 @@ export default function DashboardLayout({
             className="text-lg font-bold tracking-tight text-white"
             onClick={() => setMobileMenuOpen(false)}
           >
-            Site Time Studio
+            VARzea
           </Link>
           <button
             onClick={() => setMobileMenuOpen(false)}
@@ -248,7 +248,7 @@ export default function DashboardLayout({
             </svg>
           </button>
           <Link href="/" className="text-lg font-bold text-[var(--brand)]">
-            Site Time
+            VARzea
           </Link>
           <div className="w-6" />
         </header>
@@ -263,7 +263,7 @@ export default function DashboardLayout({
               <h1 className="mt-1 text-2xl font-bold text-[var(--text)]">{activeItem.label}</h1>
             </div>
             <div className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm font-medium text-[var(--text-muted)] shadow-[var(--shadow-sm)]">
-              Gestao centralizada do seu time
+              Gestao centralizada na VARzea
             </div>
           </div>
         </header>

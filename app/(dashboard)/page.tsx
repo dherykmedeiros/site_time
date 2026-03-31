@@ -113,7 +113,7 @@ export default function DashboardHomePage() {
   if (!hasTeam || !team) {
     return (
       <div className="mx-auto max-w-2xl rounded-[20px] border border-[var(--border)] bg-[var(--bg-elevated)] px-8 py-12 text-center shadow-[var(--shadow-md)]">
-        <h1 className="text-3xl font-bold text-[var(--text)]">Bem-vindo ao Site Time</h1>
+        <h1 className="text-3xl font-bold text-[var(--text)]">Bem-vindo ao VARzea</h1>
         <p className="mt-3 text-[var(--text-muted)]">
           Você ainda não criou um time. Configure seu time para começar.
         </p>
