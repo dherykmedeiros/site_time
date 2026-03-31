@@ -200,12 +200,11 @@ model Transaction {
   date        DateTime
   teamId      String
   team        Team                @relation(fields: [teamId], references: [id])
+  membershipPayment MembershipPayment?
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
   @@map("transactions")
-}
-  membershipPayment MembershipPayment?
 }
 
 model InviteToken {
@@ -220,6 +219,7 @@ model InviteToken {
   createdAt DateTime  @default(now())
 
   @@map("invite_tokens")
+}
 
 model MembershipPayment {
   id            String       @id @default(cuid())
@@ -236,5 +236,4 @@ model MembershipPayment {
 
   @@unique([playerId, month, year])
   @@map("membership_payments")
-}
 }
