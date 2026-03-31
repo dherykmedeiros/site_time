@@ -93,6 +93,7 @@ model User {
   team         Team?    @relation(fields: [teamId], references: [id])
   playerId     String?  @unique
   player       Player?  @relation(fields: [playerId], references: [id])
+  pushSubscriptions PushSubscription[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -289,4 +290,17 @@ model Season {
   updatedAt DateTime     @updatedAt
 
   @@map("seasons")
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }

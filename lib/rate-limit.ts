@@ -14,6 +14,9 @@ const UPLOAD_MAX_REQUESTS = 20;
 const INVITE_WINDOW_MS = 60 * 60 * 1000;
 const INVITE_MAX_REQUESTS = 20;
 
+const PUSH_WINDOW_MS = 15 * 60 * 1000;
+const PUSH_MAX_REQUESTS = 30;
+
 // Cleanup expired entries every 10 minutes
 const cleanupHandle = setInterval(() => {
   const now = Date.now();
@@ -150,4 +153,8 @@ export async function rateLimitUpload(ip: string): Promise<RateLimitResult> {
 
 export async function rateLimitInvite(ip: string): Promise<RateLimitResult> {
   return rateLimitWithConfig("invite", ip, INVITE_MAX_REQUESTS, INVITE_WINDOW_MS);
+}
+
+export async function rateLimitPush(ip: string): Promise<RateLimitResult> {
+  return rateLimitWithConfig("push", ip, PUSH_MAX_REQUESTS, PUSH_WINDOW_MS);
 }

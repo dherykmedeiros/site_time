@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { StatsCard } from "@/components/dashboard/StatsCard";
+import { PushSubscriptionCard } from "@/components/dashboard/PushSubscriptionCard";
 import { formatCurrency } from "@/lib/utils";
 import { CardSkeleton, TableSkeleton } from "@/components/ui/Skeleton";
 
@@ -319,6 +320,8 @@ export default function DashboardHomePage() {
           )}
         </section>
       )}
+
+      <PushSubscriptionCard />
 
       <Card className="border-[var(--border)] shadow-sm">
         <CardHeader>

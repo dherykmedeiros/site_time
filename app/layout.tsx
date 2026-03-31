@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope, Space_Grotesk } from "next/font/google";
+import { PwaInit } from "@/components/pwa/PwaInit";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -15,6 +16,8 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "Site Time - Gestão de Times Esportivos",
   description: "Plataforma para gestão de times esportivos amadores",
+  manifest: "/manifest.webmanifest",
+  themeColor: "#0a584b",
 };
 
 export default function RootLayout({
@@ -27,7 +30,10 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${manrope.variable} ${spaceGrotesk.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <PwaInit />
+        {children}
+      </body>
     </html>
   );
 }
