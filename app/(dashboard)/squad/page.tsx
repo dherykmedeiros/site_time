@@ -44,8 +44,10 @@ export default function SquadPage() {
   const isAdmin = session?.user?.role === "ADMIN";
 
   const [players, setPlayers] = useState<Player[]>([]);
+  const [selfPlayerId, setSelfPlayerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [inviteModal, setInviteModal] = useState<Player | null>(null);
@@ -77,6 +79,29 @@ export default function SquadPage() {
   useEffect(() => {
     fetchPlayers();
   }, [fetchPlayers]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function fetchOwnPlayer() {
+      try {
+        const res = await fetch("/api/players/me");
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (active && data?.id) {
+          setSelfPlayerId(data.id);
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    fetchOwnPlayer();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function handleDelete(player: Player) {
     const res = await fetch(`/api/players/${player.id}`, { method: "DELETE" });
@@ -179,8 +204,6 @@ export default function SquadPage() {
         </div>
       </div>
 
-      <PlayerSelfProfileForm />
-
       {feedback && (
         <div className="rounded-[12px] border border-[#bde0d3] bg-[#e9f8f1] p-3 text-sm text-[#1d5f4f]">
           {feedback}
@@ -277,6 +300,15 @@ export default function SquadPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
+                  {player.id === selfPlayerId && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowProfileModal(true)}
+                    >
+                      Meu perfil
+                    </Button>
+                  )}
                   {isAdmin && !player.hasAccount && (
                     <Button
                       variant="ghost"
@@ -410,6 +442,15 @@ export default function SquadPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={!!selfPlayerId && showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        title="Meu perfil"
+        className="w-[min(94vw,720px)]"
+      >
+        {showProfileModal ? <PlayerSelfProfileForm /> : null}
       </Modal>
 
       <Modal
