@@ -14,9 +14,11 @@ export async function GET(_request: Request, context: RouteContext) {
     select: {
       id: true,
       name: true,
+      fullName: true,
       position: true,
       shirtNumber: true,
       photoUrl: true,
+      description: true,
       status: true,
       team: {
         select: {
@@ -61,9 +63,11 @@ export async function GET(_request: Request, context: RouteContext) {
   return NextResponse.json({
     id: player.id,
     name: player.name,
+    fullName: player.fullName,
     position: player.position,
     shirtNumber: player.shirtNumber,
     photoUrl: player.photoUrl,
+    description: player.description,
     status: player.status,
     team: player.team,
     career: {
@@ -73,7 +77,7 @@ export async function GET(_request: Request, context: RouteContext) {
       totalYellowCards: statsAggregate._sum.yellowCards ?? 0,
       totalRedCards: statsAggregate._sum.redCards ?? 0,
     },
-    recentMatches: recentStats.map((s) => ({
+    recentMatches: recentStats.map((s: (typeof recentStats)[number]) => ({
       matchId: s.match.id,
       date: s.match.date.toISOString(),
       opponent: s.match.opponent,

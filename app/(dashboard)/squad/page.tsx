@@ -27,6 +27,11 @@ interface Player {
   createdAt: string;
 }
 
+interface ProfileTarget {
+  id: string;
+  name: string;
+}
+
 const positionLabels: Record<string, string> = {
   GOALKEEPER: "Goleiro",
   DEFENDER: "Zagueiro",
@@ -45,9 +50,9 @@ export default function SquadPage() {
 
   const [players, setPlayers] = useState<Player[]>([]);
   const [selfPlayerId, setSelfPlayerId] = useState<string | null>(null);
+  const [profileTarget, setProfileTarget] = useState<ProfileTarget | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [inviteModal, setInviteModal] = useState<Player | null>(null);
@@ -304,9 +309,18 @@ export default function SquadPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setShowProfileModal(true)}
+                      onClick={() => setProfileTarget({ id: player.id, name: player.name })}
                     >
                       Meu perfil
+                    </Button>
+                  )}
+                  {isAdmin && player.id !== selfPlayerId && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setProfileTarget({ id: player.id, name: player.name })}
+                    >
+                      Perfil
                     </Button>
                   )}
                   {isAdmin && !player.hasAccount && (
@@ -445,12 +459,17 @@ export default function SquadPage() {
       </Modal>
 
       <Modal
-        open={!!selfPlayerId && showProfileModal}
-        onClose={() => setShowProfileModal(false)}
-        title="Meu perfil"
+        open={!!profileTarget}
+        onClose={() => setProfileTarget(null)}
+        title={profileTarget?.id === selfPlayerId ? "Meu perfil" : `Perfil de ${profileTarget?.name ?? "jogador"}`}
         className="w-[min(94vw,720px)]"
       >
-        {showProfileModal ? <PlayerSelfProfileForm /> : null}
+        {profileTarget ? (
+          <PlayerSelfProfileForm
+            playerId={profileTarget.id}
+            canEdit={profileTarget.id === selfPlayerId}
+          />
+        ) : null}
       </Modal>
 
       <Modal

@@ -25,9 +25,11 @@ async function getPlayerProfile(slug: string, playerId: string) {
     select: {
       id: true,
       name: true,
+      fullName: true,
       position: true,
       shirtNumber: true,
       photoUrl: true,
+      description: true,
       status: true,
       team: {
         select: {
@@ -200,6 +202,9 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
               <h1 className="mt-1.5 text-3xl font-bold leading-none sm:text-4xl">
                 {player.name}
               </h1>
+              {player.fullName && (
+                <p className="mt-2 text-sm font-medium text-white/80">{player.fullName}</p>
+              )}
               <div className="mt-2.5 flex items-center gap-2 text-sm text-white/75">
                 {player.team.badgeUrl && (
                   <img
@@ -216,6 +221,17 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
       </header>
 
       <main className="mx-auto mt-5 max-w-4xl px-4">
+        {player.description && (
+          <section className="mb-6" aria-label="Descricao do jogador">
+            <article className="app-surface rounded-[20px] border border-[var(--border)] p-5 shadow-[var(--shadow-sm)]">
+              <h2 className="text-base font-bold text-[var(--text)]">Descricao</h2>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-muted)]">
+                {player.description}
+              </p>
+            </article>
+          </section>
+        )}
+
         {/* Career stats */}
         <section
           className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"

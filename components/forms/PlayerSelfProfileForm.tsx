@@ -27,7 +27,12 @@ interface SelfProfile {
   description: string | null;
 }
 
-export function PlayerSelfProfileForm() {
+interface PlayerSelfProfileFormProps {
+  playerId?: string;
+  canEdit?: boolean;
+}
+
+export function PlayerSelfProfileForm({ playerId, canEdit = true }: PlayerSelfProfileFormProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -59,7 +64,8 @@ export function PlayerSelfProfileForm() {
       setErrorMsg(null);
 
       try {
-        const res = await fetch("/api/players/me");
+        const endpoint = playerId ? `/api/players/${playerId}` : "/api/players/me";
+        const res = await fetch(endpoint);
         if (res.status === 404) {
           setProfile(null);
           return;
@@ -85,7 +91,7 @@ export function PlayerSelfProfileForm() {
     }
 
     loadProfile();
-  }, []);
+  }, [playerId]);
 
   async function handlePhotoUpload(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -173,7 +179,9 @@ export function PlayerSelfProfileForm() {
       <CardHeader>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Meu perfil</p>
-          <h2 className="text-lg font-bold text-[var(--text)]">Atualize seus dados basicos</h2>
+          <h2 className="text-lg font-bold text-[var(--text)]">
+            {canEdit ? "Atualize seus dados basicos" : "Perfil do jogador"}
+          </h2>
         </div>
       </CardHeader>
       <CardContent>
@@ -214,6 +222,7 @@ export function PlayerSelfProfileForm() {
               onChange={handleInputValueChange(setFullName)}
               maxLength={120}
               placeholder="Seu nome completo"
+              disabled={!canEdit}
             />
             <Input
               label="Idade"
@@ -223,6 +232,7 @@ export function PlayerSelfProfileForm() {
               value={age}
               onChange={handleInputValueChange(setAge)}
               placeholder="Ex: 28"
+              disabled={!canEdit}
             />
           </div>
 
@@ -232,6 +242,7 @@ export function PlayerSelfProfileForm() {
             onChange={handleInputValueChange(setPhone)}
             maxLength={30}
             placeholder="Ex: (11) 99999-9999"
+            disabled={!canEdit}
           />
 
           <Textarea
@@ -241,6 +252,7 @@ export function PlayerSelfProfileForm() {
             maxLength={500}
             placeholder="Fale um pouco sobre voce no time"
             rows={4}
+            disabled={!canEdit}
           />
 
           <div className="space-y-2">
@@ -258,27 +270,31 @@ export function PlayerSelfProfileForm() {
                 </div>
               )}
 
-              <label className="cursor-pointer">
-                <span className="inline-flex items-center rounded-[10px] border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--text)] hover:bg-[var(--surface-soft)]">
-                  {uploadingPhoto ? "Enviando..." : "Alterar foto"}
-                </span>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                  onChange={handlePhotoUpload}
-                  disabled={uploadingPhoto}
-                />
-              </label>
+              {canEdit && (
+                <label className="cursor-pointer">
+                  <span className="inline-flex items-center rounded-[10px] border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--text)] hover:bg-[var(--surface-soft)]">
+                    {uploadingPhoto ? "Enviando..." : "Alterar foto"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                    disabled={uploadingPhoto}
+                  />
+                </label>
+              )}
               <p className="text-xs text-[var(--text-subtle)]">JPEG, PNG ou WebP. Maximo 5 MB.</p>
             </div>
           </div>
 
-          <div className="pt-1">
-            <Button type="submit" disabled={saving || uploadingPhoto}>
-              {saving ? "Salvando..." : "Salvar meu perfil"}
-            </Button>
-          </div>
+          {canEdit && (
+            <div className="pt-1">
+              <Button type="submit" disabled={saving || uploadingPhoto}>
+                {saving ? "Salvando..." : "Salvar meu perfil"}
+              </Button>
+            </div>
+          )}
         </form>
       </CardContent>
     </Card>

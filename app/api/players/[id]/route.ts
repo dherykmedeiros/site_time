@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, requireAuth } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { updatePlayerSchema } from "@/lib/validations/player";
 
 interface RouteContext {
@@ -9,7 +9,7 @@ interface RouteContext {
 
 // GET /api/players/:id — Player detail with aggregated stats
 export async function GET(request: Request, context: RouteContext) {
-  const { session, error } = await requireAuth();
+  const { session, error } = await requireAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {
@@ -49,9 +49,13 @@ export async function GET(request: Request, context: RouteContext) {
   return NextResponse.json({
     id: player.id,
     name: player.name,
+    fullName: player.fullName,
     position: player.position,
     shirtNumber: player.shirtNumber,
     photoUrl: player.photoUrl,
+    age: player.age,
+    phone: player.phone,
+    description: player.description,
     status: player.status,
     hasAccount: !!player.user,
     stats: {
@@ -156,9 +160,13 @@ export async function PATCH(request: Request, context: RouteContext) {
   return NextResponse.json({
     id: updated.id,
     name: updated.name,
+    fullName: updated.fullName,
     position: updated.position,
     shirtNumber: updated.shirtNumber,
     photoUrl: updated.photoUrl,
+    age: updated.age,
+    phone: updated.phone,
+    description: updated.description,
     status: updated.status,
     hasAccount: !!updated.user,
     stats: {
