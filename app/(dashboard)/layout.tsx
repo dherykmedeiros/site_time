@@ -72,6 +72,17 @@ export default function DashboardLayout({
     setMobileMenuOpen(false);
   }, [pathname]);
 
+  const activeItem =
+    navItems.find(
+      (item) => pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
+    ) || navItems[0];
+
+  const todayLabel = new Intl.DateTimeFormat("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  }).format(new Date());
+
   function NavLinks({ mobile = false }: { mobile?: boolean }) {
     return (
       <>
@@ -109,21 +120,41 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-transparent">
+    <div className="min-h-screen bg-transparent">
+      <a
+        href="#dashboard-main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-[#0b4b3f]"
+      >
+        Ir para o conteudo principal
+      </a>
+
+      <div className="flex min-h-screen">
       {/* Desktop Sidebar */}
-      <aside className="hidden w-72 flex-shrink-0 border-r border-[#196a5a] bg-gradient-to-b from-[#0b6454] via-[#0d6f5e] to-[#09473c] md:block">
-        <div className="flex h-20 items-center border-b border-white/15 px-6">
-          <Link href="/" className="text-lg font-bold tracking-tight text-white">
-            Site Time Studio
+      <aside className="hidden h-screen w-80 flex-shrink-0 border-r border-[#196a5a] bg-gradient-to-b from-[#0a584b] via-[#0b6555] to-[#083d34] md:sticky md:top-0 md:flex md:flex-col">
+        <div className="border-b border-white/15 px-6 py-6">
+          <Link href="/" className="inline-flex items-center gap-3 text-white">
+            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/25 bg-white/10 text-xl">
+              ⚽
+            </span>
+            <span>
+              <strong className="block text-lg font-bold tracking-tight">Site Time Studio</strong>
+              <span className="text-xs font-medium uppercase tracking-[0.15em] text-[#cde7df]">
+                Area administrativa
+              </span>
+            </span>
           </Link>
         </div>
-        <p className="px-6 pt-5 text-xs font-semibold uppercase tracking-[0.16em] text-[#b9ded3]">
-          Navegação
-        </p>
-        <nav className="mt-3 space-y-1 px-3">
-          <NavLinks />
-        </nav>
-        <div className="absolute bottom-4 left-3 right-3">
+
+        <div className="flex-1 overflow-y-auto px-3 py-5">
+          <p className="px-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#b9ded3]">
+            Navegacao
+          </p>
+          <nav className="mt-3 space-y-1">
+            <NavLinks />
+          </nav>
+        </div>
+
+        <div className="border-t border-white/15 px-3 py-4">
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
             className="flex w-full items-center gap-3 rounded-xl bg-white/10 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"
@@ -144,7 +175,7 @@ export default function DashboardLayout({
 
       {/* Mobile sidebar drawer */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 transform border-r border-[#196a5a] bg-gradient-to-b from-[#0b6454] via-[#0d6f5e] to-[#09473c] transition-transform duration-200 md:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 transform border-r border-[#196a5a] bg-gradient-to-b from-[#0a584b] via-[#0b6555] to-[#083d34] transition-transform duration-200 md:hidden ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -187,7 +218,7 @@ export default function DashboardLayout({
         <header className="flex h-16 items-center justify-between border-b border-[var(--border)] bg-[var(--bg-elevated)]/95 px-4 backdrop-blur md:hidden">
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="text-[var(--text)] hover:text-[var(--brand)]"
+            className="rounded-lg p-1 text-[var(--text)] hover:bg-[var(--brand-soft)] hover:text-[var(--brand)]"
             aria-label="Abrir menu"
           >
             <svg
@@ -207,11 +238,29 @@ export default function DashboardLayout({
           <Link href="/" className="text-lg font-bold text-[var(--brand)]">
             Site Time
           </Link>
-          <div className="w-6" /> {/* Spacer for center alignment */}
+          <div className="w-6" />
+        </header>
+
+        {/* Desktop page header */}
+        <header className="hidden border-b border-[var(--border)] bg-white/70 px-8 py-5 backdrop-blur md:block">
+          <div className="mx-auto flex w-full max-w-7xl items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+                {todayLabel}
+              </p>
+              <h1 className="mt-1 text-2xl font-bold text-[var(--text)]">{activeItem.label}</h1>
+            </div>
+            <div className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm font-medium text-[var(--text-muted)] shadow-[var(--shadow-sm)]">
+              Gestao centralizada do seu time
+            </div>
+          </div>
         </header>
 
         {/* Main content */}
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main id="dashboard-main-content" className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
+        </main>
+      </div>
       </div>
     </div>
   );

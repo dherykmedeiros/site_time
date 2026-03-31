@@ -124,51 +124,120 @@ export default function DashboardHomePage() {
   }
 
   const record = rankings?.teamRecord;
+  const quickActions = [
+    {
+      href: "/squad",
+      title: "Gerenciar elenco",
+      description: "Cadastro, status e organizacao dos jogadores.",
+      icon: "👥",
+    },
+    {
+      href: "/matches",
+      title: "Planejar partidas",
+      description: "Agenda, resultados e historico de jogos.",
+      icon: "⚽",
+    },
+    {
+      href: "/finances",
+      title: "Controlar financas",
+      description: "Lancamentos, saldo e resumo mensal.",
+      icon: "💰",
+    },
+    {
+      href: "/friendly-requests",
+      title: "Responder amistosos",
+      description: "Solicitacoes pendentes e negociacao de jogos.",
+      icon: "🤝",
+    },
+    {
+      href: "/team/settings",
+      title: "Ajustar configuracoes",
+      description: "Dados do time, identidade e vitrine publica.",
+      icon: "⚙",
+    },
+  ];
 
   return (
     <div className="space-y-8">
-      {/* Team Header */}
-      <div className="relative overflow-hidden rounded-[24px] border border-[#b7d8ce] bg-gradient-to-r from-[#e4f3ed] via-[#eff7ef] to-[#f7f1e7] p-6 shadow-sm sm:p-8">
-        <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[#b7dfd2]/50 blur-2xl" />
-        <div className="absolute -bottom-16 right-24 h-40 w-40 rounded-full bg-[#f4ddb7]/50 blur-2xl" />
+      <section className="relative overflow-hidden rounded-[28px] border border-[#b7d8ce] bg-gradient-to-r from-[#e4f3ed] via-[#eef7ef] to-[#f7f1e7] p-6 shadow-sm sm:p-8">
+        <div className="absolute -right-16 -top-14 h-44 w-44 rounded-full bg-[#b7dfd2]/60 blur-3xl" />
+        <div className="absolute -bottom-20 right-20 h-48 w-48 rounded-full bg-[#f4ddb7]/55 blur-3xl" />
 
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            {team.badgeUrl ? (
-              <img
-                src={team.badgeUrl}
-                alt={`Escudo ${team.name}`}
-                className="h-16 w-16 rounded-2xl border border-white/80 object-cover shadow-sm"
-              />
-            ) : (
-              <div
-                className="flex h-16 w-16 items-center justify-center rounded-2xl text-2xl text-white shadow-sm"
-                style={{ backgroundColor: team.primaryColor || "#0c6f5d" }}
-              >
-                ⚽
+        <div className="relative grid gap-6 lg:grid-cols-[1.4fr_1fr] lg:items-center">
+          <div>
+            <div className="flex items-center gap-4">
+              {team.badgeUrl ? (
+                <img
+                  src={team.badgeUrl}
+                  alt={`Escudo ${team.name}`}
+                  className="h-16 w-16 rounded-2xl border border-white/80 object-cover shadow-sm"
+                />
+              ) : (
+                <div
+                  className="flex h-16 w-16 items-center justify-center rounded-2xl text-2xl text-white shadow-sm"
+                  style={{ backgroundColor: team.primaryColor || "#0c6f5d" }}
+                >
+                  ⚽
+                </div>
+              )}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2a6f60]">
+                  Painel administrativo
+                </p>
+                <h1 className="text-3xl font-bold text-[var(--text)]">{team.name}</h1>
               </div>
-            )}
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2a6f60]">
-                Painel administrativo
-              </p>
-              <h1 className="text-2xl font-bold text-[var(--text)]">{team.name}</h1>
+            </div>
+
+            <p className="mt-4 max-w-2xl text-sm text-[#36544d] sm:text-base">
+              Visualize os indicadores principais, acompanhe o desempenho e acesse as tarefas mais importantes do dia em poucos cliques.
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <a
+                href={`/vitrine/${team.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-xl border border-[#9fc9bc] bg-white px-4 py-2 text-sm font-semibold text-[#145045] transition hover:bg-[#f1faf6]"
+              >
+                Abrir vitrine publica
+              </a>
+              <Link href="/matches">
+                <Button variant="secondary">Registrar partida</Button>
+              </Link>
             </div>
           </div>
 
-          <a
-            href={`/vitrine/${team.slug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center rounded-xl border border-[#9fc9bc] bg-white px-4 py-2 text-sm font-semibold text-[#145045] transition hover:bg-[#f1faf6]"
-          >
-            Abrir vitrine pública
-          </a>
+          <div className="rounded-2xl border border-white/70 bg-white/75 p-4 backdrop-blur">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+              Resumo rapido
+            </p>
+            <dl className="mt-3 space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <dt className="text-[var(--text-muted)]">Jogadores ativos</dt>
+                <dd className="font-semibold text-[var(--text)]">{team._count.players}</dd>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <dt className="text-[var(--text-muted)]">Partidas cadastradas</dt>
+                <dd className="font-semibold text-[var(--text)]">{team._count.matches}</dd>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <dt className="text-[var(--text-muted)]">Saldo atual</dt>
+                <dd className="font-semibold text-[var(--text)]">
+                  {balance != null ? formatCurrency(balance) : "—"}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <dt className="text-[var(--text-muted)]">Aproveitamento</dt>
+                <dd className="font-semibold text-[var(--text)]">
+                  {record ? `${record.winRate}%` : "—"}
+                </dd>
+              </div>
+            </dl>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Stats Overview Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           label="Jogadores"
           value={team._count.players}
@@ -185,7 +254,7 @@ export default function DashboardHomePage() {
           label="Aproveitamento"
           value={record ? `${record.winRate}%` : "—"}
           icon="📊"
-          color="purple"
+          color="yellow"
           sublabel={
             record
               ? `${record.wins}V ${record.draws}E ${record.losses}D`
@@ -198,44 +267,42 @@ export default function DashboardHomePage() {
           icon="💰"
           color={balance != null && balance >= 0 ? "green" : "red"}
         />
-      </div>
+      </section>
 
-      {/* Team Record */}
       {record && record.totalMatches > 0 && (
-        <Card className="shadow-sm">
+        <Card className="border-[var(--border)] shadow-sm">
           <CardHeader>
             <h2 className="text-lg font-semibold text-[var(--text)]">
               Retrospecto do Time
             </h2>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 sm:grid-cols-4">
-              <div className="text-center">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-green-100 bg-green-50/80 p-4 text-center">
                 <p className="text-2xl font-bold text-green-600">{record.wins}</p>
                 <p className="text-xs text-[var(--text-muted)]">Vitórias</p>
               </div>
-              <div className="text-center">
+              <div className="rounded-xl border border-yellow-100 bg-yellow-50/80 p-4 text-center">
                 <p className="text-2xl font-bold text-yellow-600">{record.draws}</p>
                 <p className="text-xs text-[var(--text-muted)]">Empates</p>
               </div>
-              <div className="text-center">
+              <div className="rounded-xl border border-red-100 bg-red-50/80 p-4 text-center">
                 <p className="text-2xl font-bold text-red-600">{record.losses}</p>
                 <p className="text-xs text-[var(--text-muted)]">Derrotas</p>
               </div>
-              <div className="text-center">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
                 <p className="text-2xl font-bold text-[var(--text)]">
                   {record.goalsScored} : {record.goalsConceded}
                 </p>
-                <p className="text-xs text-[var(--text-muted)]">Gols (Pró : Contra)</p>
+                <p className="text-xs text-[var(--text-muted)]">Gols (Pro : Contra)</p>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Rankings */}
       {rankings && (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <section className="grid gap-6 lg:grid-cols-2">
           {rankings.rankings.topScorers && rankings.rankings.topScorers.length > 0 && (
             <RankingTable
               title="🥇 Artilheiros"
@@ -250,31 +317,34 @@ export default function DashboardHomePage() {
               type="assists"
             />
           )}
-        </div>
+        </section>
       )}
 
-      {/* Quick Actions */}
-      <Card className="shadow-sm">
+      <Card className="border-[var(--border)] shadow-sm">
         <CardHeader>
-          <h2 className="text-lg font-semibold text-[var(--text)]">Ações Rápidas</h2>
+          <h2 className="text-lg font-semibold text-[var(--text)]">Acoes rapidas</h2>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <Link href="/squad">
-              <Button variant="secondary" className="w-full">Gerenciar Elenco</Button>
-            </Link>
-            <Link href="/matches">
-              <Button variant="secondary" className="w-full">Ver Partidas</Button>
-            </Link>
-            <Link href="/finances">
-              <Button variant="secondary" className="w-full">Finanças</Button>
-            </Link>
-            <Link href="/friendly-requests">
-              <Button variant="secondary" className="w-full">Solicitações de Amistoso</Button>
-            </Link>
-            <Link href="/team/settings">
-              <Button variant="secondary" className="w-full">Configurações do Time</Button>
-            </Link>
+            {quickActions.map((action) => (
+              <Link
+                key={action.href}
+                href={action.href}
+                className="group rounded-2xl border border-[var(--border)] bg-white p-4 transition hover:border-[#9fc9bc] hover:bg-[#f5fbf8]"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--brand-soft)] text-lg">
+                    {action.icon}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--text)] group-hover:text-[#0f6152]">
+                      {action.title}
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">{action.description}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         </CardContent>
       </Card>
