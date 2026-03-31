@@ -94,7 +94,9 @@ export async function POST(request: Request) {
   });
 
   // Send invite email
-  const inviteUrl = `${process.env.NEXTAUTH_URL}/invite/${inviteToken.token}`;
+  const requestOrigin = new URL(request.url).origin;
+  const baseUrl = (process.env.NEXTAUTH_URL || requestOrigin).replace(/\/$/, "");
+  const inviteUrl = `${baseUrl}/invite/${inviteToken.token}`;
 
   try {
     await sendInviteEmail({
@@ -103,7 +105,8 @@ export async function POST(request: Request) {
       teamName: team?.name ?? "Time",
       inviteUrl,
     });
-  } catch {
+  } catch (emailError) {
+    console.error("[/api/players/invite] Email send failed:", emailError);
     await prisma.inviteToken.delete({ where: { id: inviteToken.id } });
 
     return NextResponse.json(

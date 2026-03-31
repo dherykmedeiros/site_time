@@ -2,9 +2,9 @@ import { Resend } from "resend";
 
 let resend: Resend | null = null;
 
-function getResend(): Resend | null {
+function getResend(): Resend {
   if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === "re_xxxxxxxxxxxx") {
-    return null;
+    throw new Error("RESEND_API_KEY nao configurada");
   }
   if (!resend) {
     resend = new Resend(process.env.RESEND_API_KEY);
@@ -12,7 +12,7 @@ function getResend(): Resend | null {
   return resend;
 }
 
-const FROM_EMAIL = "noreply@sitetime.com";
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 
 interface SendEmailParams {
   to: string;
@@ -22,12 +22,8 @@ interface SendEmailParams {
 
 async function sendEmail({ to, subject, html }: SendEmailParams) {
   const client = getResend();
-  if (!client) {
-    console.warn(`[Email] Skipping email to ${to}: RESEND_API_KEY not configured`);
-    return { success: true, skipped: true };
-  }
 
-  const { error } = await client.emails.send({
+  const { data, error } = await client.emails.send({
     from: FROM_EMAIL,
     to,
     subject,
@@ -35,11 +31,13 @@ async function sendEmail({ to, subject, html }: SendEmailParams) {
   });
 
   if (error) {
-    console.error("[Email] Failed to send:", error);
-    return { success: false, error };
+    throw new Error(`Falha ao enviar e-mail: ${error.message}`);
   }
 
-  return { success: true };
+  return {
+    success: true,
+    messageId: data?.id,
+  };
 }
 
 export async function sendInviteEmail(params: {
