@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Card } from "@/components/ui/Card";
 import { Select } from "@/components/ui/Select";
+import { useSession } from "next-auth/react";
 
 const MatchForm = dynamic(
   () => import("@/components/forms/MatchForm").then((m) => ({ default: m.MatchForm })),
@@ -70,6 +71,9 @@ function formatMatchDate(isoDate: string) {
 }
 
 export default function MatchesPage() {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
+
   const [matches, setMatches] = useState<MatchSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -108,7 +112,7 @@ export default function MatchesPage() {
           </p>
           <h1 className="text-2xl font-bold text-[var(--text)]">Jogos do Time</h1>
         </div>
-        <Button onClick={() => setShowAddModal(true)}>+ Agendar Partida</Button>
+        {isAdmin ? <Button onClick={() => setShowAddModal(true)}>+ Agendar Partida</Button> : null}
       </div>
 
       {/* Filters */}
@@ -207,7 +211,7 @@ export default function MatchesPage() {
 
       {/* Add match modal */}
       <Modal
-        open={showAddModal}
+        open={isAdmin && showAddModal}
         onClose={() => setShowAddModal(false)}
         title="Agendar Partida"
       >

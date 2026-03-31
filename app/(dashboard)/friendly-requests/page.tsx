@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
+import { useSession } from "next-auth/react";
 
 interface FriendlyRequest {
   id: string;
@@ -41,6 +42,9 @@ const filterOptions = [
 ];
 
 export default function FriendlyRequestsPage() {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
+
   const [requests, setRequests] = useState<FriendlyRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
@@ -197,7 +201,7 @@ export default function FriendlyRequestsPage() {
                     </p>
                   </div>
 
-                  {req.status === "PENDING" && (
+                  {isAdmin && req.status === "PENDING" && (
                     <div className="flex gap-2 self-start">
                       <Button
                         size="sm"
@@ -223,7 +227,7 @@ export default function FriendlyRequestsPage() {
 
       {/* Approve Modal */}
       <Modal
-        open={actionType === "approve"}
+        open={isAdmin && actionType === "approve"}
         onClose={closeModal}
         title="Aprovar Amistoso"
       >
@@ -260,7 +264,7 @@ export default function FriendlyRequestsPage() {
 
       {/* Reject Modal */}
       <Modal
-        open={actionType === "reject"}
+        open={isAdmin && actionType === "reject"}
         onClose={closeModal}
         title="Rejeitar Amistoso"
       >

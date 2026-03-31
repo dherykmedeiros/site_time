@@ -8,6 +8,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 const PlayerForm = dynamic(
   () => import("@/components/forms/PlayerForm").then((m) => ({ default: m.PlayerForm })),
@@ -38,6 +39,9 @@ const positionLabels: Record<string, string> = {
 };
 
 export default function SquadPage() {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
+
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -160,13 +164,17 @@ export default function SquadPage() {
           <h1 className="text-2xl font-bold text-[var(--text)]">Elenco</h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link
-            href="/squad/mensalidade"
-            className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-          >
-            💰 Mensalidade
-          </Link>
-          <Button onClick={() => setShowAddModal(true)}>+ Adicionar Jogador</Button>
+          {isAdmin && (
+            <>
+              <Link
+                href="/squad/mensalidade"
+                className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              >
+                💰 Mensalidade
+              </Link>
+              <Button onClick={() => setShowAddModal(true)}>+ Adicionar Jogador</Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -266,7 +274,7 @@ export default function SquadPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {!player.hasAccount && (
+                  {isAdmin && !player.hasAccount && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -279,7 +287,7 @@ export default function SquadPage() {
                       Convidar
                     </Button>
                   )}
-                  {player.hasAccount && (
+                  {isAdmin && player.hasAccount && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -292,14 +300,16 @@ export default function SquadPage() {
                       Promover
                     </Button>
                   )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setEditingPlayer(player)}
-                  >
-                    Editar
-                  </Button>
-                  {player.status === "ACTIVE" && (
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingPlayer(player)}
+                    >
+                      Editar
+                    </Button>
+                  )}
+                  {isAdmin && player.status === "ACTIVE" && (
                     <Button
                       variant="danger"
                       size="sm"
@@ -321,7 +331,7 @@ export default function SquadPage() {
 
       {/* Add Player Modal */}
       <Modal
-        open={showAddModal}
+        open={isAdmin && showAddModal}
         onClose={() => setShowAddModal(false)}
         title="Adicionar Jogador"
       >
@@ -336,7 +346,7 @@ export default function SquadPage() {
 
       {/* Edit Player Modal */}
       <Modal
-        open={!!editingPlayer}
+        open={isAdmin && !!editingPlayer}
         onClose={() => setEditingPlayer(null)}
         title="Editar Jogador"
       >
@@ -360,7 +370,7 @@ export default function SquadPage() {
 
       {/* Invite Modal */}
       <Modal
-        open={!!inviteModal}
+        open={isAdmin && !!inviteModal}
         onClose={() => setInviteModal(null)}
         title={`Convidar ${inviteModal?.name ?? "Jogador"}`}
       >
@@ -400,7 +410,7 @@ export default function SquadPage() {
       </Modal>
 
       <Modal
-        open={!!confirmAction && !!actionPlayer}
+        open={isAdmin && !!confirmAction && !!actionPlayer}
         onClose={() => {
           if (actionLoading) return;
           setConfirmAction(null);

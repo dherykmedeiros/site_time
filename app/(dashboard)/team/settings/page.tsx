@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { TeamForm } from "@/components/forms/TeamForm";
 
@@ -15,6 +16,9 @@ interface TeamData {
 }
 
 export default function TeamSettingsPage() {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
+
   const [team, setTeam] = useState<TeamData | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasTeam, setHasTeam] = useState(true);
@@ -46,6 +50,29 @@ export default function TeamSettingsPage() {
     return (
       <div className="flex items-center justify-center py-12">
         <p className="text-[var(--text-muted)]">Carregando...</p>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-6">
+        <div className="rounded-[22px] border border-[#f0d3b0] bg-gradient-to-r from-[#fff4e7] via-[#fff8ef] to-[#fffdf8] p-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.17em] text-[#9a5b1b]">
+            Acesso restrito
+          </p>
+          <h1 className="mt-1 text-2xl font-bold text-[var(--text)]">
+            Configuracoes do Time
+          </h1>
+        </div>
+
+        <Card className="rounded-[18px]">
+          <CardContent className="py-8">
+            <p className="text-sm text-[var(--text-muted)]">
+              Somente administradores podem editar as configuracoes do time.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }

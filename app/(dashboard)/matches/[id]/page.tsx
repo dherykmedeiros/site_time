@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
@@ -81,6 +82,8 @@ function formatMatchDate(isoDate: string) {
 export default function MatchDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
   const [match, setMatch] = useState<MatchDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [rsvpLoading, setRsvpLoading] = useState(false);
@@ -282,7 +285,7 @@ export default function MatchDetailPage() {
           <Button variant="secondary" onClick={handleCopyLink}>
             🖗 Compartilhar
           </Button>
-          {match.status === "SCHEDULED" && (
+          {isAdmin && match.status === "SCHEDULED" && (
             <Button
               variant="secondary"
               onClick={() => setShowConvocacao((v) => !v)}
@@ -290,14 +293,16 @@ export default function MatchDetailPage() {
               📋 Gerar Convocação
             </Button>
           )}
-          {match.status === "SCHEDULED" && (
+          {isAdmin && match.status === "SCHEDULED" && (
             <Button variant="danger" onClick={() => setConfirmCancelOpen(true)}>
               Cancelar Partida
             </Button>
           )}
-          <Button variant="danger" onClick={() => setConfirmDeleteOpen(true)}>
-            Excluir
-          </Button>
+          {isAdmin && (
+            <Button variant="danger" onClick={() => setConfirmDeleteOpen(true)}>
+              Excluir
+            </Button>
+          )}
         </div>
       </div>
 
@@ -308,7 +313,7 @@ export default function MatchDetailPage() {
       )}
 
       {/* F-007: WhatsApp convocation generator */}
-      {showConvocacao && match.status === "SCHEDULED" && (
+      {isAdmin && showConvocacao && match.status === "SCHEDULED" && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -490,7 +495,7 @@ export default function MatchDetailPage() {
       )}
 
       {/* Post-game form (T042) — show when canSubmitPostGame is true */}
-      {match.canSubmitPostGame && !showPostGame && (
+      {isAdmin && match.canSubmitPostGame && !showPostGame && (
         <Card className="border-orange-200 bg-orange-50">
           <CardContent>
             <div className="flex items-center justify-between py-2">
@@ -511,7 +516,7 @@ export default function MatchDetailPage() {
         </Card>
       )}
 
-      {match.canSubmitPostGame && showPostGame && (
+      {isAdmin && match.canSubmitPostGame && showPostGame && (
         <Card>
           <CardHeader>
             <h2 className="text-lg font-semibold">Registrar Pós-Jogo</h2>
@@ -612,7 +617,7 @@ export default function MatchDetailPage() {
         )}
 
       <Modal
-        open={confirmCancelOpen}
+        open={isAdmin && confirmCancelOpen}
         onClose={() => setConfirmCancelOpen(false)}
         title="Cancelar partida"
       >
@@ -640,7 +645,7 @@ export default function MatchDetailPage() {
       </Modal>
 
       <Modal
-        open={confirmDeleteOpen}
+        open={isAdmin && confirmDeleteOpen}
         onClose={() => setConfirmDeleteOpen(false)}
         title="Excluir partida"
       >

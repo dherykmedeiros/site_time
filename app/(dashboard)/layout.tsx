@@ -2,18 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
 const navItems = [
   { href: "/", label: "Painel", icon: "⌂" },
   { href: "/squad", label: "Elenco", icon: "◉" },
-    { href: "/squad/mensalidade", label: "Mensalidade", icon: "💰" },
+  { href: "/squad/mensalidade", label: "Mensalidade", icon: "💰", adminOnly: true },
   { href: "/matches", label: "Jogos", icon: "◍", badgeKey: "upcomingMatches" as const },
-  { href: "/seasons", label: "Temporadas", icon: "🏆" },
+  { href: "/seasons", label: "Temporadas", icon: "🏆", adminOnly: true },
   { href: "/finances", label: "Finanças", icon: "◈" },
-  { href: "/friendly-requests", label: "Amistosos", icon: "◎", badgeKey: "pendingRequests" as const },
-  { href: "/team/settings", label: "Configurações", icon: "⋯" },
+  {
+    href: "/friendly-requests",
+    label: "Amistosos",
+    icon: "◎",
+    badgeKey: "pendingRequests" as const,
+    adminOnly: true,
+  },
+  { href: "/team/settings", label: "Configurações", icon: "⋯", adminOnly: true },
 ];
 
 interface BadgeCounts {
@@ -26,6 +32,9 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
+
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [badges, setBadges] = useState<BadgeCounts>({
@@ -73,10 +82,12 @@ export default function DashboardLayout({
     setMobileMenuOpen(false);
   }, [pathname]);
 
+  const visibleNavItems = navItems.filter((item) => !item.adminOnly || isAdmin);
+
   const activeItem =
-    navItems.find(
+    visibleNavItems.find(
       (item) => pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
-    ) || navItems[0];
+    ) || visibleNavItems[0] || navItems[0];
 
   const todayLabel = new Intl.DateTimeFormat("pt-BR", {
     weekday: "long",
@@ -87,7 +98,7 @@ export default function DashboardLayout({
   function NavLinks({ mobile = false }: { mobile?: boolean }) {
     return (
       <>
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive =
             pathname === item.href ||
             (item.href !== "/" && pathname.startsWith(item.href));

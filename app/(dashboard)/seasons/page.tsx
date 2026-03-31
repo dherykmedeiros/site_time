@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 type SeasonType = "LEAGUE" | "CUP" | "TOURNAMENT";
 type SeasonStatus = "ACTIVE" | "FINISHED";
@@ -28,6 +29,9 @@ const statusLabels: Record<SeasonStatus, { label: string; cls: string }> = {
 };
 
 export default function SeasonsPage() {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
+
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -118,16 +122,18 @@ export default function SeasonsPage() {
             Gerencie ligas, copas e torneios do seu time
           </p>
         </div>
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[var(--brand)] px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:opacity-90"
-        >
-          + Nova temporada
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[var(--brand)] px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:opacity-90"
+          >
+            + Nova temporada
+          </button>
+        )}
       </div>
 
       {/* Create form */}
-      {showForm && (
+      {isAdmin && showForm && (
         <form
           onSubmit={handleCreate}
           className="app-surface rounded-2xl border border-[var(--border)] p-6 shadow-[var(--shadow-md)]"
@@ -268,7 +274,7 @@ export default function SeasonsPage() {
                   >
                     Ver detalhes
                   </Link>
-                  {s.status === "ACTIVE" && (
+                  {isAdmin && s.status === "ACTIVE" && (
                     <button
                       onClick={() => handleFinish(s.id)}
                       className="rounded-full border border-amber-500/40 bg-amber-500/10 px-4 py-1.5 text-xs font-semibold text-amber-400 transition hover:bg-amber-500/20"
@@ -276,13 +282,15 @@ export default function SeasonsPage() {
                       Encerrar
                     </button>
                   )}
-                  <button
-                    onClick={() => handleDelete(s.id)}
-                    className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/20"
-                    aria-label="Excluir temporada"
-                  >
-                    ✕
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleDelete(s.id)}
+                      className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/20"
+                      aria-label="Excluir temporada"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               </div>
             );

@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { formatCurrency } from "@/lib/utils";
+import { useSession } from "next-auth/react";
 
 const TransactionForm = dynamic(
   () => import("@/components/forms/TransactionForm").then((m) => ({ default: m.TransactionForm })),
@@ -71,6 +72,9 @@ const categoryFilterOptions = [
 ];
 
 export default function FinancesPage() {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [balance, setBalance] = useState(0);
   const [pagination, setPagination] = useState<Pagination>({
@@ -173,7 +177,7 @@ export default function FinancesPage() {
           </p>
           <h1 className="text-2xl font-bold text-[var(--text)]">Financas</h1>
         </div>
-        <Button onClick={() => setShowForm(true)}>+ Nova Transação</Button>
+        {isAdmin ? <Button onClick={() => setShowForm(true)}>+ Nova Transação</Button> : null}
       </div>
 
       {feedback && (
@@ -287,15 +291,17 @@ export default function FinancesPage() {
                         {t.type === "INCOME" ? "+" : "-"}{" "}
                         {formatCurrency(t.amount)}
                       </span>
-                      <button
-                        onClick={() => {
-                          setDeleteTarget(t.id);
-                          setActionError(null);
-                        }}
-                        className="text-xs font-semibold text-[var(--danger)] hover:underline"
-                      >
-                        Excluir
-                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={() => {
+                            setDeleteTarget(t.id);
+                            setActionError(null);
+                          }}
+                          className="text-xs font-semibold text-[var(--danger)] hover:underline"
+                        >
+                          Excluir
+                        </button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -458,7 +464,7 @@ export default function FinancesPage() {
 
       {/* Add Transaction Modal */}
       <Modal
-        open={showForm}
+        open={isAdmin && showForm}
         onClose={() => setShowForm(false)}
         title="Nova Transação"
       >
@@ -472,7 +478,7 @@ export default function FinancesPage() {
       </Modal>
 
       <Modal
-        open={!!deleteTarget}
+        open={isAdmin && !!deleteTarget}
         onClose={() => {
           if (deleteLoading) return;
           setDeleteTarget(null);
