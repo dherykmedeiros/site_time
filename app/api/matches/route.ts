@@ -61,6 +61,9 @@ export async function GET(request: Request) {
       rsvps: {
         select: { status: true },
       },
+      positionLimits: {
+        select: { position: true, maxPlayers: true },
+      },
     },
     orderBy: { date: "asc" },
   });
@@ -80,6 +83,7 @@ export async function GET(request: Request) {
       awayScore: match.awayScore,
       status: match.status,
       shareToken: match.shareToken,
+      positionLimits: match.positionLimits,
       rsvpSummary: { confirmed, declined, pending },
       createdAt: match.createdAt.toISOString(),
     };
@@ -122,8 +126,19 @@ export async function POST(request: Request) {
     );
   }
 
-  const { date, venue, opponent, type, seasonId } = parsed.data;
+  const { date, venue, opponent, type, seasonId, positionLimits = [] } = parsed.data;
   const matchDate = new Date(date);
+
+  const uniquePositions = new Set(positionLimits.map((l) => l.position));
+  if (uniquePositions.size !== positionLimits.length) {
+    return NextResponse.json(
+      {
+        error: "Posições duplicadas nos limites",
+        code: "DUPLICATE_POSITION_LIMIT",
+      },
+      { status: 400 }
+    );
+  }
 
   if (matchDate <= new Date()) {
     return NextResponse.json(
@@ -181,6 +196,16 @@ export async function POST(request: Request) {
           playerId: player.id,
           matchId: newMatch.id,
           status: "PENDING" as const,
+        })),
+      });
+    }
+
+    if (positionLimits.length > 0) {
+      await tx.matchPositionLimit.createMany({
+        data: positionLimits.map((limit) => ({
+          matchId: newMatch.id,
+          position: limit.position,
+          maxPlayers: limit.maxPlayers,
         })),
       });
     }

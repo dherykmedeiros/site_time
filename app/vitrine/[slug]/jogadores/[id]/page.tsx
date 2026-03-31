@@ -10,8 +10,13 @@ interface PlayerPageProps {
 const positionLabels: Record<string, string> = {
   GOALKEEPER: "Goleiro",
   DEFENDER: "Zagueiro",
+  LEFT_BACK: "Lateral esquerdo",
+  RIGHT_BACK: "Lateral direito",
   MIDFIELDER: "Meio-campista",
+  DEFENSIVE_MIDFIELDER: "Volante",
   FORWARD: "Atacante",
+  LEFT_WINGER: "Ponta esquerda",
+  RIGHT_WINGER: "Ponta direita",
 };
 
 async function getPlayerProfile(slug: string, playerId: string) {

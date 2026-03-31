@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { playerPositionLabels, playerPositions } from "@/lib/player-positions";
 import {
   createMatchSchema,
   type CreateMatchInput,
@@ -25,6 +26,7 @@ interface MatchFormProps {
     opponent?: string;
     type?: string;
     seasonId?: string;
+    positionLimits?: Array<{ position: string; maxPlayers: number }>;
   };
   onSuccess?: () => void;
   onCancel?: () => void;
@@ -47,6 +49,17 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
   const [errorMsg, setErrorMsg] = useState("");
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [seasonId, setSeasonId] = useState<string>(defaultValues?.seasonId ?? "");
+  const [positionLimitsEnabled, setPositionLimitsEnabled] = useState(
+    Boolean(defaultValues?.positionLimits?.length)
+  );
+  const [positionLimits, setPositionLimits] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    for (const position of playerPositions) {
+      const existing = defaultValues?.positionLimits?.find((l) => l.position === position);
+      initial[position] = existing ? String(existing.maxPlayers) : "";
+    }
+    return initial;
+  });
 
   useEffect(() => {
     fetch("/api/seasons")
@@ -99,6 +112,15 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
       };
 
       if (seasonId) body.seasonId = seasonId;
+
+      if (positionLimitsEnabled) {
+        body.positionLimits = playerPositions
+          .map((position) => ({
+            position,
+            maxPlayers: Number(positionLimits[position] || 0),
+          }))
+          .filter((limit) => Number.isFinite(limit.maxPlayers) && limit.maxPlayers > 0);
+      }
 
       const res = await fetch(url, {
         method,
@@ -181,6 +203,42 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
           </select>
         </div>
       )}
+
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+        <label className="mb-2 flex cursor-pointer items-center gap-2 text-sm font-medium text-[var(--text)]">
+          <input
+            type="checkbox"
+            checked={positionLimitsEnabled}
+            onChange={(e) => setPositionLimitsEnabled(e.target.checked)}
+          />
+          Definir limite por posição para confirmações
+        </label>
+        <p className="text-xs text-[var(--text-subtle)]">
+          Ajuda a equilibrar o elenco para o jogo. Exemplo: 2 zagueiros, 1 lateral esquerdo, 1 lateral direito.
+        </p>
+
+        {positionLimitsEnabled && (
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {playerPositions.map((position) => (
+              <div key={position} className="rounded-lg border border-[var(--border)] bg-white p-3">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--text-subtle)]">
+                  {playerPositionLabels[position]}
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={30}
+                  placeholder="Sem limite"
+                  value={positionLimits[position]}
+                  onChange={(e) =>
+                    setPositionLimits((prev) => ({ ...prev, [position]: e.target.value }))
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="flex gap-3 pt-2">
         <Button type="submit" disabled={loading}>

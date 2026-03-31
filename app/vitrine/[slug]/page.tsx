@@ -238,15 +238,27 @@ export async function generateMetadata({
 const positionLabels: Record<string, string> = {
   GOALKEEPER: "Goleiro",
   DEFENDER: "Zagueiro",
+  LEFT_BACK: "Lateral esquerdo",
+  RIGHT_BACK: "Lateral direito",
   MIDFIELDER: "Meio-campista",
+  LEFT_DEFENSIVE_MIDFIELDER: "Volante esquerdo",
+  RIGHT_DEFENSIVE_MIDFIELDER: "Volante direito",
   FORWARD: "Atacante",
+  LEFT_WINGER: "Ponta esquerda",
+  RIGHT_WINGER: "Ponta direita",
 };
 
 const positionStyles: Record<string, string> = {
   GOALKEEPER: "border-amber-200 bg-amber-50 text-amber-700",
   DEFENDER: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  LEFT_BACK: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  RIGHT_BACK: "border-emerald-200 bg-emerald-50 text-emerald-700",
   MIDFIELDER: "border-sky-200 bg-sky-50 text-sky-700",
+  LEFT_DEFENSIVE_MIDFIELDER: "border-cyan-200 bg-cyan-50 text-cyan-700",
+  RIGHT_DEFENSIVE_MIDFIELDER: "border-cyan-200 bg-cyan-50 text-cyan-700",
   FORWARD: "border-rose-200 bg-rose-50 text-rose-700",
+  LEFT_WINGER: "border-rose-200 bg-rose-50 text-rose-700",
+  RIGHT_WINGER: "border-rose-200 bg-rose-50 text-rose-700",
 };
 
 export default async function VitrinePage({ params }: VitrinePageProps) {

@@ -16,8 +16,13 @@ enum Role {
 enum PlayerPosition {
   GOALKEEPER
   DEFENDER
+  LEFT_BACK
+  RIGHT_BACK
   MIDFIELDER
+  DEFENSIVE_MIDFIELDER
   FORWARD
+  LEFT_WINGER
+  RIGHT_WINGER
 }
 
 enum PlayerStatus {
@@ -160,6 +165,7 @@ model Match {
   team       Team        @relation(fields: [teamId], references: [id])
   rsvps      RSVP[]
   matchStats MatchStats[]
+  positionLimits MatchPositionLimit[]
   seasonId   String?
   season     Season?     @relation(fields: [seasonId], references: [id])
   achievements Achievement[]
@@ -167,6 +173,19 @@ model Match {
   updatedAt  DateTime    @updatedAt
 
   @@map("matches")
+}
+
+model MatchPositionLimit {
+  id         String         @id @default(cuid())
+  matchId    String
+  match      Match          @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  position   PlayerPosition
+  maxPlayers Int
+  createdAt  DateTime       @default(now())
+
+  @@unique([matchId, position])
+  @@index([matchId])
+  @@map("match_position_limits")
 }
 
 model RSVP {

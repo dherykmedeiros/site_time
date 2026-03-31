@@ -36,6 +36,9 @@ export async function GET(request: Request, { params }: RouteParams) {
           player: { select: { name: true } },
         },
       },
+      positionLimits: {
+        select: { position: true, maxPlayers: true },
+      },
       team: { select: { slug: true } },
       season: { select: { id: true, name: true, type: true, status: true } },
     },
@@ -64,6 +67,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     awayScore: match.awayScore,
     status: match.status,
     season: match.season,
+    positionLimits: match.positionLimits,
     shareToken: match.shareToken,
     shareUrl,
     rsvps: match.rsvps.map((rsvp) => ({
@@ -135,6 +139,19 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   const data = parsed.data;
 
+  if (data.positionLimits) {
+    const uniquePositions = new Set(data.positionLimits.map((l) => l.position));
+    if (uniquePositions.size !== data.positionLimits.length) {
+      return NextResponse.json(
+        {
+          error: "Posições duplicadas nos limites",
+          code: "DUPLICATE_POSITION_LIMIT",
+        },
+        { status: 400 }
+      );
+    }
+  }
+
   if (data.seasonId !== undefined && data.seasonId !== null) {
     const season = await prisma.season.findFirst({
       where: { id: data.seasonId, teamId: session.user.teamId },
@@ -171,6 +188,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         matchStats: {
           include: { player: { select: { name: true } } },
         },
+        positionLimits: {
+          select: { position: true, maxPlayers: true },
+        },
         team: { select: { slug: true } },
         season: { select: { id: true, name: true, type: true, status: true } },
       },
@@ -205,6 +225,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         matchStats: {
           include: { player: { select: { name: true } } },
         },
+        positionLimits: {
+          select: { position: true, maxPlayers: true },
+        },
         team: { select: { slug: true } },
         season: { select: { id: true, name: true, type: true, status: true } },
       },
@@ -221,19 +244,37 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   if (data.type) updateData.type = data.type;
   if (data.seasonId !== undefined) updateData.seasonId = data.seasonId;
 
-  const updated = await prisma.match.update({
-    where: { id },
-    data: updateData,
-    include: {
-      rsvps: {
-        include: { player: { select: { name: true } } },
+  const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    if (data.positionLimits) {
+      await tx.matchPositionLimit.deleteMany({ where: { matchId: id } });
+      if (data.positionLimits.length > 0) {
+        await tx.matchPositionLimit.createMany({
+          data: data.positionLimits.map((limit) => ({
+            matchId: id,
+            position: limit.position,
+            maxPlayers: limit.maxPlayers,
+          })),
+        });
+      }
+    }
+
+    return tx.match.update({
+      where: { id },
+      data: updateData,
+      include: {
+        rsvps: {
+          include: { player: { select: { name: true } } },
+        },
+        matchStats: {
+          include: { player: { select: { name: true } } },
+        },
+        positionLimits: {
+          select: { position: true, maxPlayers: true },
+        },
+        team: { select: { slug: true } },
+        season: { select: { id: true, name: true, type: true, status: true } },
       },
-      matchStats: {
-        include: { player: { select: { name: true } } },
-      },
-      team: { select: { slug: true } },
-      season: { select: { id: true, name: true, type: true, status: true } },
-    },
+    });
   });
 
   return buildMatchDetailResponse(updated);
@@ -303,6 +344,7 @@ function buildMatchDetailResponse(
     awayScore: number | null;
     status: string;
     season: { id: string; name: string; type: string; status: string } | null;
+    positionLimits: Array<{ position: string; maxPlayers: number }>;
     shareToken: string;
     createdAt: Date;
     updatedAt: Date;
@@ -338,6 +380,7 @@ function buildMatchDetailResponse(
     awayScore: match.awayScore,
     status: match.status,
     season: match.season,
+    positionLimits: match.positionLimits,
     shareToken: match.shareToken,
     shareUrl,
     rsvps: match.rsvps.map((rsvp) => ({

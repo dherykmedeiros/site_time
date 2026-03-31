@@ -11,8 +11,13 @@ import { Input } from "@/components/ui/Input";
 const positionLabels: Record<string, string> = {
   GOALKEEPER: "Goleiro",
   DEFENDER: "Zagueiro",
+  LEFT_BACK: "Lateral esquerdo",
+  RIGHT_BACK: "Lateral direito",
   MIDFIELDER: "Meio-campista",
+  DEFENSIVE_MIDFIELDER: "Volante",
   FORWARD: "Atacante",
+  LEFT_WINGER: "Ponta esquerda",
+  RIGHT_WINGER: "Ponta direita",
 };
 
 interface Payment {

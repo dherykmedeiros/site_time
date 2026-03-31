@@ -37,7 +37,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   // Check player is active
   const player = await prisma.player.findUnique({
     where: { id: user.playerId },
-    select: { id: true, status: true, teamId: true },
+    select: { id: true, status: true, teamId: true, position: true },
   });
 
   if (!player || player.status !== "ACTIVE") {
@@ -60,6 +60,11 @@ export async function POST(request: Request, { params }: RouteParams) {
   // Find the match
   const match = await prisma.match.findFirst({
     where: { id: matchId, teamId: session.user.teamId },
+    include: {
+      positionLimits: {
+        select: { position: true, maxPlayers: true },
+      },
+    },
   });
 
   if (!match) {
@@ -108,6 +113,43 @@ export async function POST(request: Request, { params }: RouteParams) {
   }
 
   const { status } = parsed.data;
+
+  if (status === "CONFIRMED") {
+    const positionLimit = match.positionLimits.find((l) => l.position === player.position);
+
+    if (positionLimit) {
+      const currentRsvp = await prisma.rSVP.findUnique({
+        where: {
+          playerId_matchId: {
+            playerId: player.id,
+            matchId,
+          },
+        },
+        select: { status: true },
+      });
+
+      const confirmedCount = await prisma.rSVP.count({
+        where: {
+          matchId,
+          status: "CONFIRMED",
+          player: { position: player.position },
+          ...(currentRsvp?.status === "CONFIRMED" ? { playerId: { not: player.id } } : {}),
+        },
+      });
+
+      if (confirmedCount >= positionLimit.maxPlayers) {
+        return NextResponse.json(
+          {
+            error: `Limite atingido para a posição ${player.position}`,
+            code: "POSITION_LIMIT_REACHED",
+            position: player.position,
+            maxPlayers: positionLimit.maxPlayers,
+          },
+          { status: 409 }
+        );
+      }
+    }
+  }
 
   // Upsert the RSVP for this player+match
   const rsvp = await prisma.rSVP.upsert({

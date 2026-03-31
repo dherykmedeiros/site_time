@@ -99,8 +99,14 @@ export async function generateMetadata({
 const positionLabels: Record<string, string> = {
   GOALKEEPER: "Goleiro",
   DEFENDER: "Zagueiro",
+  LEFT_BACK: "Lateral esquerdo",
+  RIGHT_BACK: "Lateral direito",
   MIDFIELDER: "Meio-campista",
+  LEFT_DEFENSIVE_MIDFIELDER: "Volante esquerdo",
+  RIGHT_DEFENSIVE_MIDFIELDER: "Volante direito",
   FORWARD: "Atacante",
+  LEFT_WINGER: "Ponta esquerda",
+  RIGHT_WINGER: "Ponta direita",
 };
 
 const statusLabels: Record<string, string> = {

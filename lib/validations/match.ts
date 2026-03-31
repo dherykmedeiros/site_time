@@ -1,9 +1,19 @@
 import { z } from "zod";
+import { playerPositions } from "@/lib/player-positions";
 
 const optionalIsoDate = z
   .string()
   .refine((val) => !isNaN(Date.parse(val)), "Data inválida")
   .optional();
+
+const positionLimitSchema = z.object({
+  position: z.enum(playerPositions, { message: "Posição inválida" }),
+  maxPlayers: z
+    .number()
+    .int("Limite deve ser inteiro")
+    .min(0, "Limite deve ser >= 0")
+    .max(30, "Limite máximo permitido é 30"),
+});
 
 export const createMatchSchema = z.object({
   date: z
@@ -22,6 +32,7 @@ export const createMatchSchema = z.object({
     message: "Tipo inválido",
   }),
   seasonId: z.string().min(1, "Temporada inválida").optional().nullable(),
+  positionLimits: z.array(positionLimitSchema).max(20).optional(),
 });
 
 export const updateMatchSchema = z.object({
@@ -45,6 +56,7 @@ export const updateMatchSchema = z.object({
     })
     .optional(),
   seasonId: z.string().min(1, "Temporada inválida").optional().nullable(),
+  positionLimits: z.array(positionLimitSchema).max(20).optional(),
   status: z
     .enum(["CANCELLED"], {
       message: "Apenas CANCELLED é aceito",

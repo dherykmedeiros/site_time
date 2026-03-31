@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { playerPositionLabels, playerPositions } from "@/lib/player-positions";
 import {
   createPlayerSchema,
   updatePlayerSchema,
@@ -25,12 +26,10 @@ interface PlayerFormProps {
   onCancel?: () => void;
 }
 
-const positionOptions = [
-  { value: "GOALKEEPER", label: "Goleiro" },
-  { value: "DEFENDER", label: "Zagueiro" },
-  { value: "MIDFIELDER", label: "Meio-campista" },
-  { value: "FORWARD", label: "Atacante" },
-];
+const positionOptions = playerPositions.map((position) => ({
+  value: position,
+  label: playerPositionLabels[position],
+}));
 
 const statusOptions = [
   { value: "ACTIVE", label: "Ativo" },

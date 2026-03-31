@@ -1,11 +1,12 @@
 import { z } from "zod";
+import { playerPositions } from "@/lib/player-positions";
 
 export const createPlayerSchema = z.object({
   name: z
     .string()
     .min(2, "Nome deve ter no mínimo 2 caracteres")
     .max(100, "Nome deve ter no máximo 100 caracteres"),
-  position: z.enum(["GOALKEEPER", "DEFENDER", "MIDFIELDER", "FORWARD"], {
+  position: z.enum(playerPositions, {
     message: "Posição inválida",
   }),
   shirtNumber: z
@@ -23,7 +24,7 @@ export const updatePlayerSchema = z.object({
     .max(100, "Nome deve ter no máximo 100 caracteres")
     .optional(),
   position: z
-    .enum(["GOALKEEPER", "DEFENDER", "MIDFIELDER", "FORWARD"], {
+    .enum(playerPositions, {
       message: "Posição inválida",
     })
     .optional(),

@@ -53,8 +53,14 @@ const typeLabels: Record<SeasonType, string> = {
 const positionLabels: Record<string, string> = {
   GOALKEEPER: "GOL",
   DEFENDER: "ZAG",
+  LEFT_BACK: "LE",
+  RIGHT_BACK: "LD",
   MIDFIELDER: "MEI",
+  LEFT_DEFENSIVE_MIDFIELDER: "VOL-E",
+  RIGHT_DEFENSIVE_MIDFIELDER: "VOL-D",
   FORWARD: "ATA",
+  LEFT_WINGER: "PE",
+  RIGHT_WINGER: "PD",
 };
 
 export default function SeasonDetailPage() {
