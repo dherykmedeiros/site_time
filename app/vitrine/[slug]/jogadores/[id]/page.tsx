@@ -189,7 +189,7 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
         </div>
       </header>
 
-      <main className="mx-auto -mt-5 max-w-4xl px-4">
+      <main className="mx-auto mt-5 max-w-4xl px-4">
         {/* Career stats */}
         <section
           className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
