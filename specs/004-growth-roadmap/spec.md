@@ -1,425 +1,351 @@
-# Roadmap de Crescimento — Novas Funcionalidades Diferenciais
+# Roadmap de Crescimento 2026 — Novas Funcionalidades e Melhorias
 
-**Spec Branch**: `004-growth-roadmap`
-**Data**: 2026-03-31
-**Status**: Draft — Análise + Planejamento
+**Spec Branch**: `004-growth-roadmap`  
+**Data**: 2026-04-01  
+**Status**: Draft — Replanejado com base no produto atual
 
 ---
 
-## Contexto: O Que Já Foi Construído
+## Objetivo
 
-A aplicação atual (spec 003 — 100% completa) cobre o ciclo operacional básico de um time amador:
+Transformar a aplicação de um bom sistema de registro operacional em uma plataforma que:
 
-| Módulo | Entregue |
+- antecipa problemas antes do dia do jogo;
+- aumenta o hábito de uso do jogador, não só do admin;
+- cria efeito de rede entre times;
+- abre espaço real para monetização sem parecer artificial.
+
+---
+
+## Estado Atual do Produto
+
+O produto já ultrapassou a fase de MVP inicial e hoje cobre boa parte da operação de um time amador.
+
+| Área | Estado atual |
 |---|---|
-| Auth com dois papéis (Admin/Jogador) | ✅ |
-| Configuração do time + página pública (Vitrine) | ✅ |
-| Gestão de elenco com convites por email | ✅ |
-| Agendamento de partidas + RSVP | ✅ |
-| Estatísticas pós-jogo (gols, assist., cartões) | ✅ |
-| Rankings automáticos (artilheiro, assistências) | ✅ |
-| Solicitação de amistosos via Vitrine pública | ✅ |
-| Gestão financeira (caixinha) | ✅ |
-| OpenGraph + WhatsApp deep links | ✅ |
+| Auth com Admin/Jogador | ✅ Entregue |
+| Vitrine pública do time | ✅ Entregue |
+| Elenco com convites | ✅ Entregue |
+| Partidas, RSVP e deep links | ✅ Entregue |
+| Pós-jogo e estatísticas | ✅ Entregue |
+| Perfil público do jogador | ✅ Entregue |
+| Cards compartilháveis de resultado | ✅ Entregue |
+| Controle de mensalidade | ✅ Entregue |
+| Conquistas e badges | ✅ Entregue |
+| Temporadas e classificação | ✅ Entregue |
+| PWA + push notifications | ✅ Entregue |
+| Convocação para WhatsApp | ✅ Entregue |
+
+Conclusão: as próximas apostas não devem repetir funcionalidades já implementadas. O maior ganho agora está em coordenação inteligente, retenção do jogador e crescimento em rede.
 
 ---
 
-## Diagnóstico: Onde a Aplicação Perde para o Status Quo
+## Diagnóstico Atual
 
-O time médio amador hoje usa:
-- **WhatsApp** → comunicação e convocação
-- **Planilha Google** → controle financeiro
-- **Nada formal** → estatísticas e histórico
+Mesmo com a base pronta, ainda existem lacunas claras:
 
-A aplicação já resolve esses pontos, mas ainda **não cria o loop viral** que faz o jogador querer mostrar para outros. O diferencial de crescimento está em **engajamento individual do jogador** e **descoberta de novos times**.
-
----
-
-## Eixos de Crescimento
-
-### Eixo 1 — Viral / Social
-> Fazer cada jogador se tornar canal de aquisição do produto
-
-### Eixo 2 — Stickiness Operacional
-> O time não consegue mais funcionar sem a ferramenta
-
-### Eixo 3 — Ecossistema / Rede
-> Conectar times entre si, criando um mercado vivo de amistosos
-
-### Eixo 4 — Monetização Sustentável
-> Funcionalidades Pro que justificam um plano pago
+1. O admin ainda precisa adivinhar se vai conseguir montar time antes de criar ou confirmar um jogo.
+2. A operação do dia do jogo continua espalhada entre app, grupo de WhatsApp e memória do organizador.
+3. O jogador ainda entra mais para consultar do que para perseguir objetivos pessoais.
+4. A descoberta entre times ainda é limitada; a vitrine existe, mas a rede ainda não existe.
+5. O financeiro já registra passado, mas ainda não ajuda a prever risco de caixa e inadimplência.
 
 ---
 
-## Funcionalidades Propostas por Prioridade
+## Tese de Crescimento
+
+O próximo ciclo deve posicionar a aplicação em três papéis ao mesmo tempo:
+
+- **Sistema de coordenação**: ajuda a montar elenco, prever faltas e organizar logística.
+- **Sistema de identidade esportiva**: dá ao jogador motivos para voltar, compartilhar e se comparar.
+- **Sistema de rede**: conecta times, melhora a qualidade dos amistosos e cria reputação.
 
 ---
 
-### [P1] F-001 — Perfil Público do Jogador com Estatísticas de Carreira
+## Eixos Estratégicos
 
-**Eixo**: Viral / Social
-**Por que diferencia**: Cada jogador tem uma "figurinha" digital pública que pode compartilhar. Artilheiro da rodada → foto no status do WhatsApp. Criar ego loop.
+### Eixo 1 — Operação Proativa
 
-**URL**: `/vitrine/[slug]/jogadores/[playerId]`
+Evitar que o admin descubra os problemas tarde demais.
 
-**Conteúdo da página**:
-- Foto, nome, posição, número da camisa
-- Total de partidas disputadas, gols, assistências, cartões
-- Últimas 5 partidas jogadas (com placar e suas stats)
-- "Jogando pelo [nome do time]" com link para a Vitrine
+### Eixo 2 — Hábito do Jogador
 
-**Mudanças necessárias**:
-- Nova rota pública (server component)
-- API endpoint `GET /api/players/[id]/public` (sem auth, só dados públicos)
-- Link na Vitrine para cada jogador da lista do elenco
+Criar retorno recorrente do atleta ao produto, mesmo fora do dia do jogo.
 
-**Entidades afetadas**: Player, MatchStats, Match (read-only, sem schema change)
+### Eixo 3 — Rede Entre Times
+
+Fazer a plataforma ser o lugar natural para encontrar adversários confiáveis.
+
+### Eixo 4 — Monetização com Valor Claro
+
+Cobrar por redução de esforço, previsibilidade e visibilidade, não por bloquear o básico.
 
 ---
 
-### [P1] F-002 — Cards de Resultado Compartilháveis (OG Image API)
+## Funcionalidades Propostas
 
-**Eixo**: Viral / Social
-**Por que diferencia**: Após registrar o pós-jogo, o admin gera um card visual (como o Wordle share) com resultado, artilheiros e placar. Pronto para colar no WhatsApp/Instagram. **Este é o principal motor viral.**
+### [P1] F-011 — Central de Disponibilidade Recorrente
 
-**Implementação**:
-- `GET /api/og/match/[id]` → Next.js `ImageResponse` (`@vercel/og`) gerando imagem PNG dinâmica
-- Card mostra: "Flamengo Society 3 × 1 Corinthians FC", data, artilheiros do jogo, cores do time
-- Botão "Compartilhar Resultado" na página do jogo (copia URL ou abre WhatsApp share)
-- OpenGraph da página do jogo aponta para esta imagem dinâmica
+**Eixo**: Operação Proativa
 
-**Mudanças necessárias**:
-- Nova route `app/api/og/match/[id]/route.tsx` com `ImageResponse`
-- Botão "Gerar Card" no post-game form após salvar stats
-- Sem mudança de schema
+**Problema que resolve**: o RSVP responde ao jogo já criado, mas não ajuda o admin a decidir se vale marcar aquele jogo em determinado dia e horário.
 
----
+**Ideia**:
 
-### [P1] F-003 — Controle de Mensalidade por Jogador (Payment Tracker)
+- Cada jogador informa padrões de disponibilidade: dias preferidos, horários inviáveis, frequência quinzenal, períodos de trabalho/estudo.
+- O admin visualiza um termômetro de quorum ao montar uma nova partida.
+- O sistema aponta risco antes da confirmação: “quorum provável baixo”, “faltam goleiros”, “sobram defensores”.
 
-**Eixo**: Stickiness Operacional
-**Por que diferencia**: A "caixinha" já existe, mas não tem o controle de **quem pagou a mensalidade este mês**. Esse é o maior ponto de atrito em qualquer time amador.
+**Escopo inicial**:
 
-**Funcionalidade**:
-- Painel de mensalidade no dashboard: lista todos os jogadores ativos com status do mês atual (Pago / Pendente / Isento)
-- Admin marca o pagamento de cada jogador → cria automaticamente uma transação `INCOME + MEMBERSHIP` na caixinha
-- Jogador vê no seu painel se está em dia
-- Vitrine pode opcionalmente mostrar % do time "em dia" (gamificação coletiva)
+- Preferências recorrentes por jogador.
+- Indicador de quorum estimado no formulário de partida.
+- Alertas simples por posição com base no elenco ativo e limites por posição já existentes.
 
-**Mudanças de schema necessárias**:
-- Novo modelo `MembershipPayment { id, playerId, teamId, month (Int), year (Int), amount, paidAt, transactionId? }`
-- Enum novo ou campo no `Transaction` para vincular ao jogador (opcional, usando `playerRef`)
-
-**Novas rotas**:
-- `GET /api/players/membership?month=&year=` → status de todos os jogadores
-- `POST /api/players/[id]/membership` → registrar pagamento (cria Transaction automaticamente)
-- `DELETE /api/players/[id]/membership/[paymentId]` → estornar
+**Por que vale agora**: reduz cancelamentos, retrabalho no WhatsApp e frustração do admin.
 
 ---
 
-### [P2] F-004 — Sistema de Conquistas e Badges (Gamificação)
+### [P1] F-012 — Escalação Inteligente e Banco Sugerido
 
-**Eixo**: Viral / Social + Stickiness
-**Por que diferencia**: Jogadores voltam para ver se conquistaram novas medalhas. Conquistas são compartilháveis.
+**Eixo**: Operação Proativa
 
-**Badges iniciais**:
+**Problema que resolve**: mesmo com RSVP confirmado, montar uma escalação equilibrada ainda é manual.
 
-| Badge | Gatilho |
-|---|---|
-| 🥇 Artilheiro da Rodada | Mais gols em uma única partida |
-| ⚽ Hat-Trick | 3+ gols em uma partida |
-| 🎯 Assistências em Série | 3+ assistências em 3 jogos consecutivos |
-| 🛡️ Presença 100% | Confirmou presença em todas as partidas de um mês |
-| 👑 Capitão | 50+ partidas pelo time |
-| 💰 Mensalidade em Dia | 6 meses consecutivos de pagamento |
+**Ideia**:
 
-**Implementação**:
-- Processamento assíncrono após registro de pós-jogo (pode ser um Server Action ou job simples)
-- Modelo `Achievement { id, playerId, type (enum), matchId?, awardedAt }`
-- Exibição no perfil público do jogador (F-001) e no painel do jogador
-- Notificação in-app (badge no sino) quando conquista é desbloqueada
+- Na página do jogo, o sistema sugere escalação titular e banco usando posição principal, limites por posição, presença recente e status de confirmação.
+- O admin pode travar escolhas manualmente e pedir uma nova sugestão.
+- O produto destaca desequilíbrios como “muitos atacantes”, “sem lateral direito”, “goleiro reserva ausente”.
+
+**Escopo inicial**:
+
+- Sugestão heurística, sem prometer “IA”.
+- Foco em distribuição por posição e cumprimento de limites.
+- Exportação da escalação em formato de card simples para compartilhar.
+
+**Por que vale agora**: aproveita dados que o produto já tem e gera utilidade imediata toda semana.
 
 ---
 
-### [P2] F-005 — Modo Temporada / Campeonato
+### [P1] F-013 — Borderô do Jogo
 
-**Eixo**: Stickiness Operacional
-**Por que diferencia**: Times participam de campeonatos de bairro, ligas locais. Hoje não há como agrupar partidas em uma competição com classificação.
+**Eixo**: Operação Proativa
 
-**Funcionalidade**:
-- Admin cria uma `Season` (ex: "Copa Verão 2026") com data de início/fim
-- Partidas do tipo `CHAMPIONSHIP` podem ser associadas a uma Season
-- Classificação automática dentro da Season (pontos, saldo de gols, posição)
-- Página pública da Season na Vitrine: tabela de classificação, artilheiros da temporada
-- Exportar classificação como imagem (mesma tech do F-002)
+**Problema que resolve**: no dia da partida o admin precisa controlar presença real, custos extras e observações operacionais fora do sistema.
 
-**Schema**:
-```
-Season { id, teamId, name, type (LEAGUE|CUP|TOURNAMENT), startDate, endDate, status }
-Match.seasonId → Season (opcional)
-```
+**Ideia**:
 
----
+- Checklist do jogo: uniforme, bola, colete, arbitragem, campo pago, adversário confirmado.
+- Check-in dos presentes no local.
+- Registro de custos reais do jogo e rateio opcional entre presentes.
+- Geração automática de pendências financeiras extras ligadas ao evento.
 
-### [P2] F-006 — PWA + Push Notifications
+**Escopo inicial**:
 
-**Eixo**: Stickiness Operacional
-**Por que diferencia**: O maior problema declarado é que jogadores esquecem de confirmar presença. Push notification resolve isso sem depender do admin colar link no WhatsApp.
+- Checklist editável por partida.
+- Check-in manual dos atletas presentes.
+- Lançamento de despesas do jogo com sugestão de rateio.
 
-**Notificações disparadas**:
-- Nova partida agendada → todos os jogadores ativos
-- Lembrete 24h antes da partida (se RSVP pendente)
-- Resultado registrado → todos que jogaram (com suas stats)
-- Nova conquista desbloqueada
-- Solicitação de amistoso aprovada (para o solicitante)
-
-**Implementação**:
-- `manifest.json` + `service-worker.js` para PWA
-- Web Push API com VAPID keys (`web-push` package)
-- Modelo `PushSubscription { id, userId, endpoint, keys }`
-- Rota `POST /api/push/subscribe` e `POST /api/push/send` (internal)
-- Botão "Ativar Notificações" no painel do jogador
+**Por que vale agora**: aumenta stickiness operacional e fecha uma parte crítica da rotina do time.
 
 ---
 
-### [P2] F-007 — Gerador de Convocação para WhatsApp
+### [P1] F-014 — Recap Compartilhável do Jogador e da Rodada
 
-**Eixo**: Stickiness Operacional
-**Por que diferencia**: Hoje o admin ainda precisa escrever a mensagem de convocação manualmente no WhatsApp. Automatizar isso cria um uso diário da ferramenta.
+**Eixo**: Hábito do Jogador
 
-**Funcionalidade**:
-- Na página de detalhes do jogo, botão "Gerar Convocação"
-- Sistema monta o texto: data, horário, local, lista de confirmados/pendentes, link deep link da partida
-- Exemplo de output:
-  ```
-  ⚽ JOGO DOMINGO!
-  📅 06/04 às 10h
-  📍 Society do Zé
-  
-  ✅ Confirmados (7): João, Pedro, Lucas...
-  ⏳ Aguardando (4): Carlos, Rafael...
-  
-  👉 Confirme aqui: [link]
-  ```
-- Botão copia texto + abre `https://wa.me/?text=...` com texto pré-preenchido
+**Problema que resolve**: o resultado compartilhável existe, mas ainda falta um motivo pessoal mais forte para cada jogador divulgar o produto.
 
-**Implementação**: Puramente frontend, sem mudança de schema ou API.
+**Ideia**:
+
+- Card semanal do jogador com participação, gols, assistências, sequência de presença e badge conquistada.
+- Card da rodada do time com “top 3 da semana”, “homem do jogo” e progresso da temporada.
+- Versões próprias para WhatsApp Status e Instagram Stories.
+
+**Escopo inicial**:
+
+- Reaproveitar infraestrutura de OG/image generation.
+- Um recap individual e um recap coletivo.
+- Botão de compartilhamento no perfil do jogador e no dashboard.
+
+**Por que vale agora**: reforça o loop viral sem depender só do admin.
 
 ---
 
-### [P3] F-008 — Diretório Público de Times (Descoberta)
+### [P2] F-015 — Agenda Aberta e Diretório Geográfico de Times
 
-**Eixo**: Ecossistema / Rede
-**Por que diferencia**: Criar um "marketplace" de amistosos. Time novo cadastrado → aparece no mapa/lista → outros times encontram e solicitam amistoso diretamente.
+**Eixo**: Rede Entre Times
 
-**Funcionalidade**:
-- Página pública `/vitrine` (sem slug) → lista todos os times que optaram por aparecer
-- Filtros: cidade, estado, tipo de campo (society, campo, futsal), dia preferido
-- Cada card mostra: escudo, nome, cidade, aproveitamento, "Solicitar Amistoso"
-- Time pode optar por aparecer ou não (campo `isPubliclyListed` no Team)
+**Problema que resolve**: a vitrine pública é útil, mas a descoberta ainda depende demais de links diretos.
 
-**Schema**:
-```
-Team.isPubliclyListed Boolean @default(false)
-Team.city String?
-Team.state String?
-Team.preferredMatchDay String? (enum: WEEKDAY|WEEKEND|BOTH)
-```
+**Ideia**:
 
-**Novas rotas**:
-- `GET /api/teams/directory?city=&state=&matchDay=` → paginado, público
+- Times podem publicar “datas abertas” para amistosos.
+- Diretório com filtros por cidade, região, tipo de campo, dia preferido e faixa de nível competitivo.
+- Destaque para times responsivos e bem avaliados.
+
+**Escopo inicial**:
+
+- Opt-in para listagem pública.
+- Lista filtrável de times.
+- Publicação de disponibilidade por data.
+
+**Por que vale depois**: esse é o primeiro passo real para efeito de rede.
 
 ---
 
-### [P3] F-009 — Avaliação Pós-Amistoso (Reputação de Times)
+### [P2] F-016 — CRM de Adversários e Reputação de Amistosos
 
-**Eixo**: Ecossistema / Rede
-**Por que diferencia**: Quando um amistoso é aprovado e jogado, ambos os times podem avaliar a experiência. Cria um sistema de reputação que incentiva fair play.
+**Eixo**: Rede Entre Times
 
-**Funcionalidade**:
-- Após marcar uma partida como concluída, admin pode avaliar o time adversário (1–5 estrelas + comentário)
-- Avaliações aparecem no diretório público do time adversário
-- Time com alto rating tem destaque no diretório
+**Problema que resolve**: organizar amistosos recorrentes exige memória do admin sobre quem responde bem, quem desmarca em cima da hora e quem vale chamar de novo.
 
-**Schema**:
-```
-TeamReview { id, reviewerTeamId, reviewedTeamId, matchId, rating (1-5), comment?, createdAt }
-```
+**Ideia**:
 
----
+- Histórico por adversário: convites enviados, taxa de resposta, no-show, partidas realizadas, custo médio.
+- Avaliação pós-jogo com critérios simples: pontualidade, organização, esportividade.
+- Ranking privado de confiabilidade para o admin e selo público opcional para o diretório.
 
-### [P3] F-010 — Plano Pro e Monetização
+**Escopo inicial**:
 
-**Eixo**: Monetização
-**Por que escalar**: Sem receita recorrente, o projeto não se sustenta. O plano Pro desbloqueia funcionalidades avançadas.
+- Timeline por adversário.
+- Score interno de confiabilidade.
+- Avaliação curta pós-partida.
 
-**Free (atual)**:
-- 1 time por conta
-- Até 20 jogadores
-- Histórico de 1 temporada
-- Sem push notifications
-
-**Pro (R$ 29,90/mês ou R$ 269/ano)**:
-- Times ilimitados por conta (multi-time owner)
-- Jogadores ilimitados
-- Histórico completo + exportação PDF
-- Push notifications
-- Conquistas e badges
-- Destaque no diretório público
-- Remove branding do Vitrine ("Powered by [App Name]")
-- Suporte prioritário
-
-**Implementação**:
-- Campo `plan` no `Team` (FREE | PRO)
-- Integração Stripe Checkout
-- Webhook Stripe para atualizar plano
-- Guards em server actions/API routes para features Pro
+**Por que vale depois**: melhora a qualidade da rede e diferencia o produto dos grupos informais.
 
 ---
 
-## Roadmap Sugerido (Sequência de Implementação)
+### [P2] F-017 — Financeiro Preditivo e Cobrança Assistida
 
-```
-Agora (Semana 1–2):
-  F-001 Perfil público do jogador          [alto impacto, baixo esforço]
-  F-007 Gerador de convocação WhatsApp     [alto impacto, esforço mínimo]
+**Eixo**: Monetização com Valor Claro
 
-Curto prazo (Semana 3–6):
-  F-002 Cards de resultado compartilháveis [principal motor viral]
-  F-003 Controle de mensalidade            [principal dor operacional]
+**Problema que resolve**: o módulo financeiro registra o que entrou e saiu, mas ainda não ajuda o admin a agir antes de faltar dinheiro.
 
-Médio prazo (Mês 2–3):
-  F-006 PWA + Push notifications           [retenção = crescimento]
-  F-004 Badges e conquistas                [engajamento do jogador]
-  F-005 Modo temporada/campeonato          [diferencial competitivo]
+**Ideia**:
 
-Longo prazo (Mês 4+):
-  F-008 Diretório de times                 [efeito de rede]
-  F-009 Avaliações pós-amistoso            [qualidade da rede]
-  F-010 Plano Pro                          [monetização]
-```
+- Projeção do caixa do mês com base em mensalidades esperadas, despesas recorrentes e eventos já agendados.
+- Lista de risco de inadimplência com jogadores sem pagamento recente.
+- Lembretes de cobrança com mensagem pronta para WhatsApp e comprovante simples após quitação.
+
+**Escopo inicial**:
+
+- Projeção mensal básica.
+- Identificação automática de pendências recorrentes.
+- Geração de mensagens prontas de cobrança e confirmação.
+
+**Por que vale depois**: aumenta percepção de valor administrativo e prepara o terreno para plano pago.
 
 ---
 
-## Mudanças de Schema Consolidadas
+### [P3] F-018 — Vitrine de Parceiros e Patrocinadores Locais
 
-```prisma
-// F-003
-model MembershipPayment {
-  id            String      @id @default(cuid())
-  playerId      String
-  teamId        String
-  month         Int
-  year          Int
-  amount        Decimal     @db.Decimal(10, 2)
-  paidAt        DateTime    @default(now())
-  transactionId String?
-  player        Player      @relation(fields: [playerId], references: [id])
-  team          Team        @relation(fields: [teamId], references: [id])
-  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+**Eixo**: Monetização com Valor Claro
 
-  @@unique([playerId, month, year])
-  @@map("membership_payments")
-}
+**Problema que resolve**: muitos times conseguem apoio local informal, mas não têm onde exibir nem mensurar retorno para parceiros.
 
-// F-004
-enum AchievementType {
-  HAT_TRICK
-  TOP_SCORER_ROUND
-  ASSIST_STREAK
-  FULL_ATTENDANCE
-  CAPTAIN
-  PAYMENT_STREAK
-}
+**Ideia**:
 
-model Achievement {
-  id        String          @id @default(cuid())
-  playerId  String
-  type      AchievementType
-  matchId   String?
-  awardedAt DateTime        @default(now())
-  player    Player          @relation(fields: [playerId], references: [id])
-  match     Match?          @relation(fields: [matchId], references: [id])
+- Espaço na vitrine para patrocinadores do time.
+- Cards com logo, cupom, contato e categoria do parceiro.
+- Relatório simples de cliques/visualizações para entregar ao patrocinador.
 
-  @@map("achievements")
-}
+**Escopo inicial**:
 
-// F-005
-enum SeasonType { LEAGUE CUP TOURNAMENT }
-enum SeasonStatus { ACTIVE FINISHED }
+- Cadastro de parceiros por time.
+- Bloco público na vitrine.
+- Métrica simples de exposição.
 
-model Season {
-  id        String       @id @default(cuid())
-  teamId    String
-  name      String
-  type      SeasonType
-  startDate DateTime
-  endDate   DateTime?
-  status    SeasonStatus @default(ACTIVE)
-  matches   Match[]
-  team      Team         @relation(fields: [teamId], references: [id])
-  createdAt DateTime     @default(now())
+**Por que vale depois**: cria valor econômico para o time e diferencia a plataforma para amadores mais organizados.
 
-  @@map("seasons")
-}
+---
 
-// F-006
-model PushSubscription {
-  id        String   @id @default(cuid())
-  userId    String
-  endpoint  String   @unique
-  p256dh    String
-  auth      String
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+### [P3] F-019 — Plano Pro em Camadas
 
-  @@map("push_subscriptions")
-}
+**Eixo**: Monetização com Valor Claro
 
-// F-008 / F-009 — campos adicionados em Team
-// Team.isPubliclyListed Boolean @default(false)
-// Team.city             String?
-// Team.state            String?
-// Team.preferredMatchDay String?
+**Proposta**:
 
-model TeamReview {
-  id               String   @id @default(cuid())
-  reviewerTeamId   String
-  reviewedTeamId   String
-  matchId          String
-  rating           Int
-  comment          String?
-  createdAt        DateTime @default(now())
-  reviewerTeam     Team     @relation("ReviewsGiven", fields: [reviewerTeamId], references: [id])
-  reviewedTeam     Team     @relation("ReviewsReceived", fields: [reviewedTeamId], references: [id])
-  match            Match    @relation(fields: [matchId], references: [id])
+- **Core gratuito**: gestão básica do time, jogos, vitrine e stats.
+- **Pro Operação**: disponibilidade recorrente, escalação sugerida, borderô e financeiro preditivo.
+- **Pro Growth**: agenda aberta, destaque no diretório, vitrine de patrocinadores, analytics de compartilhamento.
 
-  @@unique([reviewerTeamId, matchId])
-  @@map("team_reviews")
-}
+**Princípio**: monetizar ganho de eficiência, visibilidade e previsibilidade. O básico continua útil gratuitamente.
 
-// F-010
-enum Plan { FREE PRO }
-// Team.plan Plan @default(FREE)
-// Team.stripeCustomerId String?
-// Team.stripeSubscriptionId String?
-```
+---
+
+## Sequência Recomendada
+
+### Onda 1 — Valor operacional imediato
+
+- F-011 Central de disponibilidade recorrente
+- F-012 Escalação inteligente e banco sugerido
+- F-013 Borderô do jogo
+
+### Onda 2 — Loop de retenção e viralização
+
+- F-014 Recap compartilhável do jogador e da rodada
+- ajustes nas badges e perfis públicos para reforçar recorrência
+
+### Onda 3 — Efeito de rede
+
+- F-015 Agenda aberta e diretório geográfico
+- F-016 CRM de adversários e reputação
+
+### Onda 4 — Monetização
+
+- F-017 Financeiro preditivo e cobrança assistida
+- F-018 Vitrine de parceiros
+- F-019 Plano Pro em camadas
+
+---
+
+## Matriz de Prioridade
+
+| Feature | Esforço | Impacto | Horizonte |
+|---|---|---|---|
+| F-011 Disponibilidade recorrente | Médio | Alto | Imediato |
+| F-012 Escalação inteligente | Médio | Alto | Imediato |
+| F-013 Borderô do jogo | Médio | Alto | Imediato |
+| F-014 Recap compartilhável | Baixo/Médio | Alto | Curto prazo |
+| F-015 Agenda aberta + diretório | Alto | Muito alto | Médio prazo |
+| F-016 CRM de adversários | Médio | Médio/Alto | Médio prazo |
+| F-017 Financeiro preditivo | Médio | Alto | Médio prazo |
+| F-018 Vitrine de parceiros | Médio | Médio | Longo prazo |
+| F-019 Plano Pro | Alto | Alto | Longo prazo |
+
+---
+
+## Métricas de Sucesso
+
+- aumentar a taxa de RSVP concluído até 24h antes do jogo;
+- reduzir partidas com quorum insuficiente ou improvisado;
+- aumentar sessões por jogador ativo por mês;
+- aumentar compartilhamentos originados de perfis e recaps, não só de resultados;
+- aumentar a quantidade de amistosos iniciados dentro da plataforma;
+- atingir uma primeira camada clara de funcionalidades monetizáveis sem degradar o plano gratuito.
+
+---
+
+## O Que Não Priorizar Agora
+
+- chat interno completo;
+- marketplace amplo com pagamento embutido desde o início;
+- “IA” genérica sem dados e sem explicabilidade;
+- funcionalidades de campeonato ultra complexas antes de consolidar a rede entre times.
 
 ---
 
 ## Resumo Executivo
 
-| Feature | Eixo | Esforço | Impacto | Prioridade |
-|---|---|---|---|---|
-| F-001 Perfil público do jogador | Viral | Baixo | Alto | **P1** |
-| F-007 Gerador convocação WhatsApp | Operacional | Mínimo | Alto | **P1** |
-| F-002 Cards de resultado | Viral | Médio | Muito Alto | **P1** |
-| F-003 Controle de mensalidade | Operacional | Médio | Alto | **P1** |
-| F-006 PWA + Push notifications | Retenção | Alto | Alto | **P2** |
-| F-004 Badges e conquistas | Engajamento | Médio | Médio | **P2** |
-| F-005 Modo temporada | Diferencial | Alto | Médio | **P2** |
-| F-008 Diretório de times | Rede | Alto | Muito Alto | **P3** |
-| F-009 Avaliações pós-amistoso | Rede | Médio | Médio | **P3** |
-| F-010 Plano Pro | Monetização | Alto | Alto | **P3** |
+O produto já tem base suficiente para sair da lógica de “sistema que registra o que aconteceu” e entrar na lógica de “sistema que ajuda o time a funcionar melhor e crescer”.
 
-**A aposta maior a médio prazo é o trio F-001 + F-002 + F-007**: custo de implementação baixo, impacto viral alto porque fazem o jogador compartilhar a ferramenta por conta própria. Cada resultado compartilhado = nova exposição da plataforma.
+Se a prioridade for maximizar valor em curto prazo, a melhor aposta é:
+
+1. F-011 Central de disponibilidade recorrente.
+2. F-012 Escalação inteligente.
+3. F-013 Borderô do jogo.
+4. F-014 Recap compartilhável do jogador e da rodada.
+
+Esse bloco combina utilidade semanal real para o admin com novos gatilhos de retorno e compartilhamento para o jogador.

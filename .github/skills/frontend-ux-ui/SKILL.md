@@ -51,6 +51,17 @@ Entregar melhorias de UX/UI com base em padroes consolidados da comunidade, mant
 - Conferir teclado, leitor de tela basico, contraste e responsividade.
 - Verificar regressao em telas relacionadas.
 
+## Quando Nao Usar Sozinha
+
+- Nao usar sozinha quando o problema principal for boundary entre server/client, providers ou App Router; nesses casos, combinar com `vercel-composition-patterns`.
+- Nao usar sozinha quando o risco dominante for auth, autorizacao, validacao defensiva ou protecao de rotas; nesses casos, combinar com `security-hardening`.
+- Nao usar como substituto de descoberta tecnica quando ainda nao estiver claro onde o comportamento vive; nesses casos, combinar com `subagent-driven-development`.
+
+## Relacao com Outras Skills
+
+- Complementa `vercel-composition-patterns` quando a decisao arquitetural impacta ergonomia, loading state e composicao da interface.
+- Complementa `security-hardening` quando o fluxo precisa de UX clara para erros, auth, permissao e validacoes.
+
 ## Checklist de Entrega
 
 - Fluxo principal mais claro e com menos cliques desnecessarios.

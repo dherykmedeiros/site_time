@@ -1,13 +1,8 @@
 ---
-description: Create or update the feature specification from a natural language feature description.
-handoffs: 
-  - label: Build Technical Plan
-    agent: speckit.plan
-    prompt: Create a plan for the spec. I am building with...
-  - label: Clarify Spec Requirements
-    agent: speckit.clarify
-    prompt: Clarify specification requirements
-    send: true
+name: speckit.specify
+description: "Use quando precisar transformar um pedido de produto em spec.md, criar ou reescrever uma especificacao funcional e preparar a base para clarificacao e planejamento."
+argument-hint: "Descreva a feature, o problema, os usuarios afetados e as restricoes conhecidas"
+user-invocable: true
 ---
 
 ## User Input

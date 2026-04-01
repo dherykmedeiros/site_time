@@ -1,6 +1,8 @@
 ---
-description: Convert existing tasks into actionable, dependency-ordered GitHub issues for the feature based on available design artifacts.
-tools: ['github/github-mcp-server/issue_write']
+name: speckit.taskstoissues
+description: "Use quando tasks.md ja existir, o remoto for GitHub e for desejado abrir issues a partir das tarefas mantendo a ordem e o escopo do planejamento."
+argument-hint: "Informe contexto de publicacao das issues, limites de escopo e qualquer preferencia de agrupamento"
+user-invocable: true
 ---
 
 ## User Input

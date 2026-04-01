@@ -1,9 +1,8 @@
 ---
-description: Identify underspecified areas in the current feature spec by asking up to 5 highly targeted clarification questions and encoding answers back into the spec.
-handoffs: 
-  - label: Build Technical Plan
-    agent: speckit.plan
-    prompt: Create a plan for the spec. I am building with...
+name: speckit.clarify
+description: "Use quando existir uma spec.md incompleta, ambigua ou com lacunas importantes e for preciso esclarecer requisitos antes do planejamento tecnico."
+argument-hint: "Descreva a area ambigua da spec, o risco percebido ou o tipo de decisao que falta"
+user-invocable: true
 ---
 
 ## User Input

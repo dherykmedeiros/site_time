@@ -1,5 +1,17 @@
 ---
-description: Execute the implementation plan by processing and executing all tasks defined in tasks.md
+name: speckit.implement
+description: "Use quando tasks.md ja existir e for hora de executar a implementacao em fases, respeitando dependencias, checklists e validacoes do fluxo Speckit."
+argument-hint: "Informe a fase, o escopo de implementacao ou qualquer restricao operacional relevante"
+user-invocable: true
+handoffs:
+  - label: Recheck Artifact Consistency
+    agent: speckit.analyze
+    prompt: Re-run a consistency analysis before implementation proceeds.
+    send: true
+  - label: Publish Tasks As Issues
+    agent: speckit.taskstoissues
+    prompt: Convert the approved tasks into GitHub issues.
+    send: true
 ---
 
 ## User Input

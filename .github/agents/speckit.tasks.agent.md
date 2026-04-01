@@ -1,5 +1,8 @@
 ---
-description: Generate an actionable, dependency-ordered tasks.md for the feature based on available design artifacts.
+name: speckit.tasks
+description: "Use quando plan.md e demais artefatos ja existirem e for preciso derivar tasks.md em ordem de dependencia para implementacao incremental."
+argument-hint: "Descreva o foco das tarefas, prioridades ou qualquer preferencia de execucao relevante"
+user-invocable: true
 handoffs: 
   - label: Analyze For Consistency
     agent: speckit.analyze

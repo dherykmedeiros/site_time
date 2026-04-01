@@ -1,5 +1,8 @@
 ---
-description: Execute the implementation planning workflow using the plan template to generate design artifacts.
+name: speckit.plan
+description: "Use quando uma spec aprovada precisar virar plano tecnico, arquitetura, pesquisa, modelo de dados, contratos e quickstart de implementacao."
+argument-hint: "Informe contexto tecnico relevante, stack, restricoes e qualquer decisao ja tomada para o plano"
+user-invocable: true
 handoffs: 
   - label: Create Tasks
     agent: speckit.tasks
@@ -8,6 +11,7 @@ handoffs:
   - label: Create Checklist
     agent: speckit.checklist
     prompt: Create a checklist for the following domain...
+    send: true
 ---
 
 ## User Input

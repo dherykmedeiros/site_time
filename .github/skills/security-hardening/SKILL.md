@@ -49,6 +49,17 @@ Aplicar praticas de seguranca e robustez para reduzir risco de vulnerabilidades 
 4. Verificacao:
 - Testar cenarios de sucesso, negacao de acesso, payload invalido e abuso basico.
 
+## Quando Nao Usar Sozinha
+
+- Nao usar sozinha quando a duvida principal for composicao App Router, boundaries entre server/client ou escopo de providers; nesses casos, combinar com `vercel-composition-patterns`.
+- Nao usar como skill de refinamento visual ou ergonomia de interface; nesses casos, combinar com `frontend-ux-ui`.
+- Nao usar para investigar cegamente a codebase quando a localizacao da logica ainda for incerta; nesses casos, combinar com `subagent-driven-development`.
+
+## Relacao com Outras Skills
+
+- Complementa `frontend-ux-ui` em fluxos de login, formularios e mensagens de erro que precisam ser ao mesmo tempo seguros e compreensiveis.
+- Complementa `vercel-composition-patterns` quando auth, route handlers e server actions definem a fronteira correta de seguranca.
+
 ## Checklist de Entrega
 
 - Entradas validadas com schema em todos os pontos criticos.

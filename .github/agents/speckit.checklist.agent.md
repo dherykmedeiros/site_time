@@ -1,5 +1,8 @@
 ---
-description: Generate a custom checklist for the current feature based on user requirements.
+name: speckit.checklist
+description: "Use quando precisar gerar um checklist de qualidade de requisitos para revisar uma spec por dominio, risco, audiencia ou fase de validacao."
+argument-hint: "Informe o dominio do checklist, o foco da revisao e quem vai usar esse checklist"
+user-invocable: true
 ---
 
 ## Checklist Purpose: "Unit Tests for English"

@@ -1,5 +1,17 @@
 ---
-description: Perform a non-destructive cross-artifact consistency and quality analysis across spec.md, plan.md, and tasks.md after task generation.
+name: speckit.analyze
+description: "Use quando spec.md, plan.md e tasks.md precisarem de uma revisao read-only de consistencia, cobertura, ambiguidade e alinhamento antes da implementacao."
+argument-hint: "Descreva a area de maior risco ou o tipo de inconsistencia que merece prioridade na analise"
+user-invocable: true
+handoffs:
+  - label: Refine Technical Plan
+    agent: speckit.plan
+    prompt: Revise the plan to address the analysis findings.
+    send: true
+  - label: Rebuild Task Breakdown
+    agent: speckit.tasks
+    prompt: Regenerate tasks to close coverage gaps and ordering issues from the analysis.
+    send: true
 ---
 
 ## User Input

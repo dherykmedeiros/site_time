@@ -1,9 +1,8 @@
 ---
-description: Create or update the project constitution from interactive or provided principle inputs, ensuring all dependent templates stay in sync.
-handoffs: 
-  - label: Build Specification
-    agent: speckit.specify
-    prompt: Implement the feature specification based on the updated constitution. I want to build...
+name: speckit.constitution
+description: "Use quando precisar criar, revisar ou emendar a constituicao do projeto e sincronizar principios, templates e regras derivadas do fluxo Speckit."
+argument-hint: "Descreva os principios, mudancas de governanca ou regras que a constituicao precisa refletir"
+user-invocable: true
 ---
 
 ## User Input
