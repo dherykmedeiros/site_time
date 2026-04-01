@@ -62,7 +62,7 @@ interface MatchLineupResponse {
   lineup: SuggestedLineupResponse;
 }
 
-type ScheduledWorkspaceSection = "overview" | "presence" | "lineup" | "operations";
+type ScheduledWorkspaceSection = "overview" | "presence" | "lineup" | "operations" | "postgame";
 
 const statusLabels: Record<string, string> = {
   SCHEDULED: "Agendada",
@@ -224,6 +224,10 @@ export default function MatchDetailPage() {
 
     if (isAdmin && match?.status === "SCHEDULED") {
       allowedSections.push("lineup", "operations");
+    }
+
+    if ((isAdmin && match?.canSubmitPostGame) || match?.status === "COMPLETED") {
+      allowedSections.push("postgame");
     }
 
     if (!allowedSections.includes(activeSection)) {
@@ -459,6 +463,7 @@ export default function MatchDetailPage() {
   const isScheduled = match.status === "SCHEDULED";
   const canSeeLineup = isAdmin && isScheduled;
   const canSeeOperations = isAdmin && isScheduled;
+  const canSeePostGame = (isAdmin && match.canSubmitPostGame) || match.status === "COMPLETED";
   const sections: Array<{
     id: ScheduledWorkspaceSection;
     label: string;
@@ -471,6 +476,9 @@ export default function MatchDetailPage() {
       : []),
     ...(canSeeOperations
       ? [{ id: "operations" as const, label: "Operacao", helper: "Bordero e despesas" }]
+      : []),
+    ...(canSeePostGame
+      ? [{ id: "postgame" as const, label: "Pos-jogo", helper: "Placar, estatisticas e compartilhamento" }]
       : []),
   ];
 
@@ -615,7 +623,7 @@ export default function MatchDetailPage() {
         </CardContent>
       </Card>
 
-      {isScheduled && (
+      {(isScheduled || canSeePostGame) && (
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -709,6 +717,26 @@ export default function MatchDetailPage() {
                   </p>
                 </button>
               )}
+
+              {canSeePostGame && (
+                <button
+                  type="button"
+                  onClick={() => setActiveSection("postgame")}
+                  className={`rounded-[14px] border p-4 text-left transition-colors ${
+                    activeSection === "postgame"
+                      ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                      : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white"
+                  }`}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Pos-jogo</p>
+                  <p className="mt-2 text-lg font-semibold text-[var(--text)]">
+                    {match.status === "COMPLETED" ? "Partida finalizada" : "Registro pendente"}
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--text-subtle)]">
+                    Placar, estatisticas e compartilhamento em uma area dedicada.
+                  </p>
+                </button>
+              )}
             </div>
 
             <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
@@ -751,7 +779,7 @@ export default function MatchDetailPage() {
       )}
 
       {/* Score (if completed) */}
-      {match.status === "COMPLETED" &&
+      {activeSection === "postgame" && match.status === "COMPLETED" &&
         match.homeScore !== null &&
         match.awayScore !== null && (
           <Card>
@@ -820,7 +848,7 @@ export default function MatchDetailPage() {
       )}
 
       {/* RSVP list for non-scheduled matches */}
-      {match.status !== "SCHEDULED" && match.rsvps.length > 0 && (
+      {match.status !== "SCHEDULED" && match.rsvps.length > 0 && activeSection === "presence" && (
         <Card>
           <CardHeader>
             <h2 className="text-lg font-semibold">Presenças</h2>
@@ -870,7 +898,7 @@ export default function MatchDetailPage() {
       )}
 
       {/* Post-game form (T042) — show when canSubmitPostGame is true */}
-      {isAdmin && match.canSubmitPostGame && !showPostGame && (
+      {activeSection === "postgame" && isAdmin && match.canSubmitPostGame && !showPostGame && (
         <Card className="border-orange-200 bg-orange-50">
           <CardContent>
             <div className="flex items-center justify-between py-2">
@@ -891,7 +919,7 @@ export default function MatchDetailPage() {
         </Card>
       )}
 
-      {isAdmin && match.canSubmitPostGame && showPostGame && (
+      {activeSection === "postgame" && isAdmin && match.canSubmitPostGame && showPostGame && (
         <Card>
           <CardHeader>
             <h2 className="text-lg font-semibold">Registrar Pós-Jogo</h2>
@@ -911,7 +939,7 @@ export default function MatchDetailPage() {
       )}
 
       {/* Stats display (when match is COMPLETED and has stats) */}
-      {match.status === "COMPLETED" && match.stats.length > 0 && (
+      {activeSection === "postgame" && match.status === "COMPLETED" && match.stats.length > 0 && (
         <Card>
           <CardHeader>
             <h2 className="text-lg font-semibold">Estatísticas Individuais</h2>
@@ -957,7 +985,7 @@ export default function MatchDetailPage() {
       )}
 
       {/* F-002: Share result card */}
-      {match.status === "COMPLETED" &&
+      {activeSection === "postgame" && match.status === "COMPLETED" &&
         match.stats.length > 0 &&
         match.homeScore !== null &&
         match.awayScore !== null && (

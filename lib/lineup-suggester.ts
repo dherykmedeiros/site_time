@@ -1,3 +1,5 @@
+import { playerPositionLabels } from "@/lib/player-positions";
+
 interface ConfirmedPlayerInput {
   playerId: string;
   playerName: string;
@@ -33,6 +35,20 @@ interface SuggestedLineup {
   };
 }
 
+function formatPositionLabel(position: string) {
+  const knownLabel = playerPositionLabels[position as keyof typeof playerPositionLabels];
+  if (knownLabel) {
+    return knownLabel.toLowerCase();
+  }
+
+  return position.toLowerCase().replace(/_/g, " ");
+}
+
+function formatMissingPlayersAlert(position: string, missingCount: number) {
+  const athleteLabel = missingCount === 1 ? "atleta" : "atletas";
+  return `Faltam ${missingCount} ${athleteLabel} na posicao ${formatPositionLabel(position)}.`;
+}
+
 function sortPlayers(players: ConfirmedPlayerInput[]) {
   return [...players].sort((left, right) => {
     if (left.shirtNumber !== right.shirtNumber) {
@@ -66,7 +82,7 @@ function buildLimitedLineup(players: ConfirmedPlayerInput[], positionLimits: Pos
     coveredPositions.add(limit.position);
 
     if (playersForPosition.length < limit.maxPlayers) {
-      alerts.push(`Faltam ${limit.maxPlayers - playersForPosition.length} atletas para ${limit.position}.`);
+      alerts.push(formatMissingPlayersAlert(limit.position, limit.maxPlayers - playersForPosition.length));
     }
 
     starters.push(
