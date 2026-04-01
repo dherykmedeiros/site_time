@@ -68,6 +68,12 @@ enum MatchLineupFormation {
   FOUR_ONE_FOUR_ONE
 }
 
+enum MatchLineupBlockPreset {
+  DEEP
+  BALANCED
+  HIGH
+}
+
 enum RSVPStatus {
   PENDING
   CONFIRMED
@@ -213,6 +219,7 @@ model Match {
   isHome     Boolean     @default(true)
   status     MatchStatus @default(SCHEDULED)
   lineupFormation MatchLineupFormation?
+  lineupBlockPreset MatchLineupBlockPreset?
   shareToken String      @unique @default(uuid())
   teamId     String
   team       Team        @relation(fields: [teamId], references: [id])

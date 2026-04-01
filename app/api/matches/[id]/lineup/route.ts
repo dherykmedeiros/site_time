@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { MatchLineupFormation, Prisma } from "@prisma/client";
-import { serializeFormation } from "@/lib/formations";
+import { MatchLineupBlockPreset, MatchLineupFormation, Prisma } from "@prisma/client";
+import { serializeBlockPreset, serializeFormation } from "@/lib/formations";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { buildMatchLineupSnapshot } from "@/lib/match-lineup";
@@ -19,6 +19,7 @@ async function loadMatchForLineup(matchId: string, teamId: string) {
     select: {
       id: true,
       lineupFormation: true,
+      lineupBlockPreset: true,
       positionLimits: {
         select: {
           position: true,
@@ -89,6 +90,7 @@ function buildLineupResponse(match: NonNullable<Awaited<ReturnType<typeof loadMa
       player: selection.player,
     })),
     savedFormation: match.lineupFormation,
+    savedBlockPreset: match.lineupBlockPreset,
   });
 
   const url = new URL(request.url);
@@ -193,6 +195,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       where: { id },
       data: {
         lineupFormation: serializeFormation(parsed.data.formation ?? null) as MatchLineupFormation | null,
+        lineupBlockPreset: serializeBlockPreset(parsed.data.blockPreset ?? null) as MatchLineupBlockPreset | null,
       },
     });
 
@@ -252,7 +255,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.matchLineupSelection.deleteMany({ where: { matchId: id } });
-    await tx.match.update({ where: { id }, data: { lineupFormation: null } });
+    await tx.match.update({ where: { id }, data: { lineupFormation: null, lineupBlockPreset: null } });
   });
 
   const updatedMatch = await loadMatchForLineup(id, session.user.teamId);

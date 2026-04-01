@@ -29,8 +29,11 @@ interface TacticalBoardProps {
   editable?: boolean;
   saveLoading?: boolean;
   formationOptions?: { value: string; label: string }[];
+  blockPresetOptions?: { value: string; label: string }[];
   selectedFormation?: string;
+  selectedBlockPreset?: string;
   onFormationChange?: (formation: string) => void;
+  onBlockPresetChange?: (preset: string) => void;
   onChange?: (players: TacticalBoardPlayer[]) => void;
   onSave?: (positions: Array<{ player_id: string; x_percent: number; y_percent: number }>) => Promise<void> | void;
 }
@@ -127,8 +130,11 @@ export function TacticalBoard({
   editable = false,
   saveLoading = false,
   formationOptions = [],
+  blockPresetOptions = [],
   selectedFormation,
+  selectedBlockPreset,
   onFormationChange,
+  onBlockPresetChange,
   onChange,
   onSave,
 }: TacticalBoardProps) {
@@ -229,6 +235,17 @@ export function TacticalBoard({
               />
             </div>
           )}
+          {blockPresetOptions.length > 0 && onBlockPresetChange && (
+            <div className="min-w-[180px]">
+              <Select
+                aria-label="Selecionar altura do bloco"
+                className="border-white/15 bg-[rgba(255,255,255,0.10)] text-white shadow-none [&>option]:text-slate-900"
+                options={blockPresetOptions}
+                value={selectedBlockPreset ?? ""}
+                onChange={(event) => onBlockPresetChange(event.target.value)}
+              />
+            </div>
+          )}
           {editable && onSave && (
             <Button type="button" variant="secondary" onClick={() => void handleSave()} disabled={saveLoading}>
               <Save className="mr-2 h-4 w-4" />
@@ -270,24 +287,15 @@ export function TacticalBoard({
           const nodeRef = getNodeRef(player.player_id);
           const position = toPixels(player.x_percent, player.y_percent);
           const markerClasses = getPlayerMarkerClasses(player.position_label);
+          const draggableKey = `${player.player_id}:${Math.round(player.x_percent * 10)}:${Math.round(player.y_percent * 10)}`;
 
           return (
             <Draggable
-              key={player.player_id}
+              key={draggableKey}
               bounds="parent"
               disabled={!editable || fieldSize.width === 0 || fieldSize.height === 0}
               nodeRef={nodeRef}
-              position={position}
-              onDrag={(_, data) => {
-                const nextPercents = toPercents(data.x, data.y);
-                updatePlayers(
-                  boardPlayers.map((current) =>
-                    current.player_id === player.player_id
-                      ? { ...current, ...nextPercents }
-                      : current
-                  )
-                );
-              }}
+              defaultPosition={position}
               onStop={(_, data) => {
                 const nextPercents = toPercents(data.x, data.y);
                 const snapped = snapPlayerPosition(player, nextPercents);

@@ -236,6 +236,7 @@ export function buildSuggestedLineup(args: {
         confidence: "LOW",
         source: "SUGGESTED",
         formation: null,
+        blockPreset: "BALANCED",
       },
     };
   }
@@ -260,6 +261,7 @@ export function buildSuggestedLineup(args: {
       confidence: buildConfidence(eligiblePlayers.length, base.alerts),
       source: "SUGGESTED",
       formation: base.starters.length > 0 ? inferBestFormation(base.starters) : null,
+      blockPreset: "BALANCED",
     },
   };
 }

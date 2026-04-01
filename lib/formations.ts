@@ -14,6 +14,8 @@ export type FormationName =
   | "5-3-2"
   | "4-1-4-1";
 
+export type BlockPreset = "DEEP" | "BALANCED" | "HIGH";
+
 interface FormationSlot {
   /** Horizontal position 0-100 (%) inside the field. Left = small, Right = large. */
   x: number;
@@ -251,6 +253,18 @@ const DB_TO_FORMATION: Record<string, FormationName> = Object.fromEntries(
   Object.entries(FORMATION_TO_DB).map(([formation, dbValue]) => [dbValue, formation])
 ) as Record<string, FormationName>;
 
+const BLOCK_PRESET_TO_DB: Record<BlockPreset, string> = {
+  DEEP: "DEEP",
+  BALANCED: "BALANCED",
+  HIGH: "HIGH",
+};
+
+const DB_TO_BLOCK_PRESET: Record<string, BlockPreset> = {
+  DEEP: "DEEP",
+  BALANCED: "BALANCED",
+  HIGH: "HIGH",
+};
+
 export function serializeFormation(formation: FormationName | null | undefined) {
   if (!formation) return null;
   return FORMATION_TO_DB[formation] ?? null;
@@ -259,6 +273,43 @@ export function serializeFormation(formation: FormationName | null | undefined) 
 export function parseFormation(formation: string | null | undefined): FormationName | null {
   if (!formation) return null;
   return DB_TO_FORMATION[formation] ?? null;
+}
+
+export function serializeBlockPreset(preset: BlockPreset | null | undefined) {
+  if (!preset) return null;
+  return BLOCK_PRESET_TO_DB[preset] ?? null;
+}
+
+export function parseBlockPreset(preset: string | null | undefined): BlockPreset | null {
+  if (!preset) return null;
+  return DB_TO_BLOCK_PRESET[preset] ?? null;
+}
+
+export function applyBlockPresetToStarters(
+  preset: BlockPreset,
+  starters: SuggestedLineupEntry[]
+): SuggestedLineupEntry[] {
+  const shiftByPreset: Record<BlockPreset, number> = {
+    DEEP: -6,
+    BALANCED: 0,
+    HIGH: 6,
+  };
+
+  const shift = shiftByPreset[preset];
+  if (shift === 0) return starters;
+
+  return starters.map((starter) => {
+    if (starter.fieldY == null) {
+      return starter;
+    }
+
+    const goalkeeperAdjustment = starter.position === "GOALKEEPER" ? Math.sign(shift) * 2 : shift;
+    const nextY = Math.min(88, Math.max(10, Math.round(starter.fieldY + goalkeeperAdjustment)));
+    return {
+      ...starter,
+      fieldY: nextY,
+    };
+  });
 }
 
 export function inferBestFormation(starters: SuggestedLineupEntry[]): FormationName {

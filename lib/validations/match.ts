@@ -91,6 +91,7 @@ export const lineupFormationSchema = z.enum([
   "5-3-2",
   "4-1-4-1",
 ]);
+export const lineupBlockPresetSchema = z.enum(["DEEP", "BALANCED", "HIGH"]);
 
 export const suggestedLineupEntrySchema = z.object({
   playerId: z.string().min(1, "ID do jogador obrigatório"),
@@ -113,6 +114,7 @@ export const suggestedLineupResponseSchema = z.object({
     confidence: lineupConfidenceSchema,
     source: lineupSourceSchema,
     formation: lineupFormationSchema.nullable().optional(),
+    blockPreset: lineupBlockPresetSchema.nullable().optional(),
   }),
 });
 
@@ -125,7 +127,8 @@ const lineupStarterPlacementSchema = z.object({
 export const patchMatchLineupSchema = z
   .object({
     formation: lineupFormationSchema.nullable().optional(),
-    starters: z.array(lineupStarterPlacementSchema).max(30),
+    blockPreset: lineupBlockPresetSchema.nullable().optional(),
+    starters: z.array(lineupStarterPlacementSchema).max(11, "Titulares devem ser no máximo 11"),
     bench: z.array(z.string().cuid("Jogador inválido")).max(30),
   })
   .strict()
@@ -235,6 +238,7 @@ export type SuggestedLineupResponse = z.infer<typeof suggestedLineupResponseSche
 export type LineupConfidence = z.infer<typeof lineupConfidenceSchema>;
 export type LineupSource = z.infer<typeof lineupSourceSchema>;
 export type LineupFormation = z.infer<typeof lineupFormationSchema>;
+export type LineupBlockPreset = z.infer<typeof lineupBlockPresetSchema>;
 export type BordereauResponse = z.infer<typeof bordereauResponseSchema>;
 export type PatchMatchBordereauInput = z.infer<typeof patchMatchBordereauSchema>;
 export type PatchMatchLineupInput = z.infer<typeof patchMatchLineupSchema>;

@@ -1,4 +1,4 @@
-import { inferBestFormation, parseFormation } from "@/lib/formations";
+import { inferBestFormation, parseBlockPreset, parseFormation } from "@/lib/formations";
 import { buildSuggestedLineup } from "@/lib/lineup-suggester";
 import type { SuggestedLineupEntry, SuggestedLineupResponse } from "@/lib/validations/match";
 
@@ -53,6 +53,7 @@ export function buildMatchLineupSnapshot(args: {
   positionLimits: PositionLimitInput[];
   savedSelections: SavedLineupSelectionInput[];
   savedFormation?: string | null;
+  savedBlockPreset?: string | null;
 }) {
   const suggestedLineup = buildSuggestedLineup({
     matchId: args.matchId,
@@ -128,6 +129,7 @@ export function buildMatchLineupSnapshot(args: {
       benchCount: savedBench.length + overflowBench.length,
       source: "SAVED",
       formation: parseFormation(args.savedFormation) ?? (savedStarters.length > 0 ? inferBestFormation(savedStarters) : null),
+      blockPreset: parseBlockPreset(args.savedBlockPreset) ?? "BALANCED",
     },
   };
 

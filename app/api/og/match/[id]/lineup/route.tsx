@@ -21,6 +21,7 @@ export async function GET(_request: Request, context: RouteContext) {
       opponent: true,
       status: true,
       lineupFormation: true,
+      lineupBlockPreset: true,
       team: {
         select: {
           name: true,
@@ -97,6 +98,7 @@ export async function GET(_request: Request, context: RouteContext) {
       player: selection.player,
     })),
     savedFormation: match.lineupFormation,
+    savedBlockPreset: match.lineupBlockPreset,
   });
 
   const placements = buildLineupFieldPlacements(snapshot.lineup.starters);

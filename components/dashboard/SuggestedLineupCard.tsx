@@ -5,10 +5,18 @@ import { TacticalBoard, type TacticalBoardPlayer } from "@/components/dashboard/
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
-import { applyFormationToStarters, FORMATION_NAMES, inferBestFormation, type FormationName } from "@/lib/formations";
+import {
+  applyBlockPresetToStarters,
+  applyFormationToStarters,
+  FORMATION_NAMES,
+  inferBestFormation,
+  type BlockPreset,
+  type FormationName,
+} from "@/lib/formations";
 import { buildLineupFieldPlacements } from "@/lib/lineup-field";
 import { playerPositionLabels } from "@/lib/player-positions";
 import type {
+  LineupBlockPreset,
   LineupConfidence,
   LineupFormation,
   LineupSource,
@@ -25,6 +33,7 @@ interface SuggestedLineupCardProps {
   canRefresh: boolean;
   onSaveLineup: (payload: {
     formation?: string | null;
+    blockPreset?: string | null;
     starters: Array<{ playerId: string; fieldX: number | null; fieldY: number | null }>;
     bench: string[];
   }) => Promise<void> | void;
@@ -77,11 +86,23 @@ function clampFieldY(value: number) {
   return Math.min(88, Math.max(10, Math.round(value)));
 }
 
+function normalizeBlockPreset(value: string | null | undefined): BlockPreset {
+  if (value === "DEEP" || value === "HIGH") {
+    return value;
+  }
+
+  return "BALANCED";
+}
+
 function movePlayerBetweenGroups(
   lineup: SuggestedLineupResponse,
   player: SuggestedLineupEntry,
   origin: "starters" | "bench"
 ) {
+  if (origin === "bench" && lineup.starters.length >= 11) {
+    return lineup;
+  }
+
   const nextStarters = lineup.starters.filter((entry) => entry.playerId !== player.playerId);
   const nextBench = lineup.bench.filter((entry) => entry.playerId !== player.playerId);
 
@@ -124,11 +145,13 @@ export function SuggestedLineupCard({
   const generatedLabel = formatDateTime(generatedAt);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedFormation, setSelectedFormation] = useState<FormationName | null>(null);
+  const [selectedBlockPreset, setSelectedBlockPreset] = useState<BlockPreset>("BALANCED");
   const [workingLineup, setWorkingLineup] = useState<SuggestedLineupResponse | null>(lineup);
 
   useEffect(() => {
     setWorkingLineup(lineup ? cloneLineup(lineup) : null);
     setSelectedFormation((lineup?.meta.formation as FormationName | undefined) ?? null);
+    setSelectedBlockPreset(normalizeBlockPreset(lineup?.meta.blockPreset));
     setIsEditing(false);
   }, [lineup, generatedAt]);
 
@@ -140,6 +163,9 @@ export function SuggestedLineupCard({
     : null;
   const savedFormation = (displayLineup?.meta.formation as LineupFormation | undefined) ?? null;
   const activeFormation = selectedFormation ?? savedFormation ?? detectedFormation;
+  const activeBlockPreset = selectedBlockPreset
+    ?? (displayLineup?.meta.blockPreset as LineupBlockPreset | undefined)
+    ?? "BALANCED";
   const boardPlayers: TacticalBoardPlayer[] = displayLineup
     ? displayLineup.starters.map((entry) => {
         const placement = placements.find((item) => item.playerId === entry.playerId);
@@ -165,6 +191,7 @@ export function SuggestedLineupCard({
   function handleReset() {
     setWorkingLineup(lineup ? cloneLineup(lineup) : null);
     setSelectedFormation((lineup?.meta.formation as FormationName | undefined) ?? null);
+    setSelectedBlockPreset(normalizeBlockPreset(lineup?.meta.blockPreset));
     setIsEditing(false);
   }
 
@@ -174,7 +201,38 @@ export function SuggestedLineupCard({
       if (!current) return current;
       return {
         ...current,
-        starters: applyFormationToStarters(formation, current.starters),
+        starters: applyBlockPresetToStarters(activeBlockPreset, applyFormationToStarters(formation, current.starters)),
+      };
+    });
+  }
+
+  function handleBlockPresetChange(preset: BlockPreset) {
+    setSelectedBlockPreset(preset);
+
+    setWorkingLineup((current) => {
+      if (!current) return current;
+
+      const startersWithCoordinates = current.starters.map((starter) => {
+        if (starter.fieldX != null && starter.fieldY != null) {
+          return starter;
+        }
+
+        const placement = placements.find((item) => item.playerId === starter.playerId);
+        if (!placement) {
+          return starter;
+        }
+
+        return {
+          ...starter,
+          fieldX: placement.x,
+          fieldY: placement.y,
+        };
+      });
+
+      const shifted = applyBlockPresetToStarters(preset, startersWithCoordinates);
+      return {
+        ...current,
+        starters: shifted,
       };
     });
   }
@@ -217,6 +275,7 @@ export function SuggestedLineupCard({
 
     await onSaveLineup({
       formation: activeFormation,
+      blockPreset: activeBlockPreset,
       starters: displayLineup.starters.map((entry) => ({
         playerId: entry.playerId,
         fieldX: positionsById.get(entry.playerId)?.fieldX ?? entry.fieldX ?? null,
@@ -232,6 +291,7 @@ export function SuggestedLineupCard({
 
     await onSaveLineup({
       formation: activeFormation,
+      blockPreset: activeBlockPreset,
       starters: displayLineup.starters.map((entry) => ({
         playerId: entry.playerId,
         fieldX: entry.fieldX ?? null,
@@ -331,17 +391,25 @@ export function SuggestedLineupCard({
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   {activeFormation && <Badge variant="default">Base {activeFormation}</Badge>}
+                  <Badge variant="default">Bloco {activeBlockPreset === "DEEP" ? "Recuado" : activeBlockPreset === "HIGH" ? "Alto" : "Equilibrado"}</Badge>
                   <Badge variant="info">{displayLineup.starters.length} em campo</Badge>
                 </div>
               </div>
               <TacticalBoard
+                blockPresetOptions={[
+                  { value: "DEEP", label: "Bloco recuado" },
+                  { value: "BALANCED", label: "Bloco equilibrado" },
+                  { value: "HIGH", label: "Bloco alto" },
+                ]}
                 editable={isEditing}
                 formationOptions={FORMATION_NAMES.map((name) => ({ value: name, label: name }))}
+                onBlockPresetChange={(preset) => handleBlockPresetChange(preset as BlockPreset)}
                 onChange={handleBoardChange}
                 onFormationChange={(formation) => handleApplyFormation(formation as FormationName)}
                 onSave={handleBoardSave}
                 players={boardPlayers}
                 saveLoading={saveLoading}
+                selectedBlockPreset={activeBlockPreset}
                 selectedFormation={activeFormation ?? undefined}
               />
             </div>
