@@ -315,6 +315,25 @@ export default async function PublicMatchPage({
           </section>
         )}
 
+        {match.status === "SCHEDULED" && (
+          <section className="app-surface rounded-[28px] p-6 shadow-[var(--shadow-md)] sm:p-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-[var(--text)]">Confirmar Presença</h2>
+                <p className="mt-1 text-sm text-[var(--text-subtle)]">
+                  Você é jogador do {team.name}? Acesse o app para confirmar ou recusar sua presença nesta partida.
+                </p>
+              </div>
+              <a
+                href={`/matches/${match.id}`}
+                className="inline-flex shrink-0 items-center justify-center rounded-full bg-[var(--brand)] px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+              >
+                Confirmar no app →
+              </a>
+            </div>
+          </section>
+        )}
+
         <div className="pt-2 text-center">
           <a
             href={`/vitrine/${team.slug}`}

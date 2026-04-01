@@ -106,6 +106,9 @@ export default function MatchDetailPage() {
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [showPostGame, setShowPostGame] = useState(false);
   const [showConvocacao, setShowConvocacao] = useState(false);
+  const [convocacaoText, setConvocacaoText] = useState("");
+  const [showLineupShare, setShowLineupShare] = useState(false);
+  const [lineupShareText, setLineupShareText] = useState("");
   const [copyMsg, setCopyMsg] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -481,7 +484,38 @@ export default function MatchDetailPage() {
       lines.push(`⏳ Aguardando (${pendingNames.length}): ${pendingNames.join(", ")}`);
     }
 
-    lines.push(``, `👉 Confirme aqui: ${match.shareUrl}`);
+    lines.push(``, `👉 Confirme aqui: ${window.location.origin}/matches/${match.id}`);
+    return lines.join("\n");
+  }
+
+  function buildLineupShareText() {
+    if (!match || !lineupData) return "";
+
+    const dateStr = new Intl.DateTimeFormat("pt-BR", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(new Date(match.date));
+
+    const formation = lineupData.lineup.meta.formation;
+    const lines: string[] = [
+      `⚽ ESCALAÇÃO — vs ${match.opponent}`,
+      `📅 ${dateStr} | 📍 ${match.venue}`,
+      ...(formation ? [`🗺️ ${formation}`] : []),
+      ``,
+      `👕 Titulares:`,
+      ...lineupData.lineup.starters.map(
+        (starter, index) => `${index + 1}. ${starter.playerName}`
+      ),
+    ];
+
+    if (lineupData.lineup.bench.length > 0) {
+      lines.push(
+        ``,
+        `🪑 Banco: ${lineupData.lineup.bench.map((b) => b.playerName).join(", ")}`
+      );
+    }
+
+    lines.push(``, `🔗 Veja a partida: ${match.shareUrl}`);
     return lines.join("\n");
   }
 
@@ -571,7 +605,13 @@ export default function MatchDetailPage() {
           {isAdmin && match.status === "SCHEDULED" && (
             <Button
               variant="secondary"
-              onClick={() => setShowConvocacao((v) => !v)}
+              onClick={() => {
+                const next = !showConvocacao;
+                setShowConvocacao(next);
+                if (next && match) {
+                  setConvocacaoText(buildConvocacaoText());
+                }
+              }}
             >
               📋 Gerar Convocação
             </Button>
@@ -611,14 +651,17 @@ export default function MatchDetailPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <pre className="whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 p-4 font-sans text-sm text-gray-800">
-              {buildConvocacaoText()}
-            </pre>
+            <textarea
+              className="min-h-[180px] w-full rounded-lg border border-gray-200 bg-gray-50 p-4 font-sans text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              value={convocacaoText}
+              onChange={(e) => setConvocacaoText(e.target.value)}
+              aria-label="Texto da convocação"
+            />
             <div className="mt-4 flex flex-wrap gap-3">
               <Button
                 variant="secondary"
                 onClick={() => {
-                  navigator.clipboard.writeText(buildConvocacaoText());
+                  navigator.clipboard.writeText(convocacaoText);
                   setCopyMsg("Convocação copiada!");
                   setTimeout(() => setCopyMsg(""), 2500);
                 }}
@@ -628,13 +671,19 @@ export default function MatchDetailPage() {
               <Button
                 onClick={() => {
                   window.open(
-                    `https://wa.me/?text=${encodeURIComponent(buildConvocacaoText())}`,
+                    `https://wa.me/?text=${encodeURIComponent(convocacaoText)}`,
                     "_blank",
                     "noopener,noreferrer"
                   );
                 }}
               >
                 📱 Abrir no WhatsApp
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setConvocacaoText(buildConvocacaoText())}
+              >
+                🔄 Regenerar
               </Button>
             </div>
           </CardContent>
@@ -929,6 +978,65 @@ export default function MatchDetailPage() {
               ))}
             </div>
           </CardContent>
+        </Card>
+      )}
+
+      {canSeeLineup && activeSection === "lineup" && lineupData && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Compartilhar Escalação</h2>
+              <button
+                onClick={() => {
+                  const next = !showLineupShare;
+                  setShowLineupShare(next);
+                  if (next) setLineupShareText(buildLineupShareText());
+                }}
+                className="rounded-md px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50"
+              >
+                {showLineupShare ? "Fechar" : "📋 Gerar texto"}
+              </button>
+            </div>
+          </CardHeader>
+          {showLineupShare && (
+            <CardContent>
+              <textarea
+                className="min-h-[160px] w-full rounded-lg border border-gray-200 bg-gray-50 p-4 font-sans text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                value={lineupShareText}
+                onChange={(e) => setLineupShareText(e.target.value)}
+                aria-label="Texto da escalação para compartilhar"
+              />
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    navigator.clipboard.writeText(lineupShareText);
+                    setCopyMsg("Escalação copiada!");
+                    setTimeout(() => setCopyMsg(""), 2500);
+                  }}
+                >
+                  📋 Copiar texto
+                </Button>
+                <Button
+                  onClick={() => {
+                    window.open(
+                      `https://wa.me/?text=${encodeURIComponent(lineupShareText)}`,
+                      "_blank",
+                      "noopener,noreferrer"
+                    );
+                  }}
+                >
+                  📱 Enviar no WhatsApp
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setLineupShareText(buildLineupShareText())}
+                >
+                  🔄 Regenerar
+                </Button>
+              </div>
+            </CardContent>
+          )}
         </Card>
       )}
 
