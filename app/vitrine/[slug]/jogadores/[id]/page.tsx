@@ -134,6 +134,8 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
   if (!player) notFound();
 
   const primaryColor = player.team.primaryColor || "#1e40af";
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
+  const playerRecapUrl = `${appUrl}/api/og/player-recap/${player.id}`;
 
   const stats = [
     { label: "Partidas", value: player.career.totalMatches },
@@ -265,7 +267,7 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
                 Abrir card recap
               </a>
               <a
-                href={`https://wa.me/?text=${encodeURIComponent(`Confira o recap de ${player.name} no VARzea: /api/og/player-recap/${player.id}`)}`}
+                href={`https://wa.me/?text=${encodeURIComponent(`Confira o recap de ${player.name} no VARzea: ${playerRecapUrl}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--border)] px-4 text-sm font-semibold text-[var(--text)] transition hover:bg-[var(--surface-soft)]"

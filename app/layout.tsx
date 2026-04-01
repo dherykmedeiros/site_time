@@ -15,6 +15,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
   title: "VARzea - Gestao de Times Esportivos",
   description: "Plataforma para gestão de times esportivos amadores",
   manifest: "/manifest.webmanifest",

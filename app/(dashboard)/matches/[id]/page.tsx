@@ -468,6 +468,11 @@ export default function MatchDetailPage() {
     });
   }
 
+  function getRecapCardUrl() {
+    if (!match) return "";
+    return `${window.location.origin}/api/og/team-recap/${match.id}`;
+  }
+
   function buildConvocacaoText() {
     if (!match) return "";
 
@@ -552,7 +557,7 @@ export default function MatchDetailPage() {
       `🏆 vs ${match.opponent}`,
       ...(scorers ? [`⚽ Gols: ${scorers}`] : []),
       ``,
-      `🖼️ Card recap: ${window.location.origin}/api/og/team-recap/${match.id}`,
+      `🖼️ Card recap: ${getRecapCardUrl()}`,
       `👉 Ver partida: ${match.shareUrl}`,
     ];
     return lines.join("\n");
@@ -1209,8 +1214,10 @@ export default function MatchDetailPage() {
                   <Button
                     variant="secondary"
                     onClick={() => {
+                      const recapUrl = getRecapCardUrl();
+                      if (!recapUrl) return;
                       window.open(
-                        `/api/og/team-recap/${match.id}`,
+                        recapUrl,
                         "_blank",
                         "noopener,noreferrer"
                       );
