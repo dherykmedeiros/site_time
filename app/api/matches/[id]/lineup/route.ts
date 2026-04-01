@@ -18,6 +18,7 @@ async function loadMatchForLineup(matchId: string, teamId: string) {
     },
     select: {
       id: true,
+      status: true,
       lineupFormation: true,
       lineupBlockPreset: true,
       positionLimits: {
@@ -181,6 +182,16 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     );
   }
 
+  if (match.status !== "SCHEDULED") {
+    return NextResponse.json(
+      {
+        error: "A escalação só pode ser alterada em partidas agendadas",
+        code: "INVALID_MATCH_STATUS",
+      },
+      { status: 409 }
+    );
+  }
+
   const eligibleIds = new Set(
     match.rsvps
       .filter((rsvp: (typeof match.rsvps)[number]) => rsvp.status === "CONFIRMED" && rsvp.player.status === "ACTIVE")
@@ -188,6 +199,17 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   );
 
   const allPlayerIds = [...parsed.data.starters.map((entry: { playerId: string }) => entry.playerId), ...parsed.data.bench];
+  const uniquePlayerIds = new Set(allPlayerIds);
+  if (uniquePlayerIds.size !== allPlayerIds.length) {
+    return NextResponse.json(
+      {
+        error: "A escalação não pode repetir atletas entre titulares e banco",
+        code: "DUPLICATE_LINEUP_PLAYER",
+      },
+      { status: 400 }
+    );
+  }
+
   const invalidPlayers = allPlayerIds.filter((playerId) => !eligibleIds.has(playerId));
   if (invalidPlayers.length > 0) {
     return NextResponse.json(
@@ -260,6 +282,16 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     return NextResponse.json(
       { error: "Partida não encontrada", code: "NOT_FOUND" },
       { status: 404 }
+    );
+  }
+
+  if (match.status !== "SCHEDULED") {
+    return NextResponse.json(
+      {
+        error: "A escalação só pode ser resetada em partidas agendadas",
+        code: "INVALID_MATCH_STATUS",
+      },
+      { status: 409 }
     );
   }
 

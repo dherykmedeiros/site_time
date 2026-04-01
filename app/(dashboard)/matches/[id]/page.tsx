@@ -103,6 +103,7 @@ export default function MatchDetailPage() {
   const isAdmin = session?.user?.role === "ADMIN";
   const [match, setMatch] = useState<MatchDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [showPostGame, setShowPostGame] = useState(false);
   const [showConvocacao, setShowConvocacao] = useState(false);
@@ -129,14 +130,22 @@ export default function MatchDetailPage() {
 
   const fetchMatch = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await fetch(`/api/matches/${id}`);
       if (res.ok) {
         const data = await res.json();
         setMatch(data);
+      } else if (res.status === 404) {
+        setMatch(null);
+        setLoadError("Partida nao encontrada.");
+      } else {
+        setMatch(null);
+        setLoadError("Nao foi possivel carregar os dados da partida.");
       }
     } catch {
-      // ignore
+      setMatch(null);
+      setLoadError("Erro de conexao ao carregar a partida.");
     } finally {
       setLoading(false);
     }
@@ -164,7 +173,6 @@ export default function MatchDetailPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setLineupData(null);
         setLineupError(data.error || "Erro ao carregar sugestao de escalacao");
         return;
       }
@@ -172,7 +180,6 @@ export default function MatchDetailPage() {
       setLineupData(data);
       setLineupError(null);
     } catch {
-      setLineupData(null);
       setLineupError("Erro de conexão ao carregar sugestao de escalacao");
     } finally {
       setLineupLoading(false);
@@ -201,7 +208,6 @@ export default function MatchDetailPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setBordereauData(null);
         setBordereauError(data.error || "Erro ao carregar bordero");
         return;
       }
@@ -209,7 +215,6 @@ export default function MatchDetailPage() {
       setBordereauData(data);
       setBordereauError(null);
     } catch {
-      setBordereauData(null);
       setBordereauError("Erro de conexão ao carregar bordero");
     } finally {
       setBordereauLoading(false);
@@ -547,7 +552,16 @@ export default function MatchDetailPage() {
   }
 
   if (!match) {
-    return <p className="text-red-500">Partida não encontrada.</p>;
+    return (
+      <div className="space-y-4 rounded-[16px] border border-[#efc1b7] bg-[#fff1ee] p-5">
+        <p className="text-sm text-[var(--danger)]">
+          {loadError ?? "Partida nao encontrada."}
+        </p>
+        <Button type="button" variant="secondary" onClick={fetchMatch}>
+          Tentar novamente
+        </Button>
+      </div>
+    );
   }
 
   const confirmed = match.rsvps.filter((r) => r.status === "CONFIRMED").length;

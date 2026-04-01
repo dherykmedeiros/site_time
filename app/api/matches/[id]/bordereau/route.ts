@@ -76,19 +76,24 @@ async function ensureDefaultChecklist(matchId: string) {
 }
 
 async function buildBordereauResponse(matchId: string, teamId: string) {
-  const [match, checklistRows, attendanceRows, expenseRows, players] = await Promise.all([
-    prisma.match.findFirst({
-      where: { id: matchId, teamId },
-      select: {
-        id: true,
-        rsvps: {
-          select: {
-            playerId: true,
-            status: true,
-          },
+  const match = await prisma.match.findFirst({
+    where: { id: matchId, teamId },
+    select: {
+      id: true,
+      rsvps: {
+        select: {
+          playerId: true,
+          status: true,
         },
       },
-    }),
+    },
+  });
+
+  if (!match) {
+    return null;
+  }
+
+  const [checklistRows, attendanceRows, expenseRows, players] = await Promise.all([
     ensureDefaultChecklist(matchId),
     prisma.$queryRaw<AttendanceRow[]>(Prisma.sql`
       SELECT "playerId", "present", "checkedInAt"
@@ -107,10 +112,6 @@ async function buildBordereauResponse(matchId: string, teamId: string) {
       orderBy: [{ shirtNumber: "asc" }, { createdAt: "asc" }],
     }),
   ]);
-
-  if (!match) {
-    return null;
-  }
 
   const attendanceMap = new Map(attendanceRows.map((row) => [row.playerId, row]));
   const rsvpMap = new Map(match.rsvps.map((row) => [row.playerId, row.status]));
@@ -189,13 +190,23 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   const { id } = await params;
   const match = await prisma.match.findFirst({
     where: { id, teamId: session.user.teamId },
-    select: { id: true },
+    select: { id: true, status: true },
   });
 
   if (!match) {
     return NextResponse.json(
       { error: "Partida não encontrada", code: "NOT_FOUND" },
       { status: 404 }
+    );
+  }
+
+  if (match.status !== "SCHEDULED") {
+    return NextResponse.json(
+      {
+        error: "O bordero so pode ser alterado em partidas agendadas",
+        code: "INVALID_MATCH_STATUS",
+      },
+      { status: 409 }
     );
   }
 
@@ -221,7 +232,29 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     );
   }
 
+  if (parsed.data.checklist) {
+    const checklistSortOrders = parsed.data.checklist.map((item) => item.sortOrder);
+    const uniqueSortOrders = new Set(checklistSortOrders);
+    if (uniqueSortOrders.size !== checklistSortOrders.length) {
+      return NextResponse.json(
+        {
+          error: "Checklist invalido: existem itens com a mesma ordem",
+          code: "VALIDATION_ERROR",
+        },
+        { status: 400 }
+      );
+    }
+  }
+
   const attendancePlayerIds = parsed.data.attendance?.map((item) => item.playerId) ?? [];
+  const uniqueAttendancePlayerIds = new Set(attendancePlayerIds);
+  if (uniqueAttendancePlayerIds.size !== attendancePlayerIds.length) {
+    return NextResponse.json(
+      { error: "Jogador duplicado no check-in", code: "VALIDATION_ERROR" },
+      { status: 400 }
+    );
+  }
+
   if (attendancePlayerIds.length > 0) {
     const ownedPlayers = await prisma.player.findMany({
       where: {

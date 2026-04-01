@@ -76,12 +76,14 @@ export default function MatchesPage() {
 
   const [matches, setMatches] = useState<MatchSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [showAddModal, setShowAddModal] = useState(false);
 
   const fetchMatches = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const params = new URLSearchParams();
       if (statusFilter !== "ALL") params.set("status", statusFilter);
@@ -91,9 +93,13 @@ export default function MatchesPage() {
       if (res.ok) {
         const data = await res.json();
         setMatches(data.matches);
+      } else {
+        setMatches([]);
+        setLoadError("Nao foi possivel carregar as partidas agora.");
       }
     } catch {
-      // ignore
+      setMatches([]);
+      setLoadError("Erro de conexao ao carregar as partidas.");
     } finally {
       setLoading(false);
     }
@@ -136,6 +142,12 @@ export default function MatchesPage() {
       </div>
 
       {/* Match list */}
+      {loadError && (
+        <div className="rounded-[12px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[var(--danger)]">
+          {loadError}
+        </div>
+      )}
+
       {loading ? (
         <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
