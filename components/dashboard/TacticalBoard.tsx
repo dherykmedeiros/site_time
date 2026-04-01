@@ -60,7 +60,8 @@ export function TacticalBoard({
     if (!field) return;
 
     function updateSize() {
-      const currentField = field;
+      const currentField = fieldRef.current;
+      if (!currentField) return;
       setFieldSize({ width: currentField.clientWidth, height: currentField.clientHeight });
     }
 
