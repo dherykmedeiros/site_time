@@ -228,7 +228,7 @@ export function TacticalBoard({
             <div className="min-w-[170px]">
               <Select
                 aria-label="Selecionar formacao"
-                className="border-white/15 bg-[rgba(255,255,255,0.10)] text-white shadow-none [&>option]:text-slate-900"
+                className="border-white/15 bg-white/95 text-slate-900 shadow-none"
                 options={formationOptions}
                 value={selectedFormation ?? ""}
                 onChange={(event) => onFormationChange(event.target.value)}
@@ -239,7 +239,7 @@ export function TacticalBoard({
             <div className="min-w-[180px]">
               <Select
                 aria-label="Selecionar altura do bloco"
-                className="border-white/15 bg-[rgba(255,255,255,0.10)] text-white shadow-none [&>option]:text-slate-900"
+                className="border-white/15 bg-white/95 text-slate-900 shadow-none"
                 options={blockPresetOptions}
                 value={selectedBlockPreset ?? ""}
                 onChange={(event) => onBlockPresetChange(event.target.value)}
@@ -287,15 +287,24 @@ export function TacticalBoard({
           const nodeRef = getNodeRef(player.player_id);
           const position = toPixels(player.x_percent, player.y_percent);
           const markerClasses = getPlayerMarkerClasses(player.position_label);
-          const draggableKey = `${player.player_id}:${Math.round(player.x_percent * 10)}:${Math.round(player.y_percent * 10)}`;
 
           return (
             <Draggable
-              key={draggableKey}
+              key={player.player_id}
               bounds="parent"
               disabled={!editable || fieldSize.width === 0 || fieldSize.height === 0}
               nodeRef={nodeRef}
-              defaultPosition={position}
+              position={position}
+              onDrag={(_, data) => {
+                const nextPercents = toPercents(data.x, data.y);
+                updatePlayers(
+                  boardPlayers.map((current) =>
+                    current.player_id === player.player_id
+                      ? { ...current, ...nextPercents }
+                      : current
+                  )
+                );
+              }}
               onStop={(_, data) => {
                 const nextPercents = toPercents(data.x, data.y);
                 const snapped = snapPlayerPosition(player, nextPercents);

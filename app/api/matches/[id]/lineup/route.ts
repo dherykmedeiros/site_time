@@ -161,6 +161,16 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     );
   }
 
+  if (parsed.data.starters.length > 11) {
+    return NextResponse.json(
+      {
+        error: "A escalação titular deve conter no máximo 11 atletas",
+        code: "INVALID_STARTERS_COUNT",
+      },
+      { status: 400 }
+    );
+  }
+
   const { id } = await params;
   const match = await loadMatchForLineup(id, session.user.teamId);
 
