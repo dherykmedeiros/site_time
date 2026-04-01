@@ -1,4 +1,5 @@
 import { playerPositionLabels } from "@/lib/player-positions";
+import type { SuggestedLineupEntry, SuggestedLineupResponse } from "@/lib/validations/match";
 
 interface ConfirmedPlayerInput {
   playerId: string;
@@ -13,27 +14,6 @@ interface ConfirmedPlayerInput {
 interface PositionLimitInput {
   position: string;
   maxPlayers: number;
-}
-
-interface SuggestedLineupEntry {
-  playerId: string;
-  playerName: string;
-  position: string;
-  reason: string;
-}
-
-interface SuggestedLineup {
-  starters: SuggestedLineupEntry[];
-  bench: SuggestedLineupEntry[];
-  alerts: string[];
-  meta: {
-    confirmedPlayers: number;
-    startersCount: number;
-    benchCount: number;
-    usesPositionLimits: boolean;
-    confidence: "LOW" | "MEDIUM" | "HIGH";
-    source: "SUGGESTED" | "SAVED";
-  };
 }
 
 function formatPositionLabel(position: string) {
@@ -90,7 +70,7 @@ function buildLimitedLineup(players: ConfirmedPlayerInput[], positionLimits: Pos
       ...playersForPosition.slice(0, limit.maxPlayers).map((player) => ({
         playerId: player.playerId,
         playerName: player.playerName,
-        position: player.position,
+        position: player.position as SuggestedLineupEntry["position"],
         reason: "Posicao preenchida conforme limite da partida",
       }))
     );
@@ -99,7 +79,7 @@ function buildLimitedLineup(players: ConfirmedPlayerInput[], positionLimits: Pos
       ...playersForPosition.slice(limit.maxPlayers).map((player) => ({
         playerId: player.playerId,
         playerName: player.playerName,
-        position: player.position,
+        position: player.position as SuggestedLineupEntry["position"],
         reason: "Excedente da posicao apos preencher titulares",
       }))
     );
@@ -110,7 +90,7 @@ function buildLimitedLineup(players: ConfirmedPlayerInput[], positionLimits: Pos
       bench.push({
         playerId: player.playerId,
         playerName: player.playerName,
-        position: player.position,
+        position: player.position as SuggestedLineupEntry["position"],
         reason: "Posicao sem limite explicito; mantido no banco inicial",
       });
     }
@@ -134,7 +114,7 @@ function buildFallbackLineup(players: ConfirmedPlayerInput[]) {
     starters.push({
       playerId: firstGoalkeeper.playerId,
       playerName: firstGoalkeeper.playerName,
-      position: firstGoalkeeper.position,
+      position: firstGoalkeeper.position as SuggestedLineupEntry["position"],
       reason: "Goleiro confirmado priorizado para iniciar",
     });
 
@@ -142,7 +122,7 @@ function buildFallbackLineup(players: ConfirmedPlayerInput[]) {
       bench.push({
         playerId: extraGoalkeeper.playerId,
         playerName: extraGoalkeeper.playerName,
-        position: extraGoalkeeper.position,
+        position: extraGoalkeeper.position as SuggestedLineupEntry["position"],
         reason: "Goleiro extra mantido como opcao de banco",
       });
     }
@@ -155,7 +135,7 @@ function buildFallbackLineup(players: ConfirmedPlayerInput[]) {
       bench.push({
         playerId: player.playerId,
         playerName: player.playerName,
-        position: player.position,
+        position: player.position as SuggestedLineupEntry["position"],
         reason: "Mantido no banco apos completar a base inicial",
       });
       continue;
@@ -165,7 +145,7 @@ function buildFallbackLineup(players: ConfirmedPlayerInput[]) {
       starters.push({
         playerId: player.playerId,
         playerName: player.playerName,
-        position: player.position,
+        position: player.position as SuggestedLineupEntry["position"],
         reason: "Posicao ainda sem cobertura na base inicial",
       });
       seenPositions.add(player.position);
@@ -175,7 +155,7 @@ function buildFallbackLineup(players: ConfirmedPlayerInput[]) {
     bench.push({
       playerId: player.playerId,
       playerName: player.playerName,
-      position: player.position,
+        position: player.position as SuggestedLineupEntry["position"],
       reason: "Mantido no banco para preservar equilibrio inicial por posicao",
     });
   }
@@ -219,7 +199,7 @@ export function buildSuggestedLineup(args: {
   matchId: string;
   confirmedPlayers: ConfirmedPlayerInput[];
   positionLimits: PositionLimitInput[];
-}): SuggestedLineup {
+}): SuggestedLineupResponse {
   const eligiblePlayers = sortPlayers(
     args.confirmedPlayers.filter(
       (player) => player.status === "ACTIVE" && player.rsvpStatus === "CONFIRMED"
