@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { buildPlayerRecap } from "@/lib/player-recap";
 import { safeHex } from "../../route-utils";
+import { trackOperationalEvent } from "@/lib/telemetry";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,12 @@ export async function GET(_request: Request, context: RouteContext) {
   const recentBadge = recap.lastFive.matches > 0
     ? `${recap.lastFive.goals}G ${recap.lastFive.assists}A nos ultimos ${recap.lastFive.matches}`
     : "Sem partidas recentes";
+
+  trackOperationalEvent("recap_player_card_viewed", {
+    playerId,
+    teamId: recap.team.id,
+    matches: recap.career.matches,
+  });
 
   return new ImageResponse(
     (

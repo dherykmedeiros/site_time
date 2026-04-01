@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { buildTeamRecap } from "@/lib/team-recap";
 import { safeHex } from "../../route-utils";
+import { trackOperationalEvent } from "@/lib/telemetry";
 
 export const runtime = "nodejs";
 
@@ -35,6 +36,13 @@ export async function GET(_request: Request, context: RouteContext) {
   const topAssistantLabel = recap.leaders.topAssistant
     ? `${recap.leaders.topAssistant.playerName} (${recap.leaders.topAssistant.assists})`
     : "Sem lider de assistencias";
+
+  trackOperationalEvent("recap_team_card_viewed", {
+    matchId,
+    teamId: recap.team.id,
+    homeScore: recap.match.homeScore,
+    awayScore: recap.match.awayScore,
+  });
 
   return new ImageResponse(
     (

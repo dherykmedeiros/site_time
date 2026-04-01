@@ -10,6 +10,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { BordereauCard } from "@/components/dashboard/BordereauCard";
 import { SuggestedLineupCard } from "@/components/dashboard/SuggestedLineupCard";
+import { TeamRecapWidget } from "@/components/dashboard/TeamRecapWidget";
 import type { BordereauResponse, SuggestedLineupResponse } from "@/lib/validations/match";
 
 const PostGameForm = dynamic(
@@ -454,6 +455,15 @@ export default function MatchDetailPage() {
     if (!match?.shareUrl) return;
     navigator.clipboard.writeText(match.shareUrl).then(() => {
       setCopyMsg("Link copiado!");
+      setTimeout(() => setCopyMsg(""), 2000);
+    });
+  }
+
+  function handleCopyRecapLink() {
+    if (!match) return;
+    const recapUrl = `${window.location.origin}/api/og/team-recap/${match.id}`;
+    navigator.clipboard.writeText(recapUrl).then(() => {
+      setCopyMsg("Link do recap copiado!");
       setTimeout(() => setCopyMsg(""), 2000);
     });
   }
@@ -1171,6 +1181,17 @@ export default function MatchDetailPage() {
       )}
 
       {/* F-002: Share result card */}
+      {activeSection === "postgame" && match.status === "COMPLETED" && (
+        <Card>
+          <CardHeader>
+            <h2 className="text-lg font-semibold">Recap da Rodada</h2>
+          </CardHeader>
+          <CardContent>
+            <TeamRecapWidget matchId={match.id} />
+          </CardContent>
+        </Card>
+      )}
+
       {activeSection === "postgame" && match.status === "COMPLETED" &&
         match.stats.length > 0 &&
         match.homeScore !== null &&
@@ -1196,6 +1217,9 @@ export default function MatchDetailPage() {
                     }}
                   >
                     🖼️ Abrir card recap
+                  </Button>
+                  <Button variant="secondary" onClick={handleCopyRecapLink}>
+                    📋 Copiar link do recap
                   </Button>
                   <Button variant="secondary" onClick={handleCopyLink}>
                     🔗 Copiar link
