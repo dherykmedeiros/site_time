@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PlayerRecapWidget } from "@/components/dashboard/PlayerRecapWidget";
 
 interface PlayerPageProps {
   params: Promise<{ slug: string; id: string }>;
@@ -134,8 +135,6 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
   if (!player) notFound();
 
   const primaryColor = player.team.primaryColor || "#1e40af";
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
-  const playerRecapUrl = `${appUrl}/api/og/player-recap/${player.id}`;
 
   const stats = [
     { label: "Partidas", value: player.career.totalMatches },
@@ -252,30 +251,7 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
         </section>
 
         <section className="mt-8" aria-label="Recap compartilhavel">
-          <article className="app-surface rounded-[20px] border border-[var(--border)] p-5 shadow-[var(--shadow-sm)]">
-            <h2 className="text-base font-bold text-[var(--text)]">Recap compartilhavel</h2>
-            <p className="mt-2 text-sm text-[var(--text-muted)]">
-              Gere o card com desempenho do jogador para divulgar no WhatsApp e redes.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <a
-                href={`/api/og/player-recap/${player.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--brand)] px-4 text-sm font-semibold text-white transition hover:opacity-90"
-              >
-                Abrir card recap
-              </a>
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(`Confira o recap de ${player.name} no VARzea: ${playerRecapUrl}`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--border)] px-4 text-sm font-semibold text-[var(--text)] transition hover:bg-[var(--surface-soft)]"
-              >
-                Compartilhar no WhatsApp
-              </a>
-            </div>
-          </article>
+          <PlayerRecapWidget playerId={player.id} playerName={player.name} />
         </section>
 
         {/* Achievements */}
