@@ -6,6 +6,8 @@ interface AnchorPoint {
   y: number;
 }
 
+type FieldLane = "goal" | "defense" | "midfield" | "attack";
+
 export interface LineupFieldPlacement {
   playerId: string;
   playerName: string;
@@ -15,51 +17,97 @@ export interface LineupFieldPlacement {
   y: number;
 }
 
-const positionAnchors: Record<SuggestedLineupEntry["position"], AnchorPoint> = {
-  GOALKEEPER: { x: 50, y: 12 },
-  DEFENDER: { x: 50, y: 30 },
-  LEFT_BACK: { x: 18, y: 42 },
-  RIGHT_BACK: { x: 82, y: 42 },
-  DEFENSIVE_MIDFIELDER: { x: 50, y: 53 },
-  MIDFIELDER: { x: 50, y: 64 },
-  LEFT_WINGER: { x: 18, y: 76 },
-  RIGHT_WINGER: { x: 82, y: 76 },
-  FORWARD: { x: 50, y: 84 },
+const laneRows: Record<FieldLane, number> = {
+  goal: 14,
+  defense: 34,
+  midfield: 56,
+  attack: 79,
 };
 
-function distributeAcross(count: number, anchorX: number) {
-  if (count === 1) {
-    return [anchorX];
+function getFieldAnchor(position: SuggestedLineupEntry["position"]): AnchorPoint & { lane: FieldLane } {
+  switch (position) {
+    case "GOALKEEPER":
+      return { lane: "goal", x: 50, y: laneRows.goal };
+    case "LEFT_BACK":
+      return { lane: "defense", x: 18, y: laneRows.defense };
+    case "DEFENDER":
+      return { lane: "defense", x: 50, y: laneRows.defense };
+    case "RIGHT_BACK":
+      return { lane: "defense", x: 82, y: laneRows.defense };
+    case "DEFENSIVE_MIDFIELDER":
+      return { lane: "midfield", x: 50, y: laneRows.midfield - 6 };
+    case "MIDFIELDER":
+      return { lane: "midfield", x: 50, y: laneRows.midfield };
+    case "LEFT_WINGER":
+      return { lane: "attack", x: 24, y: laneRows.attack - 5 };
+    case "RIGHT_WINGER":
+      return { lane: "attack", x: 76, y: laneRows.attack - 5 };
+    case "FORWARD":
+      return { lane: "attack", x: 50, y: laneRows.attack };
+    default:
+      return { lane: "midfield", x: 50, y: laneRows.midfield };
+  }
+}
+
+function resolveLaneXPositions(preferred: number[]) {
+  const minimumGap = 12;
+  const minX = 12;
+  const maxX = 88;
+  const resolved = [...preferred].sort((left, right) => left - right);
+
+  for (let index = 1; index < resolved.length; index += 1) {
+    if (resolved[index] - resolved[index - 1] < minimumGap) {
+      resolved[index] = resolved[index - 1] + minimumGap;
+    }
   }
 
-  const step = 14;
-  const start = anchorX - (step * (count - 1)) / 2;
-  return Array.from({ length: count }, (_, index) => Math.min(88, Math.max(12, start + step * index)));
+  const overflow = resolved[resolved.length - 1] - maxX;
+  if (overflow > 0) {
+    for (let index = resolved.length - 1; index >= 0; index -= 1) {
+      resolved[index] -= overflow;
+      if (index > 0 && resolved[index] - resolved[index - 1] < minimumGap) {
+        resolved[index - 1] = resolved[index] - minimumGap;
+      }
+    }
+  }
+
+  const underflow = minX - resolved[0];
+  if (underflow > 0) {
+    for (let index = 0; index < resolved.length; index += 1) {
+      resolved[index] += underflow;
+      if (index > 0 && resolved[index] - resolved[index - 1] < minimumGap) {
+        resolved[index] = resolved[index - 1] + minimumGap;
+      }
+    }
+  }
+
+  return resolved.map((value) => Math.min(maxX, Math.max(minX, value)));
 }
 
 export function buildLineupFieldPlacements(starters: SuggestedLineupEntry[]): LineupFieldPlacement[] {
-  const grouped = new Map<SuggestedLineupEntry["position"], SuggestedLineupEntry[]>();
+  const grouped = new Map<FieldLane, Array<SuggestedLineupEntry & { preferredX: number; preferredY: number }>>();
 
   for (const starter of starters) {
-    const bucket = grouped.get(starter.position) ?? [];
-    bucket.push(starter);
-    grouped.set(starter.position, bucket);
+    const anchor = getFieldAnchor(starter.position);
+    const bucket = grouped.get(anchor.lane) ?? [];
+    bucket.push({ ...starter, preferredX: anchor.x, preferredY: anchor.y });
+    grouped.set(anchor.lane, bucket);
   }
 
   const placements: LineupFieldPlacement[] = [];
 
-  for (const [position, players] of grouped.entries()) {
-    const anchor = positionAnchors[position] ?? { x: 50, y: 50 };
-    const xPositions = distributeAcross(players.length, anchor.x);
+  for (const [, players] of grouped.entries()) {
+    const orderedPlayers = [...players].sort((left, right) => left.preferredX - right.preferredX || left.playerName.localeCompare(right.playerName));
+    const xPositions = resolveLaneXPositions(orderedPlayers.map((player) => player.preferredX));
 
-    players.forEach((player, index) => {
+    orderedPlayers.forEach((player, index) => {
       placements.push({
         playerId: player.playerId,
         playerName: player.playerName,
-        position,
-        shortLabel: playerPositionShortLabels[position],
+        position: player.position,
+        shortLabel: playerPositionShortLabels[player.position],
         x: xPositions[index],
-        y: anchor.y,
+        y: player.preferredY,
       });
     });
   }
