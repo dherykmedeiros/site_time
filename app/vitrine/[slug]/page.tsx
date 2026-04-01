@@ -8,7 +8,22 @@ import { FriendlyRequestForm } from "./FriendlyRequestForm";
 
 interface VitrinePageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ slot?: string }>;
 }
+
+const fieldTypeLabels: Record<string, string> = {
+  GRASS: "Grama",
+  SYNTHETIC: "Sintetico",
+  FUTSAL: "Futsal",
+  SOCIETY: "Society",
+  OTHER: "Outro",
+};
+
+const competitiveLevelLabels: Record<string, string> = {
+  CASUAL: "Casual",
+  INTERMEDIATE: "Intermediario",
+  COMPETITIVE: "Competitivo",
+};
 
 async function getTeamBySlug(slug: string) {
   return prisma.team.findUnique({
@@ -270,8 +285,9 @@ const positionStyles: Record<string, string> = {
   RIGHT_WINGER: "border-rose-200 bg-rose-50 text-rose-700",
 };
 
-export default async function VitrinePage({ params }: VitrinePageProps) {
+export default async function VitrinePage({ params, searchParams }: VitrinePageProps) {
   const { slug } = await params;
+  const { slot: selectedSlotId } = await searchParams;
   const team = await getTeamBySlug(slug);
 
   if (!team) {
@@ -290,6 +306,16 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
       ? `${stats.wins}V · ${stats.draws}E · ${stats.losses}D`
       : "Temporada em construção";
   const hasDiscoveryInfo = Boolean(team.city || team.region || team.fieldType || team.competitiveLevel);
+  const selectedSlot = selectedSlotId
+    ? team.openMatchSlots.find((slot) => slot.id === selectedSlotId) ?? null
+    : null;
+  const selectedSlotDateText = selectedSlot
+    ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short" }).format(selectedSlot.date)
+    : null;
+  const suggestedDatesInitialValue = selectedSlotDateText
+    ? `Preferencia pelo horario aberto em ${selectedSlotDateText}${selectedSlot.timeLabel ? ` (${selectedSlot.timeLabel})` : ""}`
+    : "";
+  const suggestedVenueInitialValue = selectedSlot?.venueLabel || "";
 
   return (
     <div className="min-h-screen bg-transparent pb-16">
@@ -664,9 +690,9 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
               <div className="mt-4 flex flex-wrap gap-2 text-xs text-[var(--text-subtle)]">
                 {team.city && <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">Cidade: {team.city}</span>}
                 {team.region && <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">Regiao: {team.region}</span>}
-                {team.fieldType && <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">Campo: {team.fieldType}</span>}
+                {team.fieldType && <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">Campo: {fieldTypeLabels[team.fieldType]}</span>}
                 {team.competitiveLevel && (
-                  <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">Nivel: {team.competitiveLevel}</span>
+                  <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">Nivel: {competitiveLevelLabels[team.competitiveLevel]}</span>
                 )}
               </div>
             )}
@@ -682,12 +708,12 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
                       {(slot.timeLabel || "Horario a definir") + " • " + (slot.venueLabel || "Local a definir")}
                     </p>
                     {slot.notes && <p className="mt-2 text-sm text-[var(--text-muted)]">{slot.notes}</p>}
-                    <a
-                      href="#amistoso"
+                    <Link
+                      href={`/vitrine/${slug}?slot=${slot.id}#amistoso`}
                       className="mt-3 inline-flex min-h-9 items-center justify-center rounded-full border border-[var(--border)] px-3 text-xs font-semibold text-[var(--text)] transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
                     >
                       Solicitar neste horario
-                    </a>
+                    </Link>
                   </article>
                 ))}
               </div>
@@ -716,7 +742,16 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
           </div>
 
           <div className="app-surface rounded-[24px] p-6 shadow-[var(--shadow-md)] sm:p-7">
-            <FriendlyRequestForm teamSlug={slug} />
+            {selectedSlot && (
+              <div className="mb-4 rounded-[16px] border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-800">
+                Proposta sendo preparada para o horario aberto de {selectedSlotDateText}.
+              </div>
+            )}
+            <FriendlyRequestForm
+              teamSlug={slug}
+              initialSuggestedDates={suggestedDatesInitialValue}
+              initialSuggestedVenue={suggestedVenueInitialValue}
+            />
           </div>
         </section>
 

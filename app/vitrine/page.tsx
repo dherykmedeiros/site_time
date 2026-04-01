@@ -32,6 +32,14 @@ const fieldTypeOptions = [
   { value: "OTHER", label: "Outro" },
 ];
 
+const fieldTypeLabels: Record<string, string> = {
+  GRASS: "Grama",
+  SYNTHETIC: "Sintetico",
+  FUTSAL: "Futsal",
+  SOCIETY: "Society",
+  OTHER: "Outro",
+};
+
 export const metadata: Metadata = {
   title: "Diretorio VARzea",
   description:
@@ -210,6 +218,29 @@ export default async function VitrineIndexPage({ searchParams }: VitrineIndexPag
             <p className="mx-auto mt-3 max-w-xl text-sm text-[var(--text-muted)] sm:text-base">
               Ajuste os filtros para localizar equipes com agenda aberta para amistoso.
             </p>
+            {hasFilters && (
+              <div className="mx-auto mt-5 flex max-w-2xl flex-wrap justify-center gap-2 text-xs text-[var(--text-subtle)]">
+                {q && <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">Busca: {q}</span>}
+                {city && <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">Cidade: {city}</span>}
+                {region && <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">Regiao: {region}</span>}
+                {fieldType && (
+                  <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">
+                    Campo: {fieldTypeLabels[fieldType]}
+                  </span>
+                )}
+                {weekday && (
+                  <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">
+                    Dia: {weekdayOptions.find((opt) => opt.value === weekday)?.label}
+                  </span>
+                )}
+              </div>
+            )}
+            <Link
+              href="/vitrine"
+              className="mt-6 inline-flex items-center justify-center rounded-full border border-[var(--border-strong)] px-5 py-2 text-sm font-semibold text-[var(--text)] transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
+            >
+              Limpar filtros
+            </Link>
           </section>
         ) : (
           <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -249,7 +280,7 @@ export default async function VitrineIndexPage({ searchParams }: VitrineIndexPag
                   {team.city && <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">{team.city}</span>}
                   {team.region && <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">{team.region}</span>}
                   {team.fieldType && (
-                    <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">Campo: {team.fieldType}</span>
+                    <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">Campo: {fieldTypeLabels[team.fieldType]}</span>
                   )}
                 </div>
 

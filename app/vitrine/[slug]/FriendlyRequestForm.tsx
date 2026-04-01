@@ -7,9 +7,15 @@ import { Textarea } from "@/components/ui/Textarea";
 
 interface FriendlyRequestFormProps {
   teamSlug: string;
+  initialSuggestedDates?: string;
+  initialSuggestedVenue?: string;
 }
 
-export function FriendlyRequestForm({ teamSlug }: FriendlyRequestFormProps) {
+export function FriendlyRequestForm({
+  teamSlug,
+  initialSuggestedDates = "",
+  initialSuggestedVenue = "",
+}: FriendlyRequestFormProps) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -17,8 +23,8 @@ export function FriendlyRequestForm({ teamSlug }: FriendlyRequestFormProps) {
   const [requesterTeamName, setRequesterTeamName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
-  const [suggestedDates, setSuggestedDates] = useState("");
-  const [suggestedVenue, setSuggestedVenue] = useState("");
+  const [suggestedDates, setSuggestedDates] = useState(initialSuggestedDates);
+  const [suggestedVenue, setSuggestedVenue] = useState(initialSuggestedVenue);
   const [proposedFee, setProposedFee] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
@@ -73,8 +79,8 @@ export function FriendlyRequestForm({ teamSlug }: FriendlyRequestFormProps) {
             setRequesterTeamName("");
             setContactEmail("");
             setContactPhone("");
-            setSuggestedDates("");
-            setSuggestedVenue("");
+            setSuggestedDates(initialSuggestedDates);
+            setSuggestedVenue(initialSuggestedVenue);
             setProposedFee("");
           }}
         >
@@ -89,6 +95,12 @@ export function FriendlyRequestForm({ teamSlug }: FriendlyRequestFormProps) {
       {error && (
         <div className="rounded-[14px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[#9a3422]">
           {error}
+        </div>
+      )}
+
+      {initialSuggestedDates && (
+        <div className="rounded-[14px] border border-[#bde0d3] bg-[#e9f8f1] p-3 text-sm text-[#1d5f4f]">
+          O formulario ja foi preenchido com uma data aberta selecionada. Ajuste os detalhes se precisar.
         </div>
       )}
 
