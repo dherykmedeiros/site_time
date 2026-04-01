@@ -115,6 +115,7 @@ export async function GET(request: Request) {
     if (entry.type === "EXPENSE") totalExpense = Number(entry._sum.amount ?? 0);
   }
   const balance = totalIncome - totalExpense;
+  const totalCount = Number(total[0]?.total ?? 0);
 
   return NextResponse.json({
     transactions: transactions.map((t) => ({
@@ -133,8 +134,8 @@ export async function GET(request: Request) {
     pagination: {
       page,
       limit,
-      total: Number(total[0]?.total ?? 0n),
-      totalPages: Math.ceil(Number(total[0]?.total ?? 0n) / limit),
+      total: totalCount,
+      totalPages: Math.ceil(totalCount / limit),
     },
   });
 }
