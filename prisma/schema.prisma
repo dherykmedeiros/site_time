@@ -53,6 +53,11 @@ enum MatchStatus {
   CANCELLED
 }
 
+enum MatchLineupRole {
+  STARTER
+  BENCH
+}
+
 enum RSVPStatus {
   PENDING
   CONFIRMED
@@ -157,6 +162,7 @@ model Player {
   rsvps        RSVP[]
   availabilityRules PlayerAvailabilityRule[]
   attendances  MatchAttendance[]
+  lineupSelections MatchLineupSelection[]
   matchStats   MatchStats[]
   inviteTokens InviteToken[]
   membershipPayments MembershipPayment[]
@@ -202,6 +208,7 @@ model Match {
   rsvps      RSVP[]
   checklistItems MatchChecklistItem[]
   attendances MatchAttendance[]
+  lineupSelections MatchLineupSelection[]
   matchStats MatchStats[]
   transactions Transaction[]
   positionLimits MatchPositionLimit[]
@@ -212,6 +219,23 @@ model Match {
   updatedAt  DateTime    @updatedAt
 
   @@map("matches")
+}
+
+model MatchLineupSelection {
+  id         String          @id @default(cuid())
+  matchId    String
+  playerId   String
+  role       MatchLineupRole
+  sortOrder  Int
+  match      Match           @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player     Player          @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@unique([matchId, playerId])
+  @@index([matchId, role, sortOrder])
+  @@index([playerId])
+  @@map("match_lineup_selections")
 }
 
 model MatchPositionLimit {

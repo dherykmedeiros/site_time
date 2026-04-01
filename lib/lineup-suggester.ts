@@ -32,6 +32,7 @@ interface SuggestedLineup {
     benchCount: number;
     usesPositionLimits: boolean;
     confidence: "LOW" | "MEDIUM" | "HIGH";
+    source: "SUGGESTED" | "SAVED";
   };
 }
 
@@ -236,6 +237,7 @@ export function buildSuggestedLineup(args: {
         benchCount: 0,
         usesPositionLimits: args.positionLimits.length > 0,
         confidence: "LOW",
+        source: "SUGGESTED",
       },
     };
   }
@@ -258,6 +260,7 @@ export function buildSuggestedLineup(args: {
       benchCount: base.bench.length,
       usesPositionLimits: args.positionLimits.length > 0,
       confidence: buildConfidence(eligiblePlayers.length, base.alerts),
+      source: "SUGGESTED",
     },
   };
 }

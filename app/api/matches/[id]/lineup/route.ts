@@ -1,28 +1,19 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { buildSuggestedLineup } from "@/lib/lineup-suggester";
+import { buildMatchLineupSnapshot } from "@/lib/match-lineup";
+import { patchMatchLineupSchema } from "@/lib/validations/match";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(_request: Request, { params }: RouteParams) {
-  const { session, error } = await requireAdmin();
-  if (error) return error;
-
-  if (!session.user.teamId) {
-    return NextResponse.json(
-      { error: "Usuário não possui time vinculado" },
-      { status: 404 }
-    );
-  }
-
-  const { id } = await params;
-  const match = await prisma.match.findFirst({
+async function loadMatchForLineup(matchId: string, teamId: string) {
+  return prisma.match.findFirst({
     where: {
-      id,
-      teamId: session.user.teamId,
+      id: matchId,
+      teamId,
     },
     select: {
       id: true,
@@ -47,19 +38,32 @@ export async function GET(_request: Request, { params }: RouteParams) {
           },
         },
       },
+      lineupSelections: {
+        orderBy: [
+          { role: "asc" },
+          { sortOrder: "asc" },
+        ],
+        select: {
+          role: true,
+          sortOrder: true,
+          updatedAt: true,
+          player: {
+            select: {
+              id: true,
+              name: true,
+              position: true,
+            },
+          },
+        },
+      },
     },
   });
+}
 
-  if (!match) {
-    return NextResponse.json(
-      { error: "Partida não encontrada", code: "NOT_FOUND" },
-      { status: 404 }
-    );
-  }
-
-  const lineup = buildSuggestedLineup({
+function buildLineupResponse(match: NonNullable<Awaited<ReturnType<typeof loadMatchForLineup>>>, request: Request) {
+  const snapshot = buildMatchLineupSnapshot({
     matchId: match.id,
-    confirmedPlayers: match.rsvps.map((rsvp) => ({
+    confirmedPlayers: match.rsvps.map((rsvp: (typeof match.rsvps)[number]) => ({
       playerId: rsvp.player.id,
       playerName: rsvp.player.name,
       position: rsvp.player.position,
@@ -68,15 +72,178 @@ export async function GET(_request: Request, { params }: RouteParams) {
       status: rsvp.player.status,
       rsvpStatus: rsvp.status,
     })),
-    positionLimits: match.positionLimits.map((limit) => ({
+    positionLimits: match.positionLimits.map((limit: (typeof match.positionLimits)[number]) => ({
       position: limit.position,
       maxPlayers: limit.maxPlayers,
     })),
+    savedSelections: match.lineupSelections.map((selection: (typeof match.lineupSelections)[number]) => ({
+      role: selection.role,
+      sortOrder: selection.sortOrder,
+      updatedAt: selection.updatedAt,
+      player: selection.player,
+    })),
   });
+
+  const url = new URL(request.url);
+  const imageUrl = `${url.origin}/api/og/match/${match.id}/lineup`;
 
   return NextResponse.json({
     matchId: match.id,
-    generatedAt: new Date().toISOString(),
-    lineup,
+    generatedAt: snapshot.generatedAt,
+    imageUrl,
+    lineup: snapshot.lineup,
   });
+}
+
+export async function GET(request: Request, { params }: RouteParams) {
+  const { session, error } = await requireAdmin();
+  if (error) return error;
+
+  if (!session.user.teamId) {
+    return NextResponse.json(
+      { error: "Usuário não possui time vinculado" },
+      { status: 404 }
+    );
+  }
+
+  const { id } = await params;
+  const match = await loadMatchForLineup(id, session.user.teamId);
+
+  if (!match) {
+    return NextResponse.json(
+      { error: "Partida não encontrada", code: "NOT_FOUND" },
+      { status: 404 }
+    );
+  }
+
+  return buildLineupResponse(match, request);
+}
+
+export async function PATCH(request: Request, { params }: RouteParams) {
+  const { session, error } = await requireAdmin();
+  if (error) return error;
+
+  if (!session.user.teamId) {
+    return NextResponse.json(
+      { error: "Usuário não possui time vinculado" },
+      { status: 404 }
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "JSON inválido", code: "VALIDATION_ERROR" },
+      { status: 400 }
+    );
+  }
+
+  const parsed = patchMatchLineupSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: "Escalação inválida",
+        code: "VALIDATION_ERROR",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      { status: 400 }
+    );
+  }
+
+  const { id } = await params;
+  const match = await loadMatchForLineup(id, session.user.teamId);
+
+  if (!match) {
+    return NextResponse.json(
+      { error: "Partida não encontrada", code: "NOT_FOUND" },
+      { status: 404 }
+    );
+  }
+
+  const eligibleIds = new Set(
+    match.rsvps
+      .filter((rsvp: (typeof match.rsvps)[number]) => rsvp.status === "CONFIRMED" && rsvp.player.status === "ACTIVE")
+      .map((rsvp: (typeof match.rsvps)[number]) => rsvp.player.id)
+  );
+
+  const allPlayerIds = [...parsed.data.starters, ...parsed.data.bench];
+  const invalidPlayers = allPlayerIds.filter((playerId) => !eligibleIds.has(playerId));
+  if (invalidPlayers.length > 0) {
+    return NextResponse.json(
+      {
+        error: "A escalação só pode conter atletas ativos e confirmados",
+        code: "INVALID_LINEUP_PLAYER",
+      },
+      { status: 400 }
+    );
+  }
+
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await tx.matchLineupSelection.deleteMany({ where: { matchId: id } });
+
+    const data = [
+      ...parsed.data.starters.map((playerId: string, index: number) => ({
+        matchId: id,
+        playerId,
+        role: "STARTER" as const,
+        sortOrder: index,
+      })),
+      ...parsed.data.bench.map((playerId: string, index: number) => ({
+        matchId: id,
+        playerId,
+        role: "BENCH" as const,
+        sortOrder: index,
+      })),
+    ];
+
+    if (data.length > 0) {
+      await tx.matchLineupSelection.createMany({ data });
+    }
+  });
+
+  const updatedMatch = await loadMatchForLineup(id, session.user.teamId);
+  if (!updatedMatch) {
+    return NextResponse.json(
+      { error: "Partida não encontrada", code: "NOT_FOUND" },
+      { status: 404 }
+    );
+  }
+
+  return buildLineupResponse(updatedMatch, request);
+}
+
+export async function DELETE(request: Request, { params }: RouteParams) {
+  const { session, error } = await requireAdmin();
+  if (error) return error;
+
+  if (!session.user.teamId) {
+    return NextResponse.json(
+      { error: "Usuário não possui time vinculado" },
+      { status: 404 }
+    );
+  }
+
+  const { id } = await params;
+  const match = await loadMatchForLineup(id, session.user.teamId);
+
+  if (!match) {
+    return NextResponse.json(
+      { error: "Partida não encontrada", code: "NOT_FOUND" },
+      { status: 404 }
+    );
+  }
+
+  await prisma.matchLineupSelection.deleteMany({ where: { matchId: id } });
+
+  const updatedMatch = await loadMatchForLineup(id, session.user.teamId);
+  if (!updatedMatch) {
+    return NextResponse.json(
+      { error: "Partida não encontrada", code: "NOT_FOUND" },
+      { status: 404 }
+    );
+  }
+
+  return buildLineupResponse(updatedMatch, request);
 }

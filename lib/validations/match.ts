@@ -3,7 +3,7 @@ import { playerPositions } from "@/lib/player-positions";
 
 const optionalIsoDate = z
   .string()
-  .refine((val) => !isNaN(Date.parse(val)), "Data inválida")
+  .refine((val: string) => !isNaN(Date.parse(val)), "Data inválida")
   .optional();
 
 const positionLimitSchema = z.object({
@@ -18,8 +18,8 @@ const positionLimitSchema = z.object({
 export const createMatchSchema = z.object({
   date: z
     .string()
-    .refine((val) => !isNaN(Date.parse(val)), "Data inválida")
-    .refine((val) => new Date(val) > new Date(), "Data deve ser no futuro"),
+    .refine((val: string) => !isNaN(Date.parse(val)), "Data inválida")
+    .refine((val: string) => new Date(val) > new Date(), "Data deve ser no futuro"),
   venue: z
     .string()
     .min(2, "Local deve ter no mínimo 2 caracteres")
@@ -38,7 +38,7 @@ export const createMatchSchema = z.object({
 export const updateMatchSchema = z.object({
   date: z
     .string()
-    .refine((val) => !isNaN(Date.parse(val)), "Data inválida")
+    .refine((val: string) => !isNaN(Date.parse(val)), "Data inválida")
     .optional(),
   venue: z
     .string()
@@ -81,6 +81,7 @@ export const rsvpResponseSchema = z.object({
 });
 
 export const lineupConfidenceSchema = z.enum(["LOW", "MEDIUM", "HIGH"]);
+export const lineupSourceSchema = z.enum(["SUGGESTED", "SAVED"]);
 
 export const suggestedLineupEntrySchema = z.object({
   playerId: z.string().min(1, "ID do jogador obrigatório"),
@@ -99,8 +100,20 @@ export const suggestedLineupResponseSchema = z.object({
     benchCount: z.number().int().min(0),
     usesPositionLimits: z.boolean(),
     confidence: lineupConfidenceSchema,
+    source: lineupSourceSchema,
   }),
 });
+
+export const patchMatchLineupSchema = z
+  .object({
+    starters: z.array(z.string().cuid("Jogador inválido")).max(30),
+    bench: z.array(z.string().cuid("Jogador inválido")).max(30),
+  })
+  .strict()
+  .refine((data: { starters: string[]; bench: string[] }) => new Set([...data.starters, ...data.bench]).size === data.starters.length + data.bench.length, {
+    message: "Jogadores duplicados na escalação",
+    path: ["starters"],
+  });
 
 export const bordereauChecklistItemSchema = z.object({
   label: z.string().trim().min(2, "Checklist inválido").max(80, "Checklist inválido"),
@@ -125,7 +138,7 @@ export const bordereauExpenseSchema = z.object({
   amount: z.number().nonnegative(),
   category: z.enum(["FRIENDLY_FEE", "VENUE_RENTAL", "REFEREE", "EQUIPMENT", "OTHER"]),
   description: z.string().min(2).max(200),
-  date: z.string().refine((value) => !Number.isNaN(Date.parse(value)), "Data inválida"),
+  date: z.string().refine((value: string) => !Number.isNaN(Date.parse(value)), "Data inválida"),
   matchId: z.string().cuid().nullable().optional(),
 });
 
@@ -183,7 +196,7 @@ export const matchListQuerySchema = z
     to: optionalIsoDate,
   })
   .refine(
-    (data) => {
+    (data: { from?: string; to?: string }) => {
       if (!data.from || !data.to) return true;
       return new Date(data.from) <= new Date(data.to);
     },
@@ -201,5 +214,7 @@ export type MatchListQueryInput = z.infer<typeof matchListQuerySchema>;
 export type SuggestedLineupEntry = z.infer<typeof suggestedLineupEntrySchema>;
 export type SuggestedLineupResponse = z.infer<typeof suggestedLineupResponseSchema>;
 export type LineupConfidence = z.infer<typeof lineupConfidenceSchema>;
+export type LineupSource = z.infer<typeof lineupSourceSchema>;
 export type BordereauResponse = z.infer<typeof bordereauResponseSchema>;
 export type PatchMatchBordereauInput = z.infer<typeof patchMatchBordereauSchema>;
+export type PatchMatchLineupInput = z.infer<typeof patchMatchLineupSchema>;

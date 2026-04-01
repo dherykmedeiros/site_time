@@ -1,16 +1,11 @@
 import { ImageResponse } from "next/og";
 import { prisma } from "@/lib/prisma";
+import { safeHex } from "../../route-utils";
 
 export const runtime = "nodejs";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
-}
-
-/** Validate and sanitize a CSS hex color to prevent injection */
-function safeHex(color: string | null | undefined, fallback: string): string {
-  if (!color) return fallback;
-  return /^#[0-9a-fA-F]{3,8}$/.test(color) ? color : fallback;
 }
 
 export async function GET(_request: Request, context: RouteContext) {

@@ -59,6 +59,7 @@ interface MatchDetail {
 interface MatchLineupResponse {
   matchId: string;
   generatedAt: string;
+  imageUrl: string;
   lineup: SuggestedLineupResponse;
 }
 
@@ -114,6 +115,7 @@ export default function MatchDetailPage() {
   const [lineupData, setLineupData] = useState<MatchLineupResponse | null>(null);
   const [lineupLoading, setLineupLoading] = useState(false);
   const [lineupRefreshing, setLineupRefreshing] = useState(false);
+  const [lineupSaving, setLineupSaving] = useState(false);
   const [lineupError, setLineupError] = useState<string | null>(null);
   const [bordereauData, setBordereauData] = useState<BordereauResponse | null>(null);
   const [bordereauLoading, setBordereauLoading] = useState(false);
@@ -315,6 +317,58 @@ export default function MatchDetailPage() {
       setBordereauError("Erro de conexão ao salvar bordero");
     } finally {
       setBordereauSaving(false);
+    }
+  }
+
+  async function handleSaveLineup(payload: { starters: string[]; bench: string[] }) {
+    setLineupSaving(true);
+    setLineupError(null);
+
+    try {
+      const res = await fetch(`/api/matches/${id}/lineup`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setLineupError(data.error || "Erro ao salvar escalacao");
+        return;
+      }
+
+      setLineupData(data);
+      setLineupError(null);
+      setFeedback("Escalacao salva com sucesso para esta partida.");
+    } catch {
+      setLineupError("Erro de conexão ao salvar escalacao");
+    } finally {
+      setLineupSaving(false);
+    }
+  }
+
+  async function handleResetSavedLineup() {
+    setLineupSaving(true);
+    setLineupError(null);
+
+    try {
+      const res = await fetch(`/api/matches/${id}/lineup`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setLineupError(data.error || "Erro ao resetar escalacao");
+        return;
+      }
+
+      setLineupData(data);
+      setLineupError(null);
+      setFeedback("Escalacao manual removida. A sugestao automatica voltou a valer.");
+    } catch {
+      setLineupError("Erro de conexão ao resetar escalacao");
+    } finally {
+      setLineupSaving(false);
     }
   }
 
@@ -881,6 +935,10 @@ export default function MatchDetailPage() {
           generatedAt={lineupData?.generatedAt ?? null}
           onRefresh={() => fetchLineup({ refresh: true })}
           canRefresh={!lineupRefreshing}
+          onSaveLineup={handleSaveLineup}
+          onResetSavedLineup={handleResetSavedLineup}
+          saveLoading={lineupSaving}
+          imageUrl={lineupData?.imageUrl ?? null}
         />
       )}
 
