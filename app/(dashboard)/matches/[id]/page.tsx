@@ -453,19 +453,54 @@ export default function MatchDetailPage() {
 
   function handleCopyLink() {
     if (!match?.shareUrl) return;
+    trackGeneralMatchShareCopy();
     navigator.clipboard.writeText(match.shareUrl).then(() => {
       setCopyMsg("Link copiado!");
       setTimeout(() => setCopyMsg(""), 2000);
     });
   }
 
+  function trackGeneralMatchShareCopy() {
+    if (!match) return;
+
+    fetch("/api/telemetry/event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: "match_share_link_copied",
+        context: "dashboard_match_general",
+        entityType: "match",
+        entityId: match.id,
+      }),
+      keepalive: true,
+    }).catch(() => {});
+  }
+
   function handleCopyRecapLink() {
     if (!match) return;
+    trackRecapCtaClick("copy_link");
     const recapUrl = `${window.location.origin}/api/og/team-recap/${match.id}`;
     navigator.clipboard.writeText(recapUrl).then(() => {
       setCopyMsg("Link do recap copiado!");
       setTimeout(() => setCopyMsg(""), 2000);
     });
+  }
+
+  function trackRecapCtaClick(ctaType: "open_card" | "copy_link" | "whatsapp_share") {
+    if (!match) return;
+
+    fetch("/api/telemetry/event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: "recap_cta_clicked",
+        context: "dashboard_match_postgame",
+        ctaType,
+        entityType: "match",
+        entityId: match.id,
+      }),
+      keepalive: true,
+    }).catch(() => {});
   }
 
   function getRecapCardUrl() {
@@ -1216,6 +1251,7 @@ export default function MatchDetailPage() {
                     onClick={() => {
                       const recapUrl = getRecapCardUrl();
                       if (!recapUrl) return;
+                      trackRecapCtaClick("open_card");
                       window.open(
                         recapUrl,
                         "_blank",
@@ -1233,6 +1269,7 @@ export default function MatchDetailPage() {
                   </Button>
                   <Button
                     onClick={() => {
+                      trackRecapCtaClick("whatsapp_share");
                       window.open(
                         `https://wa.me/?text=${encodeURIComponent(buildResultText())}`,
                         "_blank",

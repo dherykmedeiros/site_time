@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { RecapShareActions } from "@/components/dashboard/RecapShareActions";
 
 interface PlayerRecapWidgetProps {
   playerId: string;
@@ -25,15 +26,6 @@ export function PlayerRecapWidget({ playerId, playerName }: PlayerRecapWidgetPro
   const [data, setData] = useState<PlayerRecapResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
-
-  const recapUrl = useMemo(() => {
-    if (typeof window === "undefined") {
-      return `/api/og/player-recap/${playerId}`;
-    }
-
-    return `${window.location.origin}/api/og/player-recap/${playerId}`;
-  }, [playerId]);
 
   useEffect(() => {
     let active = true;
@@ -76,15 +68,6 @@ export function PlayerRecapWidget({ playerId, playerName }: PlayerRecapWidgetPro
     };
   }, [playerId]);
 
-  function handleCopyRecapLink() {
-    navigator.clipboard.writeText(recapUrl).then(() => {
-      setFeedback("Link do recap copiado!");
-      setTimeout(() => setFeedback(null), 2000);
-    });
-  }
-
-  const whatsAppMessage = `Confira o recap de ${playerName} no VARzea: ${recapUrl}`;
-
   return (
     <article className="app-surface rounded-[20px] border border-[var(--border)] p-5 shadow-[var(--shadow-sm)]">
       <h2 className="text-base font-bold text-[var(--text)]">Recap compartilhavel</h2>
@@ -123,35 +106,14 @@ export function PlayerRecapWidget({ playerId, playerName }: PlayerRecapWidgetPro
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <a
-          href={recapUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--brand)] px-4 text-sm font-semibold text-white transition hover:opacity-90"
-        >
-          Abrir card recap
-        </a>
-        <button
-          type="button"
-          onClick={handleCopyRecapLink}
-          className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--border)] px-4 text-sm font-semibold text-[var(--text)] transition hover:bg-[var(--surface-soft)]"
-        >
-          Copiar link
-        </button>
-        <a
-          href={`https://wa.me/?text=${encodeURIComponent(whatsAppMessage)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--border)] px-4 text-sm font-semibold text-[var(--text)] transition hover:bg-[var(--surface-soft)]"
-        >
-          Compartilhar no WhatsApp
-        </a>
+      <div className="mt-4">
+        <RecapShareActions
+          entityId={playerId}
+          entityType="player"
+          context="public_player"
+          labelPrefix={`Confira o recap de ${playerName} no VARzea`}
+        />
       </div>
-
-      {feedback && (
-        <p className="mt-3 text-sm text-[#1d5f4f]">{feedback}</p>
-      )}
     </article>
   );
 }

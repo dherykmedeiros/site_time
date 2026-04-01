@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
+import { RecapShareActions } from "@/components/dashboard/RecapShareActions";
+import { TeamRecapWidget } from "@/components/dashboard/TeamRecapWidget";
 
 interface PublicMatchPageProps {
   params: Promise<{ slug: string; id: string }>;
@@ -244,6 +246,23 @@ export default async function PublicMatchPage({
               </div>
             </section>
           )}
+
+        {match.status === "COMPLETED" && (
+          <section className="app-surface rounded-[28px] p-6 shadow-[var(--shadow-md)] sm:p-8">
+            <h2 className="text-xl font-semibold text-[var(--text)]">Recap da Rodada</h2>
+            <div className="mt-5">
+              <TeamRecapWidget matchId={match.id} />
+            </div>
+            <div className="mt-4">
+              <RecapShareActions
+                entityId={match.id}
+                entityType="match"
+                context="public_match"
+                labelPrefix="Confira o recap da partida no VARzea"
+              />
+            </div>
+          </section>
+        )}
 
         {match.status === "SCHEDULED" && (
           <section className="app-surface rounded-[28px] p-6 shadow-[var(--shadow-md)] sm:p-8">

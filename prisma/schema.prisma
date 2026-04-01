@@ -119,6 +119,26 @@ enum SeasonStatus {
   FINISHED
 }
 
+enum TeamFieldType {
+  GRASS
+  SYNTHETIC
+  FUTSAL
+  SOCIETY
+  OTHER
+}
+
+enum TeamCompetitiveLevel {
+  CASUAL
+  INTERMEDIATE
+  COMPETITIVE
+}
+
+enum OpenMatchSlotStatus {
+  OPEN
+  BOOKED
+  CLOSED
+}
+
 // ─── Models ───────────────────────────────────────────────
 
 model User {
@@ -147,6 +167,11 @@ model Team {
   primaryColor     String?
   secondaryColor   String?
   defaultVenue     String?
+  city             String?
+  region           String?
+  fieldType        TeamFieldType?
+  competitiveLevel TeamCompetitiveLevel?
+  publicDirectoryOptIn Boolean         @default(false)
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
   users            User[]
@@ -157,6 +182,7 @@ model Team {
   inviteTokens     InviteToken[]
   membershipPayments MembershipPayment[]
   seasons          Season[]
+  openMatchSlots   OpenMatchSlot[]
 
   @@map("teams")
 }
@@ -317,6 +343,23 @@ model FriendlyRequest {
   updatedAt         DateTime              @updatedAt
 
   @@map("friendly_requests")
+}
+
+model OpenMatchSlot {
+  id         String              @id @default(cuid())
+  teamId     String
+  date       DateTime
+  timeLabel  String?
+  venueLabel String?
+  notes      String?
+  status     OpenMatchSlotStatus @default(OPEN)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  team       Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([status, date])
+  @@map("open_match_slots")
 }
 
 model Transaction {
