@@ -8,10 +8,10 @@ import { Select } from "@/components/ui/Select";
 
 const TOKEN_SIZE = 50;
 const FIELD_ZONES = [
-  { key: "build", label: "Saida", top: "8%", height: "20%" },
-  { key: "defense", label: "Defesa", top: "28%", height: "20%" },
-  { key: "midfield", label: "Meio", top: "48%", height: "22%" },
-  { key: "attack", label: "Ataque", top: "70%", height: "18%" },
+  { key: "build", label: "Saida", left: "8%", width: "16%" },
+  { key: "defense", label: "Defesa", left: "24%", width: "20%" },
+  { key: "midfield", label: "Meio", left: "44%", width: "22%" },
+  { key: "attack", label: "Ataque", left: "66%", width: "18%" },
 ] as const;
 
 export interface TacticalBoardPlayer {
@@ -41,6 +41,20 @@ function clamp(value: number, min: number, max: number) {
 
 function roundPercent(value: number) {
   return Math.round(value * 10) / 10;
+}
+
+function logicalToDisplayPosition(position: { x_percent: number; y_percent: number }) {
+  return {
+    x_percent: position.y_percent,
+    y_percent: position.x_percent,
+  };
+}
+
+function displayToLogicalPosition(position: { x_percent: number; y_percent: number }) {
+  return {
+    x_percent: position.y_percent,
+    y_percent: position.x_percent,
+  };
 }
 
 function nearestValue(value: number, candidates: number[]) {
@@ -158,11 +172,12 @@ export function TacticalBoard({
   }
 
   function toPixels(xPercent: number, yPercent: number) {
+    const displayPosition = logicalToDisplayPosition({ x_percent: xPercent, y_percent: yPercent });
     const maxX = Math.max(0, fieldSize.width - TOKEN_SIZE);
     const maxY = Math.max(0, fieldSize.height - TOKEN_SIZE);
 
-    const x = clamp((xPercent / 100) * fieldSize.width - TOKEN_SIZE / 2, 0, maxX);
-    const y = clamp((yPercent / 100) * fieldSize.height - TOKEN_SIZE / 2, 0, maxY);
+    const x = clamp((displayPosition.x_percent / 100) * fieldSize.width - TOKEN_SIZE / 2, 0, maxX);
+    const y = clamp((displayPosition.y_percent / 100) * fieldSize.height - TOKEN_SIZE / 2, 0, maxY);
 
     return { x, y };
   }
@@ -173,10 +188,12 @@ export function TacticalBoard({
     const centerX = x + TOKEN_SIZE / 2;
     const centerY = y + TOKEN_SIZE / 2;
 
-    return {
+    const displayPosition = {
       x_percent: roundPercent(clamp((centerX / safeWidth) * 100, 0, 100)),
       y_percent: roundPercent(clamp((centerY / safeHeight) * 100, 0, 100)),
     };
+
+    return displayToLogicalPosition(displayPosition);
   }
 
   async function handleSave() {
@@ -197,7 +214,7 @@ export function TacticalBoard({
         <div className="space-y-1">
           <p className="text-sm font-semibold tracking-[0.06em] text-white">Quadro tatico</p>
           <p className="text-xs text-white/70">
-            {editable ? "Arraste os jogadores para ajustar o posicionamento. O snap tatico ajuda a manter cada linha organizada." : "Visualizacao responsiva do posicionamento atual."}
+            {editable ? "Arraste os jogadores no quadro horizontal. O snap tatico ajuda a manter cada linha organizada." : "Visualizacao responsiva do posicionamento atual."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -231,8 +248,8 @@ export function TacticalBoard({
         {FIELD_ZONES.map((zone) => (
           <div
             key={zone.key}
-            className="pointer-events-none absolute left-[6%] right-[6%] rounded-[18px] border border-white/6 bg-white/[0.025]"
-            style={{ top: zone.top, height: zone.height }}
+            className="pointer-events-none absolute top-[8%] bottom-[8%] rounded-[18px] border border-white/6 bg-white/[0.025]"
+            style={{ left: zone.left, width: zone.width }}
           >
             <span className="absolute left-3 top-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/28">
               {zone.label}
@@ -240,14 +257,14 @@ export function TacticalBoard({
           </div>
         ))}
         <div className="absolute inset-4 rounded-[24px] border-2 border-white/70" />
-        <div className="absolute left-1/2 top-4 h-[34%] w-[18%] -translate-x-1/2 rounded-b-[18px] border-2 border-t-0 border-white/70" />
-        <div className="absolute left-1/2 top-4 h-[16%] w-[7%] -translate-x-1/2 rounded-b-[12px] border-2 border-t-0 border-white/70" />
-        <div className="absolute left-[11%] top-1/2 h-px w-[78%] -translate-y-1/2 bg-white/70" />
+        <div className="absolute left-[4%] top-[21%] h-[58%] w-[15.7%] rounded-r-[18px] border-2 border-l-0 border-white/70" />
+        <div className="absolute left-[4%] top-[36%] h-[28%] w-[5.2%] rounded-r-[12px] border-2 border-l-0 border-white/70" />
+        <div className="absolute right-[4%] top-[21%] h-[58%] w-[15.7%] rounded-l-[18px] border-2 border-r-0 border-white/70" />
+        <div className="absolute right-[4%] top-[36%] h-[28%] w-[5.2%] rounded-l-[12px] border-2 border-r-0 border-white/70" />
+        <div className="absolute left-1/2 top-[11%] bottom-[11%] w-px -translate-x-1/2 bg-white/70" />
         <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/70" />
-        <div className="absolute bottom-4 left-1/2 h-[34%] w-[18%] -translate-x-1/2 rounded-t-[18px] border-2 border-b-0 border-white/70" />
-        <div className="absolute bottom-4 left-1/2 h-[16%] w-[7%] -translate-x-1/2 rounded-t-[12px] border-2 border-b-0 border-white/70" />
-        <div className="absolute left-1/2 top-[18%] h-3 w-3 -translate-x-1/2 rounded-full bg-white/80" />
-        <div className="absolute bottom-[18%] left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-white/80" />
+        <div className="absolute left-[14.5%] top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80" />
+        <div className="absolute right-[14.5%] top-1/2 h-3 w-3 translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80" />
 
         {boardPlayers.map((player) => {
           const nodeRef = getNodeRef(player.player_id);
@@ -303,7 +320,7 @@ export function TacticalBoard({
         {editable && (
           <div className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-2 rounded-full border border-white/10 bg-[rgba(8,21,18,0.45)] px-3 py-1.5 text-[11px] font-medium text-white/78 backdrop-blur-sm">
             <Move className="h-3.5 w-3.5" />
-            snap tatico ativo
+            quadro horizontal com snap ativo
           </div>
         )}
       </div>

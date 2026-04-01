@@ -194,8 +194,8 @@ export async function GET(_request: Request, context: RouteContext) {
             style={{
               position: "absolute",
               left: "50%",
-              top: "36px",
-              bottom: "36px",
+              top: "72px",
+              bottom: "72px",
               width: "4px",
               background: "rgba(255,255,255,0.75)",
               transform: "translateX(-50%)",
@@ -213,14 +213,98 @@ export async function GET(_request: Request, context: RouteContext) {
               transform: "translate(-50%, -50%)",
             }}
           />
+          <div
+            style={{
+              position: "absolute",
+              left: "36px",
+              top: "145px",
+              width: "125px",
+              height: "340px",
+              borderTop: "4px solid rgba(255,255,255,0.75)",
+              borderRight: "4px solid rgba(255,255,255,0.75)",
+              borderBottom: "4px solid rgba(255,255,255,0.75)",
+              borderLeft: "none",
+              borderTopRightRadius: "28px",
+              borderBottomRightRadius: "28px",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: "36px",
+              top: "225px",
+              width: "42px",
+              height: "180px",
+              borderTop: "4px solid rgba(255,255,255,0.75)",
+              borderRight: "4px solid rgba(255,255,255,0.75)",
+              borderBottom: "4px solid rgba(255,255,255,0.75)",
+              borderLeft: "none",
+              borderTopRightRadius: "20px",
+              borderBottomRightRadius: "20px",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              right: "36px",
+              top: "145px",
+              width: "125px",
+              height: "340px",
+              borderTop: "4px solid rgba(255,255,255,0.75)",
+              borderLeft: "4px solid rgba(255,255,255,0.75)",
+              borderBottom: "4px solid rgba(255,255,255,0.75)",
+              borderRight: "none",
+              borderTopLeftRadius: "28px",
+              borderBottomLeftRadius: "28px",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              right: "36px",
+              top: "225px",
+              width: "42px",
+              height: "180px",
+              borderTop: "4px solid rgba(255,255,255,0.75)",
+              borderLeft: "4px solid rgba(255,255,255,0.75)",
+              borderBottom: "4px solid rgba(255,255,255,0.75)",
+              borderRight: "none",
+              borderTopLeftRadius: "20px",
+              borderBottomLeftRadius: "20px",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: "139px",
+              top: "50%",
+              width: "12px",
+              height: "12px",
+              borderRadius: "999px",
+              background: "rgba(255,255,255,0.8)",
+              transform: "translate(-50%, -50%)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              right: "139px",
+              top: "50%",
+              width: "12px",
+              height: "12px",
+              borderRadius: "999px",
+              background: "rgba(255,255,255,0.8)",
+              transform: "translate(50%, -50%)",
+            }}
+          />
 
           {placements.map((placement) => (
             <div
               key={placement.playerId}
               style={{
                 position: "absolute",
-                left: `${placement.x}%`,
-                top: `${placement.y}%`,
+                left: `${placement.y}%`,
+                top: `${placement.x}%`,
                 transform: "translate(-50%, -50%)",
                 display: "flex",
                 flexDirection: "column",
