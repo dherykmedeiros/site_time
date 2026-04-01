@@ -67,15 +67,15 @@ export async function GET(_request: Request, context: RouteContext) {
             </div>
 
             <div style={{ display: "flex", gap: "18px" }}>
-              <div style={{ borderRadius: "18px", background: "rgba(255,255,255,0.12)", padding: "16px 20px" }}>
+              <div style={{ display: "flex", flexDirection: "column", borderRadius: "18px", background: "rgba(255,255,255,0.12)", padding: "16px 20px" }}>
                 <div style={{ fontSize: "14px", opacity: 0.78 }}>Partidas</div>
                 <div style={{ fontSize: "34px", fontWeight: 800 }}>{recap.career.matches}</div>
               </div>
-              <div style={{ borderRadius: "18px", background: "rgba(255,255,255,0.12)", padding: "16px 20px" }}>
+              <div style={{ display: "flex", flexDirection: "column", borderRadius: "18px", background: "rgba(255,255,255,0.12)", padding: "16px 20px" }}>
                 <div style={{ fontSize: "14px", opacity: 0.78 }}>Gols</div>
                 <div style={{ fontSize: "34px", fontWeight: 800 }}>{recap.career.goals}</div>
               </div>
-              <div style={{ borderRadius: "18px", background: "rgba(255,255,255,0.12)", padding: "16px 20px" }}>
+              <div style={{ display: "flex", flexDirection: "column", borderRadius: "18px", background: "rgba(255,255,255,0.12)", padding: "16px 20px" }}>
                 <div style={{ fontSize: "14px", opacity: 0.78 }}>Assistencias</div>
                 <div style={{ fontSize: "34px", fontWeight: 800 }}>{recap.career.assists}</div>
               </div>

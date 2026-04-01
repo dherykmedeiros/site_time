@@ -101,11 +101,11 @@ export async function GET(_request: Request, context: RouteContext) {
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div style={{ borderRadius: "16px", background: "rgba(255,255,255,0.10)", padding: "14px 16px" }}>
+              <div style={{ display: "flex", flexDirection: "column", borderRadius: "16px", background: "rgba(255,255,255,0.10)", padding: "14px 16px" }}>
                 <div style={{ fontSize: "14px", opacity: 0.75 }}>Artilheiro</div>
                 <div style={{ marginTop: "4px", fontSize: "20px", fontWeight: 700 }}>{topScorerLabel}</div>
               </div>
-              <div style={{ borderRadius: "16px", background: "rgba(255,255,255,0.10)", padding: "14px 16px" }}>
+              <div style={{ display: "flex", flexDirection: "column", borderRadius: "16px", background: "rgba(255,255,255,0.10)", padding: "14px 16px" }}>
                 <div style={{ fontSize: "14px", opacity: 0.75 }}>Lider em assistencias</div>
                 <div style={{ marginTop: "4px", fontSize: "20px", fontWeight: 700 }}>{topAssistantLabel}</div>
               </div>
