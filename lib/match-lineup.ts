@@ -91,9 +91,14 @@ export function buildMatchLineupSnapshot(args: {
   }
 
   const assignedIds = new Set(savedSelections.map((selection) => selection.player.id));
-  const savedStarters = savedSelections
+  const savedStarterCandidates = savedSelections
     .filter((selection) => selection.role === "STARTER")
     .map((selection) => buildSavedLineupEntry(selection, "STARTER"));
+  const savedStarters = savedStarterCandidates.slice(0, 11);
+  const overflowFromStarters = savedStarterCandidates.slice(11).map((entry) => ({
+    ...entry,
+    reason: "Movido para o banco por limite maximo de 11 titulares",
+  }));
   const savedBench = savedSelections
     .filter((selection) => selection.role === "BENCH")
     .map((selection) => buildSavedLineupEntry(selection, "BENCH"));
@@ -121,12 +126,12 @@ export function buildMatchLineupSnapshot(args: {
 
   const lineup: SuggestedLineupResponse = {
     starters: savedStarters,
-    bench: [...savedBench, ...overflowBench],
+    bench: [...overflowFromStarters, ...savedBench, ...overflowBench],
     alerts,
     meta: {
       ...suggestedLineup.meta,
       startersCount: savedStarters.length,
-      benchCount: savedBench.length + overflowBench.length,
+      benchCount: overflowFromStarters.length + savedBench.length + overflowBench.length,
       source: "SAVED",
       formation: parseFormation(args.savedFormation) ?? (savedStarters.length > 0 ? inferBestFormation(savedStarters) : null),
       blockPreset: parseBlockPreset(args.savedBlockPreset) ?? "BALANCED",

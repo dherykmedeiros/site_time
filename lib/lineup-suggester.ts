@@ -212,6 +212,31 @@ function buildConfidence(confirmedPlayers: number, alerts: string[]) {
   return "LOW" as const;
 }
 
+function enforceStarterLimit(lineup: {
+  starters: SuggestedLineupEntry[];
+  bench: SuggestedLineupEntry[];
+  alerts: string[];
+}) {
+  if (lineup.starters.length <= 11) {
+    return lineup;
+  }
+
+  const allowedStarters = lineup.starters.slice(0, 11);
+  const overflowStarters = lineup.starters.slice(11).map((player) => ({
+    ...player,
+    reason: "Movido para o banco por limite maximo de 11 titulares",
+  }));
+
+  return {
+    starters: allowedStarters,
+    bench: [...overflowStarters, ...lineup.bench],
+    alerts: [
+      "A sugestao foi ajustada para no maximo 11 titulares.",
+      ...lineup.alerts,
+    ],
+  };
+}
+
 export function buildSuggestedLineup(args: {
   matchId: string;
   confirmedPlayers: ConfirmedPlayerInput[];
@@ -245,22 +270,24 @@ export function buildSuggestedLineup(args: {
     ? buildLimitedLineup(eligiblePlayers, args.positionLimits)
     : buildFallbackLineup(eligiblePlayers);
 
+  const normalized = enforceStarterLimit(base);
+
   if (args.positionLimits.length > 0 && !eligiblePlayers.some((player) => player.position === "GOALKEEPER")) {
-    base.alerts.unshift("Nao ha goleiro confirmado para esta partida.");
+    normalized.alerts.unshift("Nao ha goleiro confirmado para esta partida.");
   }
 
   return {
-    starters: base.starters,
-    bench: base.bench,
-    alerts: base.alerts,
+    starters: normalized.starters,
+    bench: normalized.bench,
+    alerts: normalized.alerts,
     meta: {
       confirmedPlayers: eligiblePlayers.length,
-      startersCount: base.starters.length,
-      benchCount: base.bench.length,
+      startersCount: normalized.starters.length,
+      benchCount: normalized.bench.length,
       usesPositionLimits: args.positionLimits.length > 0,
-      confidence: buildConfidence(eligiblePlayers.length, base.alerts),
+      confidence: buildConfidence(eligiblePlayers.length, normalized.alerts),
       source: "SUGGESTED",
-      formation: base.starters.length > 0 ? inferBestFormation(base.starters) : null,
+      formation: normalized.starters.length > 0 ? inferBestFormation(normalized.starters) : null,
       blockPreset: "BALANCED",
     },
   };
