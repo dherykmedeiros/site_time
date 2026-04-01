@@ -100,8 +100,8 @@ export async function GET(request: Request) {
   trackOperationalEvent("match_availability_forecast_viewed", {
     teamId: session.user.teamId,
     activePlayers: players.length,
-    likelyAvailableCount: forecast.likelyAvailableCount,
-    overallRisk: forecast.overallRisk,
+    likelyAvailableCount: forecast.snapshot.likelyAvailableCount,
+    overallRisk: forecast.snapshot.overallRisk,
   });
 
   return NextResponse.json(forecast);
