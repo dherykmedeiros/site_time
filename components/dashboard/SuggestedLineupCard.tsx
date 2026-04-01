@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { TacticalBoard, type TacticalBoardPlayer } from "@/components/dashboard/TacticalBoard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
@@ -28,13 +29,6 @@ interface SuggestedLineupCardProps {
   onResetSavedLineup: () => Promise<void> | void;
   saveLoading: boolean;
   imageUrl: string | null;
-}
-
-interface DragState {
-  playerId: string;
-  /** Pixel offset between pointer-down position and the token's center — prevents jump on drag start. */
-  offsetX: number;
-  offsetY: number;
 }
 
 const confidenceVariant: Record<LineupConfidence, "danger" | "warning" | "success"> = {
@@ -71,6 +65,14 @@ function cloneLineup(lineup: SuggestedLineupResponse): SuggestedLineupResponse {
     alerts: [...lineup.alerts],
     meta: { ...lineup.meta },
   };
+}
+
+function clampFieldX(value: number) {
+  return Math.min(92, Math.max(8, Math.round(value)));
+}
+
+function clampFieldY(value: number) {
+  return Math.min(88, Math.max(10, Math.round(value)));
 }
 
 function movePlayerBetweenGroups(
@@ -118,13 +120,13 @@ export function SuggestedLineupCard({
   imageUrl,
 }: SuggestedLineupCardProps) {
   const generatedLabel = formatDateTime(generatedAt);
-  const fieldRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedFormation, setSelectedFormation] = useState<FormationName | null>(null);
   const [workingLineup, setWorkingLineup] = useState<SuggestedLineupResponse | null>(lineup);
-  const [dragging, setDragging] = useState<DragState | null>(null);
 
   useEffect(() => {
     setWorkingLineup(lineup ? cloneLineup(lineup) : null);
+    setSelectedFormation(null);
     setIsEditing(false);
   }, [lineup, generatedAt]);
 
@@ -134,6 +136,20 @@ export function SuggestedLineupCard({
   const detectedFormation = displayLineup && displayLineup.starters.length > 0
     ? inferBestFormation(displayLineup.starters)
     : null;
+  const activeFormation = selectedFormation ?? detectedFormation;
+  const boardPlayers: TacticalBoardPlayer[] = displayLineup
+    ? displayLineup.starters.map((entry) => {
+        const placement = placements.find((item) => item.playerId === entry.playerId);
+        return {
+          player_id: entry.playerId,
+          name: entry.playerName,
+          short_label: placement?.shortLabel ?? entry.position.slice(0, 3),
+          position_label: playerPositionLabels[entry.position as keyof typeof playerPositionLabels] || entry.position,
+          x_percent: entry.fieldX ?? placement?.x ?? 50,
+          y_percent: entry.fieldY ?? placement?.y ?? 50,
+        };
+      })
+    : [];
 
   function handleMove(player: SuggestedLineupEntry, origin: "starters" | "bench") {
     setWorkingLineup((current) => {
@@ -148,6 +164,7 @@ export function SuggestedLineupCard({
   }
 
   function handleApplyFormation(formation: FormationName) {
+    setSelectedFormation(formation);
     setWorkingLineup((current) => {
       if (!current) return current;
       return {
@@ -155,6 +172,53 @@ export function SuggestedLineupCard({
         starters: applyFormationToStarters(formation, current.starters),
       };
     });
+  }
+
+  function handleBoardChange(nextPlayers: TacticalBoardPlayer[]) {
+    setWorkingLineup((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        starters: current.starters.map((entry) => {
+          const nextPlayer = nextPlayers.find((player) => player.player_id === entry.playerId);
+          if (!nextPlayer) {
+            return entry;
+          }
+
+          return {
+            ...entry,
+            fieldX: clampFieldX(nextPlayer.x_percent),
+            fieldY: clampFieldY(nextPlayer.y_percent),
+            reason: "Posicionado manualmente na prancheta desta partida",
+          };
+        }),
+      };
+    });
+  }
+
+  async function handleBoardSave(nextPositions: Array<{ player_id: string; x_percent: number; y_percent: number }>) {
+    if (!displayLineup) return;
+
+    const positionsById = new Map(
+      nextPositions.map((player) => [
+        player.player_id,
+        {
+          fieldX: clampFieldX(player.x_percent),
+          fieldY: clampFieldY(player.y_percent),
+        },
+      ])
+    );
+
+    await onSaveLineup({
+      starters: displayLineup.starters.map((entry) => ({
+        playerId: entry.playerId,
+        fieldX: positionsById.get(entry.playerId)?.fieldX ?? entry.fieldX ?? null,
+        fieldY: positionsById.get(entry.playerId)?.fieldY ?? entry.fieldY ?? null,
+      })),
+      bench: displayLineup.bench.map((entry) => entry.playerId),
+    });
+    setIsEditing(false);
   }
 
   async function handleSave() {
@@ -170,66 +234,6 @@ export function SuggestedLineupCard({
     });
     setIsEditing(false);
   }
-
-  function updateStarterCoordinates(
-    playerId: string,
-    clientX: number,
-    clientY: number,
-    offsetX = 0,
-    offsetY = 0
-  ) {
-    const field = fieldRef.current;
-    if (!field) return;
-
-    const rect = field.getBoundingClientRect();
-    const nextX = Math.min(92, Math.max(8, Math.round(((clientX - offsetX - rect.left) / rect.width) * 100)));
-    const nextY = Math.min(88, Math.max(10, Math.round(((clientY - offsetY - rect.top) / rect.height) * 100)));
-
-    setWorkingLineup((current) => {
-      if (!current) return current;
-
-      return {
-        ...current,
-        starters: current.starters.map((entry) =>
-          entry.playerId === playerId
-            ? {
-                ...entry,
-                fieldX: nextX,
-                fieldY: nextY,
-                reason: "Posicionado manualmente na prancheta desta partida",
-              }
-            : entry
-        ),
-      };
-    });
-  }
-
-  useEffect(() => {
-    if (!dragging) return;
-    const currentDragging = dragging;
-
-    function handlePointerMove(event: PointerEvent) {
-      updateStarterCoordinates(
-        currentDragging.playerId,
-        event.clientX,
-        event.clientY,
-        currentDragging.offsetX,
-        currentDragging.offsetY
-      );
-    }
-
-    function handlePointerUp() {
-      setDragging(null);
-    }
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-
-    return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-    };
-  }, [dragging]);
 
   return (
     <Card>
@@ -319,73 +323,20 @@ export function SuggestedLineupCard({
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
-                  {detectedFormation && <Badge variant="default">Base {detectedFormation}</Badge>}
+                  {activeFormation && <Badge variant="default">Base {activeFormation}</Badge>}
                   <Badge variant="info">{displayLineup.starters.length} em campo</Badge>
                 </div>
               </div>
-              {isEditing && (
-                <div className="mb-3 space-y-2">
-                  <p className="text-sm text-white/78">
-                    Arraste os titulares na prancheta para ajustar posicionamento. Use um esquema abaixo para partir de uma formação conhecida.
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-medium text-white/60">Esquema:</span>
-                    {FORMATION_NAMES.map((name) => (
-                      <button
-                        key={name}
-                        type="button"
-                        className="rounded-full bg-white/12 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-white/28 active:bg-white/35"
-                        onClick={() => handleApplyFormation(name)}
-                      >
-                        {name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div
-                ref={fieldRef}
-                className="relative mx-auto aspect-[3/4] w-full max-w-[560px] overflow-hidden rounded-[24px] border border-white/15 bg-[linear-gradient(180deg,#23724d_0%,#19553a_42%,#123e2b_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-              >
-                <div className="absolute inset-0 bg-[repeating-linear-gradient(180deg,rgba(255,255,255,0.02)_0,rgba(255,255,255,0.02)_34px,rgba(0,0,0,0.03)_34px,rgba(0,0,0,0.03)_68px)]" />
-                <div className="absolute inset-4 rounded-[20px] border-2 border-white/70" />
-                <div className="absolute left-1/2 top-4 h-[18%] w-[34%] -translate-x-1/2 rounded-b-[18px] border-2 border-t-0 border-white/70" />
-                <div className="absolute left-1/2 top-4 h-[8%] w-[16%] -translate-x-1/2 rounded-b-[12px] border-2 border-t-0 border-white/70" />
-                <div className="absolute left-1/2 top-[10.5%] h-3 w-3 -translate-x-1/2 rounded-full bg-white/80" />
-                <div className="absolute bottom-4 left-1/2 h-[18%] w-[34%] -translate-x-1/2 rounded-t-[18px] border-2 border-b-0 border-white/70" />
-                <div className="absolute bottom-4 left-1/2 h-[8%] w-[16%] -translate-x-1/2 rounded-t-[12px] border-2 border-b-0 border-white/70" />
-                <div className="absolute bottom-[10.5%] left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-white/80" />
-                <div className="absolute bottom-4 left-1/2 top-4 w-px -translate-x-1/2 bg-white/70" />
-                <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/70" />
-                {placements.map((placement) => (
-                  <div
-                    key={placement.playerId}
-                    className={`absolute flex w-24 -translate-x-1/2 -translate-y-1/2 touch-none select-none flex-col items-center gap-1.5 md:w-28 ${isEditing ? "cursor-grab active:cursor-grabbing" : ""}`}
-                    style={{ left: `${placement.x}%`, top: `${placement.y}%` }}
-                    title={`${placement.playerName} • ${playerPositionLabels[placement.position]}`}
-                    onPointerDown={isEditing ? (event) => {
-                      event.preventDefault();
-                      const field = fieldRef.current;
-                      if (!field) return;
-                      const rect = field.getBoundingClientRect();
-                      const tokenCenterClientX = rect.left + (placement.x / 100) * rect.width;
-                      const tokenCenterClientY = rect.top + (placement.y / 100) * rect.height;
-                      setDragging({
-                        playerId: placement.playerId,
-                        offsetX: event.clientX - tokenCenterClientX,
-                        offsetY: event.clientY - tokenCenterClientY,
-                      });
-                    } : undefined}
-                  >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/85 bg-[rgba(6,25,18,0.40)] text-[10px] font-bold tracking-[0.08em] text-white shadow-[0_10px_20px_rgba(0,0,0,0.22)] backdrop-blur-sm md:h-11 md:w-11 md:text-xs">
-                      {placement.shortLabel}
-                    </div>
-                    <div className="max-w-full rounded-full bg-[rgba(8,21,18,0.60)] px-2.5 py-1 text-center text-[11px] font-semibold leading-tight text-white shadow-sm backdrop-blur-sm md:px-3 md:text-xs">
-                      {placement.playerName}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <TacticalBoard
+                editable={isEditing}
+                formationOptions={FORMATION_NAMES.map((name) => ({ value: name, label: name }))}
+                onChange={handleBoardChange}
+                onFormationChange={(formation) => handleApplyFormation(formation as FormationName)}
+                onSave={handleBoardSave}
+                players={boardPlayers}
+                saveLoading={saveLoading}
+                selectedFormation={activeFormation ?? undefined}
+              />
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
