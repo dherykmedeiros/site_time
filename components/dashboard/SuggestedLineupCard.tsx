@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
+import { applyFormationToStarters, FORMATION_NAMES, type FormationName } from "@/lib/formations";
 import { buildLineupFieldPlacements } from "@/lib/lineup-field";
 import { playerPositionLabels } from "@/lib/player-positions";
 import type {
@@ -31,6 +32,9 @@ interface SuggestedLineupCardProps {
 
 interface DragState {
   playerId: string;
+  /** Pixel offset between pointer-down position and the token's center — prevents jump on drag start. */
+  offsetX: number;
+  offsetY: number;
 }
 
 const confidenceVariant: Record<LineupConfidence, "danger" | "warning" | "success"> = {
@@ -139,6 +143,16 @@ export function SuggestedLineupCard({
     setIsEditing(false);
   }
 
+  function handleApplyFormation(formation: FormationName) {
+    setWorkingLineup((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        starters: applyFormationToStarters(formation, current.starters),
+      };
+    });
+  }
+
   async function handleSave() {
     if (!displayLineup) return;
 
@@ -153,13 +167,19 @@ export function SuggestedLineupCard({
     setIsEditing(false);
   }
 
-  function updateStarterCoordinates(playerId: string, clientX: number, clientY: number) {
+  function updateStarterCoordinates(
+    playerId: string,
+    clientX: number,
+    clientY: number,
+    offsetX = 0,
+    offsetY = 0
+  ) {
     const field = fieldRef.current;
     if (!field) return;
 
     const rect = field.getBoundingClientRect();
-    const nextX = Math.min(92, Math.max(8, Math.round(((clientX - rect.left) / rect.width) * 100)));
-    const nextY = Math.min(88, Math.max(10, Math.round(((clientY - rect.top) / rect.height) * 100)));
+    const nextX = Math.min(92, Math.max(8, Math.round(((clientX - offsetX - rect.left) / rect.width) * 100)));
+    const nextY = Math.min(88, Math.max(10, Math.round(((clientY - offsetY - rect.top) / rect.height) * 100)));
 
     setWorkingLineup((current) => {
       if (!current) return current;
@@ -185,7 +205,13 @@ export function SuggestedLineupCard({
     const currentDragging = dragging;
 
     function handlePointerMove(event: PointerEvent) {
-      updateStarterCoordinates(currentDragging.playerId, event.clientX, event.clientY);
+      updateStarterCoordinates(
+        currentDragging.playerId,
+        event.clientX,
+        event.clientY,
+        currentDragging.offsetX,
+        currentDragging.offsetY
+      );
     }
 
     function handlePointerUp() {
@@ -289,9 +315,24 @@ export function SuggestedLineupCard({
                 <Badge variant="info">{displayLineup.starters.length} em campo</Badge>
               </div>
               {isEditing && (
-                <p className="mb-3 text-sm text-white/78">
-                  Arraste os titulares na prancheta para ajustar o posicionamento manual antes de salvar.
-                </p>
+                <div className="mb-3 space-y-2">
+                  <p className="text-sm text-white/78">
+                    Arraste os titulares na prancheta para ajustar posicionamento. Use um esquema abaixo para partir de uma formação conhecida.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-medium text-white/60">Esquema:</span>
+                    {FORMATION_NAMES.map((name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        className="rounded-full bg-white/12 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-white/28 active:bg-white/35"
+                        onClick={() => handleApplyFormation(name)}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
               <div
                 ref={fieldRef}
@@ -307,8 +348,16 @@ export function SuggestedLineupCard({
                     style={{ left: `${placement.x}%`, top: `${placement.y}%` }}
                     onPointerDown={isEditing ? (event) => {
                       event.preventDefault();
-                      setDragging({ playerId: placement.playerId });
-                      updateStarterCoordinates(placement.playerId, event.clientX, event.clientY);
+                      const field = fieldRef.current;
+                      if (!field) return;
+                      const rect = field.getBoundingClientRect();
+                      const tokenCenterClientX = rect.left + (placement.x / 100) * rect.width;
+                      const tokenCenterClientY = rect.top + (placement.y / 100) * rect.height;
+                      setDragging({
+                        playerId: placement.playerId,
+                        offsetX: event.clientX - tokenCenterClientX,
+                        offsetY: event.clientY - tokenCenterClientY,
+                      });
                     } : undefined}
                   >
                     <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/85 bg-white/15 text-xs font-bold backdrop-blur-sm">
