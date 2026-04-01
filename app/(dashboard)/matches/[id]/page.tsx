@@ -62,6 +62,8 @@ interface MatchLineupResponse {
   lineup: SuggestedLineupResponse;
 }
 
+type ScheduledWorkspaceSection = "overview" | "presence" | "lineup" | "operations";
+
 const statusLabels: Record<string, string> = {
   SCHEDULED: "Agendada",
   COMPLETED: "Finalizada",
@@ -118,6 +120,7 @@ export default function MatchDetailPage() {
   const [bordereauSaving, setBordereauSaving] = useState(false);
   const [bordereauError, setBordereauError] = useState<string | null>(null);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<ScheduledWorkspaceSection>("overview");
 
   const fetchMatch = useCallback(async () => {
     setLoading(true);
@@ -215,6 +218,18 @@ export default function MatchDetailPage() {
 
     fetchBordereau();
   }, [match, fetchBordereau]);
+
+  useEffect(() => {
+    const allowedSections: ScheduledWorkspaceSection[] = ["overview", "presence"];
+
+    if (isAdmin && match?.status === "SCHEDULED") {
+      allowedSections.push("lineup", "operations");
+    }
+
+    if (!allowedSections.includes(activeSection)) {
+      setActiveSection("overview");
+    }
+  }, [activeSection, isAdmin, match?.status]);
 
   function toggleChecklistItem(index: number) {
     setBordereauData((current) => {
@@ -441,6 +456,23 @@ export default function MatchDetailPage() {
   const confirmed = match.rsvps.filter((r) => r.status === "CONFIRMED").length;
   const declined = match.rsvps.filter((r) => r.status === "DECLINED").length;
   const pending = match.rsvps.filter((r) => r.status === "PENDING").length;
+  const isScheduled = match.status === "SCHEDULED";
+  const canSeeLineup = isAdmin && isScheduled;
+  const canSeeOperations = isAdmin && isScheduled;
+  const sections: Array<{
+    id: ScheduledWorkspaceSection;
+    label: string;
+    helper: string;
+  }> = [
+    { id: "overview", label: "Resumo", helper: "Visao rapida da partida" },
+    { id: "presence", label: "Presenca", helper: "RSVP e lista de respostas" },
+    ...(canSeeLineup
+      ? [{ id: "lineup" as const, label: "Escalacao", helper: "Sugestao inicial do jogo" }]
+      : []),
+    ...(canSeeOperations
+      ? [{ id: "operations" as const, label: "Operacao", helper: "Bordero e despesas" }]
+      : []),
+  ];
 
   return (
     <div className="space-y-6">
@@ -583,28 +615,139 @@ export default function MatchDetailPage() {
         </CardContent>
       </Card>
 
-      {isAdmin && match.status === "SCHEDULED" && (
-        <SuggestedLineupCard
-          loading={lineupLoading}
-          error={lineupError}
-          lineup={lineupData?.lineup ?? null}
-          generatedAt={lineupData?.generatedAt ?? null}
-          onRefresh={() => fetchLineup({ refresh: true })}
-          canRefresh={!lineupRefreshing}
-        />
+      {isScheduled && (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--text)]">Central da partida</h2>
+                <p className="text-sm text-[var(--text-subtle)]">
+                  Separamos presenca, escalacao e operacao para a pagina ficar mais objetiva.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {sections.map((section) => (
+                  <Button
+                    key={section.id}
+                    type="button"
+                    variant={activeSection === section.id ? "primary" : "ghost"}
+                    size="sm"
+                    onClick={() => setActiveSection(section.id)}
+                  >
+                    {section.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <button
+                type="button"
+                onClick={() => setActiveSection("overview")}
+                className={`rounded-[14px] border p-4 text-left transition-colors ${
+                  activeSection === "overview"
+                    ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                    : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white"
+                }`}
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Resumo</p>
+                <p className="mt-2 text-lg font-semibold text-[var(--text)]">Tudo em contexto</p>
+                <p className="mt-1 text-sm text-[var(--text-subtle)]">Visao rapida da rodada e proximos passos.</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveSection("presence")}
+                className={`rounded-[14px] border p-4 text-left transition-colors ${
+                  activeSection === "presence"
+                    ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                    : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white"
+                }`}
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Presenca</p>
+                <p className="mt-2 text-lg font-semibold text-[var(--text)]">{confirmed} confirmados</p>
+                <p className="mt-1 text-sm text-[var(--text-subtle)]">{pending} pendentes e {declined} recusas.</p>
+              </button>
+
+              {canSeeLineup && (
+                <button
+                  type="button"
+                  onClick={() => setActiveSection("lineup")}
+                  className={`rounded-[14px] border p-4 text-left transition-colors ${
+                    activeSection === "lineup"
+                      ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                      : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white"
+                  }`}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Escalacao</p>
+                  <p className="mt-2 text-lg font-semibold text-[var(--text)]">
+                    {lineupLoading ? "Calculando..." : `${lineupData?.lineup.starters.length ?? 0} titulares`}
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--text-subtle)]">
+                    {lineupError ? "Revise o erro da leitura" : "Veja a sugestao sem inflar a pagina principal."}
+                  </p>
+                </button>
+              )}
+
+              {canSeeOperations && (
+                <button
+                  type="button"
+                  onClick={() => setActiveSection("operations")}
+                  className={`rounded-[14px] border p-4 text-left transition-colors ${
+                    activeSection === "operations"
+                      ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                      : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white"
+                  }`}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Operacao</p>
+                  <p className="mt-2 text-lg font-semibold text-[var(--text)]">
+                    {bordereauLoading ? "Carregando..." : `${bordereauData?.costSummary.presentCount ?? 0} presentes`}
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--text-subtle)]">
+                    Bordero e despesas ficam isolados do RSVP.
+                  </p>
+                </button>
+              )}
+            </div>
+
+            <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+              <p className="text-sm font-semibold text-[var(--text)]">
+                {sections.find((section) => section.id === activeSection)?.label}
+              </p>
+              <p className="mt-1 text-sm text-[var(--text-subtle)]">
+                {sections.find((section) => section.id === activeSection)?.helper}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {isAdmin && match.status === "SCHEDULED" && (
-        <BordereauCard
-          loading={bordereauLoading}
-          saving={bordereauSaving}
-          error={bordereauError}
-          data={bordereauData}
-          onChecklistToggle={toggleChecklistItem}
-          onAttendanceToggle={toggleAttendance}
-          onSave={handleSaveBordereau}
-          onOpenExpense={() => setExpenseModalOpen(true)}
-        />
+      {isScheduled && activeSection === "overview" && (
+        <Card>
+          <CardHeader>
+            <h2 className="text-lg font-semibold text-[var(--text)]">Visao geral do jogo</h2>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Confirmacoes</p>
+                <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{confirmed}</p>
+                <p className="mt-1 text-sm text-[var(--text-subtle)]">Jogadores que ja confirmaram presenca.</p>
+              </div>
+              <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Pendencias</p>
+                <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{pending}</p>
+                <p className="mt-1 text-sm text-[var(--text-subtle)]">Ainda sem resposta no RSVP.</p>
+              </div>
+              <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Recusas</p>
+                <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{declined}</p>
+                <p className="mt-1 text-sm text-[var(--text-subtle)]">Atletas indisponiveis para esta partida.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Score (if completed) */}
@@ -626,7 +769,7 @@ export default function MatchDetailPage() {
         )}
 
       {/* RSVP Summary and Actions */}
-      {match.status === "SCHEDULED" && (
+      {match.status === "SCHEDULED" && activeSection === "presence" && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -700,6 +843,30 @@ export default function MatchDetailPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {canSeeLineup && activeSection === "lineup" && (
+        <SuggestedLineupCard
+          loading={lineupLoading}
+          error={lineupError}
+          lineup={lineupData?.lineup ?? null}
+          generatedAt={lineupData?.generatedAt ?? null}
+          onRefresh={() => fetchLineup({ refresh: true })}
+          canRefresh={!lineupRefreshing}
+        />
+      )}
+
+      {canSeeOperations && activeSection === "operations" && (
+        <BordereauCard
+          loading={bordereauLoading}
+          saving={bordereauSaving}
+          error={bordereauError}
+          data={bordereauData}
+          onChecklistToggle={toggleChecklistItem}
+          onAttendanceToggle={toggleAttendance}
+          onSave={handleSaveBordereau}
+          onOpenExpense={() => setExpenseModalOpen(true)}
+        />
       )}
 
       {/* Post-game form (T042) — show when canSubmitPostGame is true */}
