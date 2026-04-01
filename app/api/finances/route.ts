@@ -72,7 +72,7 @@ export async function GET(request: Request) {
     filters.push(Prisma.sql`t."date" <= ${new Date(to)}`);
   }
 
-  const whereSql = Prisma.sql`WHERE ${Prisma.join(filters, Prisma.sql` AND `)}`;
+  const whereSql = Prisma.sql`WHERE ${Prisma.join(filters, " AND ")}`;
 
   const [transactions, total] = await Promise.all([
     prisma.$queryRaw<TransactionListRow[]>(Prisma.sql`
