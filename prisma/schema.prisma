@@ -58,6 +58,16 @@ enum MatchLineupRole {
   BENCH
 }
 
+enum MatchLineupFormation {
+  FOUR_FOUR_TWO
+  FOUR_THREE_THREE
+  FOUR_TWO_THREE_ONE
+  THREE_FIVE_TWO
+  THREE_FOUR_THREE
+  FIVE_THREE_TWO
+  FOUR_ONE_FOUR_ONE
+}
+
 enum RSVPStatus {
   PENDING
   CONFIRMED
@@ -202,6 +212,7 @@ model Match {
   awayScore  Int?
   isHome     Boolean     @default(true)
   status     MatchStatus @default(SCHEDULED)
+  lineupFormation MatchLineupFormation?
   shareToken String      @unique @default(uuid())
   teamId     String
   team       Team        @relation(fields: [teamId], references: [id])

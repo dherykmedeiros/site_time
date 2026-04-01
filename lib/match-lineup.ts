@@ -1,3 +1,4 @@
+import { inferBestFormation, parseFormation } from "@/lib/formations";
 import { buildSuggestedLineup } from "@/lib/lineup-suggester";
 import type { SuggestedLineupEntry, SuggestedLineupResponse } from "@/lib/validations/match";
 
@@ -51,6 +52,7 @@ export function buildMatchLineupSnapshot(args: {
   confirmedPlayers: ConfirmedPlayerInput[];
   positionLimits: PositionLimitInput[];
   savedSelections: SavedLineupSelectionInput[];
+  savedFormation?: string | null;
 }) {
   const suggestedLineup = buildSuggestedLineup({
     matchId: args.matchId,
@@ -125,6 +127,7 @@ export function buildMatchLineupSnapshot(args: {
       startersCount: savedStarters.length,
       benchCount: savedBench.length + overflowBench.length,
       source: "SAVED",
+      formation: parseFormation(args.savedFormation) ?? (savedStarters.length > 0 ? inferBestFormation(savedStarters) : null),
     },
   };
 

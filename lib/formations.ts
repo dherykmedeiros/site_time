@@ -66,13 +66,13 @@ const FORMATIONS: Record<FormationName, FormationDefinition> = {
       { x: 38, y: 32, positions: ["DEFENDER", "LEFT_BACK", "RIGHT_BACK"] },
       { x: 20, y: 32, positions: ["LEFT_BACK", "DEFENDER"] },
       // Midfield triangle
-      { x: 68, y: 57, positions: ["MIDFIELDER", "RIGHT_WINGER", "DEFENSIVE_MIDFIELDER"] },
+      { x: 68, y: 57, positions: ["MIDFIELDER", "DEFENSIVE_MIDFIELDER"] },
       { x: 50, y: 52, positions: ["DEFENSIVE_MIDFIELDER", "MIDFIELDER"] },
-      { x: 32, y: 57, positions: ["MIDFIELDER", "LEFT_WINGER", "DEFENSIVE_MIDFIELDER"] },
+      { x: 32, y: 57, positions: ["MIDFIELDER", "DEFENSIVE_MIDFIELDER"] },
       // Attack
-      { x: 76, y: 78, positions: ["RIGHT_WINGER", "FORWARD", "MIDFIELDER"] },
-      { x: 50, y: 82, positions: ["FORWARD", "RIGHT_WINGER", "LEFT_WINGER"] },
-      { x: 24, y: 78, positions: ["LEFT_WINGER", "FORWARD", "MIDFIELDER"] },
+      { x: 76, y: 78, positions: ["RIGHT_WINGER", "FORWARD"] },
+      { x: 50, y: 82, positions: ["FORWARD", "RIGHT_WINGER", "LEFT_WINGER", "MIDFIELDER"] },
+      { x: 24, y: 78, positions: ["LEFT_WINGER", "FORWARD"] },
     ],
   },
   "4-2-3-1": {
@@ -236,6 +236,30 @@ export const FORMATION_NAMES: FormationName[] = [
   "5-3-2",
   "4-1-4-1",
 ];
+
+const FORMATION_TO_DB: Record<FormationName, string> = {
+  "4-4-2": "FOUR_FOUR_TWO",
+  "4-3-3": "FOUR_THREE_THREE",
+  "4-2-3-1": "FOUR_TWO_THREE_ONE",
+  "3-5-2": "THREE_FIVE_TWO",
+  "3-4-3": "THREE_FOUR_THREE",
+  "5-3-2": "FIVE_THREE_TWO",
+  "4-1-4-1": "FOUR_ONE_FOUR_ONE",
+};
+
+const DB_TO_FORMATION: Record<string, FormationName> = Object.fromEntries(
+  Object.entries(FORMATION_TO_DB).map(([formation, dbValue]) => [dbValue, formation])
+) as Record<string, FormationName>;
+
+export function serializeFormation(formation: FormationName | null | undefined) {
+  if (!formation) return null;
+  return FORMATION_TO_DB[formation] ?? null;
+}
+
+export function parseFormation(formation: string | null | undefined): FormationName | null {
+  if (!formation) return null;
+  return DB_TO_FORMATION[formation] ?? null;
+}
 
 export function inferBestFormation(starters: SuggestedLineupEntry[]): FormationName {
   let bestFormation: FormationName = FORMATION_NAMES[0];

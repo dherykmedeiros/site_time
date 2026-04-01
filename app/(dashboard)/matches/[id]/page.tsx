@@ -321,6 +321,7 @@ export default function MatchDetailPage() {
   }
 
   async function handleSaveLineup(payload: {
+    formation?: string | null;
     starters: Array<{ playerId: string; fieldX: number | null; fieldY: number | null }>;
     bench: string[];
   }) {

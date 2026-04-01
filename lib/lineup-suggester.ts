@@ -1,3 +1,4 @@
+import { inferBestFormation } from "@/lib/formations";
 import { playerPositionLabels } from "@/lib/player-positions";
 import type { SuggestedLineupEntry, SuggestedLineupResponse } from "@/lib/validations/match";
 
@@ -234,6 +235,7 @@ export function buildSuggestedLineup(args: {
         usesPositionLimits: args.positionLimits.length > 0,
         confidence: "LOW",
         source: "SUGGESTED",
+        formation: null,
       },
     };
   }
@@ -257,6 +259,7 @@ export function buildSuggestedLineup(args: {
       usesPositionLimits: args.positionLimits.length > 0,
       confidence: buildConfidence(eligiblePlayers.length, base.alerts),
       source: "SUGGESTED",
+      formation: base.starters.length > 0 ? inferBestFormation(base.starters) : null,
     },
   };
 }

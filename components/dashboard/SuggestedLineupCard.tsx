@@ -10,6 +10,7 @@ import { buildLineupFieldPlacements } from "@/lib/lineup-field";
 import { playerPositionLabels } from "@/lib/player-positions";
 import type {
   LineupConfidence,
+  LineupFormation,
   LineupSource,
   SuggestedLineupEntry,
   SuggestedLineupResponse,
@@ -23,6 +24,7 @@ interface SuggestedLineupCardProps {
   onRefresh: () => void;
   canRefresh: boolean;
   onSaveLineup: (payload: {
+    formation?: string | null;
     starters: Array<{ playerId: string; fieldX: number | null; fieldY: number | null }>;
     bench: string[];
   }) => Promise<void> | void;
@@ -126,7 +128,7 @@ export function SuggestedLineupCard({
 
   useEffect(() => {
     setWorkingLineup(lineup ? cloneLineup(lineup) : null);
-    setSelectedFormation(null);
+    setSelectedFormation((lineup?.meta.formation as FormationName | undefined) ?? null);
     setIsEditing(false);
   }, [lineup, generatedAt]);
 
@@ -136,7 +138,8 @@ export function SuggestedLineupCard({
   const detectedFormation = displayLineup && displayLineup.starters.length > 0
     ? inferBestFormation(displayLineup.starters)
     : null;
-  const activeFormation = selectedFormation ?? detectedFormation;
+  const savedFormation = (displayLineup?.meta.formation as LineupFormation | undefined) ?? null;
+  const activeFormation = selectedFormation ?? savedFormation ?? detectedFormation;
   const boardPlayers: TacticalBoardPlayer[] = displayLineup
     ? displayLineup.starters.map((entry) => {
         const placement = placements.find((item) => item.playerId === entry.playerId);
@@ -145,6 +148,7 @@ export function SuggestedLineupCard({
           name: entry.playerName,
           short_label: placement?.shortLabel ?? entry.position.slice(0, 3),
           position_label: playerPositionLabels[entry.position as keyof typeof playerPositionLabels] || entry.position,
+          position_code: entry.position,
           x_percent: entry.fieldX ?? placement?.x ?? 50,
           y_percent: entry.fieldY ?? placement?.y ?? 50,
         };
@@ -160,6 +164,7 @@ export function SuggestedLineupCard({
 
   function handleReset() {
     setWorkingLineup(lineup ? cloneLineup(lineup) : null);
+    setSelectedFormation((lineup?.meta.formation as FormationName | undefined) ?? null);
     setIsEditing(false);
   }
 
@@ -211,6 +216,7 @@ export function SuggestedLineupCard({
     );
 
     await onSaveLineup({
+      formation: activeFormation,
       starters: displayLineup.starters.map((entry) => ({
         playerId: entry.playerId,
         fieldX: positionsById.get(entry.playerId)?.fieldX ?? entry.fieldX ?? null,
@@ -225,6 +231,7 @@ export function SuggestedLineupCard({
     if (!displayLineup) return;
 
     await onSaveLineup({
+      formation: activeFormation,
       starters: displayLineup.starters.map((entry) => ({
         playerId: entry.playerId,
         fieldX: entry.fieldX ?? null,
