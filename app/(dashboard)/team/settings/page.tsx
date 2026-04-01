@@ -53,6 +53,20 @@ const levelOptions = [
   { value: "COMPETITIVE", label: "Competitivo" },
 ];
 
+const fieldTypeLabels: Record<string, string> = {
+  GRASS: "Grama",
+  SYNTHETIC: "Sintetico",
+  FUTSAL: "Futsal",
+  SOCIETY: "Society",
+  OTHER: "Outro",
+};
+
+const levelLabels: Record<string, string> = {
+  CASUAL: "Casual",
+  INTERMEDIATE: "Intermediario",
+  COMPETITIVE: "Competitivo",
+};
+
 export default function TeamSettingsPage() {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "ADMIN";
@@ -442,6 +456,95 @@ export default function TeamSettingsPage() {
                   </div>
                 ))
               )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {hasTeam && team?.slug && (
+        <Card className="rounded-[18px]">
+          <CardHeader>
+            <h2 className="text-lg font-semibold text-[var(--text)]">Previa publica do discovery</h2>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-[18px] border border-[var(--border)] bg-[color-mix(in_oklab,var(--surface-soft)_72%,white_28%)] p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                    Como seu time aparece no diretorio
+                  </p>
+                  <h3 className="mt-1 text-lg font-bold text-[var(--text)]">{team.name}</h3>
+                  <p className="mt-1 text-sm text-[var(--text-muted)]">
+                    {settings.publicDirectoryOptIn
+                      ? "Seu time esta pronto para aparecer no discovery publico."
+                      : "Seu time ainda nao aparece no discovery publico ate ativar o opt-in."}
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] ${
+                    settings.publicDirectoryOptIn
+                      ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : "border border-amber-200 bg-amber-50 text-amber-700"
+                  }`}
+                >
+                  {settings.publicDirectoryOptIn ? "Publicado" : "Rascunho"}
+                </span>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-[var(--text-subtle)]">
+                {settings.city && <span className="rounded-full border border-[var(--border)] bg-white/75 px-2 py-1">Cidade: {settings.city}</span>}
+                {settings.region && <span className="rounded-full border border-[var(--border)] bg-white/75 px-2 py-1">Regiao: {settings.region}</span>}
+                {settings.fieldType && (
+                  <span className="rounded-full border border-[var(--border)] bg-white/75 px-2 py-1">
+                    Campo: {fieldTypeLabels[settings.fieldType]}
+                  </span>
+                )}
+                {settings.competitiveLevel && (
+                  <span className="rounded-full border border-[var(--border)] bg-white/75 px-2 py-1">
+                    Nivel: {levelLabels[settings.competitiveLevel]}
+                  </span>
+                )}
+                {!settings.city && !settings.region && !settings.fieldType && !settings.competitiveLevel && (
+                  <span className="rounded-full border border-[var(--border)] bg-white/75 px-2 py-1">
+                    Complete os dados para melhorar a descoberta
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-4 rounded-[14px] border border-[var(--border)] bg-white/70 p-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+                  Agenda aberta
+                </p>
+                <p className="mt-1 text-sm font-semibold text-[var(--text)]">
+                  {slots.filter((slot) => slot.status === "OPEN").length > 0
+                    ? `${slots.filter((slot) => slot.status === "OPEN").length} slot(s) visiveis no discovery`
+                    : "Nenhum slot OPEN publicado ainda"}
+                </p>
+                {slots.find((slot) => slot.status === "OPEN") && (
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    Proximo: {new Date(slots.find((slot) => slot.status === "OPEN")!.date).toLocaleString("pt-BR")}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <a
+                href="/vitrine"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--border)] px-4 text-sm font-semibold text-[var(--text)] transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
+              >
+                Abrir diretorio publico
+              </a>
+              <a
+                href={`/vitrine/${team.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--brand)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--brand-strong)]"
+              >
+                Abrir vitrine do time
+              </a>
             </div>
           </CardContent>
         </Card>

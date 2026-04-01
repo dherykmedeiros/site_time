@@ -9,6 +9,7 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log("🌱 Iniciando seed...");
+  const now = new Date();
 
   // 1. Create admin user
   const passwordHash = await bcrypt.hash("Admin@123", 12);
@@ -28,7 +29,13 @@ async function main() {
   // 2. Create team
   const team = await prisma.team.upsert({
     where: { slug: "fc-trovao-azul" },
-    update: {},
+    update: {
+      city: "Sao Paulo",
+      region: "Zona Norte",
+      fieldType: "SOCIETY",
+      competitiveLevel: "INTERMEDIATE",
+      publicDirectoryOptIn: true,
+    },
     create: {
       name: "FC Trovão Azul",
       slug: "fc-trovao-azul",
@@ -37,6 +44,35 @@ async function main() {
       primaryColor: "#1e3a8a",
       secondaryColor: "#fbbf24",
       defaultVenue: "Campo do Parque Municipal - Vila Nova",
+      city: "Sao Paulo",
+      region: "Zona Norte",
+      fieldType: "SOCIETY",
+      competitiveLevel: "INTERMEDIATE",
+      publicDirectoryOptIn: true,
+    },
+  });
+
+  const team2 = await prisma.team.upsert({
+    where: { slug: "uniao-leste-fc" },
+    update: {
+      city: "Guarulhos",
+      region: "Leste",
+      fieldType: "GRASS",
+      competitiveLevel: "CASUAL",
+      publicDirectoryOptIn: true,
+    },
+    create: {
+      name: "Uniao Leste FC",
+      slug: "uniao-leste-fc",
+      description: "Equipe de amistosos de fim de semana com foco em jogos em gramado natural.",
+      primaryColor: "#0c6f5d",
+      secondaryColor: "#f4d35e",
+      defaultVenue: "Campo da Praca do Sol",
+      city: "Guarulhos",
+      region: "Leste",
+      fieldType: "GRASS",
+      competitiveLevel: "CASUAL",
+      publicDirectoryOptIn: true,
     },
   });
 
@@ -46,6 +82,41 @@ async function main() {
     data: { teamId: team.id },
   });
   console.log("✅ Time criado:", team.name);
+  console.log("✅ Time adicional preparado:", team2.name);
+
+  await prisma.openMatchSlot.deleteMany({
+    where: { teamId: { in: [team.id, team2.id] } },
+  });
+
+  await prisma.openMatchSlot.createMany({
+    data: [
+      {
+        teamId: team.id,
+        date: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 10, 15, 0),
+        timeLabel: "Sabado a tarde",
+        venueLabel: "Campo do Parque Municipal - Vila Nova",
+        notes: "Preferencia por amistoso com arbitragem dividida.",
+        status: "OPEN",
+      },
+      {
+        teamId: team.id,
+        date: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 17, 9, 30),
+        timeLabel: "Domingo de manha",
+        venueLabel: "Campo do Parque Municipal - Vila Nova",
+        notes: "Aceitamos ida e volta combinada.",
+        status: "OPEN",
+      },
+      {
+        teamId: team2.id,
+        date: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 12, 10, 0),
+        timeLabel: "Domingo 10h",
+        venueLabel: "Campo da Praca do Sol",
+        notes: "Campo de grama natural, bairro residencial.",
+        status: "OPEN",
+      },
+    ],
+  });
+  console.log("✅ Slots abertos de discovery criados");
 
   // 3. Create 5 players
   const playersData = [
@@ -74,7 +145,6 @@ async function main() {
   console.log(`✅ ${players.length} jogadores criados`);
 
   // 4. Create 3 matches (1 completed, 1 scheduled, 1 completed)
-  const now = new Date();
 
   const match1 = await prisma.match.create({
     data: {

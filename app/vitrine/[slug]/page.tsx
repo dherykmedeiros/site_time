@@ -312,8 +312,9 @@ export default async function VitrinePage({ params, searchParams }: VitrinePageP
   const selectedSlotDateText = selectedSlot
     ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short" }).format(selectedSlot.date)
     : null;
+  const selectedSlotTimeLabel = selectedSlot?.timeLabel || "";
   const suggestedDatesInitialValue = selectedSlotDateText
-    ? `Preferencia pelo horario aberto em ${selectedSlotDateText}${selectedSlot.timeLabel ? ` (${selectedSlot.timeLabel})` : ""}`
+    ? `Preferencia pelo horario aberto em ${selectedSlotDateText}${selectedSlotTimeLabel ? ` (${selectedSlotTimeLabel})` : ""}`
     : "";
   const suggestedVenueInitialValue = selectedSlot?.venueLabel || "";
 
