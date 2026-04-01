@@ -182,9 +182,10 @@ export function SuggestedLineupCard({
 
   useEffect(() => {
     if (!dragging) return;
+    const currentDragging = dragging;
 
     function handlePointerMove(event: PointerEvent) {
-      updateStarterCoordinates(dragging.playerId, event.clientX, event.clientY);
+      updateStarterCoordinates(currentDragging.playerId, event.clientX, event.clientY);
     }
 
     function handlePointerUp() {
