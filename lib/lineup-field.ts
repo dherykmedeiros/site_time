@@ -1,3 +1,4 @@
+import { getFormationCoordinates, inferBestFormation } from "@/lib/formations";
 import { playerPositionShortLabels } from "@/lib/player-positions";
 import type { SuggestedLineupEntry } from "@/lib/validations/match";
 
@@ -85,8 +86,8 @@ function resolveLaneXPositions(preferred: number[]) {
 }
 
 export function buildLineupFieldPlacements(starters: SuggestedLineupEntry[]): LineupFieldPlacement[] {
-  const grouped = new Map<FieldLane, Array<SuggestedLineupEntry & { preferredX: number; preferredY: number }>>();
   const manualPlacements: LineupFieldPlacement[] = [];
+  const autoStarters: SuggestedLineupEntry[] = [];
 
   for (const starter of starters) {
     if (starter.fieldX != null && starter.fieldY != null) {
@@ -101,27 +102,35 @@ export function buildLineupFieldPlacements(starters: SuggestedLineupEntry[]): Li
       continue;
     }
 
-    const anchor = getFieldAnchor(starter.position);
-    const bucket = grouped.get(anchor.lane) ?? [];
-    bucket.push({ ...starter, preferredX: anchor.x, preferredY: anchor.y });
-    grouped.set(anchor.lane, bucket);
+    autoStarters.push(starter);
   }
 
   const placements: LineupFieldPlacement[] = [];
+  const formation = autoStarters.length > 0 ? inferBestFormation(autoStarters) : null;
+  const autoCoordinates = formation ? getFormationCoordinates(formation, autoStarters) : new Map<string, { x: number; y: number }>();
 
-  for (const [, players] of grouped.entries()) {
-    const orderedPlayers = [...players].sort((left, right) => left.preferredX - right.preferredX || left.playerName.localeCompare(right.playerName));
-    const xPositions = resolveLaneXPositions(orderedPlayers.map((player) => player.preferredX));
-
-    orderedPlayers.forEach((player, index) => {
+  for (const player of autoStarters) {
+    const coords = autoCoordinates.get(player.playerId);
+    if (coords) {
       placements.push({
         playerId: player.playerId,
         playerName: player.playerName,
         position: player.position,
         shortLabel: playerPositionShortLabels[player.position],
-        x: xPositions[index],
-        y: player.preferredY,
+        x: coords.x,
+        y: coords.y,
       });
+      continue;
+    }
+
+    const anchor = getFieldAnchor(player.position);
+    placements.push({
+      playerId: player.playerId,
+      playerName: player.playerName,
+      position: player.position,
+      shortLabel: playerPositionShortLabels[player.position],
+      x: anchor.x,
+      y: anchor.y,
     });
   }
 

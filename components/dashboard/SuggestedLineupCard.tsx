@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
-import { applyFormationToStarters, FORMATION_NAMES, type FormationName } from "@/lib/formations";
+import { applyFormationToStarters, FORMATION_NAMES, inferBestFormation, type FormationName } from "@/lib/formations";
 import { buildLineupFieldPlacements } from "@/lib/lineup-field";
 import { playerPositionLabels } from "@/lib/player-positions";
 import type {
@@ -130,6 +130,10 @@ export function SuggestedLineupCard({
 
   const displayLineup = workingLineup ?? lineup;
   const placements = displayLineup ? buildLineupFieldPlacements(displayLineup.starters) : [];
+  const hasManualFieldPositions = Boolean(displayLineup?.starters.some((entry) => entry.fieldX != null && entry.fieldY != null));
+  const detectedFormation = displayLineup && displayLineup.starters.length > 0
+    ? inferBestFormation(displayLineup.starters)
+    : null;
 
   function handleMove(player: SuggestedLineupEntry, origin: "starters" | "bench") {
     setWorkingLineup((current) => {
@@ -310,9 +314,14 @@ export function SuggestedLineupCard({
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h3 className="font-semibold">Campo dos titulares</h3>
-                  <p className="text-sm text-white/72">Preview visual da escalação atual.</p>
+                  <p className="text-sm text-white/72">
+                    {hasManualFieldPositions ? "Prancheta com ajuste manual salvo." : "Distribuição automática baseada em formação."}
+                  </p>
                 </div>
-                <Badge variant="info">{displayLineup.starters.length} em campo</Badge>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  {detectedFormation && <Badge variant="default">Base {detectedFormation}</Badge>}
+                  <Badge variant="info">{displayLineup.starters.length} em campo</Badge>
+                </div>
               </div>
               {isEditing && (
                 <div className="mb-3 space-y-2">
@@ -336,16 +345,24 @@ export function SuggestedLineupCard({
               )}
               <div
                 ref={fieldRef}
-                className="relative h-[420px] overflow-hidden rounded-[20px] border border-white/15 bg-[radial-gradient(circle_at_center,rgba(77,196,126,0.20)_0%,rgba(21,91,55,0.10)_38%,rgba(6,26,17,0.48)_100%)]"
+                className="relative mx-auto aspect-[3/4] w-full max-w-[560px] overflow-hidden rounded-[24px] border border-white/15 bg-[linear-gradient(180deg,#23724d_0%,#19553a_42%,#123e2b_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
               >
-                <div className="absolute inset-4 rounded-[16px] border-2 border-white/70" />
+                <div className="absolute inset-0 bg-[repeating-linear-gradient(180deg,rgba(255,255,255,0.02)_0,rgba(255,255,255,0.02)_34px,rgba(0,0,0,0.03)_34px,rgba(0,0,0,0.03)_68px)]" />
+                <div className="absolute inset-4 rounded-[20px] border-2 border-white/70" />
+                <div className="absolute left-1/2 top-4 h-[18%] w-[34%] -translate-x-1/2 rounded-b-[18px] border-2 border-t-0 border-white/70" />
+                <div className="absolute left-1/2 top-4 h-[8%] w-[16%] -translate-x-1/2 rounded-b-[12px] border-2 border-t-0 border-white/70" />
+                <div className="absolute left-1/2 top-[10.5%] h-3 w-3 -translate-x-1/2 rounded-full bg-white/80" />
+                <div className="absolute bottom-4 left-1/2 h-[18%] w-[34%] -translate-x-1/2 rounded-t-[18px] border-2 border-b-0 border-white/70" />
+                <div className="absolute bottom-4 left-1/2 h-[8%] w-[16%] -translate-x-1/2 rounded-t-[12px] border-2 border-b-0 border-white/70" />
+                <div className="absolute bottom-[10.5%] left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-white/80" />
                 <div className="absolute bottom-4 left-1/2 top-4 w-px -translate-x-1/2 bg-white/70" />
                 <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/70" />
                 {placements.map((placement) => (
                   <div
                     key={placement.playerId}
-                    className={`absolute flex w-28 -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2 ${isEditing ? "cursor-grab active:cursor-grabbing" : ""}`}
+                    className={`absolute flex w-24 -translate-x-1/2 -translate-y-1/2 touch-none select-none flex-col items-center gap-1.5 md:w-28 ${isEditing ? "cursor-grab active:cursor-grabbing" : ""}`}
                     style={{ left: `${placement.x}%`, top: `${placement.y}%` }}
+                    title={`${placement.playerName} • ${playerPositionLabels[placement.position]}`}
                     onPointerDown={isEditing ? (event) => {
                       event.preventDefault();
                       const field = fieldRef.current;
@@ -360,10 +377,10 @@ export function SuggestedLineupCard({
                       });
                     } : undefined}
                   >
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/85 bg-white/15 text-xs font-bold backdrop-blur-sm">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/85 bg-[rgba(6,25,18,0.40)] text-[10px] font-bold tracking-[0.08em] text-white shadow-[0_10px_20px_rgba(0,0,0,0.22)] backdrop-blur-sm md:h-11 md:w-11 md:text-xs">
                       {placement.shortLabel}
                     </div>
-                    <div className="rounded-full bg-[#081512]/45 px-3 py-1 text-center text-xs font-semibold leading-tight shadow-sm backdrop-blur-sm">
+                    <div className="max-w-full rounded-full bg-[rgba(8,21,18,0.60)] px-2.5 py-1 text-center text-[11px] font-semibold leading-tight text-white shadow-sm backdrop-blur-sm md:px-3 md:text-xs">
                       {placement.playerName}
                     </div>
                   </div>

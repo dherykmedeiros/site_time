@@ -1,5 +1,10 @@
 import type { SuggestedLineupEntry } from "@/lib/validations/match";
 
+interface FormationAssignment {
+  score: number;
+  coordsById: Map<string, { x: number; y: number }>;
+}
+
 export type FormationName =
   | "4-4-2"
   | "4-3-3"
@@ -166,6 +171,61 @@ const FORMATIONS: Record<FormationName, FormationDefinition> = {
   },
 };
 
+function getPreferenceScore(slot: FormationSlot, position: SuggestedLineupEntry["position"]) {
+  const preferenceIndex = slot.positions.indexOf(position);
+  if (preferenceIndex === -1) {
+    return -1;
+  }
+
+  return Math.max(1, slot.positions.length - preferenceIndex);
+}
+
+function assignFormationSlots(
+  formation: FormationName,
+  starters: SuggestedLineupEntry[]
+): FormationAssignment {
+  const definition = FORMATIONS[formation];
+  const remaining = [...starters];
+  const filledSlots = new Set<number>();
+  const coordsById = new Map<string, { x: number; y: number }>();
+  let score = 0;
+
+  for (let slotIndex = 0; slotIndex < definition.slots.length; slotIndex += 1) {
+    const slot = definition.slots[slotIndex];
+    let bestIndex = -1;
+    let bestScore = -1;
+
+    for (let playerIndex = 0; playerIndex < remaining.length; playerIndex += 1) {
+      const preferenceScore = getPreferenceScore(slot, remaining[playerIndex].position);
+      if (preferenceScore > bestScore) {
+        bestScore = preferenceScore;
+        bestIndex = playerIndex;
+      }
+    }
+
+    if (bestIndex === -1 || bestScore < 0) {
+      continue;
+    }
+
+    const player = remaining[bestIndex];
+    coordsById.set(player.playerId, { x: slot.x, y: slot.y });
+    filledSlots.add(slotIndex);
+    score += bestScore;
+    remaining.splice(bestIndex, 1);
+  }
+
+  const emptySlotIndices = definition.slots
+    .map((_, index) => index)
+    .filter((index) => !filledSlots.has(index));
+
+  for (let index = 0; index < remaining.length && index < emptySlotIndices.length; index += 1) {
+    const slot = definition.slots[emptySlotIndices[index]];
+    coordsById.set(remaining[index].playerId, { x: slot.x, y: slot.y });
+  }
+
+  return { score, coordsById };
+}
+
 /** Ordered list of all available formation names. */
 export const FORMATION_NAMES: FormationName[] = [
   "4-4-2",
@@ -176,6 +236,28 @@ export const FORMATION_NAMES: FormationName[] = [
   "5-3-2",
   "4-1-4-1",
 ];
+
+export function inferBestFormation(starters: SuggestedLineupEntry[]): FormationName {
+  let bestFormation: FormationName = FORMATION_NAMES[0];
+  let bestScore = -1;
+
+  for (const formation of FORMATION_NAMES) {
+    const assignment = assignFormationSlots(formation, starters);
+    if (assignment.score > bestScore) {
+      bestFormation = formation;
+      bestScore = assignment.score;
+    }
+  }
+
+  return bestFormation;
+}
+
+export function getFormationCoordinates(
+  formation: FormationName,
+  starters: SuggestedLineupEntry[]
+): Map<string, { x: number; y: number }> {
+  return assignFormationSlots(formation, starters).coordsById;
+}
 
 /**
  * Assigns `fieldX`/`fieldY` to each starter based on the chosen formation.
@@ -189,35 +271,7 @@ export function applyFormationToStarters(
   formation: FormationName,
   starters: SuggestedLineupEntry[]
 ): SuggestedLineupEntry[] {
-  const definition = FORMATIONS[formation];
-  const unassigned = [...starters];
-  const filledSlots = new Set<number>();
-  const coordsById = new Map<string, { x: number; y: number }>();
-
-  // First pass: fill each slot by position priority
-  for (let slotIndex = 0; slotIndex < definition.slots.length; slotIndex++) {
-    const slot = definition.slots[slotIndex];
-
-    for (const preferredPosition of slot.positions) {
-      const playerIndex = unassigned.findIndex((s) => s.position === preferredPosition);
-      if (playerIndex !== -1) {
-        coordsById.set(unassigned[playerIndex].playerId, { x: slot.x, y: slot.y });
-        filledSlots.add(slotIndex);
-        unassigned.splice(playerIndex, 1);
-        break;
-      }
-    }
-  }
-
-  // Second pass: assign remaining unmatched players to unfilled slots
-  const emptySlotIndices = definition.slots
-    .map((_, index) => index)
-    .filter((index) => !filledSlots.has(index));
-
-  for (let i = 0; i < unassigned.length && i < emptySlotIndices.length; i++) {
-    const slot = definition.slots[emptySlotIndices[i]];
-    coordsById.set(unassigned[i].playerId, { x: slot.x, y: slot.y });
-  }
+  const coordsById = getFormationCoordinates(formation, starters);
 
   return starters.map((starter) => {
     const coords = coordsById.get(starter.playerId);
