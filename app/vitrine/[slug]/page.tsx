@@ -14,6 +14,17 @@ async function getTeamBySlug(slug: string) {
   return prisma.team.findUnique({
     where: { slug },
     include: {
+      openMatchSlots: {
+        where: { status: "OPEN" },
+        orderBy: { date: "asc" },
+        select: {
+          id: true,
+          date: true,
+          timeLabel: true,
+          venueLabel: true,
+          notes: true,
+        },
+      },
       players: {
         where: { status: "ACTIVE" },
         orderBy: { shirtNumber: "asc" },
@@ -278,6 +289,7 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
     stats.totalMatches > 0
       ? `${stats.wins}V · ${stats.draws}E · ${stats.losses}D`
       : "Temporada em construção";
+  const hasDiscoveryInfo = Boolean(team.city || team.region || team.fieldType || team.competitiveLevel);
 
   return (
     <div className="min-h-screen bg-transparent pb-16">
@@ -629,6 +641,61 @@ export default async function VitrinePage({ params }: VitrinePageProps) {
             <div className="app-surface rounded-[22px] border border-dashed border-[var(--border-strong)] p-8 text-center text-[var(--text-muted)]">
               Este time ainda nao publicou jogadores ativos na vitrine.
             </div>
+          </section>
+        )}
+
+        {(team.openMatchSlots.length > 0 || hasDiscoveryInfo) && (
+          <section id="agenda-aberta" className="scroll-mt-40 mt-10 app-surface rounded-[24px] p-6 shadow-[var(--shadow-md)] sm:p-7">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-subtle)]">
+                  Descoberta publica
+                </p>
+                <h2 className="mt-1 text-2xl font-bold text-[var(--text)]">Datas abertas para amistoso</h2>
+              </div>
+              {team.openMatchSlots.length > 0 && (
+                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700">
+                  {team.openMatchSlots.length} disponibilidade(s)
+                </span>
+              )}
+            </div>
+
+            {hasDiscoveryInfo && (
+              <div className="mt-4 flex flex-wrap gap-2 text-xs text-[var(--text-subtle)]">
+                {team.city && <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">Cidade: {team.city}</span>}
+                {team.region && <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">Regiao: {team.region}</span>}
+                {team.fieldType && <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">Campo: {team.fieldType}</span>}
+                {team.competitiveLevel && (
+                  <span className="rounded-full border border-[var(--border)] bg-white/70 px-2 py-1">Nivel: {team.competitiveLevel}</span>
+                )}
+              </div>
+            )}
+
+            {team.openMatchSlots.length > 0 ? (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {team.openMatchSlots.map((slot) => (
+                  <article key={slot.id} className="rounded-2xl border border-[var(--border)] bg-white/65 p-4">
+                    <p className="text-base font-semibold text-[var(--text)]">
+                      {new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short" }).format(slot.date)}
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--text-muted)]">
+                      {(slot.timeLabel || "Horario a definir") + " • " + (slot.venueLabel || "Local a definir")}
+                    </p>
+                    {slot.notes && <p className="mt-2 text-sm text-[var(--text-muted)]">{slot.notes}</p>}
+                    <a
+                      href="#amistoso"
+                      className="mt-3 inline-flex min-h-9 items-center justify-center rounded-full border border-[var(--border)] px-3 text-xs font-semibold text-[var(--text)] transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
+                    >
+                      Solicitar neste horario
+                    </a>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-[var(--text-muted)]">
+                Este time esta no diretorio, mas ainda nao publicou datas abertas. Envie uma proposta personalizada abaixo.
+              </p>
+            )}
           </section>
         )}
 
