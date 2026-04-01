@@ -4,6 +4,7 @@ import { serializeBlockPreset, serializeFormation } from "@/lib/formations";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { buildMatchLineupSnapshot } from "@/lib/match-lineup";
+import { trackOperationalEvent } from "@/lib/telemetry";
 import { patchMatchLineupSchema } from "@/lib/validations/match";
 
 interface RouteParams {
@@ -261,6 +262,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     );
   }
 
+  trackOperationalEvent("match_lineup_saved", {
+    teamId: session.user.teamId,
+    matchId: id,
+    startersCount: parsed.data.starters.length,
+    benchCount: parsed.data.bench.length,
+    hasFormation: parsed.data.formation != null,
+  });
+
   return buildLineupResponse(updatedMatch, request);
 }
 
@@ -307,6 +316,11 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       { status: 404 }
     );
   }
+
+  trackOperationalEvent("match_lineup_reset", {
+    teamId: session.user.teamId,
+    matchId: id,
+  });
 
   return buildLineupResponse(updatedMatch, request);
 }

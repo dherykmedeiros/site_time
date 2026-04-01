@@ -77,7 +77,7 @@ export async function generateMetadata({
       locale: "pt_BR",
       images:
         data.match.status === "COMPLETED"
-          ? [{ url: `/api/og/match/${id}`, width: 1200, height: 630, alt: `${data.team.name} vs ${data.match.opponent}` }]
+          ? [{ url: `/api/og/team-recap/${id}`, width: 1200, height: 630, alt: `${data.team.name} vs ${data.match.opponent}` }]
           : data.team.badgeUrl
           ? [{ url: data.team.badgeUrl, width: 200, height: 200, alt: `Escudo ${data.team.name}` }]
           : [],
@@ -88,7 +88,7 @@ export async function generateMetadata({
       description,
       images:
         data.match.status === "COMPLETED"
-          ? [`/api/og/match/${id}`]
+          ? [`/api/og/team-recap/${id}`]
           : data.team.badgeUrl
           ? [data.team.badgeUrl]
           : [],

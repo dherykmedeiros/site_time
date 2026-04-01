@@ -7,6 +7,7 @@ import {
   resolveAvailabilitySlot,
   type AvailabilityForecastPlayer,
 } from "@/lib/player-availability";
+import { trackOperationalEvent } from "@/lib/telemetry";
 import { matchAvailabilityQuerySchema } from "@/lib/validations/match-availability";
 import type { AvailabilityFrequencyValue, AvailabilityLevelValue } from "@/lib/validations/player-availability";
 
@@ -94,6 +95,13 @@ export async function GET(request: Request) {
     dayOfWeek: slot.dayOfWeek,
     minutesOfDay: slot.minutesOfDay,
     players,
+  });
+
+  trackOperationalEvent("match_availability_forecast_viewed", {
+    teamId: session.user.teamId,
+    activePlayers: players.length,
+    likelyAvailableCount: forecast.likelyAvailableCount,
+    overallRisk: forecast.overallRisk,
   });
 
   return NextResponse.json(forecast);

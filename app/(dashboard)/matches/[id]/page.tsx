@@ -542,6 +542,7 @@ export default function MatchDetailPage() {
       `🏆 vs ${match.opponent}`,
       ...(scorers ? [`⚽ Gols: ${scorers}`] : []),
       ``,
+      `🖼️ Card recap: ${window.location.origin}/api/og/team-recap/${match.id}`,
       `👉 Ver partida: ${match.shareUrl}`,
     ];
     return lines.join("\n");
@@ -1184,6 +1185,18 @@ export default function MatchDetailPage() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      window.open(
+                        `/api/og/team-recap/${match.id}`,
+                        "_blank",
+                        "noopener,noreferrer"
+                      );
+                    }}
+                  >
+                    🖼️ Abrir card recap
+                  </Button>
                   <Button variant="secondary" onClick={handleCopyLink}>
                     🔗 Copiar link
                   </Button>

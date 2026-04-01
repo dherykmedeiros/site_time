@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { buildSuggestedSharePerPresent, defaultBordereauChecklist } from "@/lib/bordereau";
+import { trackOperationalEvent } from "@/lib/telemetry";
 import { patchMatchBordereauSchema } from "@/lib/validations/match";
 
 interface RouteParams {
@@ -345,5 +346,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   });
 
   const response = await buildBordereauResponse(id, session.user.teamId);
+
+  trackOperationalEvent("match_bordereau_saved", {
+    teamId: session.user.teamId,
+    matchId: id,
+    checklistCount: parsed.data.checklist?.length ?? 0,
+    attendanceCount: parsed.data.attendance?.length ?? 0,
+  });
+
   return NextResponse.json(response);
 }

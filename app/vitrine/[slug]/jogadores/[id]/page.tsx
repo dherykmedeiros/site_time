@@ -105,6 +105,7 @@ export async function generateMetadata({ params }: PlayerPageProps): Promise<Met
   if (!player) return { title: "Jogador não encontrado" };
 
   const description = `${positionLabels[player.position] || player.position} · ${player.career.totalGoals} gols · ${player.career.totalAssists} assistências pelo ${player.team.name}`;
+  const recapImageUrl = `/api/og/player-recap/${id}`;
 
   return {
     title: `${player.name} — ${player.team.name}`,
@@ -115,15 +116,13 @@ export async function generateMetadata({ params }: PlayerPageProps): Promise<Met
       type: "profile",
       siteName: "VARzea",
       locale: "pt_BR",
-      ...(player.photoUrl && {
-        images: [{ url: player.photoUrl, width: 400, height: 400, alt: player.name }],
-      }),
+      images: [{ url: recapImageUrl, width: 1200, height: 630, alt: `Recap de ${player.name}` }],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: `${player.name} — ${player.team.name}`,
       description,
-      ...(player.photoUrl && { images: [player.photoUrl] }),
+      images: [recapImageUrl],
     },
   };
 }
@@ -248,6 +247,33 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
               </p>
             </article>
           ))}
+        </section>
+
+        <section className="mt-8" aria-label="Recap compartilhavel">
+          <article className="app-surface rounded-[20px] border border-[var(--border)] p-5 shadow-[var(--shadow-sm)]">
+            <h2 className="text-base font-bold text-[var(--text)]">Recap compartilhavel</h2>
+            <p className="mt-2 text-sm text-[var(--text-muted)]">
+              Gere o card com desempenho do jogador para divulgar no WhatsApp e redes.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a
+                href={`/api/og/player-recap/${player.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--brand)] px-4 text-sm font-semibold text-white transition hover:opacity-90"
+              >
+                Abrir card recap
+              </a>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`Confira o recap de ${player.name} no VARzea: /api/og/player-recap/${player.id}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--border)] px-4 text-sm font-semibold text-[var(--text)] transition hover:bg-[var(--surface-soft)]"
+              >
+                Compartilhar no WhatsApp
+              </a>
+            </div>
+          </article>
         </section>
 
         {/* Achievements */}

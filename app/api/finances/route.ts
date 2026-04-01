@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireAuth } from "@/lib/auth";
 import { createTransactionSchema } from "@/lib/validations/finance";
+import { trackOperationalEvent } from "@/lib/telemetry";
 import { Prisma } from "@prisma/client";
 
 type TransactionListRow = {
@@ -191,13 +192,20 @@ export async function POST(request: Request) {
         id: matchId,
         teamId: session.user.teamId,
       },
-      select: { id: true },
+      select: { id: true, status: true },
     });
 
     if (!match) {
       return NextResponse.json(
         { error: "Partida não encontrada", code: "NOT_FOUND" },
         { status: 404 }
+      );
+    }
+
+    if (match.status === "CANCELLED") {
+      return NextResponse.json(
+        { error: "Nao e permitido vincular despesa a partida cancelada", code: "INVALID_MATCH_STATUS" },
+        { status: 409 }
       );
     }
   }
@@ -228,6 +236,16 @@ export async function POST(request: Request) {
     )
     RETURNING "id", "type", "amount", "description", "category", "date", "createdAt", "matchId"
   `);
+
+  if (transaction.matchId) {
+    trackOperationalEvent("finance_match_expense_created", {
+      teamId: session.user.teamId,
+      transactionId: transaction.id,
+      matchId: transaction.matchId,
+      category: transaction.category,
+      amount: Number(transaction.amount),
+    });
+  }
 
   return NextResponse.json(
     {
