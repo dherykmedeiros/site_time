@@ -86,8 +86,21 @@ function resolveLaneXPositions(preferred: number[]) {
 
 export function buildLineupFieldPlacements(starters: SuggestedLineupEntry[]): LineupFieldPlacement[] {
   const grouped = new Map<FieldLane, Array<SuggestedLineupEntry & { preferredX: number; preferredY: number }>>();
+  const manualPlacements: LineupFieldPlacement[] = [];
 
   for (const starter of starters) {
+    if (starter.fieldX != null && starter.fieldY != null) {
+      manualPlacements.push({
+        playerId: starter.playerId,
+        playerName: starter.playerName,
+        position: starter.position,
+        shortLabel: playerPositionShortLabels[starter.position],
+        x: starter.fieldX,
+        y: starter.fieldY,
+      });
+      continue;
+    }
+
     const anchor = getFieldAnchor(starter.position);
     const bucket = grouped.get(anchor.lane) ?? [];
     bucket.push({ ...starter, preferredX: anchor.x, preferredY: anchor.y });
@@ -112,5 +125,5 @@ export function buildLineupFieldPlacements(starters: SuggestedLineupEntry[]): Li
     });
   }
 
-  return placements.sort((left, right) => left.y - right.y || left.x - right.x);
+  return [...manualPlacements, ...placements].sort((left, right) => left.y - right.y || left.x - right.x);
 }

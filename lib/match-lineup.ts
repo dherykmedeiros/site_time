@@ -19,6 +19,8 @@ interface PositionLimitInput {
 interface SavedLineupSelectionInput {
   role: "STARTER" | "BENCH";
   sortOrder: number;
+  fieldX: number | null;
+  fieldY: number | null;
   updatedAt: Date;
   player: {
     id: string;
@@ -28,13 +30,15 @@ interface SavedLineupSelectionInput {
 }
 
 function buildSavedLineupEntry(
-  player: SavedLineupSelectionInput["player"],
+  selection: SavedLineupSelectionInput,
   role: "STARTER" | "BENCH"
 ): SuggestedLineupEntry {
   return {
-    playerId: player.id,
-    playerName: player.name,
-    position: player.position as SuggestedLineupEntry["position"],
+    playerId: selection.player.id,
+    playerName: selection.player.name,
+    position: selection.player.position as SuggestedLineupEntry["position"],
+    fieldX: selection.fieldX ?? null,
+    fieldY: selection.fieldY ?? null,
     reason:
       role === "STARTER"
         ? "Titular salvo manualmente para esta partida"
@@ -86,10 +90,10 @@ export function buildMatchLineupSnapshot(args: {
   const assignedIds = new Set(savedSelections.map((selection) => selection.player.id));
   const savedStarters = savedSelections
     .filter((selection) => selection.role === "STARTER")
-    .map((selection) => buildSavedLineupEntry(selection.player, "STARTER"));
+    .map((selection) => buildSavedLineupEntry(selection, "STARTER"));
   const savedBench = savedSelections
     .filter((selection) => selection.role === "BENCH")
-    .map((selection) => buildSavedLineupEntry(selection.player, "BENCH"));
+    .map((selection) => buildSavedLineupEntry(selection, "BENCH"));
 
   const overflowBench = eligiblePlayers
     .filter((player) => !assignedIds.has(player.playerId))
@@ -97,6 +101,8 @@ export function buildMatchLineupSnapshot(args: {
       playerId: player.playerId,
       playerName: player.playerName,
       position: player.position as SuggestedLineupEntry["position"],
+      fieldX: null,
+      fieldY: null,
       reason: "Confirmado ativo mantido no banco por nao estar salvo na escalação manual",
     }));
 

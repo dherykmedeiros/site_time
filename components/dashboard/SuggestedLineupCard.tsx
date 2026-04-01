@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
@@ -20,10 +20,17 @@ interface SuggestedLineupCardProps {
   generatedAt: string | null;
   onRefresh: () => void;
   canRefresh: boolean;
-  onSaveLineup: (payload: { starters: string[]; bench: string[] }) => Promise<void> | void;
+  onSaveLineup: (payload: {
+    starters: Array<{ playerId: string; fieldX: number | null; fieldY: number | null }>;
+    bench: string[];
+  }) => Promise<void> | void;
   onResetSavedLineup: () => Promise<void> | void;
   saveLoading: boolean;
   imageUrl: string | null;
+}
+
+interface DragState {
+  playerId: string;
 }
 
 const confidenceVariant: Record<LineupConfidence, "danger" | "warning" | "success"> = {
@@ -107,8 +114,10 @@ export function SuggestedLineupCard({
   imageUrl,
 }: SuggestedLineupCardProps) {
   const generatedLabel = formatDateTime(generatedAt);
+  const fieldRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [workingLineup, setWorkingLineup] = useState<SuggestedLineupResponse | null>(lineup);
+  const [dragging, setDragging] = useState<DragState | null>(null);
 
   useEffect(() => {
     setWorkingLineup(lineup ? cloneLineup(lineup) : null);
@@ -134,11 +143,62 @@ export function SuggestedLineupCard({
     if (!displayLineup) return;
 
     await onSaveLineup({
-      starters: displayLineup.starters.map((entry) => entry.playerId),
+      starters: displayLineup.starters.map((entry) => ({
+        playerId: entry.playerId,
+        fieldX: entry.fieldX ?? null,
+        fieldY: entry.fieldY ?? null,
+      })),
       bench: displayLineup.bench.map((entry) => entry.playerId),
     });
     setIsEditing(false);
   }
+
+  function updateStarterCoordinates(playerId: string, clientX: number, clientY: number) {
+    const field = fieldRef.current;
+    if (!field) return;
+
+    const rect = field.getBoundingClientRect();
+    const nextX = Math.min(92, Math.max(8, Math.round(((clientX - rect.left) / rect.width) * 100)));
+    const nextY = Math.min(88, Math.max(10, Math.round(((clientY - rect.top) / rect.height) * 100)));
+
+    setWorkingLineup((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        starters: current.starters.map((entry) =>
+          entry.playerId === playerId
+            ? {
+                ...entry,
+                fieldX: nextX,
+                fieldY: nextY,
+                reason: "Posicionado manualmente na prancheta desta partida",
+              }
+            : entry
+        ),
+      };
+    });
+  }
+
+  useEffect(() => {
+    if (!dragging) return;
+
+    function handlePointerMove(event: PointerEvent) {
+      updateStarterCoordinates(dragging.playerId, event.clientX, event.clientY);
+    }
+
+    function handlePointerUp() {
+      setDragging(null);
+    }
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [dragging]);
 
   return (
     <Card>
@@ -199,7 +259,7 @@ export function SuggestedLineupCard({
         {generatedLabel && (
           <p className="text-xs text-[var(--text-subtle)]">
             Ultima leitura: {generatedLabel}
-            {isEditing ? " • ajustes manuais nao sao persistidos" : ""}
+            {isEditing ? " • arraste na prancheta e salve para persistir" : ""}
           </p>
         )}
 
@@ -227,15 +287,28 @@ export function SuggestedLineupCard({
                 </div>
                 <Badge variant="info">{displayLineup.starters.length} em campo</Badge>
               </div>
-              <div className="relative h-[420px] overflow-hidden rounded-[20px] border border-white/15 bg-[radial-gradient(circle_at_center,rgba(77,196,126,0.20)_0%,rgba(21,91,55,0.10)_38%,rgba(6,26,17,0.48)_100%)]">
+              {isEditing && (
+                <p className="mb-3 text-sm text-white/78">
+                  Arraste os titulares na prancheta para ajustar o posicionamento manual antes de salvar.
+                </p>
+              )}
+              <div
+                ref={fieldRef}
+                className="relative h-[420px] overflow-hidden rounded-[20px] border border-white/15 bg-[radial-gradient(circle_at_center,rgba(77,196,126,0.20)_0%,rgba(21,91,55,0.10)_38%,rgba(6,26,17,0.48)_100%)]"
+              >
                 <div className="absolute inset-4 rounded-[16px] border-2 border-white/70" />
                 <div className="absolute bottom-4 left-1/2 top-4 w-px -translate-x-1/2 bg-white/70" />
                 <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/70" />
                 {placements.map((placement) => (
                   <div
                     key={placement.playerId}
-                    className="absolute flex w-28 -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2"
+                    className={`absolute flex w-28 -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2 ${isEditing ? "cursor-grab active:cursor-grabbing" : ""}`}
                     style={{ left: `${placement.x}%`, top: `${placement.y}%` }}
+                    onPointerDown={isEditing ? (event) => {
+                      event.preventDefault();
+                      setDragging({ playerId: placement.playerId });
+                      updateStarterCoordinates(placement.playerId, event.clientX, event.clientY);
+                    } : undefined}
                   >
                     <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/85 bg-white/15 text-xs font-bold backdrop-blur-sm">
                       {placement.shortLabel}

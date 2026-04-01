@@ -46,6 +46,8 @@ async function loadMatchForLineup(matchId: string, teamId: string) {
         select: {
           role: true,
           sortOrder: true,
+          fieldX: true,
+          fieldY: true,
           updatedAt: true,
           player: {
             select: {
@@ -79,6 +81,8 @@ function buildLineupResponse(match: NonNullable<Awaited<ReturnType<typeof loadMa
     savedSelections: match.lineupSelections.map((selection: (typeof match.lineupSelections)[number]) => ({
       role: selection.role,
       sortOrder: selection.sortOrder,
+      fieldX: selection.fieldX,
+      fieldY: selection.fieldY,
       updatedAt: selection.updatedAt,
       player: selection.player,
     })),
@@ -168,7 +172,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       .map((rsvp: (typeof match.rsvps)[number]) => rsvp.player.id)
   );
 
-  const allPlayerIds = [...parsed.data.starters, ...parsed.data.bench];
+  const allPlayerIds = [...parsed.data.starters.map((entry: { playerId: string }) => entry.playerId), ...parsed.data.bench];
   const invalidPlayers = allPlayerIds.filter((playerId) => !eligibleIds.has(playerId));
   if (invalidPlayers.length > 0) {
     return NextResponse.json(
@@ -184,11 +188,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     await tx.matchLineupSelection.deleteMany({ where: { matchId: id } });
 
     const data = [
-      ...parsed.data.starters.map((playerId: string, index: number) => ({
+      ...parsed.data.starters.map((entry: { playerId: string; fieldX?: number | null; fieldY?: number | null }, index: number) => ({
         matchId: id,
-        playerId,
+        playerId: entry.playerId,
         role: "STARTER" as const,
         sortOrder: index,
+        fieldX: entry.fieldX ?? null,
+        fieldY: entry.fieldY ?? null,
       })),
       ...parsed.data.bench.map((playerId: string, index: number) => ({
         matchId: id,

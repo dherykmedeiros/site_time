@@ -88,6 +88,8 @@ export const suggestedLineupEntrySchema = z.object({
   playerName: z.string().min(1, "Nome do jogador obrigatório"),
   position: z.enum(playerPositions, { message: "Posição inválida" }),
   reason: z.string().min(1, "Motivo obrigatório").max(160, "Motivo muito longo"),
+  fieldX: z.number().int().min(8).max(92).nullable().optional(),
+  fieldY: z.number().int().min(10).max(88).nullable().optional(),
 });
 
 export const suggestedLineupResponseSchema = z.object({
@@ -104,13 +106,19 @@ export const suggestedLineupResponseSchema = z.object({
   }),
 });
 
+const lineupStarterPlacementSchema = z.object({
+  playerId: z.string().cuid("Jogador inválido"),
+  fieldX: z.number().int().min(8).max(92).nullable().optional(),
+  fieldY: z.number().int().min(10).max(88).nullable().optional(),
+});
+
 export const patchMatchLineupSchema = z
   .object({
-    starters: z.array(z.string().cuid("Jogador inválido")).max(30),
+    starters: z.array(lineupStarterPlacementSchema).max(30),
     bench: z.array(z.string().cuid("Jogador inválido")).max(30),
   })
   .strict()
-  .refine((data: { starters: string[]; bench: string[] }) => new Set([...data.starters, ...data.bench]).size === data.starters.length + data.bench.length, {
+  .refine((data: { starters: Array<{ playerId: string }>; bench: string[] }) => new Set([...data.starters.map((entry) => entry.playerId), ...data.bench]).size === data.starters.length + data.bench.length, {
     message: "Jogadores duplicados na escalação",
     path: ["starters"],
   });

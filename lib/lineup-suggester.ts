@@ -72,6 +72,8 @@ function buildLimitedLineup(players: ConfirmedPlayerInput[], positionLimits: Pos
         playerName: player.playerName,
         position: player.position as SuggestedLineupEntry["position"],
         reason: "Posicao preenchida conforme limite da partida",
+        fieldX: null,
+        fieldY: null,
       }))
     );
 
@@ -81,6 +83,8 @@ function buildLimitedLineup(players: ConfirmedPlayerInput[], positionLimits: Pos
         playerName: player.playerName,
         position: player.position as SuggestedLineupEntry["position"],
         reason: "Excedente da posicao apos preencher titulares",
+        fieldX: null,
+        fieldY: null,
       }))
     );
   }
@@ -92,6 +96,8 @@ function buildLimitedLineup(players: ConfirmedPlayerInput[], positionLimits: Pos
         playerName: player.playerName,
         position: player.position as SuggestedLineupEntry["position"],
         reason: "Posicao sem limite explicito; mantido no banco inicial",
+        fieldX: null,
+        fieldY: null,
       });
     }
   }
@@ -116,6 +122,8 @@ function buildFallbackLineup(players: ConfirmedPlayerInput[]) {
       playerName: firstGoalkeeper.playerName,
       position: firstGoalkeeper.position as SuggestedLineupEntry["position"],
       reason: "Goleiro confirmado priorizado para iniciar",
+      fieldX: null,
+      fieldY: null,
     });
 
     for (const extraGoalkeeper of goalkeepers.slice(1)) {
@@ -124,6 +132,8 @@ function buildFallbackLineup(players: ConfirmedPlayerInput[]) {
         playerName: extraGoalkeeper.playerName,
         position: extraGoalkeeper.position as SuggestedLineupEntry["position"],
         reason: "Goleiro extra mantido como opcao de banco",
+        fieldX: null,
+        fieldY: null,
       });
     }
   }
@@ -137,6 +147,8 @@ function buildFallbackLineup(players: ConfirmedPlayerInput[]) {
         playerName: player.playerName,
         position: player.position as SuggestedLineupEntry["position"],
         reason: "Mantido no banco apos completar a base inicial",
+        fieldX: null,
+        fieldY: null,
       });
       continue;
     }
@@ -147,6 +159,8 @@ function buildFallbackLineup(players: ConfirmedPlayerInput[]) {
         playerName: player.playerName,
         position: player.position as SuggestedLineupEntry["position"],
         reason: "Posicao ainda sem cobertura na base inicial",
+        fieldX: null,
+        fieldY: null,
       });
       seenPositions.add(player.position);
       continue;
@@ -157,6 +171,8 @@ function buildFallbackLineup(players: ConfirmedPlayerInput[]) {
       playerName: player.playerName,
         position: player.position as SuggestedLineupEntry["position"],
       reason: "Mantido no banco para preservar equilibrio inicial por posicao",
+        fieldX: null,
+        fieldY: null,
     });
   }
 

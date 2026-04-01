@@ -53,6 +53,8 @@ export async function GET(_request: Request, context: RouteContext) {
         select: {
           role: true,
           sortOrder: true,
+          fieldX: true,
+          fieldY: true,
           updatedAt: true,
           player: {
             select: {
@@ -88,6 +90,8 @@ export async function GET(_request: Request, context: RouteContext) {
     savedSelections: match.lineupSelections.map((selection) => ({
       role: selection.role,
       sortOrder: selection.sortOrder,
+      fieldX: selection.fieldX,
+      fieldY: selection.fieldY,
       updatedAt: selection.updatedAt,
       player: selection.player,
     })),

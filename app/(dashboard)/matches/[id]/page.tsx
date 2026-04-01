@@ -320,7 +320,10 @@ export default function MatchDetailPage() {
     }
   }
 
-  async function handleSaveLineup(payload: { starters: string[]; bench: string[] }) {
+  async function handleSaveLineup(payload: {
+    starters: Array<{ playerId: string; fieldX: number | null; fieldY: number | null }>;
+    bench: string[];
+  }) {
     setLineupSaving(true);
     setLineupError(null);
 
