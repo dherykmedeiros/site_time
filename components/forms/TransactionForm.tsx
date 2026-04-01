@@ -9,6 +9,11 @@ import { Textarea } from "@/components/ui/Textarea";
 interface TransactionFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+  defaultType?: "INCOME" | "EXPENSE";
+  defaultCategory?: string;
+  defaultDescriptionPrefix?: string;
+  matchId?: string;
+  hideTypeSelector?: boolean;
 }
 
 const categoryOptions = [
@@ -20,13 +25,21 @@ const categoryOptions = [
   { value: "OTHER", label: "Outros" },
 ];
 
-export function TransactionForm({ onSuccess, onCancel }: TransactionFormProps) {
+export function TransactionForm({
+  onSuccess,
+  onCancel,
+  defaultType = "INCOME",
+  defaultCategory = "MEMBERSHIP",
+  defaultDescriptionPrefix,
+  matchId,
+  hideTypeSelector = false,
+}: TransactionFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [type, setType] = useState<"INCOME" | "EXPENSE">("INCOME");
+  const [type, setType] = useState<"INCOME" | "EXPENSE">(defaultType);
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("MEMBERSHIP");
+  const [category, setCategory] = useState(defaultCategory);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -35,15 +48,21 @@ export function TransactionForm({ onSuccess, onCancel }: TransactionFormProps) {
     setError("");
 
     try {
+      const normalizedDescription = description.trim();
+      const payloadDescription = defaultDescriptionPrefix
+        ? `${defaultDescriptionPrefix} - ${normalizedDescription}`
+        : normalizedDescription;
+
       const res = await fetch("/api/finances", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type,
           amount: parseFloat(amount),
-          description,
+          description: payloadDescription,
           category,
           date: new Date(date).toISOString(),
+          matchId,
         }),
       });
 
@@ -66,30 +85,32 @@ export function TransactionForm({ onSuccess, onCancel }: TransactionFormProps) {
         <p className="text-sm text-red-600">{error}</p>
       )}
 
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setType("INCOME")}
-          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
-            type === "INCOME"
-              ? "bg-green-600 text-white"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-        >
-          💰 Receita
-        </button>
-        <button
-          type="button"
-          onClick={() => setType("EXPENSE")}
-          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
-            type === "EXPENSE"
-              ? "bg-red-600 text-white"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-        >
-          💸 Despesa
-        </button>
-      </div>
+      {!hideTypeSelector && (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setType("INCOME")}
+            className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
+              type === "INCOME"
+                ? "bg-green-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            💰 Receita
+          </button>
+          <button
+            type="button"
+            onClick={() => setType("EXPENSE")}
+            className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
+              type === "EXPENSE"
+                ? "bg-red-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            💸 Despesa
+          </button>
+        </div>
+      )}
 
       <Input
         label="Valor (R$)"
@@ -102,13 +123,19 @@ export function TransactionForm({ onSuccess, onCancel }: TransactionFormProps) {
       />
 
       <Textarea
-        label="Descrição"
+        label={defaultDescriptionPrefix ? "Detalhe da despesa" : "Descrição"}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         required
         minLength={2}
         maxLength={200}
       />
+
+      {defaultDescriptionPrefix && (
+        <p className="text-xs text-[var(--text-muted)]">
+          Prefixo aplicado automaticamente: {defaultDescriptionPrefix}
+        </p>
+      )}
 
       <Select
         label="Categoria"

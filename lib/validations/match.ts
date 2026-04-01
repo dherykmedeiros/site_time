@@ -80,6 +80,79 @@ export const rsvpResponseSchema = z.object({
   }),
 });
 
+export const lineupConfidenceSchema = z.enum(["LOW", "MEDIUM", "HIGH"]);
+
+export const suggestedLineupEntrySchema = z.object({
+  playerId: z.string().min(1, "ID do jogador obrigatório"),
+  playerName: z.string().min(1, "Nome do jogador obrigatório"),
+  position: z.enum(playerPositions, { message: "Posição inválida" }),
+  reason: z.string().min(1, "Motivo obrigatório").max(160, "Motivo muito longo"),
+});
+
+export const suggestedLineupResponseSchema = z.object({
+  starters: z.array(suggestedLineupEntrySchema),
+  bench: z.array(suggestedLineupEntrySchema),
+  alerts: z.array(z.string().min(1).max(160)),
+  meta: z.object({
+    confirmedPlayers: z.number().int().min(0),
+    startersCount: z.number().int().min(0),
+    benchCount: z.number().int().min(0),
+    usesPositionLimits: z.boolean(),
+    confidence: lineupConfidenceSchema,
+  }),
+});
+
+export const bordereauChecklistItemSchema = z.object({
+  label: z.string().trim().min(2, "Checklist inválido").max(80, "Checklist inválido"),
+  isChecked: z.boolean(),
+  sortOrder: z.number().int().min(0).max(20),
+});
+
+export const bordereauAttendanceItemSchema = z.object({
+  playerId: z.string().cuid("Jogador inválido"),
+  present: z.boolean(),
+});
+
+export const patchMatchBordereauSchema = z
+  .object({
+    checklist: z.array(bordereauChecklistItemSchema).max(12).optional(),
+    attendance: z.array(bordereauAttendanceItemSchema).max(50).optional(),
+  })
+  .strict();
+
+export const bordereauExpenseSchema = z.object({
+  id: z.string().min(1),
+  amount: z.number().nonnegative(),
+  category: z.enum(["FRIENDLY_FEE", "VENUE_RENTAL", "REFEREE", "EQUIPMENT", "OTHER"]),
+  description: z.string().min(2).max(200),
+  date: z.string().refine((value) => !Number.isNaN(Date.parse(value)), "Data inválida"),
+  matchId: z.string().cuid().nullable().optional(),
+});
+
+export const bordereauResponseSchema = z.object({
+  matchId: z.string().min(1),
+  checklist: z.array(
+    bordereauChecklistItemSchema.extend({
+      id: z.string().min(1),
+    })
+  ),
+  attendance: z.array(
+    z.object({
+      playerId: z.string().min(1),
+      playerName: z.string().min(1),
+      rsvpStatus: z.enum(["PENDING", "CONFIRMED", "DECLINED"]),
+      present: z.boolean(),
+      checkedInAt: z.string().nullable(),
+    })
+  ),
+  expenses: z.array(bordereauExpenseSchema),
+  costSummary: z.object({
+    totalExpense: z.number().nonnegative(),
+    presentCount: z.number().int().min(0),
+    suggestedSharePerPresent: z.number().nonnegative().nullable(),
+  }),
+});
+
 export const createMatchStatsSchema = z.object({
   stats: z
     .array(
@@ -125,3 +198,8 @@ export type UpdateMatchInput = z.infer<typeof updateMatchSchema>;
 export type RsvpResponseInput = z.infer<typeof rsvpResponseSchema>;
 export type CreateMatchStatsInput = z.infer<typeof createMatchStatsSchema>;
 export type MatchListQueryInput = z.infer<typeof matchListQuerySchema>;
+export type SuggestedLineupEntry = z.infer<typeof suggestedLineupEntrySchema>;
+export type SuggestedLineupResponse = z.infer<typeof suggestedLineupResponseSchema>;
+export type LineupConfidence = z.infer<typeof lineupConfidenceSchema>;
+export type BordereauResponse = z.infer<typeof bordereauResponseSchema>;
+export type PatchMatchBordereauInput = z.infer<typeof patchMatchBordereauSchema>;

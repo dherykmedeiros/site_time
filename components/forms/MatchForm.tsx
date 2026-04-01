@@ -16,6 +16,30 @@ interface Season {
   id: string;
   name: string;
   type: string;
+  status?: string;
+}
+
+interface AvailabilityPositionSummary {
+  position: string;
+  likelyAvailable: number;
+  uncertain: number;
+  likelyUnavailable: number;
+  risk: "LOW" | "MEDIUM" | "HIGH";
+}
+
+interface AvailabilitySnapshot {
+  date: string;
+  activePlayers: number;
+  likelyAvailableCount: number;
+  uncertainCount: number;
+  likelyUnavailableCount: number;
+  overallRisk: "LOW" | "MEDIUM" | "HIGH";
+}
+
+interface MatchAvailabilityResponse {
+  snapshot: AvailabilitySnapshot;
+  positions: AvailabilityPositionSummary[];
+  explanations: string[];
 }
 
 interface MatchFormProps {
@@ -48,6 +72,9 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [seasons, setSeasons] = useState<Season[]>([]);
+  const [availabilitySnapshot, setAvailabilitySnapshot] = useState<MatchAvailabilityResponse | null>(null);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [seasonId, setSeasonId] = useState<string>(defaultValues?.seasonId ?? "");
   const [positionLimitsEnabled, setPositionLimitsEnabled] = useState(
     Boolean(defaultValues?.positionLimits?.length)
@@ -84,6 +111,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<CreateMatchInput>({
     resolver: zodResolver(createMatchSchema),
@@ -94,6 +122,60 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
       type: (defaultValues?.type as "FRIENDLY" | "CHAMPIONSHIP") || undefined,
     },
   });
+
+  const watchedDate = watch("date");
+
+  useEffect(() => {
+    if (!watchedDate || Number.isNaN(Date.parse(watchedDate))) {
+      setAvailabilitySnapshot(null);
+      setAvailabilityError(null);
+      setAvailabilityLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      setAvailabilityLoading(true);
+      setAvailabilityError(null);
+
+      try {
+        const response = await fetch(`/api/matches/availability?date=${encodeURIComponent(watchedDate)}`, {
+          signal: controller.signal,
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          setAvailabilitySnapshot(null);
+          setAvailabilityError(data.error || "Nao foi possivel carregar a previsao de quorum.");
+          return;
+        }
+
+        setAvailabilitySnapshot(data);
+      } catch (error) {
+        if ((error as Error).name === "AbortError") {
+          return;
+        }
+
+        setAvailabilitySnapshot(null);
+        setAvailabilityError("Nao foi possivel carregar a previsao de quorum.");
+      } finally {
+        setAvailabilityLoading(false);
+      }
+    }, 350);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [watchedDate]);
+
+  const riskLabels: Record<AvailabilitySnapshot["overallRisk"], string> = {
+    LOW: "baixo",
+    MEDIUM: "medio",
+    HIGH: "alto",
+  };
+
+  const criticalPositions = availabilitySnapshot?.positions.filter((position) => position.risk !== "LOW").slice(0, 3);
 
   async function onSubmit(data: CreateMatchInput) {
     setLoading(true);
@@ -161,6 +243,92 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         error={errors.date?.message}
         {...register("date")}
       />
+
+      {(availabilityLoading || availabilityError || availabilitySnapshot) && (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">
+                Previsao de quorum
+              </p>
+              <p className="text-sm text-[var(--text-subtle)]">
+                Isso ajuda a antecipar risco do horario. Nao bloqueia o agendamento.
+              </p>
+            </div>
+            {availabilitySnapshot && (
+              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--text)]">
+                Risco {riskLabels[availabilitySnapshot.snapshot.overallRisk]}
+              </span>
+            )}
+          </div>
+
+          {availabilityLoading && (
+            <p className="mt-3 text-sm text-[var(--text-subtle)]">Calculando previsao...</p>
+          )}
+
+          {!availabilityLoading && availabilityError && (
+            <div className="mt-3 rounded-[12px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[var(--danger)]">
+              {availabilityError}
+            </div>
+          )}
+
+          {!availabilityLoading && availabilitySnapshot && (
+            <div className="mt-4 space-y-4">
+              <div className="grid gap-3 sm:grid-cols-4">
+                <div className="rounded-[12px] bg-white p-3">
+                  <p className="text-xs uppercase tracking-wide text-[var(--text-subtle)]">Disponiveis</p>
+                  <p className="mt-1 text-xl font-bold text-[var(--text)]">
+                    {availabilitySnapshot.snapshot.likelyAvailableCount}
+                  </p>
+                </div>
+                <div className="rounded-[12px] bg-white p-3">
+                  <p className="text-xs uppercase tracking-wide text-[var(--text-subtle)]">Incertos</p>
+                  <p className="mt-1 text-xl font-bold text-[var(--text)]">
+                    {availabilitySnapshot.snapshot.uncertainCount}
+                  </p>
+                </div>
+                <div className="rounded-[12px] bg-white p-3">
+                  <p className="text-xs uppercase tracking-wide text-[var(--text-subtle)]">Indisponiveis</p>
+                  <p className="mt-1 text-xl font-bold text-[var(--text)]">
+                    {availabilitySnapshot.snapshot.likelyUnavailableCount}
+                  </p>
+                </div>
+                <div className="rounded-[12px] bg-white p-3">
+                  <p className="text-xs uppercase tracking-wide text-[var(--text-subtle)]">Elenco ativo</p>
+                  <p className="mt-1 text-xl font-bold text-[var(--text)]">
+                    {availabilitySnapshot.snapshot.activePlayers}
+                  </p>
+                </div>
+              </div>
+
+              {availabilitySnapshot.explanations.length > 0 && (
+                <div className="space-y-2">
+                  {availabilitySnapshot.explanations.map((item) => (
+                    <p key={item} className="text-sm text-[var(--text-subtle)]">
+                      {item}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {criticalPositions && criticalPositions.length > 0 && (
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {criticalPositions.map((position) => (
+                    <div key={position.position} className="rounded-[12px] border border-[#d9e6df] bg-white p-3">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-subtle)]">
+                        {playerPositionLabels[position.position as keyof typeof playerPositionLabels] || position.position}
+                      </p>
+                      <p className="mt-1 text-sm text-[var(--text)]">
+                        {position.likelyAvailable} provaveis, {position.uncertain} incertos
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <Input
         label="Local"

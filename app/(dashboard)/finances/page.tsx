@@ -23,6 +23,9 @@ interface Transaction {
   category: string;
   date: string;
   createdAt: string;
+  matchId: string | null;
+  matchOpponent: string | null;
+  matchDate: string | null;
 }
 
 interface Pagination {
@@ -278,9 +281,16 @@ export default function FinancesPage() {
                           {categoryLabels[t.category] || t.category} •{" "}
                           {new Date(t.date).toLocaleDateString("pt-BR")}
                         </p>
+                        {t.matchId && (
+                          <p className="mt-1 text-xs text-[#2a6f60]">
+                            Vinculada a {t.matchOpponent ? `vs ${t.matchOpponent}` : "uma partida"}
+                            {t.matchDate ? ` em ${new Date(t.matchDate).toLocaleDateString("pt-BR")}` : ""}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3 pl-11 sm:pl-0">
+                      {t.matchId && <Badge variant="info">Partida</Badge>}
                       <span
                         className={`font-bold ${
                           t.type === "INCOME"

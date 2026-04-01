@@ -8,9 +8,17 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
+import { BordereauCard } from "@/components/dashboard/BordereauCard";
+import { SuggestedLineupCard } from "@/components/dashboard/SuggestedLineupCard";
+import type { BordereauResponse, SuggestedLineupResponse } from "@/lib/validations/match";
 
 const PostGameForm = dynamic(
   () => import("@/components/forms/PostGameForm").then((m) => ({ default: m.PostGameForm })),
+  { loading: () => <div className="p-4 text-center text-gray-500">Carregando formulário...</div> }
+);
+
+const TransactionForm = dynamic(
+  () => import("@/components/forms/TransactionForm").then((m) => ({ default: m.TransactionForm })),
   { loading: () => <div className="p-4 text-center text-gray-500">Carregando formulário...</div> }
 );
 
@@ -46,6 +54,12 @@ interface MatchDetail {
   canSubmitPostGame: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+interface MatchLineupResponse {
+  matchId: string;
+  generatedAt: string;
+  lineup: SuggestedLineupResponse;
 }
 
 const statusLabels: Record<string, string> = {
@@ -95,6 +109,15 @@ export default function MatchDetailPage() {
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [lineupData, setLineupData] = useState<MatchLineupResponse | null>(null);
+  const [lineupLoading, setLineupLoading] = useState(false);
+  const [lineupRefreshing, setLineupRefreshing] = useState(false);
+  const [lineupError, setLineupError] = useState<string | null>(null);
+  const [bordereauData, setBordereauData] = useState<BordereauResponse | null>(null);
+  const [bordereauLoading, setBordereauLoading] = useState(false);
+  const [bordereauSaving, setBordereauSaving] = useState(false);
+  const [bordereauError, setBordereauError] = useState<string | null>(null);
+  const [expenseModalOpen, setExpenseModalOpen] = useState(false);
 
   const fetchMatch = useCallback(async () => {
     setLoading(true);
@@ -114,6 +137,167 @@ export default function MatchDetailPage() {
   useEffect(() => {
     fetchMatch();
   }, [fetchMatch]);
+
+  const fetchLineup = useCallback(async (options?: { refresh?: boolean }) => {
+    if (!isAdmin || !match || match.status !== "SCHEDULED") {
+      setLineupData(null);
+      setLineupError(null);
+      return;
+    }
+
+    if (options?.refresh) {
+      setLineupRefreshing(true);
+    } else {
+      setLineupLoading(true);
+    }
+
+    try {
+      const res = await fetch(`/api/matches/${id}/lineup`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setLineupData(null);
+        setLineupError(data.error || "Erro ao carregar sugestao de escalacao");
+        return;
+      }
+
+      setLineupData(data);
+      setLineupError(null);
+    } catch {
+      setLineupData(null);
+      setLineupError("Erro de conexão ao carregar sugestao de escalacao");
+    } finally {
+      setLineupLoading(false);
+      setLineupRefreshing(false);
+    }
+  }, [id, isAdmin, match]);
+
+  useEffect(() => {
+    if (!match) {
+      return;
+    }
+
+    fetchLineup();
+  }, [match, fetchLineup]);
+
+  const fetchBordereau = useCallback(async () => {
+    if (!isAdmin || !match || match.status !== "SCHEDULED") {
+      setBordereauData(null);
+      setBordereauError(null);
+      return;
+    }
+
+    setBordereauLoading(true);
+    try {
+      const res = await fetch(`/api/matches/${id}/bordereau`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setBordereauData(null);
+        setBordereauError(data.error || "Erro ao carregar bordero");
+        return;
+      }
+
+      setBordereauData(data);
+      setBordereauError(null);
+    } catch {
+      setBordereauData(null);
+      setBordereauError("Erro de conexão ao carregar bordero");
+    } finally {
+      setBordereauLoading(false);
+    }
+  }, [id, isAdmin, match]);
+
+  useEffect(() => {
+    if (!match) {
+      return;
+    }
+
+    fetchBordereau();
+  }, [match, fetchBordereau]);
+
+  function toggleChecklistItem(index: number) {
+    setBordereauData((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        checklist: current.checklist.map((item, itemIndex) =>
+          itemIndex === index ? { ...item, isChecked: !item.isChecked } : item
+        ),
+      };
+    });
+  }
+
+  function toggleAttendance(playerId: string) {
+    setBordereauData((current) => {
+      if (!current) return current;
+
+      const nextAttendance = current.attendance.map((item) => {
+        if (item.playerId !== playerId) {
+          return item;
+        }
+
+        const nextPresent = !item.present;
+        return {
+          ...item,
+          present: nextPresent,
+          checkedInAt: nextPresent ? new Date().toISOString() : null,
+        };
+      });
+      const presentCount = nextAttendance.filter((item) => item.present).length;
+      const suggestedSharePerPresent = presentCount > 0
+        ? Number((current.costSummary.totalExpense / presentCount).toFixed(2))
+        : null;
+
+      return {
+        ...current,
+        attendance: nextAttendance,
+        costSummary: {
+          ...current.costSummary,
+          presentCount,
+          suggestedSharePerPresent,
+        },
+      };
+    });
+  }
+
+  async function handleSaveBordereau() {
+    if (!bordereauData) return;
+
+    setBordereauSaving(true);
+    setBordereauError(null);
+
+    try {
+      const res = await fetch(`/api/matches/${id}/bordereau`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          checklist: bordereauData.checklist.map((item) => ({
+            label: item.label,
+            isChecked: item.isChecked,
+            sortOrder: item.sortOrder,
+          })),
+          attendance: bordereauData.attendance.map((item) => ({
+            playerId: item.playerId,
+            present: item.present,
+          })),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setBordereauError(data.error || "Erro ao salvar bordero");
+        return;
+      }
+
+      setBordereauData(data);
+      setFeedback("Bordero atualizado com sucesso.");
+    } catch {
+      setBordereauError("Erro de conexão ao salvar bordero");
+    } finally {
+      setBordereauSaving(false);
+    }
+  }
 
   async function handleRsvp(status: "CONFIRMED" | "DECLINED") {
     setRsvpLoading(true);
@@ -399,6 +583,30 @@ export default function MatchDetailPage() {
         </CardContent>
       </Card>
 
+      {isAdmin && match.status === "SCHEDULED" && (
+        <SuggestedLineupCard
+          loading={lineupLoading}
+          error={lineupError}
+          lineup={lineupData?.lineup ?? null}
+          generatedAt={lineupData?.generatedAt ?? null}
+          onRefresh={() => fetchLineup({ refresh: true })}
+          canRefresh={!lineupRefreshing}
+        />
+      )}
+
+      {isAdmin && match.status === "SCHEDULED" && (
+        <BordereauCard
+          loading={bordereauLoading}
+          saving={bordereauSaving}
+          error={bordereauError}
+          data={bordereauData}
+          onChecklistToggle={toggleChecklistItem}
+          onAttendanceToggle={toggleAttendance}
+          onSave={handleSaveBordereau}
+          onOpenExpense={() => setExpenseModalOpen(true)}
+        />
+      )}
+
       {/* Score (if completed) */}
       {match.status === "COMPLETED" &&
         match.homeScore !== null &&
@@ -672,6 +880,28 @@ export default function MatchDetailPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={isAdmin && expenseModalOpen && !!match}
+        onClose={() => setExpenseModalOpen(false)}
+        title="Lancar despesa da partida"
+      >
+        {match && (
+          <TransactionForm
+            defaultType="EXPENSE"
+            defaultCategory="REFEREE"
+            defaultDescriptionPrefix={`Partida vs ${match.opponent}`}
+            hideTypeSelector
+            matchId={match.id}
+            onSuccess={async () => {
+              setExpenseModalOpen(false);
+              await fetchBordereau();
+              setFeedback("Despesa vinculada a partida registrada com sucesso.");
+            }}
+            onCancel={() => setExpenseModalOpen(false)}
+          />
+        )}
       </Modal>
     </div>
   );

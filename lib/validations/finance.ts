@@ -20,6 +20,15 @@ export const createTransactionSchema = z.object({
       (val) => new Date(val) <= new Date(),
       "Data não pode ser no futuro"
     ),
+  matchId: z.string().cuid("Partida inválida").optional(),
+}).superRefine((value, ctx) => {
+  if (value.matchId && value.type !== "EXPENSE") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Apenas despesas podem ser vinculadas a uma partida",
+      path: ["matchId"],
+    });
+  }
 });
 
 export const updateTransactionSchema = z.object({
