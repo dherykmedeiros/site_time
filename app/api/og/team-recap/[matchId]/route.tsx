@@ -228,13 +228,12 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
 
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 120px 1fr",
+            display: "flex",
             borderRadius: "30px",
             background: "rgba(255,255,255,0.10)",
-            backdropFilter: "blur(12px)",
             padding: "18px 24px",
             alignItems: "center",
+            justifyContent: "space-between",
             border: "1px solid rgba(255,255,255,0.2)",
             minHeight: "330px",
             gap: "8px",
@@ -246,6 +245,7 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
+              flex: "0 0 45%",
               minWidth: 0,
               width: "100%",
               borderRadius: "22px",
@@ -338,8 +338,8 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
               justifyContent: "center",
               background: "rgba(2,6,23,0.28)",
               border: "1px solid rgba(255,255,255,0.18)",
+              flex: "0 0 88px",
               alignSelf: "center",
-              justifySelf: "center",
             }}
           >
             X
@@ -351,6 +351,7 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
+              flex: "0 0 45%",
               minWidth: 0,
               width: "100%",
               borderRadius: "22px",
