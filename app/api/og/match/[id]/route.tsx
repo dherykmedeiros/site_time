@@ -170,8 +170,6 @@ export async function GET(request: Request, context: RouteContext) {
           <div
             style={{
               display: "flex",
-              background: "linear-gradient(180deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.10) 100%)",
-              padding: "20px 24px",
               justifyContent: "space-between",
               alignItems: "center",
               minHeight: "320px",
@@ -208,7 +206,7 @@ export async function GET(request: Request, context: RouteContext) {
                 )}
               </div>
               <div style={{ display: "flex", fontSize: "24px", fontWeight: 700 }}>{homeName}</div>
-              <div style={{ display: "flex", fontSize: "152px", lineHeight: 0.9, fontWeight: 900 }}>
+              <div style={{ display: "flex", fontSize: "152px", lineHeight: 0.9, margin: 0, fontWeight: 900 }}>
                 {home}
               </div>
             </div>
@@ -260,7 +258,7 @@ export async function GET(request: Request, context: RouteContext) {
                 )}
               </div>
               <div style={{ display: "flex", fontSize: "24px", fontWeight: 700 }}>{awayName}</div>
-              <div style={{ display: "flex", fontSize: "152px", lineHeight: 0.9, fontWeight: 900 }}>
+              <div style={{ display: "flex", fontSize: "152px", lineHeight: 0.9, margin: 0, fontWeight: 900 }}>
                 {away}
               </div>
             </div>
