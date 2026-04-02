@@ -8,7 +8,7 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-// GET /api/matches/:id — Match detail with RSVPs, stats, canSubmitPostGame
+// GET /api/matches/:id - Match detail with RSVPs, stats, canSubmitPostGame
 export async function GET(request: Request, { params }: RouteParams) {
   const { session, error } = await requireAuth();
   if (error) return error;
@@ -92,7 +92,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   });
 }
 
-// PATCH /api/matches/:id — Update match (ADMIN only)
+// PATCH /api/matches/:id - Update match (ADMIN only)
 export async function PATCH(request: Request, { params }: RouteParams) {
   const { session, error } = await requireAdmin();
   if (error) return error;
@@ -378,7 +378,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   return buildMatchDetailResponse(updated);
 }
 
-// DELETE /api/matches/:id — Delete match (ADMIN only)
+// DELETE /api/matches/:id - Delete match (ADMIN only)
 export async function DELETE(request: Request, { params }: RouteParams) {
   const { session, error } = await requireAdmin();
   if (error) return error;
