@@ -21,13 +21,15 @@ export function RecapShareActions({
 }: RecapShareActionsProps) {
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  const recapRouteSegment = entityType === "match" ? "team-recap" : "player-recap";
+
   const recapUrl = useMemo(() => {
     if (typeof window === "undefined") {
-      return `/api/og/${entityType}-recap/${entityId}`;
+      return `/api/og/${recapRouteSegment}/${entityId}`;
     }
 
-    return `${window.location.origin}/api/og/${entityType}-recap/${entityId}`;
-  }, [entityType, entityId]);
+    return `${window.location.origin}/api/og/${recapRouteSegment}/${entityId}`;
+  }, [recapRouteSegment, entityId]);
 
   function track(ctaType: "open_card" | "copy_link" | "whatsapp_share") {
     fetch("/api/telemetry/event", {
