@@ -1,3 +1,4 @@
+import { ImageResponse } from "next/og";
 import { buildPlayerRecap } from "@/lib/player-recap";
 import { safeHex } from "../../route-utils";
 import { trackOperationalEvent } from "@/lib/telemetry";
@@ -8,23 +9,19 @@ interface RouteContext {
   params: Promise<{ playerId: string }>;
 }
 
-function escapeXml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
+function resolveAssetUrl(path: string | null | undefined, requestUrl: string) {
+  if (!path) return null;
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
 
-function svgResponse(svg: string, status = 200) {
-  return new Response(svg, {
-    status,
-    headers: {
-      "Content-Type": "image/svg+xml; charset=utf-8",
-      "Cache-Control": "public, max-age=300, s-maxage=900",
-    },
-  });
+  const origin =
+    (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "") ||
+    new URL(requestUrl).origin;
+
+  if (!path.startsWith("/")) {
+    return `${origin}/${path}`;
+  }
+
+  return `${origin}${path}`;
 }
 
 function cut(value: string, max: number) {
@@ -32,7 +29,7 @@ function cut(value: string, max: number) {
   return `${value.slice(0, max - 1)}...`;
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const { playerId } = await context.params;
 
   try {
@@ -54,56 +51,157 @@ export async function GET(_request: Request, context: RouteContext) {
       matches: recap.career.matches,
     });
 
-    const playerName = escapeXml(cut(recap.player.name, 28));
-    const teamName = escapeXml(cut(recap.team.name, 42));
-    const badge = escapeXml(cut(recentBadge, 44));
+    const photoUrl =
+      resolveAssetUrl(recap.player.photoUrl, request.url) ||
+      resolveAssetUrl(recap.team.badgeUrl, request.url);
 
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-        <defs>
-          <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="${primary}" />
-            <stop offset="100%" stop-color="${secondary}" />
-          </linearGradient>
-          <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="rgba(255,255,255,0.22)" />
-            <stop offset="100%" stop-color="rgba(255,255,255,0.08)" />
-          </linearGradient>
-        </defs>
-        <rect width="1200" height="630" fill="url(#bg)" />
-        <circle cx="1080" cy="-80" r="320" fill="rgba(255,255,255,0.08)" />
-        <circle cx="130" cy="140" r="220" fill="rgba(255,255,255,0.10)" />
-        <rect x="36" y="34" width="1128" height="562" rx="30" fill="rgba(0,0,0,0.14)" />
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            width: "1200px",
+            height: "630px",
+            display: "flex",
+            position: "relative",
+            fontFamily: "Arial, sans-serif",
+            color: "white",
+            background: `linear-gradient(130deg, ${primary} 0%, ${secondary} 100%)`,
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              inset: "0",
+              display: "flex",
+              background:
+                "radial-gradient(circle at 15% 20%, rgba(255,255,255,0.2), transparent 34%), radial-gradient(circle at 82% 0%, rgba(255,255,255,0.14), transparent 36%)",
+            }}
+          />
 
-        <text x="76" y="92" fill="white" font-family="Arial, sans-serif" font-size="20" letter-spacing="3" opacity="0.86">PLAYER RECAP</text>
-        <text x="76" y="188" fill="white" font-family="Arial, sans-serif" font-size="72" font-weight="900">${playerName}</text>
-        <text x="76" y="236" fill="white" font-family="Arial, sans-serif" font-size="32" opacity="0.92">${teamName}</text>
+          <div
+            style={{
+              margin: "36px",
+              borderRadius: "30px",
+              display: "flex",
+              width: "calc(100% - 72px)",
+              height: "calc(100% - 72px)",
+              padding: "40px",
+              background: "rgba(0,0,0,0.18)",
+              justifyContent: "space-between",
+              alignItems: "stretch",
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", width: "68%", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div style={{ display: "flex", fontSize: "20px", letterSpacing: "0.16em", opacity: 0.84 }}>
+                  PLAYER RECAP
+                </div>
+                <div style={{ display: "flex", fontSize: "72px", fontWeight: 900, lineHeight: 1.02 }}>
+                  {cut(recap.player.name, 26)}
+                </div>
+                <div style={{ display: "flex", fontSize: "32px", opacity: 0.92 }}>
+                  {cut(recap.team.name, 40)}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    marginTop: "8px",
+                    borderRadius: "999px",
+                    background: "rgba(255,255,255,0.16)",
+                    padding: "10px 16px",
+                    fontSize: "19px",
+                  }}
+                >
+                  Ultimos jogos: {cut(recentBadge, 44)}
+                </div>
+              </div>
 
-        <rect x="76" y="276" width="380" height="44" rx="22" fill="url(#glass)" />
-        <text x="98" y="305" fill="white" font-family="Arial, sans-serif" font-size="20" opacity="0.95">Ultimos jogos: ${badge}</text>
+              <div style={{ display: "flex", gap: "16px" }}>
+                {[
+                  { label: "Partidas", value: recap.career.matches },
+                  { label: "Gols", value: recap.career.goals },
+                  { label: "Assistencias", value: recap.career.assists },
+                ].map((metric) => (
+                  <div
+                    key={metric.label}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      width: "188px",
+                      borderRadius: "20px",
+                      background: "rgba(255,255,255,0.16)",
+                      padding: "16px 18px",
+                    }}
+                  >
+                    <div style={{ display: "flex", fontSize: "19px", opacity: 0.88 }}>{metric.label}</div>
+                    <div style={{ display: "flex", marginTop: "8px", fontSize: "58px", fontWeight: 800 }}>
+                      {metric.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-        <rect x="76" y="422" width="312" height="132" rx="20" fill="rgba(255,255,255,0.16)" />
-        <rect x="444" y="422" width="312" height="132" rx="20" fill="rgba(255,255,255,0.16)" />
-        <rect x="812" y="422" width="312" height="132" rx="20" fill="rgba(255,255,255,0.16)" />
-
-        <text x="104" y="462" fill="white" font-family="Arial, sans-serif" font-size="20" opacity="0.88">Partidas</text>
-        <text x="104" y="526" fill="white" font-family="Arial, sans-serif" font-size="64" font-weight="800">${recap.career.matches}</text>
-
-        <text x="472" y="462" fill="white" font-family="Arial, sans-serif" font-size="20" opacity="0.88">Gols</text>
-        <text x="472" y="526" fill="white" font-family="Arial, sans-serif" font-size="64" font-weight="800">${recap.career.goals}</text>
-
-        <text x="840" y="462" fill="white" font-family="Arial, sans-serif" font-size="20" opacity="0.88">Assistencias</text>
-        <text x="840" y="526" fill="white" font-family="Arial, sans-serif" font-size="64" font-weight="800">${recap.career.assists}</text>
-
-        <text x="76" y="585" fill="white" font-family="Arial, sans-serif" font-size="16" opacity="0.70">Generated by VARzea</text>
-        <text x="1002" y="585" text-anchor="end" fill="white" font-family="Arial, sans-serif" font-size="16" opacity="0.70">player summary</text>
-      </svg>
-    `;
-
-    return svgResponse(svg);
+            <div
+              style={{
+                display: "flex",
+                width: "28%",
+                borderRadius: "28px",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(255,255,255,0.14)",
+                overflow: "hidden",
+              }}
+            >
+              {photoUrl ? (
+                <img
+                  src={photoUrl}
+                  alt={recap.player.name}
+                  style={{
+                    display: "flex",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+              ) : (
+                <div style={{ display: "flex", fontSize: "64px", fontWeight: 800, opacity: 0.86 }}>
+                  {recap.player.name.slice(0, 2).toUpperCase()}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ),
+      {
+        width: 1200,
+        height: 630,
+      }
+    );
   } catch {
-    return svgResponse(
-      `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#0f172a"/><text x="600" y="320" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="48" font-weight="700">Recap indisponivel no momento</text></svg>`
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            width: "1200px",
+            height: "630px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#0f172a",
+            color: "white",
+            fontFamily: "Arial, sans-serif",
+            fontSize: "46px",
+            fontWeight: 700,
+          }}
+        >
+          Recap indisponivel no momento
+        </div>
+      ),
+      {
+        width: 1200,
+        height: 630,
+      }
     );
   }
 }

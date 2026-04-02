@@ -7,6 +7,7 @@ export async function buildPlayerRecap(playerId: string) {
       id: true,
       name: true,
       position: true,
+      photoUrl: true,
       team: {
         select: {
           id: true,
@@ -87,6 +88,7 @@ export async function buildPlayerRecap(playerId: string) {
       id: player.id,
       name: player.name,
       position: player.position,
+      photoUrl: player.photoUrl,
     },
     team: player.team,
     career: {
