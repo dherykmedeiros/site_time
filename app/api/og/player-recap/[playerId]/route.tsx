@@ -1,4 +1,3 @@
-import { ImageResponse } from "next/og";
 import { buildPlayerRecap } from "@/lib/player-recap";
 import { safeHex } from "../../route-utils";
 import { trackOperationalEvent } from "@/lib/telemetry";
@@ -7,6 +6,25 @@ export const runtime = "nodejs";
 
 interface RouteContext {
   params: Promise<{ playerId: string }>;
+}
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function svgResponse(svg: string, status = 200) {
+  return new Response(svg, {
+    status,
+    headers: {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Cache-Control": "public, max-age=300, s-maxage=900",
+    },
+  });
 }
 
 export async function GET(_request: Request, context: RouteContext) {
@@ -31,86 +49,43 @@ export async function GET(_request: Request, context: RouteContext) {
       matches: recap.career.matches,
     });
 
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            width: "1200px",
-            height: "630px",
-            display: "flex",
-            color: "white",
-            fontFamily: "sans-serif",
-            background: `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`,
-          }}
-        >
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              padding: "48px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              background: "radial-gradient(circle at 15% 20%, rgba(255,255,255,0.20), transparent 36%)",
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <div style={{ fontSize: "20px", letterSpacing: "0.14em", opacity: 0.78 }}>
-                PLAYER RECAP
-              </div>
-              <div style={{ fontSize: "62px", fontWeight: 900, lineHeight: 1 }}>
-                {recap.player.name}
-              </div>
-              <div style={{ fontSize: "24px", opacity: 0.85 }}>
-                {recap.team.name}
-              </div>
-            </div>
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+        <defs>
+          <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="${primary}" />
+            <stop offset="100%" stop-color="${secondary}" />
+          </linearGradient>
+        </defs>
+        <rect width="1200" height="630" fill="url(#bg)" />
+        <circle cx="180" cy="120" r="200" fill="rgba(255,255,255,0.15)" />
 
-            <div style={{ display: "flex", gap: "18px" }}>
-              <div style={{ display: "flex", flexDirection: "column", borderRadius: "18px", background: "rgba(255,255,255,0.12)", padding: "16px 20px" }}>
-                <div style={{ fontSize: "14px", opacity: 0.78 }}>Partidas</div>
-                <div style={{ fontSize: "34px", fontWeight: 800 }}>{recap.career.matches}</div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", borderRadius: "18px", background: "rgba(255,255,255,0.12)", padding: "16px 20px" }}>
-                <div style={{ fontSize: "14px", opacity: 0.78 }}>Gols</div>
-                <div style={{ fontSize: "34px", fontWeight: 800 }}>{recap.career.goals}</div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", borderRadius: "18px", background: "rgba(255,255,255,0.12)", padding: "16px 20px" }}>
-                <div style={{ fontSize: "14px", opacity: 0.78 }}>Assistencias</div>
-                <div style={{ fontSize: "34px", fontWeight: 800 }}>{recap.career.assists}</div>
-              </div>
-            </div>
+        <text x="64" y="72" fill="white" font-family="Arial, sans-serif" font-size="20" letter-spacing="2" opacity="0.8">PLAYER RECAP</text>
+        <text x="64" y="160" fill="white" font-family="Arial, sans-serif" font-size="64" font-weight="900">${escapeXml(recap.player.name)}</text>
+        <text x="64" y="205" fill="white" font-family="Arial, sans-serif" font-size="26" opacity="0.9">${escapeXml(recap.team.name)}</text>
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ fontSize: "18px", opacity: 0.9 }}>{recentBadge}</div>
-              <div style={{ fontSize: "14px", opacity: 0.64 }}>VARzea recap</div>
-            </div>
-          </div>
-        </div>
-      ),
-      { width: 1200, height: 630 }
-    );
+        <rect x="64" y="292" width="220" height="110" rx="18" fill="rgba(255,255,255,0.14)" />
+        <rect x="304" y="292" width="220" height="110" rx="18" fill="rgba(255,255,255,0.14)" />
+        <rect x="544" y="292" width="220" height="110" rx="18" fill="rgba(255,255,255,0.14)" />
+
+        <text x="84" y="325" fill="white" font-family="Arial, sans-serif" font-size="16" opacity="0.85">Partidas</text>
+        <text x="84" y="372" fill="white" font-family="Arial, sans-serif" font-size="40" font-weight="800">${recap.career.matches}</text>
+
+        <text x="324" y="325" fill="white" font-family="Arial, sans-serif" font-size="16" opacity="0.85">Gols</text>
+        <text x="324" y="372" fill="white" font-family="Arial, sans-serif" font-size="40" font-weight="800">${recap.career.goals}</text>
+
+        <text x="564" y="325" fill="white" font-family="Arial, sans-serif" font-size="16" opacity="0.85">Assistencias</text>
+        <text x="564" y="372" fill="white" font-family="Arial, sans-serif" font-size="40" font-weight="800">${recap.career.assists}</text>
+
+        <text x="64" y="560" fill="white" font-family="Arial, sans-serif" font-size="22" opacity="0.92">${escapeXml(recentBadge)}</text>
+        <text x="1020" y="560" fill="white" font-family="Arial, sans-serif" font-size="16" opacity="0.7">VARzea recap</text>
+      </svg>
+    `;
+
+    return svgResponse(svg);
   } catch {
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            width: "1200px",
-            height: "630px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "#0f172a",
-            color: "white",
-            fontSize: "44px",
-            fontWeight: 700,
-            fontFamily: "sans-serif",
-          }}
-        >
-          Recap indisponivel no momento
-        </div>
-      ),
-      { width: 1200, height: 630 }
+    return svgResponse(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#0f172a"/><text x="600" y="320" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="48" font-weight="700">Recap indisponivel no momento</text></svg>`
     );
   }
 }

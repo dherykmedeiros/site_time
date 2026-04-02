@@ -1,4 +1,3 @@
-import { ImageResponse } from "next/og";
 import { buildTeamRecap } from "@/lib/team-recap";
 import { safeHex } from "../../route-utils";
 import { trackOperationalEvent } from "@/lib/telemetry";
@@ -7,6 +6,25 @@ export const runtime = "nodejs";
 
 interface RouteContext {
   params: Promise<{ matchId: string }>;
+}
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function svgResponse(svg: string, status = 200) {
+  return new Response(svg, {
+    status,
+    headers: {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Cache-Control": "public, max-age=300, s-maxage=900",
+    },
+  });
 }
 
 function buildResultLabel(home: number, away: number) {
@@ -46,96 +64,42 @@ export async function GET(_request: Request, context: RouteContext) {
       awayScore: recap.match.awayScore,
     });
 
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            width: "1200px",
-            height: "630px",
-            display: "flex",
-            color: "white",
-            fontFamily: "sans-serif",
-            background: `linear-gradient(120deg, ${primary} 0%, ${secondary} 100%)`,
-          }}
-        >
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              padding: "44px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              background: "radial-gradient(circle at 82% 5%, rgba(255,255,255,0.20), transparent 35%)",
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <div style={{ fontSize: "20px", letterSpacing: "0.16em", opacity: 0.78 }}>TEAM RECAP</div>
-              <div style={{ fontSize: "50px", fontWeight: 900, lineHeight: 1.1 }}>{recap.team.name}</div>
-              <div style={{ fontSize: "24px", opacity: 0.86 }}>
-                vs {recap.match.opponent} · {dateLabel}
-              </div>
-            </div>
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+        <defs>
+          <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="${primary}" />
+            <stop offset="100%" stop-color="${secondary}" />
+          </linearGradient>
+        </defs>
+        <rect width="1200" height="630" fill="url(#bg)" />
+        <circle cx="1030" cy="80" r="190" fill="rgba(255,255,255,0.15)" />
 
-            <div style={{ display: "flex", alignItems: "center", gap: "22px" }}>
-              <div style={{ fontSize: "108px", fontWeight: 900, lineHeight: 1 }}>
-                {recap.match.homeScore}
-              </div>
-              <div style={{ fontSize: "58px", opacity: 0.65 }}>x</div>
-              <div style={{ fontSize: "108px", fontWeight: 900, lineHeight: 1, opacity: 0.8 }}>
-                {recap.match.awayScore}
-              </div>
-              <div
-                style={{
-                  marginLeft: "20px",
-                  borderRadius: "999px",
-                  padding: "10px 20px",
-                  background: "rgba(255,255,255,0.14)",
-                  fontSize: "18px",
-                  fontWeight: 700,
-                  letterSpacing: "0.08em",
-                }}
-              >
-                {resultLabel}
-              </div>
-            </div>
+        <text x="56" y="72" fill="white" font-family="Arial, sans-serif" font-size="20" letter-spacing="2" opacity="0.8">TEAM RECAP</text>
+        <text x="56" y="140" fill="white" font-family="Arial, sans-serif" font-size="54" font-weight="900">${escapeXml(recap.team.name)}</text>
+        <text x="56" y="185" fill="white" font-family="Arial, sans-serif" font-size="26" opacity="0.9">vs ${escapeXml(recap.match.opponent)} · ${escapeXml(dateLabel)}</text>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <div style={{ display: "flex", flexDirection: "column", borderRadius: "16px", background: "rgba(255,255,255,0.10)", padding: "14px 16px" }}>
-                <div style={{ fontSize: "14px", opacity: 0.75 }}>Artilheiro</div>
-                <div style={{ marginTop: "4px", fontSize: "20px", fontWeight: 700 }}>{topScorerLabel}</div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", borderRadius: "16px", background: "rgba(255,255,255,0.10)", padding: "14px 16px" }}>
-                <div style={{ fontSize: "14px", opacity: 0.75 }}>Lider em assistencias</div>
-                <div style={{ marginTop: "4px", fontSize: "20px", fontWeight: 700 }}>{topAssistantLabel}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ),
-      { width: 1200, height: 630 }
-    );
+        <text x="56" y="350" fill="white" font-family="Arial, sans-serif" font-size="112" font-weight="900">${recap.match.homeScore}</text>
+        <text x="180" y="350" fill="white" font-family="Arial, sans-serif" font-size="60" opacity="0.7">x</text>
+        <text x="240" y="350" fill="white" font-family="Arial, sans-serif" font-size="112" font-weight="900" opacity="0.85">${recap.match.awayScore}</text>
+
+        <rect x="430" y="285" width="240" height="52" rx="26" fill="rgba(255,255,255,0.16)" />
+        <text x="550" y="318" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="1">${escapeXml(resultLabel)}</text>
+
+        <rect x="56" y="430" width="530" height="120" rx="16" fill="rgba(255,255,255,0.12)" />
+        <text x="78" y="464" fill="white" font-family="Arial, sans-serif" font-size="15" opacity="0.82">Artilheiro</text>
+        <text x="78" y="505" fill="white" font-family="Arial, sans-serif" font-size="30" font-weight="700">${escapeXml(topScorerLabel)}</text>
+
+        <rect x="614" y="430" width="530" height="120" rx="16" fill="rgba(255,255,255,0.12)" />
+        <text x="636" y="464" fill="white" font-family="Arial, sans-serif" font-size="15" opacity="0.82">Lider em assistencias</text>
+        <text x="636" y="505" fill="white" font-family="Arial, sans-serif" font-size="30" font-weight="700">${escapeXml(topAssistantLabel)}</text>
+      </svg>
+    `;
+
+    return svgResponse(svg);
   } catch {
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            width: "1200px",
-            height: "630px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "#0f172a",
-            color: "white",
-            fontSize: "44px",
-            fontWeight: 700,
-            fontFamily: "sans-serif",
-          }}
-        >
-          Recap indisponivel no momento
-        </div>
-      ),
-      { width: 1200, height: 630 }
+    return svgResponse(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#0f172a"/><text x="600" y="320" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="48" font-weight="700">Recap indisponivel no momento</text></svg>`
     );
   }
 }
