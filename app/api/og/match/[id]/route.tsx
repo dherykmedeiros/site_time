@@ -135,7 +135,6 @@ export async function GET(request: Request, context: RouteContext) {
             height: 570,
             padding: "26px 28px",
             background: "rgba(2,6,23,0.42)",
-            border: "1px solid rgba(255,255,255,0.16)",
             justifyContent: "space-between",
           }}
         >
