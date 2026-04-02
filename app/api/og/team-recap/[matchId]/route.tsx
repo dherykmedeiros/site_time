@@ -143,8 +143,17 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
           justifyContent: "space-between",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "14px" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "26px" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+              flex: 1,
+              minWidth: 0,
+              maxWidth: "calc(100% - 290px)",
+            }}
+          >
             <div style={{ display: "flex", fontSize: "17px", letterSpacing: "0.16em", opacity: 0.84 }}>
               MATCHDAY RECAP
             </div>
@@ -174,6 +183,7 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
               justifyContent: "center",
               fontWeight: 700,
               minWidth: "250px",
+              flexShrink: 0,
             }}
           >
             {match.status.phase} | {match.status.result}
@@ -216,11 +226,22 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
             background: "linear-gradient(180deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.10) 100%)",
             padding: "18px 24px",
             justifyContent: "space-between",
-            alignItems: "center",
+            alignItems: "stretch",
             border: "1px solid rgba(255,255,255,0.2)",
+            minHeight: "330px",
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "300px", gap: "8px" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              flex: "0 0 45%",
+              maxWidth: "45%",
+              minWidth: 0,
+              height: "100%",
+            }}
+          >
             <div style={{ display: "flex", fontSize: "13px", letterSpacing: "0.14em", opacity: 0.78 }}>CASA</div>
             <div
               style={{
@@ -258,9 +279,12 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
                 fontSize: `${homeNameSize}px`,
                 opacity: 0.94,
                 fontWeight: 700,
-                maxWidth: "320px",
+                maxWidth: "100%",
                 textAlign: "center",
                 justifyContent: "center",
+                lineHeight: 1.08,
+                minHeight: "84px",
+                alignItems: "center",
               }}
             >
               {match.home.name}
@@ -268,13 +292,16 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
             <div
               style={{
                 display: "flex",
-                width: "220px",
+                width: "100%",
                 justifyContent: "center",
-                alignItems: "center",
+                alignItems: "flex-end",
                 fontSize: "156px",
-                lineHeight: 1,
+                lineHeight: 0.88,
                 fontWeight: 900,
                 fontVariantNumeric: "tabular-nums",
+                marginTop: "auto",
+                minHeight: "168px",
+                textAlign: "center",
               }}
             >
               {match.goals.home}
@@ -294,12 +321,24 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
               justifyContent: "center",
               background: "rgba(2,6,23,0.28)",
               border: "1px solid rgba(255,255,255,0.18)",
+              flex: "0 0 10%",
+              alignSelf: "center",
             }}
           >
             X
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "300px", gap: "8px" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              flex: "0 0 45%",
+              maxWidth: "45%",
+              minWidth: 0,
+              height: "100%",
+            }}
+          >
             <div style={{ display: "flex", fontSize: "13px", letterSpacing: "0.14em", opacity: 0.78 }}>VISITANTE</div>
             <div
               style={{
@@ -337,9 +376,12 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
                 fontSize: `${awayNameSize}px`,
                 opacity: 0.94,
                 fontWeight: 700,
-                maxWidth: "320px",
+                maxWidth: "100%",
                 textAlign: "center",
                 justifyContent: "center",
+                lineHeight: 1.08,
+                minHeight: "84px",
+                alignItems: "center",
               }}
             >
               {match.away.name}
@@ -347,13 +389,16 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
             <div
               style={{
                 display: "flex",
-                width: "220px",
+                width: "100%",
                 justifyContent: "center",
-                alignItems: "center",
+                alignItems: "flex-end",
                 fontSize: "156px",
-                lineHeight: 1,
+                lineHeight: 0.88,
                 fontWeight: 900,
                 fontVariantNumeric: "tabular-nums",
+                marginTop: "auto",
+                minHeight: "168px",
+                textAlign: "center",
               }}
             >
               {match.goals.away}
