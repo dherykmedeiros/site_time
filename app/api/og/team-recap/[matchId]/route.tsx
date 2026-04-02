@@ -578,30 +578,36 @@ export async function GET(request: Request, context: RouteContext) {
         height: 630,
       }
     );
-  } catch {
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            width: "1200px",
-            height: "630px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "#0f172a",
-            color: "white",
-            fontFamily: "Arial, sans-serif",
-            fontSize: "46px",
-            fontWeight: 700,
-          }}
-        >
-          Recap indisponivel no momento
-        </div>
-      ),
-      {
-        width: 1200,
-        height: 630,
-      }
-    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown_error";
+    trackOperationalEvent("recap_team_card_failed", {
+      matchId,
+      message,
+    });
+
+    const fallbackSvg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)" />
+  <text x="600" y="290" fill="#e2e8f0" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700">
+    Matchday Recap
+  </text>
+  <text x="600" y="345" fill="#94a3b8" text-anchor="middle" font-family="Arial, sans-serif" font-size="30">
+    Recap indisponivel no momento
+  </text>
+</svg>`;
+
+    return new Response(fallbackSvg.trim(), {
+      status: 200,
+      headers: {
+        "Content-Type": "image/svg+xml; charset=utf-8",
+        "Cache-Control": "public, max-age=60",
+      },
+    });
   }
 }
