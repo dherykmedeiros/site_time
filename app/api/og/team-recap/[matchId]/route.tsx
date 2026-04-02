@@ -255,10 +255,7 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
               minWidth: 0,
               borderRadius: "22px",
               padding: "8px 12px",
-              background:
-                match.status.result === "DERROTA" && match.teamSide === "HOME"
-                  ? "linear-gradient(180deg, rgba(148,163,184,0.16) 0%, rgba(30,41,59,0.10) 100%)"
-                  : "transparent",
+              background: "transparent",
             }}
           >
             <div style={{ display: "flex", fontSize: "13px", letterSpacing: "0.14em", opacity: 0.78 }}>CASA</div>
@@ -318,6 +315,7 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
                 alignItems: "center",
                 fontSize: "150px",
                 lineHeight: 1,
+                margin: 0,
                 fontWeight: 900,
                 fontVariantNumeric: "tabular-nums",
                 fontFamily: "Roboto Mono, Menlo, Consolas, monospace",
@@ -370,10 +368,7 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
               minWidth: 0,
               borderRadius: "22px",
               padding: "8px 12px",
-              background:
-                match.status.result === "DERROTA" && match.teamSide === "AWAY"
-                  ? "linear-gradient(180deg, rgba(148,163,184,0.16) 0%, rgba(30,41,59,0.10) 100%)"
-                  : "transparent",
+              background: "transparent",
             }}
           >
             <div style={{ display: "flex", fontSize: "13px", letterSpacing: "0.14em", opacity: 0.78 }}>VISITANTE</div>
@@ -433,6 +428,7 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
                 alignItems: "center",
                 fontSize: "150px",
                 lineHeight: 1,
+                margin: 0,
                 fontWeight: 900,
                 fontVariantNumeric: "tabular-nums",
                 fontFamily: "Roboto Mono, Menlo, Consolas, monospace",
