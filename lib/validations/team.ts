@@ -14,6 +14,13 @@ export const createTeamSchema = z.object({
     .string()
     .min(2, "Nome deve ter no mínimo 2 caracteres")
     .max(100, "Nome deve ter no máximo 100 caracteres"),
+  shortName: z
+    .string()
+    .trim()
+    .min(2, "Sigla deve ter no mínimo 2 caracteres")
+    .max(6, "Sigla deve ter no máximo 6 caracteres")
+    .regex(/^[A-Za-z0-9]+$/, "Sigla deve conter apenas letras e números")
+    .optional(),
   description: z
     .string()
     .max(500, "Descrição deve ter no máximo 500 caracteres")
@@ -39,6 +46,14 @@ export const updateTeamSchema = z.object({
     .min(2, "Nome deve ter no mínimo 2 caracteres")
     .max(100, "Nome deve ter no máximo 100 caracteres")
     .optional(),
+  shortName: z
+    .string()
+    .trim()
+    .min(2, "Sigla deve ter no mínimo 2 caracteres")
+    .max(6, "Sigla deve ter no máximo 6 caracteres")
+    .regex(/^[A-Za-z0-9]+$/, "Sigla deve conter apenas letras e números")
+    .optional()
+    .nullable(),
   description: z
     .string()
     .max(500, "Descrição deve ter no máximo 500 caracteres")

@@ -62,6 +62,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     date: match.date.toISOString(),
     venue: match.venue,
     opponent: match.opponent,
+    isHome: match.isHome,
     opponentBadgeUrl: match.opponentBadgeUrl,
     type: match.type,
     homeScore: match.homeScore,
@@ -139,6 +140,91 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 
   const data = parsed.data;
+
+  if (match.status === "CANCELLED") {
+    return NextResponse.json(
+      {
+        error: "Partidas canceladas nao podem ser editadas",
+        code: "MATCH_CANCELLED_LOCKED",
+      },
+      { status: 400 }
+    );
+  }
+
+  if (match.status === "COMPLETED") {
+    const hasLockedFieldUpdate =
+      data.date !== undefined ||
+      data.venue !== undefined ||
+      data.opponent !== undefined ||
+      data.type !== undefined ||
+      data.isHome !== undefined ||
+      data.seasonId !== undefined ||
+      data.positionLimits !== undefined ||
+      data.status !== undefined ||
+      data.homeScore !== undefined ||
+      data.awayScore !== undefined;
+
+    if (hasLockedFieldUpdate) {
+      return NextResponse.json(
+        {
+          error:
+            "No pós-jogo apenas estatisticas podem ser alteradas e o escudo do adversario pode ser adicionado se estiver vazio",
+          code: "POSTGAME_RESTRICTED_EDIT",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (data.opponentBadgeUrl !== undefined) {
+      if (match.opponentBadgeUrl) {
+        return NextResponse.json(
+          {
+            error: "Escudo do adversario ja foi definido para esta partida",
+            code: "OPPONENT_BADGE_ALREADY_SET",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (!data.opponentBadgeUrl) {
+        return NextResponse.json(
+          {
+            error: "Informe uma URL valida para o escudo do adversario",
+            code: "OPPONENT_BADGE_REQUIRED",
+          },
+          { status: 400 }
+        );
+      }
+
+      const updated = await prisma.match.update({
+        where: { id },
+        data: { opponentBadgeUrl: data.opponentBadgeUrl },
+        include: {
+          rsvps: {
+            include: { player: { select: { name: true } } },
+          },
+          matchStats: {
+            include: { player: { select: { name: true } } },
+          },
+          positionLimits: {
+            select: { position: true, maxPlayers: true },
+          },
+          team: { select: { slug: true } },
+          season: { select: { id: true, name: true, type: true, status: true } },
+        },
+      });
+
+      return buildMatchDetailResponse(updated);
+    }
+
+    return NextResponse.json(
+      {
+        error: "Nenhum campo elegivel para edicao no pos-jogo foi enviado",
+        code: "NO_POSTGAME_CHANGES",
+      },
+      { status: 400 }
+    );
+  }
 
   if (data.positionLimits) {
     const uniquePositions = new Set(data.positionLimits.map((l) => l.position));
@@ -242,6 +328,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   if (data.date) updateData.date = new Date(data.date);
   if (data.venue) updateData.venue = data.venue;
   if (data.opponent) updateData.opponent = data.opponent;
+  if (data.isHome !== undefined) updateData.isHome = data.isHome;
   if (data.opponentBadgeUrl !== undefined) updateData.opponentBadgeUrl = data.opponentBadgeUrl;
   if (data.type) updateData.type = data.type;
   if (data.seasonId !== undefined) updateData.seasonId = data.seasonId;
@@ -341,6 +428,7 @@ function buildMatchDetailResponse(
     date: Date;
     venue: string;
     opponent: string;
+    isHome: boolean;
     opponentBadgeUrl: string | null;
     type: string;
     homeScore: number | null;
@@ -378,6 +466,7 @@ function buildMatchDetailResponse(
     date: match.date.toISOString(),
     venue: match.venue,
     opponent: match.opponent,
+    isHome: match.isHome,
     opponentBadgeUrl: match.opponentBadgeUrl,
     type: match.type,
     homeScore: match.homeScore,

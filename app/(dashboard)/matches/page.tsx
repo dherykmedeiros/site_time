@@ -20,6 +20,8 @@ interface MatchSummary {
   date: string;
   venue: string;
   opponent: string;
+  isHome: boolean;
+  opponentBadgeUrl: string | null;
   type: "FRIENDLY" | "CHAMPIONSHIP";
   homeScore: number | null;
   awayScore: number | null;

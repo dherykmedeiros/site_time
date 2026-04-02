@@ -48,6 +48,7 @@ interface MatchFormProps {
     date?: string;
     venue?: string;
     opponent?: string;
+    isHome?: boolean;
     opponentBadgeUrl?: string | null;
     type?: string;
     seasonId?: string;
@@ -90,6 +91,10 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
   });
 
   useEffect(() => {
+    register("isHome");
+  }, [register]);
+
+  useEffect(() => {
     fetch("/api/seasons")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
@@ -113,6 +118,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<CreateMatchInput>({
     resolver: zodResolver(createMatchSchema),
@@ -120,6 +126,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
       date: formatDateForInput(defaultValues?.date) || "",
       venue: defaultValues?.venue || "",
       opponent: defaultValues?.opponent || "",
+      isHome: defaultValues?.isHome ?? true,
       opponentBadgeUrl: defaultValues?.opponentBadgeUrl || "",
       type: (defaultValues?.type as "FRIENDLY" | "CHAMPIONSHIP") || undefined,
     },
@@ -345,6 +352,16 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         placeholder="Nome do time adversário"
         error={errors.opponent?.message}
         {...register("opponent")}
+      />
+
+      <Select
+        label="Mando de campo"
+        options={[
+          { value: "home", label: "Casa" },
+          { value: "away", label: "Visitante" },
+        ]}
+        value={watch("isHome") === false ? "away" : "home"}
+        onChange={(e) => setValue("isHome", e.target.value === "home", { shouldValidate: true })}
       />
 
       <Input

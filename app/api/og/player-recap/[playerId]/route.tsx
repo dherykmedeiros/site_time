@@ -44,6 +44,7 @@ export async function GET(request: Request, context: RouteContext) {
     const recentBadge = recap.lastFive.matches > 0
       ? `${recap.lastFive.goals}G ${recap.lastFive.assists}A nos ultimos ${recap.lastFive.matches}`
       : "Sem partidas recentes";
+    const teamLabel = recap.team.shortName || cut(recap.team.name, 40);
 
     trackOperationalEvent("recap_player_card_viewed", {
       playerId,
@@ -100,7 +101,7 @@ export async function GET(request: Request, context: RouteContext) {
                   {cut(recap.player.name, 26)}
                 </div>
                 <div style={{ display: "flex", fontSize: "32px", opacity: 0.92 }}>
-                  {cut(recap.team.name, 40)}
+                  {teamLabel}
                 </div>
                 <div
                   style={{

@@ -41,6 +41,7 @@ export const createMatchSchema = z.object({
     .string()
     .min(2, "Adversário deve ter no mínimo 2 caracteres")
     .max(100, "Adversário deve ter no máximo 100 caracteres"),
+  isHome: z.boolean().optional(),
   opponentBadgeUrl: optionalBadgeUrlSchema,
   type: z.enum(["FRIENDLY", "CHAMPIONSHIP"], {
     message: "Tipo inválido",
@@ -64,6 +65,7 @@ export const updateMatchSchema = z.object({
     .min(2, "Adversário deve ter no mínimo 2 caracteres")
     .max(100, "Adversário deve ter no máximo 100 caracteres")
     .optional(),
+  isHome: z.boolean().optional(),
   opponentBadgeUrl: optionalBadgeUrlSchema,
   type: z
     .enum(["FRIENDLY", "CHAMPIONSHIP"], {

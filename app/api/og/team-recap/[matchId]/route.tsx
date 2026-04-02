@@ -47,7 +47,9 @@ export async function GET(request: Request, context: RouteContext) {
 
     const primary = safeHex(recap.team.primaryColor, "#1d7a61");
     const secondary = safeHex(recap.team.secondaryColor, "#0f172a");
-    const resultLabel = buildResultLabel(recap.match.homeScore, recap.match.awayScore);
+    const teamGoals = recap.match.isHome ? recap.match.homeScore : recap.match.awayScore;
+    const opponentGoals = recap.match.isHome ? recap.match.awayScore : recap.match.homeScore;
+    const resultLabel = buildResultLabel(teamGoals, opponentGoals);
     const dateLabel = new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
     }).format(recap.match.date);
@@ -75,6 +77,14 @@ export async function GET(request: Request, context: RouteContext) {
 
     const teamBadgeUrl = resolveAssetUrl(recap.team.badgeUrl, request.url);
     const opponentBadgeUrl = resolveAssetUrl(recap.match.opponentBadgeUrl, request.url);
+    const teamLabel = recap.team.shortName || cut(recap.team.name, 16);
+    const opponentLabel = cut(recap.match.opponent, 16);
+    const homeName = recap.match.isHome ? teamLabel : opponentLabel;
+    const awayName = recap.match.isHome ? opponentLabel : teamLabel;
+    const homeBadge = recap.match.isHome ? teamBadgeUrl : opponentBadgeUrl;
+    const awayBadge = recap.match.isHome ? opponentBadgeUrl : teamBadgeUrl;
+    const homeScore = recap.match.homeScore;
+    const awayScore = recap.match.awayScore;
     const recentFormLabel =
       recap.recentForm.matches > 0
         ? `${recap.recentForm.wins}V ${recap.recentForm.draws}E ${recap.recentForm.losses}D | ${recap.recentForm.goalsFor} GF ${recap.recentForm.goalsAgainst} GA`
@@ -173,7 +183,7 @@ export async function GET(request: Request, context: RouteContext) {
                   fontWeight: 700,
                 }}
               >
-                {resultLabel}
+                  Resultado: {resultLabel}
               </div>
               <div
                 style={{
@@ -200,6 +210,7 @@ export async function GET(request: Request, context: RouteContext) {
               }}
             >
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "300px", gap: "6px" }}>
+                <div style={{ display: "flex", fontSize: "14px", letterSpacing: "0.12em", opacity: 0.72 }}>CASA</div>
                 <div
                   style={{
                     display: "flex",
@@ -212,10 +223,10 @@ export async function GET(request: Request, context: RouteContext) {
                     overflow: "hidden",
                   }}
                 >
-                  {teamBadgeUrl ? (
+                  {homeBadge ? (
                     <img
-                      src={teamBadgeUrl}
-                      alt={recap.team.name}
+                      src={homeBadge}
+                      alt={homeName}
                       style={{
                         display: "flex",
                         width: "100%",
@@ -225,17 +236,18 @@ export async function GET(request: Request, context: RouteContext) {
                     />
                   ) : (
                     <div style={{ display: "flex", fontSize: "22px", fontWeight: 800 }}>
-                      {recap.team.name.slice(0, 2).toUpperCase()}
+                      {homeName.slice(0, 2).toUpperCase()}
                     </div>
                   )}
                 </div>
-                <div style={{ display: "flex", fontSize: "22px", opacity: 0.86 }}>Nosso time</div>
-                <div style={{ display: "flex", fontSize: "108px", fontWeight: 900 }}>{recap.match.homeScore}</div>
+                <div style={{ display: "flex", fontSize: "22px", opacity: 0.86 }}>{homeName}</div>
+                <div style={{ display: "flex", fontSize: "108px", fontWeight: 900 }}>{homeScore}</div>
               </div>
 
               <div style={{ display: "flex", fontSize: "42px", fontWeight: 800, opacity: 0.86 }}>x</div>
 
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "300px", gap: "6px" }}>
+                <div style={{ display: "flex", fontSize: "14px", letterSpacing: "0.12em", opacity: 0.72 }}>VISITANTE</div>
                 <div
                   style={{
                     display: "flex",
@@ -248,10 +260,10 @@ export async function GET(request: Request, context: RouteContext) {
                     overflow: "hidden",
                   }}
                 >
-                  {opponentBadgeUrl ? (
+                  {awayBadge ? (
                     <img
-                      src={opponentBadgeUrl}
-                      alt={recap.match.opponent}
+                      src={awayBadge}
+                      alt={awayName}
                       style={{
                         display: "flex",
                         width: "100%",
@@ -261,12 +273,12 @@ export async function GET(request: Request, context: RouteContext) {
                     />
                   ) : (
                     <div style={{ display: "flex", fontSize: "22px", fontWeight: 800 }}>
-                      {recap.match.opponent.slice(0, 2).toUpperCase()}
+                      {awayName.slice(0, 2).toUpperCase()}
                     </div>
                   )}
                 </div>
-                <div style={{ display: "flex", fontSize: "22px", opacity: 0.86 }}>Adversario</div>
-                <div style={{ display: "flex", fontSize: "108px", fontWeight: 900 }}>{recap.match.awayScore}</div>
+                <div style={{ display: "flex", fontSize: "22px", opacity: 0.86 }}>{awayName}</div>
+                <div style={{ display: "flex", fontSize: "108px", fontWeight: 900 }}>{awayScore}</div>
               </div>
             </div>
 

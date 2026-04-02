@@ -201,3 +201,126 @@ export async function POST(request: Request, { params }: RouteParams) {
     { status: 201 }
   );
 }
+
+// PUT /api/matches/:id/stats — Replace stats for a completed match (ADMIN only)
+export async function PUT(request: Request, { params }: RouteParams) {
+  const { session, error } = await requireAdmin();
+  if (error) return error;
+
+  const { id: matchId } = await params;
+
+  if (!session.user.teamId) {
+    return NextResponse.json(
+      { error: "Usuário não possui time vinculado" },
+      { status: 404 }
+    );
+  }
+
+  const match = await prisma.match.findFirst({
+    where: { id: matchId, teamId: session.user.teamId },
+  });
+
+  if (!match) {
+    return NextResponse.json(
+      { error: "Partida não encontrada", code: "MATCH_NOT_FOUND" },
+      { status: 404 }
+    );
+  }
+
+  if (match.status !== "COMPLETED") {
+    return NextResponse.json(
+      {
+        error: "Somente partidas finalizadas podem ter estatísticas editadas",
+        code: "MATCH_NOT_COMPLETED",
+      },
+      { status: 400 }
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "JSON inválido", code: "VALIDATION_ERROR" },
+      { status: 400 }
+    );
+  }
+
+  const parsed = createMatchStatsSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: "Campos inválidos",
+        code: "VALIDATION_ERROR",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      { status: 400 }
+    );
+  }
+
+  const { stats } = parsed.data;
+  const playerIds = stats.map((s) => s.playerId);
+  const uniquePlayerIds = Array.from(new Set(playerIds));
+
+  if (uniquePlayerIds.length !== playerIds.length) {
+    return NextResponse.json(
+      {
+        error: "Jogadores duplicados na lista de estatísticas",
+        code: "DUPLICATE_PLAYER_STATS",
+      },
+      { status: 400 }
+    );
+  }
+
+  const players = await prisma.player.findMany({
+    where: { id: { in: uniquePlayerIds }, teamId: session.user.teamId },
+    select: { id: true },
+  });
+
+  const validPlayerIds = new Set(players.map((p) => p.id));
+  const invalidPlayerIds = uniquePlayerIds.filter((id) => !validPlayerIds.has(id));
+
+  if (invalidPlayerIds.length > 0) {
+    return NextResponse.json(
+      {
+        error: "Jogadores não encontrados no time",
+        code: "PLAYER_NOT_FOUND",
+        invalidPlayerIds,
+      },
+      { status: 404 }
+    );
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.matchStats.deleteMany({ where: { matchId } });
+
+    await tx.matchStats.createMany({
+      data: stats.map((s) => ({
+        playerId: s.playerId,
+        matchId,
+        goals: s.goals,
+        assists: s.assists,
+        yellowCards: s.yellowCards,
+        redCards: s.redCards,
+      })),
+    });
+  });
+
+  const updatedStats = await prisma.matchStats.findMany({
+    where: { matchId },
+  });
+
+  return NextResponse.json({
+    matchId,
+    updated: updatedStats.length,
+    stats: updatedStats.map((s) => ({
+      id: s.id,
+      playerId: s.playerId,
+      goals: s.goals,
+      assists: s.assists,
+      yellowCards: s.yellowCards,
+      redCards: s.redCards,
+    })),
+  });
+}

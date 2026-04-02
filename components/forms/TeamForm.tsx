@@ -11,6 +11,7 @@ import { updateTeamSchema, type UpdateTeamInput } from "@/lib/validations/team";
 interface TeamFormProps {
   defaultValues?: {
     name?: string;
+    shortName?: string;
     description?: string;
     primaryColor?: string;
     secondaryColor?: string;
@@ -38,6 +39,7 @@ export function TeamForm({ defaultValues, onSuccess, isCreating = false }: TeamF
     resolver: zodResolver(updateTeamSchema),
     defaultValues: {
       name: defaultValues?.name || "",
+      shortName: defaultValues?.shortName || "",
       description: defaultValues?.description || "",
       primaryColor: defaultValues?.primaryColor || "#0000FF",
       secondaryColor: defaultValues?.secondaryColor || "#FFFFFF",
@@ -102,6 +104,11 @@ export function TeamForm({ defaultValues, onSuccess, isCreating = false }: TeamF
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
+          shortName: data.shortName?.trim()
+            ? data.shortName.trim().toUpperCase()
+            : isCreating
+              ? undefined
+              : null,
           badgeUrl: badgePreview ?? undefined,
         }),
       });
@@ -175,6 +182,14 @@ export function TeamForm({ defaultValues, onSuccess, isCreating = false }: TeamF
         {...register("name")}
         error={errors.name?.message}
         placeholder="Ex: FC Amigos do Bairro"
+      />
+
+      <Input
+        label="Sigla do time"
+        {...register("shortName")}
+        error={errors.shortName?.message}
+        placeholder="Ex: MCA"
+        maxLength={6}
       />
 
       <Textarea

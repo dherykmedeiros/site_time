@@ -12,6 +12,7 @@ import { TeamForm } from "@/components/forms/TeamForm";
 interface TeamData {
   id?: string;
   name: string;
+  shortName: string | null;
   slug: string;
   description: string | null;
   primaryColor: string | null;
@@ -294,6 +295,7 @@ export default function TeamSettingsPage() {
               team
                 ? {
                     name: team.name,
+                    shortName: team.shortName || "",
                     description: team.description || "",
                     primaryColor: team.primaryColor || "#0c6f5d",
                     secondaryColor: team.secondaryColor || "#f6f8f5",

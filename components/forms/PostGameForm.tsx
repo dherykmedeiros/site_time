@@ -22,6 +22,12 @@ interface PlayerStatInput {
 interface PostGameFormProps {
   matchId: string;
   rsvps: RSVP[];
+  mode?: "create" | "edit";
+  initialHomeScore?: number | null;
+  initialAwayScore?: number | null;
+  initialStats?: PlayerStatInput[];
+  opponentBadgeUrl?: string | null;
+  allowOpponentBadgeEdit?: boolean;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
@@ -29,25 +35,45 @@ interface PostGameFormProps {
 export function PostGameForm({
   matchId,
   rsvps,
+  mode = "create",
+  initialHomeScore,
+  initialAwayScore,
+  initialStats,
+  opponentBadgeUrl,
+  allowOpponentBadgeEdit = false,
   onSuccess,
   onCancel,
 }: PostGameFormProps) {
-  const [homeScore, setHomeScore] = useState<number>(0);
-  const [awayScore, setAwayScore] = useState<number>(0);
+  const [homeScore, setHomeScore] = useState<number>(initialHomeScore ?? 0);
+  const [awayScore, setAwayScore] = useState<number>(initialAwayScore ?? 0);
+  const [opponentBadgeInput, setOpponentBadgeInput] = useState(opponentBadgeUrl ?? "");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [step, setStep] = useState<"score" | "stats">("score");
+  const [step, setStep] = useState<"score" | "stats">(mode === "edit" ? "stats" : "score");
 
   // Initialize stats for confirmed players
   const confirmedPlayers = rsvps.filter((r) => r.status === "CONFIRMED");
+  const initialStatsByPlayer = new Map((initialStats || []).map((item) => [item.playerId, item]));
+  const mergedPlayers = [
+    ...confirmedPlayers,
+    ...((initialStats || [])
+      .filter((item) => !confirmedPlayers.some((player) => player.playerId === item.playerId))
+      .map((item) => ({
+        playerId: item.playerId,
+        playerName: item.playerName,
+        status: "CONFIRMED",
+        respondedAt: null,
+      })) as RSVP[]),
+  ];
+
   const [playerStats, setPlayerStats] = useState<PlayerStatInput[]>(
-    confirmedPlayers.map((r) => ({
+    mergedPlayers.map((r) => ({
       playerId: r.playerId,
       playerName: r.playerName,
-      goals: 0,
-      assists: 0,
-      yellowCards: 0,
-      redCards: 0,
+      goals: initialStatsByPlayer.get(r.playerId)?.goals ?? 0,
+      assists: initialStatsByPlayer.get(r.playerId)?.assists ?? 0,
+      yellowCards: initialStatsByPlayer.get(r.playerId)?.yellowCards ?? 0,
+      redCards: initialStatsByPlayer.get(r.playerId)?.redCards ?? 0,
     }))
   );
 
@@ -95,6 +121,20 @@ export function PostGameForm({
     setErrorMsg("");
 
     try {
+      if (allowOpponentBadgeEdit && opponentBadgeInput.trim()) {
+        const badgeRes = await fetch(`/api/matches/${matchId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ opponentBadgeUrl: opponentBadgeInput.trim() }),
+        });
+
+        if (!badgeRes.ok) {
+          const badgeData = await badgeRes.json();
+          setErrorMsg(badgeData.error || "Erro ao salvar escudo do adversario");
+          return;
+        }
+      }
+
       // Validate stats
       for (const stat of playerStats) {
         if (stat.yellowCards > 2) {
@@ -120,7 +160,7 @@ export function PostGameForm({
       };
 
       const res = await fetch(`/api/matches/${matchId}/stats`, {
-        method: "POST",
+        method: mode === "edit" ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(statsPayload),
       });
@@ -193,8 +233,25 @@ export function PostGameForm({
 
       {step === "stats" && (
         <>
+          {mode === "edit" && (
+            <div className="rounded-md border border-blue-100 bg-blue-50 p-3 text-sm text-blue-700">
+              Placar final registrado: <strong>{homeScore}</strong> x <strong>{awayScore}</strong>. No pos-jogo so estatisticas podem ser alteradas.
+            </div>
+          )}
+
+          {allowOpponentBadgeEdit && (
+            <Input
+              label="Escudo do adversario (opcional)"
+              placeholder="https://... ou /uploads/..."
+              value={opponentBadgeInput}
+              onChange={(e) => setOpponentBadgeInput(e.target.value)}
+            />
+          )}
+
           <p className="text-sm text-gray-600">
-            Registre as estatísticas individuais dos jogadores confirmados.
+            {mode === "edit"
+              ? "Atualize as estatísticas individuais da partida finalizada."
+              : "Registre as estatísticas individuais dos jogadores confirmados."}
           </p>
 
           {playerStats.length === 0 ? (
@@ -279,7 +336,7 @@ export function PostGameForm({
               </Button>
             )}
             <Button variant="secondary" onClick={handleSkipStats}>
-              {playerStats.length > 0 ? "Pular Estatísticas" : "Concluir"}
+              {mode === "edit" ? "Fechar" : playerStats.length > 0 ? "Pular Estatísticas" : "Concluir"}
             </Button>
           </div>
         </>

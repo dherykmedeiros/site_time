@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { name, description, primaryColor, secondaryColor, defaultVenue, badgeUrl } =
+  const { name, shortName, description, primaryColor, secondaryColor, defaultVenue, badgeUrl } =
     parsed.data;
 
   const slug = generateSlug(name);
@@ -59,6 +59,7 @@ export async function POST(request: Request) {
     const newTeam = await tx.team.create({
       data: {
         name,
+        shortName: shortName?.toUpperCase() ?? null,
         slug,
         description: description ?? null,
         primaryColor: primaryColor ?? null,
@@ -80,6 +81,7 @@ export async function POST(request: Request) {
     {
       id: team.id,
       name: team.name,
+      shortName: team.shortName,
       slug: team.slug,
       description: team.description,
       primaryColor: team.primaryColor,
@@ -126,6 +128,7 @@ export async function GET() {
   return NextResponse.json({
     id: team.id,
     name: team.name,
+    shortName: team.shortName,
     slug: team.slug,
     badgeUrl: team.badgeUrl,
     description: team.description,
@@ -176,6 +179,7 @@ export async function PATCH(request: Request) {
   const updateData: Record<string, unknown> = {};
 
   if (data.name !== undefined) updateData.name = data.name;
+  if (data.shortName !== undefined) updateData.shortName = data.shortName ? data.shortName.toUpperCase() : null;
   if (data.description !== undefined) updateData.description = data.description;
   if (data.primaryColor !== undefined) updateData.primaryColor = data.primaryColor;
   if (data.secondaryColor !== undefined) updateData.secondaryColor = data.secondaryColor;
@@ -215,6 +219,7 @@ export async function PATCH(request: Request) {
   return NextResponse.json({
     id: team.id,
     name: team.name,
+    shortName: team.shortName,
     slug: team.slug,
     badgeUrl: team.badgeUrl,
     description: team.description,

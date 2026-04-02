@@ -161,6 +161,7 @@ model User {
 model Team {
   id               String              @id @default(cuid())
   name             String
+  shortName        String?
   slug             String              @unique
   badgeUrl         String?
   description      String?

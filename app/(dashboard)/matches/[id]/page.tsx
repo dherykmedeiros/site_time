@@ -18,6 +18,11 @@ const PostGameForm = dynamic(
   { loading: () => <div className="p-4 text-center text-gray-500">Carregando formulário...</div> }
 );
 
+const MatchForm = dynamic(
+  () => import("@/components/forms/MatchForm").then((m) => ({ default: m.MatchForm })),
+  { loading: () => <div className="p-4 text-center text-gray-500">Carregando formulário...</div> }
+);
+
 const TransactionForm = dynamic(
   () => import("@/components/forms/TransactionForm").then((m) => ({ default: m.TransactionForm })),
   { loading: () => <div className="p-4 text-center text-gray-500">Carregando formulário...</div> }
@@ -44,6 +49,8 @@ interface MatchDetail {
   date: string;
   venue: string;
   opponent: string;
+  isHome: boolean;
+  opponentBadgeUrl: string | null;
   type: string;
   homeScore: number | null;
   awayScore: number | null;
@@ -107,6 +114,8 @@ export default function MatchDetailPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [showPostGame, setShowPostGame] = useState(false);
+  const [showEditMatch, setShowEditMatch] = useState(false);
+  const [showEditPostGame, setShowEditPostGame] = useState(false);
   const [showConvocacao, setShowConvocacao] = useState(false);
   const [convocacaoText, setConvocacaoText] = useState("");
   const [showLineupShare, setShowLineupShare] = useState(false);
@@ -668,6 +677,16 @@ export default function MatchDetailPage() {
             🖗 Compartilhar
           </Button>
           {isAdmin && match.status === "SCHEDULED" && (
+            <Button variant="secondary" onClick={() => setShowEditMatch(true)}>
+              Editar partida
+            </Button>
+          )}
+          {isAdmin && match.status === "COMPLETED" && (
+            <Button variant="secondary" onClick={() => setShowEditPostGame(true)}>
+              Editar pos-jogo
+            </Button>
+          )}
+          {isAdmin && match.status === "SCHEDULED" && (
             <Button
               variant="secondary"
               onClick={() => {
@@ -791,6 +810,14 @@ export default function MatchDetailPage() {
               <p className="font-medium">
                 {match.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
               </p>
+            </div>
+            <div>
+              <span className="text-sm text-gray-500">Mando</span>
+              <p className="font-medium">{match.isHome ? "Casa" : "Visitante"}</p>
+            </div>
+            <div>
+              <span className="text-sm text-gray-500">Escudo adversário</span>
+              <p className="font-medium">{match.opponentBadgeUrl ? "Definido" : "Nao informado"}</p>
             </div>
           </div>
         </CardContent>
@@ -1341,6 +1368,53 @@ export default function MatchDetailPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={isAdmin && showEditMatch && match.status === "SCHEDULED"}
+        onClose={() => setShowEditMatch(false)}
+        title="Editar partida"
+      >
+        <MatchForm
+          defaultValues={{
+            id: match.id,
+            date: match.date,
+            venue: match.venue,
+            opponent: match.opponent,
+            isHome: match.isHome,
+            opponentBadgeUrl: match.opponentBadgeUrl,
+            type: match.type,
+          }}
+          onSuccess={async () => {
+            setShowEditMatch(false);
+            await fetchMatch();
+            setFeedback("Informacoes da partida atualizadas com sucesso.");
+          }}
+          onCancel={() => setShowEditMatch(false)}
+        />
+      </Modal>
+
+      <Modal
+        open={isAdmin && showEditPostGame && match.status === "COMPLETED"}
+        onClose={() => setShowEditPostGame(false)}
+        title="Editar pos-jogo"
+      >
+        <PostGameForm
+          mode="edit"
+          matchId={match.id}
+          rsvps={match.rsvps}
+          initialHomeScore={match.homeScore}
+          initialAwayScore={match.awayScore}
+          initialStats={match.stats}
+          opponentBadgeUrl={match.opponentBadgeUrl}
+          allowOpponentBadgeEdit={!match.opponentBadgeUrl}
+          onSuccess={async () => {
+            setShowEditPostGame(false);
+            await fetchMatch();
+            setFeedback("Pos-jogo atualizado com sucesso.");
+          }}
+          onCancel={() => setShowEditPostGame(false)}
+        />
       </Modal>
 
       <Modal

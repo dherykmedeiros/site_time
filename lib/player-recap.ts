@@ -12,6 +12,7 @@ export async function buildPlayerRecap(playerId: string) {
         select: {
           id: true,
           name: true,
+          shortName: true,
           primaryColor: true,
           secondaryColor: true,
           badgeUrl: true,

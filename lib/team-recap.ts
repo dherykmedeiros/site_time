@@ -7,6 +7,7 @@ export async function buildTeamRecap(matchId: string) {
       id: true,
       date: true,
       opponent: true,
+      isHome: true,
       opponentBadgeUrl: true,
       status: true,
       homeScore: true,
@@ -15,6 +16,7 @@ export async function buildTeamRecap(matchId: string) {
         select: {
           id: true,
           name: true,
+          shortName: true,
           primaryColor: true,
           secondaryColor: true,
           badgeUrl: true,
@@ -59,6 +61,7 @@ export async function buildTeamRecap(matchId: string) {
       date: { lte: match.date },
     },
     select: {
+      isHome: true,
       homeScore: true,
       awayScore: true,
     },
@@ -70,8 +73,8 @@ export async function buildTeamRecap(matchId: string) {
 
   const recentForm = recentMatches.reduce(
     (acc, item) => {
-      const goalsFor = item.homeScore ?? 0;
-      const goalsAgainst = item.awayScore ?? 0;
+      const goalsFor = item.isHome ? item.homeScore ?? 0 : item.awayScore ?? 0;
+      const goalsAgainst = item.isHome ? item.awayScore ?? 0 : item.homeScore ?? 0;
 
       if (goalsFor > goalsAgainst) acc.wins += 1;
       else if (goalsFor < goalsAgainst) acc.losses += 1;
@@ -97,6 +100,7 @@ export async function buildTeamRecap(matchId: string) {
       id: match.id,
       date: match.date,
       opponent: match.opponent,
+      isHome: match.isHome,
       opponentBadgeUrl: match.opponentBadgeUrl,
       homeScore: match.homeScore,
       awayScore: match.awayScore,

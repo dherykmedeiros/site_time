@@ -78,6 +78,7 @@ export async function GET(request: Request) {
       date: match.date.toISOString(),
       venue: match.venue,
       opponent: match.opponent,
+      isHome: match.isHome,
       opponentBadgeUrl: match.opponentBadgeUrl,
       type: match.type,
       homeScore: match.homeScore,
@@ -127,7 +128,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { date, venue, opponent, opponentBadgeUrl, type, seasonId, positionLimits = [] } = parsed.data;
+  const { date, venue, opponent, isHome, opponentBadgeUrl, type, seasonId, positionLimits = [] } = parsed.data;
   const matchDate = new Date(date);
 
   const uniquePositions = new Set(positionLimits.map((l) => l.position));
@@ -177,6 +178,7 @@ export async function POST(request: Request) {
         date: matchDate,
         venue,
         opponent,
+        isHome: isHome ?? true,
         opponentBadgeUrl: opponentBadgeUrl ?? null,
         type,
         shareToken,
@@ -230,6 +232,7 @@ export async function POST(request: Request) {
       date: match.date.toISOString(),
       venue: match.venue,
       opponent: match.opponent,
+      isHome: match.isHome,
       opponentBadgeUrl: match.opponentBadgeUrl,
       type: match.type,
       status: match.status,
