@@ -49,6 +49,48 @@ export async function buildTeamRecap(matchId: string) {
   const totalGoals = match.matchStats.reduce((sum, item) => sum + item.goals, 0);
   const totalAssists = match.matchStats.reduce((sum, item) => sum + item.assists, 0);
 
+  const recentMatches = await prisma.match.findMany({
+    where: {
+      teamId: match.team.id,
+      status: "COMPLETED",
+      homeScore: { not: null },
+      awayScore: { not: null },
+      date: { lte: match.date },
+    },
+    select: {
+      homeScore: true,
+      awayScore: true,
+    },
+    orderBy: {
+      date: "desc",
+    },
+    take: 5,
+  });
+
+  const recentForm = recentMatches.reduce(
+    (acc, item) => {
+      const goalsFor = item.homeScore ?? 0;
+      const goalsAgainst = item.awayScore ?? 0;
+
+      if (goalsFor > goalsAgainst) acc.wins += 1;
+      else if (goalsFor < goalsAgainst) acc.losses += 1;
+      else acc.draws += 1;
+
+      acc.goalsFor += goalsFor;
+      acc.goalsAgainst += goalsAgainst;
+      acc.matches += 1;
+      return acc;
+    },
+    {
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      matches: 0,
+    }
+  );
+
   return {
     match: {
       id: match.id,
@@ -63,6 +105,7 @@ export async function buildTeamRecap(matchId: string) {
       assists: totalAssists,
       playersWithStats: match.matchStats.length,
     },
+    recentForm,
     leaders: {
       topScorer: topScorer
         ? {

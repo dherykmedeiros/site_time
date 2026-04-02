@@ -9,6 +9,21 @@ interface RouteContext {
   params: Promise<{ matchId: string }>;
 }
 
+function resolveAssetUrl(path: string | null | undefined, requestUrl: string) {
+  if (!path) return null;
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+
+  const origin =
+    (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "") ||
+    new URL(requestUrl).origin;
+
+  if (!path.startsWith("/")) {
+    return `${origin}/${path}`;
+  }
+
+  return `${origin}${path}`;
+}
+
 function cut(value: string, max: number) {
   if (value.length <= max) return value;
   return `${value.slice(0, max - 1)}...`;
@@ -20,7 +35,7 @@ function buildResultLabel(home: number, away: number) {
   return "EMPATE";
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const { matchId } = await context.params;
 
   try {
@@ -51,6 +66,19 @@ export async function GET(_request: Request, context: RouteContext) {
       awayScore: recap.match.awayScore,
     });
 
+    const resultTone =
+      resultLabel === "VITORIA"
+        ? "rgba(16, 185, 129, 0.32)"
+        : resultLabel === "DERROTA"
+          ? "rgba(239, 68, 68, 0.30)"
+          : "rgba(234, 179, 8, 0.30)";
+
+    const badgeUrl = resolveAssetUrl(recap.team.badgeUrl, request.url);
+    const recentFormLabel =
+      recap.recentForm.matches > 0
+        ? `${recap.recentForm.wins}V ${recap.recentForm.draws}E ${recap.recentForm.losses}D | ${recap.recentForm.goalsFor} GF ${recap.recentForm.goalsAgainst} GA`
+        : "Sem historico recente";
+
     return new ImageResponse(
       (
         <div
@@ -59,7 +87,7 @@ export async function GET(_request: Request, context: RouteContext) {
             height: "630px",
             display: "flex",
             position: "relative",
-            fontFamily: "Arial, sans-serif",
+            fontFamily: "Verdana, Arial, sans-serif",
             color: "white",
             background: `linear-gradient(130deg, ${primary} 0%, ${secondary} 100%)`,
           }}
@@ -82,34 +110,81 @@ export async function GET(_request: Request, context: RouteContext) {
               flexDirection: "column",
               width: "calc(100% - 72px)",
               height: "calc(100% - 72px)",
-              padding: "40px",
+              padding: "34px 38px",
               background: "rgba(0,0,0,0.18)",
               justifyContent: "space-between",
             }}
           >
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{ display: "flex", fontSize: "20px", letterSpacing: "0.16em", opacity: 0.84 }}>
-                TEAM RECAP
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxWidth: "74%" }}>
+                <div style={{ display: "flex", fontSize: "18px", letterSpacing: "0.16em", opacity: 0.84 }}>
+                  MATCHDAY RECAP
+                </div>
+                <div style={{ display: "flex", fontSize: "64px", fontWeight: 900, lineHeight: 1.02 }}>
+                  {cut(recap.team.name, 28)}
+                </div>
+                <div style={{ display: "flex", fontSize: "30px", opacity: 0.92 }}>
+                  vs {cut(recap.match.opponent, 30)} | {dateLabel}
+                </div>
               </div>
-              <div style={{ display: "flex", fontSize: "66px", fontWeight: 900, lineHeight: 1.02 }}>
-                {cut(recap.team.name, 30)}
+
+              <div
+                style={{
+                  display: "flex",
+                  width: "130px",
+                  height: "130px",
+                  borderRadius: "28px",
+                  background: "rgba(255,255,255,0.18)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                }}
+              >
+                {badgeUrl ? (
+                  <img
+                    src={badgeUrl}
+                    alt={recap.team.name}
+                    style={{
+                      display: "flex",
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <div style={{ display: "flex", fontSize: "44px", fontWeight: 900 }}>
+                    {recap.team.name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
               </div>
-              <div style={{ display: "flex", fontSize: "31px", opacity: 0.92 }}>
-                vs {cut(recap.match.opponent, 32)} | {dateLabel}
+            </div>
+
+            <div style={{ display: "flex", gap: "12px", alignItems: "center", marginTop: "10px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  borderRadius: "999px",
+                  background: resultTone,
+                  padding: "10px 16px",
+                  fontSize: "18px",
+                  minWidth: "180px",
+                  justifyContent: "center",
+                  fontWeight: 700,
+                }}
+              >
+                {resultLabel}
               </div>
               <div
                 style={{
                   display: "flex",
-                  marginTop: "8px",
                   borderRadius: "999px",
-                  background: "rgba(255,255,255,0.16)",
+                  background: "rgba(255,255,255,0.14)",
                   padding: "10px 16px",
-                  fontSize: "19px",
-                  maxWidth: "420px",
-                  justifyContent: "center",
+                  fontSize: "17px",
+                  maxWidth: "690px",
                 }}
               >
-                {resultLabel}
+                Forma recente: {recentFormLabel}
               </div>
             </div>
 
@@ -118,7 +193,7 @@ export async function GET(_request: Request, context: RouteContext) {
                 display: "flex",
                 borderRadius: "26px",
                 background: "rgba(255,255,255,0.14)",
-                padding: "34px 30px",
+                padding: "28px 30px",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
@@ -165,6 +240,29 @@ export async function GET(_request: Request, context: RouteContext) {
                   {cut(topAssistantLabel, 34)}
                 </div>
               </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "12px" }}>
+              {[
+                { label: "Gols no jogo", value: recap.totals.goals },
+                { label: "Assistencias no jogo", value: recap.totals.assists },
+                { label: "Atletas com stats", value: recap.totals.playersWithStats },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    borderRadius: "14px",
+                    background: "rgba(255,255,255,0.12)",
+                    padding: "10px 12px",
+                    width: "33.33%",
+                  }}
+                >
+                  <div style={{ display: "flex", fontSize: "14px", opacity: 0.84 }}>{item.label}</div>
+                  <div style={{ display: "flex", fontSize: "28px", fontWeight: 800 }}>{item.value}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
