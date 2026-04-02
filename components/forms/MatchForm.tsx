@@ -91,10 +91,6 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
   });
 
   useEffect(() => {
-    register("isHome");
-  }, [register]);
-
-  useEffect(() => {
     fetch("/api/seasons")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
@@ -133,6 +129,10 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
   });
 
   const watchedDate = watch("date");
+
+  useEffect(() => {
+    register("isHome");
+  }, [register]);
 
   useEffect(() => {
     if (!watchedDate || Number.isNaN(Date.parse(watchedDate))) {
