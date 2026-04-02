@@ -135,6 +135,7 @@ export async function GET(request: Request, context: RouteContext) {
             height: 570,
             padding: "26px 28px",
             background: "rgba(2,6,23,0.42)",
+            border: "1px solid rgba(255,255,255,0.16)",
             justifyContent: "space-between",
           }}
         >
@@ -176,7 +177,6 @@ export async function GET(request: Request, context: RouteContext) {
               padding: "20px 24px",
               justifyContent: "space-between",
               alignItems: "center",
-              border: "1px solid rgba(255,255,255,0.2)",
               minHeight: "320px",
             }}
           >
@@ -192,7 +192,6 @@ export async function GET(request: Request, context: RouteContext) {
                   alignItems: "center",
                   justifyContent: "center",
                   overflow: "hidden",
-                  border: "3px solid rgba(255,255,255,0.26)",
                 }}
               >
                 {homeBadge ? (
@@ -227,7 +226,6 @@ export async function GET(request: Request, context: RouteContext) {
                 alignItems: "center",
                 justifyContent: "center",
                 background: "rgba(2,6,23,0.34)",
-                border: "1px solid rgba(255,255,255,0.2)",
                 fontSize: "44px",
                 fontWeight: 900,
                 opacity: 0.9,
@@ -248,7 +246,6 @@ export async function GET(request: Request, context: RouteContext) {
                   alignItems: "center",
                   justifyContent: "center",
                   overflow: "hidden",
-                  border: "3px solid rgba(255,255,255,0.26)",
                 }}
               >
                 {awayBadge ? (
