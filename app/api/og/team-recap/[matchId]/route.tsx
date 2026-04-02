@@ -140,8 +140,8 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
           borderRadius: "32px",
           display: "flex",
           flexDirection: "column",
-          width: "calc(100% - 60px)",
-          height: "calc(100% - 60px)",
+          width: 1140,
+          height: 570,
           padding: "24px 26px",
           background: "rgba(3,8,24,0.44)",
           border: "1px solid rgba(255,255,255,0.18)",
@@ -156,7 +156,7 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
               gap: "8px",
               flex: 1,
               minWidth: 0,
-              maxWidth: "calc(100% - 290px)",
+              maxWidth: 850,
             }}
           >
             <div style={{ display: "flex", fontSize: "17px", letterSpacing: "0.16em", opacity: 0.84 }}>
