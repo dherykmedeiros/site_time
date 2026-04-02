@@ -1406,8 +1406,10 @@ export default function MatchDetailPage() {
           initialHomeScore={match.homeScore}
           initialAwayScore={match.awayScore}
           initialStats={match.stats}
+          initialIsHome={match.isHome}
           opponentBadgeUrl={match.opponentBadgeUrl}
           allowOpponentBadgeEdit={!match.opponentBadgeUrl}
+          allowIsHomeEdit
           onSuccess={async () => {
             setShowEditPostGame(false);
             await fetchMatch();

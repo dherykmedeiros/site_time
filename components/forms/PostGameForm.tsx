@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { Select } from "@/components/ui/Select";
 
 interface RSVP {
   playerId: string;
@@ -26,8 +27,10 @@ interface PostGameFormProps {
   initialHomeScore?: number | null;
   initialAwayScore?: number | null;
   initialStats?: PlayerStatInput[];
+  initialIsHome?: boolean;
   opponentBadgeUrl?: string | null;
   allowOpponentBadgeEdit?: boolean;
+  allowIsHomeEdit?: boolean;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
@@ -39,14 +42,18 @@ export function PostGameForm({
   initialHomeScore,
   initialAwayScore,
   initialStats,
+  initialIsHome,
   opponentBadgeUrl,
   allowOpponentBadgeEdit = false,
+  allowIsHomeEdit = false,
   onSuccess,
   onCancel,
 }: PostGameFormProps) {
   const [homeScore, setHomeScore] = useState<number>(initialHomeScore ?? 0);
   const [awayScore, setAwayScore] = useState<number>(initialAwayScore ?? 0);
   const [opponentBadgeInput, setOpponentBadgeInput] = useState(opponentBadgeUrl ?? "");
+  const [isHome, setIsHome] = useState(initialIsHome ?? true);
+  const [uploadingBadge, setUploadingBadge] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [step, setStep] = useState<"score" | "stats">(mode === "edit" ? "stats" : "score");
@@ -121,16 +128,26 @@ export function PostGameForm({
     setErrorMsg("");
 
     try {
+      const metadataPayload: Record<string, unknown> = {};
+
+      if (allowIsHomeEdit) {
+        metadataPayload.isHome = isHome;
+      }
+
       if (allowOpponentBadgeEdit && opponentBadgeInput.trim()) {
+        metadataPayload.opponentBadgeUrl = opponentBadgeInput.trim();
+      }
+
+      if (Object.keys(metadataPayload).length > 0) {
         const badgeRes = await fetch(`/api/matches/${matchId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ opponentBadgeUrl: opponentBadgeInput.trim() }),
+          body: JSON.stringify(metadataPayload),
         });
 
         if (!badgeRes.ok) {
           const badgeData = await badgeRes.json();
-          setErrorMsg(badgeData.error || "Erro ao salvar escudo do adversario");
+          setErrorMsg(badgeData.error || "Erro ao salvar dados do pos-jogo");
           return;
         }
       }
@@ -181,6 +198,33 @@ export function PostGameForm({
 
   async function handleSkipStats() {
     onSuccess?.();
+  }
+
+  async function handleOpponentBadgeUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingBadge(true);
+    setErrorMsg("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error || "Erro ao enviar escudo do adversario");
+        return;
+      }
+
+      setOpponentBadgeInput(data.url);
+    } catch {
+      setErrorMsg("Erro ao enviar escudo do adversario");
+    } finally {
+      setUploadingBadge(false);
+    }
   }
 
   return (
@@ -235,17 +279,58 @@ export function PostGameForm({
         <>
           {mode === "edit" && (
             <div className="rounded-md border border-blue-100 bg-blue-50 p-3 text-sm text-blue-700">
-              Placar final registrado: <strong>{homeScore}</strong> x <strong>{awayScore}</strong>. No pos-jogo so estatisticas podem ser alteradas.
+              Placar final registrado: <strong>{homeScore}</strong> x <strong>{awayScore}</strong>. No pos-jogo voce pode ajustar mando casa/fora e completar escudo adversario.
             </div>
           )}
 
-          {allowOpponentBadgeEdit && (
-            <Input
-              label="Escudo do adversario (opcional)"
-              placeholder="https://... ou /uploads/..."
-              value={opponentBadgeInput}
-              onChange={(e) => setOpponentBadgeInput(e.target.value)}
+          {allowIsHomeEdit && (
+            <Select
+              label="Mando de campo"
+              options={[
+                { value: "home", label: "Casa" },
+                { value: "away", label: "Visitante" },
+              ]}
+              value={isHome ? "home" : "away"}
+              onChange={(e) => setIsHome(e.target.value === "home")}
             />
+          )}
+
+          {allowOpponentBadgeEdit && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Escudo do adversario (opcional)</label>
+              <div className="flex items-center gap-3">
+                {opponentBadgeInput ? (
+                  <img
+                    src={opponentBadgeInput}
+                    alt="Escudo adversario"
+                    className="h-16 w-16 rounded-lg border border-gray-200 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-500">
+                    <span className="text-lg">VS</span>
+                  </div>
+                )}
+                <label className="cursor-pointer">
+                  <span className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+                    {uploadingBadge ? "Enviando..." : "Fazer upload"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handleOpponentBadgeUpload}
+                    disabled={uploadingBadge}
+                  />
+                </label>
+              </div>
+
+              <Input
+                label="URL do escudo adversario (opcional)"
+                placeholder="https://... ou /uploads/..."
+                value={opponentBadgeInput}
+                onChange={(e) => setOpponentBadgeInput(e.target.value)}
+              />
+            </div>
           )}
 
           <p className="text-sm text-gray-600">

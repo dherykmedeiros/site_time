@@ -72,6 +72,7 @@ const typeLabels: Record<string, string> = {
 export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps) {
   const isEditing = !!defaultValues?.id;
   const [loading, setLoading] = useState(false);
+  const [uploadingBadge, setUploadingBadge] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [availabilitySnapshot, setAvailabilitySnapshot] = useState<MatchAvailabilityResponse | null>(null);
@@ -89,6 +90,9 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
     }
     return initial;
   });
+  const [opponentBadgePreview, setOpponentBadgePreview] = useState<string | null>(
+    defaultValues?.opponentBadgeUrl || null
+  );
 
   useEffect(() => {
     fetch("/api/seasons")
@@ -129,10 +133,47 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
   });
 
   const watchedDate = watch("date");
+  const watchedOpponentBadgeUrl = watch("opponentBadgeUrl");
 
   useEffect(() => {
     register("isHome");
   }, [register]);
+
+  useEffect(() => {
+    if (watchedOpponentBadgeUrl?.trim()) {
+      setOpponentBadgePreview(watchedOpponentBadgeUrl.trim());
+    } else {
+      setOpponentBadgePreview(null);
+    }
+  }, [watchedOpponentBadgeUrl]);
+
+  async function handleOpponentBadgeUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingBadge(true);
+    setErrorMsg("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error || "Erro ao enviar escudo do adversario");
+        return;
+      }
+
+      setValue("opponentBadgeUrl", data.url, { shouldValidate: true });
+      setOpponentBadgePreview(data.url);
+    } catch {
+      setErrorMsg("Erro ao enviar escudo do adversario");
+    } finally {
+      setUploadingBadge(false);
+    }
+  }
 
   useEffect(() => {
     if (!watchedDate || Number.isNaN(Date.parse(watchedDate))) {
@@ -363,6 +404,38 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         value={watch("isHome") === false ? "away" : "home"}
         onChange={(e) => setValue("isHome", e.target.value === "home", { shouldValidate: true })}
       />
+
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-[var(--text-subtle)]">
+          Escudo do adversario (opcional)
+        </label>
+        <div className="flex items-center gap-3">
+          {opponentBadgePreview ? (
+            <img
+              src={opponentBadgePreview}
+              alt="Escudo adversario"
+              className="h-16 w-16 rounded-lg border border-[var(--border)] object-cover"
+            />
+          ) : (
+            <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-[var(--border)] text-[var(--text-subtle)]">
+              <span className="text-lg">VS</span>
+            </div>
+          )}
+
+          <label className="cursor-pointer">
+            <span className="inline-flex items-center rounded-md border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--surface-soft)]">
+              {uploadingBadge ? "Enviando..." : "Fazer upload"}
+            </span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleOpponentBadgeUpload}
+              disabled={uploadingBadge}
+            />
+          </label>
+        </div>
+      </div>
 
       <Input
         label="URL do escudo adversário (opcional)"

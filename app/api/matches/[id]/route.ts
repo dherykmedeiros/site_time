@@ -21,7 +21,6 @@ export async function GET(request: Request, { params }: RouteParams) {
       { status: 404 }
     );
   }
-
   const match = await prisma.match.findFirst({
     where: { id, teamId: session.user.teamId },
     include: {
@@ -40,6 +39,11 @@ export async function GET(request: Request, { params }: RouteParams) {
         select: { position: true, maxPlayers: true },
       },
       team: { select: { slug: true } },
+
+    if (data.isHome !== undefined) {
+      postgameUpdateData.isHome = data.isHome;
+    }
+
       season: { select: { id: true, name: true, type: true, status: true } },
     },
   });
@@ -88,7 +92,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     })),
     canSubmitPostGame,
     createdAt: match.createdAt.toISOString(),
-    updatedAt: match.updatedAt.toISOString(),
+        error: "No pós-jogo, so mando casa/fora e escudo do adversario (se vazio) podem ser alterados por aqui",
   });
 }
 
