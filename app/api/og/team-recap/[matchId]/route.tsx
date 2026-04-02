@@ -15,6 +15,7 @@ interface MatchdayRecapMatch {
   title: string;
   dateLabel: string;
   fieldLabel: "Mandante" | "Visitante";
+  teamSide: "HOME" | "AWAY";
   status: {
     phase: "FINAL";
     result: MatchResult;
@@ -94,15 +95,19 @@ function buildResultLabel(home: number, away: number) {
 function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps) {
   const resultTone =
     match.status.result === "VITORIA"
-      ? "rgba(16, 185, 129, 0.34)"
+      ? "rgba(16, 185, 129, 0.28)"
       : match.status.result === "DERROTA"
-        ? "rgba(127, 29, 29, 0.50)"
-        : "rgba(100, 116, 139, 0.40)";
+        ? "rgba(127, 29, 29, 0.56)"
+        : "rgba(100, 116, 139, 0.38)";
+  const resultShadow =
+    match.status.result === "VITORIA"
+      ? "0 0 20px rgba(16,185,129,0.22)"
+      : match.status.result === "DERROTA"
+        ? "0 0 22px rgba(239,68,68,0.28)"
+        : "0 0 14px rgba(148,163,184,0.2)";
 
   const titleSize = adaptiveFontSize(match.title, 60, 36);
   const subtitleSize = adaptiveFontSize(`${match.away.name} ${match.dateLabel}`, 30, 21);
-  const homeNameSize = adaptiveFontSize(match.home.name, 40, 24);
-  const awayNameSize = adaptiveFontSize(match.away.name, 40, 24);
   const recentFormLabel =
     `${match.recent_form.wins}V ${match.recent_form.draws}E ${match.recent_form.losses}D | ` +
     `${match.recent_form.goals_for} GF ${match.recent_form.goals_against} GA`;
@@ -178,12 +183,14 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
               display: "flex",
               borderRadius: "999px",
               background: resultTone,
-              padding: "10px 18px",
-              fontSize: "18px",
+              padding: "8px 14px",
+              fontSize: "16px",
               justifyContent: "center",
               fontWeight: 700,
-              minWidth: "250px",
+              minWidth: "220px",
               flexShrink: 0,
+              border: "1px solid rgba(255,255,255,0.2)",
+              boxShadow: resultShadow,
             }}
           >
             {match.status.phase} | {match.status.result}
@@ -221,14 +228,16 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
 
         <div
           style={{
-            display: "flex",
+            display: "grid",
+            gridTemplateColumns: "1fr 120px 1fr",
             borderRadius: "30px",
-            background: "linear-gradient(180deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.10) 100%)",
+            background: "rgba(255,255,255,0.10)",
+            backdropFilter: "blur(12px)",
             padding: "18px 24px",
-            justifyContent: "space-between",
-            alignItems: "stretch",
+            alignItems: "center",
             border: "1px solid rgba(255,255,255,0.2)",
             minHeight: "330px",
+            gap: "8px",
           }}
         >
           <div
@@ -236,10 +245,15 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              flex: "0 0 45%",
-              maxWidth: "45%",
+              justifyContent: "center",
               minWidth: 0,
-              height: "100%",
+              width: "100%",
+              borderRadius: "22px",
+              padding: "8px 12px",
+              background:
+                match.status.result === "DERROTA" && match.teamSide === "HOME"
+                  ? "linear-gradient(180deg, rgba(148,163,184,0.16) 0%, rgba(30,41,59,0.10) 100%)"
+                  : "transparent",
             }}
           >
             <div style={{ display: "flex", fontSize: "13px", letterSpacing: "0.14em", opacity: 0.78 }}>CASA</div>
@@ -276,14 +290,16 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
             <div
               style={{
                 display: "flex",
-                fontSize: `${homeNameSize}px`,
-                opacity: 0.94,
+                fontSize: "19px",
+                opacity: 0.9,
                 fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
                 maxWidth: "100%",
                 textAlign: "center",
                 justifyContent: "center",
-                lineHeight: 1.08,
-                minHeight: "84px",
+                lineHeight: 1.15,
+                minHeight: "54px",
                 alignItems: "center",
               }}
             >
@@ -299,6 +315,7 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
                 lineHeight: 0.88,
                 fontWeight: 900,
                 fontVariantNumeric: "tabular-nums",
+                fontFamily: "Roboto Mono, Menlo, Consolas, monospace",
                 marginTop: "auto",
                 minHeight: "168px",
                 textAlign: "center",
@@ -311,18 +328,18 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
           <div
             style={{
               display: "flex",
-              fontSize: "46px",
+              fontSize: "42px",
               fontWeight: 800,
-              opacity: 0.86,
-              width: "112px",
-              height: "112px",
+              opacity: 0.42,
+              width: "88px",
+              height: "88px",
               borderRadius: "50%",
               alignItems: "center",
               justifyContent: "center",
               background: "rgba(2,6,23,0.28)",
               border: "1px solid rgba(255,255,255,0.18)",
-              flex: "0 0 10%",
               alignSelf: "center",
+              justifySelf: "center",
             }}
           >
             X
@@ -333,10 +350,15 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              flex: "0 0 45%",
-              maxWidth: "45%",
+              justifyContent: "center",
               minWidth: 0,
-              height: "100%",
+              width: "100%",
+              borderRadius: "22px",
+              padding: "8px 12px",
+              background:
+                match.status.result === "DERROTA" && match.teamSide === "AWAY"
+                  ? "linear-gradient(180deg, rgba(148,163,184,0.16) 0%, rgba(30,41,59,0.10) 100%)"
+                  : "transparent",
             }}
           >
             <div style={{ display: "flex", fontSize: "13px", letterSpacing: "0.14em", opacity: 0.78 }}>VISITANTE</div>
@@ -373,14 +395,16 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
             <div
               style={{
                 display: "flex",
-                fontSize: `${awayNameSize}px`,
-                opacity: 0.94,
+                fontSize: "19px",
+                opacity: 0.9,
                 fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
                 maxWidth: "100%",
                 textAlign: "center",
                 justifyContent: "center",
-                lineHeight: 1.08,
-                minHeight: "84px",
+                lineHeight: 1.15,
+                minHeight: "54px",
                 alignItems: "center",
               }}
             >
@@ -396,6 +420,7 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
                 lineHeight: 0.88,
                 fontWeight: 900,
                 fontVariantNumeric: "tabular-nums",
+                fontFamily: "Roboto Mono, Menlo, Consolas, monospace",
                 marginTop: "auto",
                 minHeight: "168px",
                 textAlign: "center",
@@ -509,6 +534,7 @@ export async function GET(request: Request, context: RouteContext) {
       title: teamLabel,
       dateLabel,
       fieldLabel: recap.match.isHome ? "Mandante" : "Visitante",
+      teamSide: recap.match.isHome ? "HOME" : "AWAY",
       status: {
         phase: "FINAL",
         result: resultLabel,
