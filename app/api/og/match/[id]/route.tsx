@@ -128,14 +128,12 @@ export async function GET(request: Request, context: RouteContext) {
         <div
           style={{
             margin: "30px",
-            borderRadius: "32px",
             display: "flex",
             flexDirection: "column",
             width: 1140,
             height: 570,
             padding: "26px 28px",
             background: "rgba(2,6,23,0.42)",
-            border: "1px solid rgba(255,255,255,0.16)",
             justifyContent: "space-between",
           }}
         >
@@ -172,7 +170,6 @@ export async function GET(request: Request, context: RouteContext) {
           <div
             style={{
               display: "flex",
-              borderRadius: "30px",
               background: "linear-gradient(180deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.10) 100%)",
               padding: "20px 24px",
               justifyContent: "space-between",
@@ -187,7 +184,6 @@ export async function GET(request: Request, context: RouteContext) {
                   display: "flex",
                   width: "162px",
                   height: "162px",
-                  borderRadius: "50%",
                   background: "rgba(2,6,23,0.38)",
                   alignItems: "center",
                   justifyContent: "center",
@@ -222,7 +218,6 @@ export async function GET(request: Request, context: RouteContext) {
                 display: "flex",
                 width: "110px",
                 height: "110px",
-                borderRadius: "50%",
                 alignItems: "center",
                 justifyContent: "center",
                 background: "rgba(2,6,23,0.34)",
@@ -241,7 +236,6 @@ export async function GET(request: Request, context: RouteContext) {
                   display: "flex",
                   width: "162px",
                   height: "162px",
-                  borderRadius: "50%",
                   background: "rgba(2,6,23,0.38)",
                   alignItems: "center",
                   justifyContent: "center",
@@ -276,7 +270,6 @@ export async function GET(request: Request, context: RouteContext) {
             <div
               style={{
                 display: "flex",
-                borderRadius: "999px",
                 background: "rgba(255,255,255,0.14)",
                 padding: "10px 14px",
                 fontSize: "16px",
@@ -287,7 +280,6 @@ export async function GET(request: Request, context: RouteContext) {
             <div
               style={{
                 display: "flex",
-                borderRadius: "999px",
                 background: "rgba(255,255,255,0.14)",
                 padding: "10px 14px",
                 fontSize: "16px",
