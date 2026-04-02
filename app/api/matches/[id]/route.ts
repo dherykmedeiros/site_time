@@ -159,15 +159,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       data.type !== undefined ||
       data.seasonId !== undefined ||
       data.positionLimits !== undefined ||
-      data.status !== undefined ||
-      data.homeScore !== undefined ||
-      data.awayScore !== undefined;
+      data.status !== undefined;
 
     if (hasLockedFieldUpdate) {
       return NextResponse.json(
         {
           error:
-            "No pos-jogo apenas estatisticas podem ser alteradas e o escudo do adversario pode ser adicionado se estiver vazio",
+            "No pos-jogo somente placar, mando casa/fora e escudo do adversario (se vazio) podem ser alterados por aqui",
           code: "POSTGAME_RESTRICTED_EDIT",
         },
         { status: 400 }
@@ -178,6 +176,21 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     if (data.isHome !== undefined) {
       postgameUpdateData.isHome = data.isHome;
+    }
+
+    if (data.homeScore !== undefined || data.awayScore !== undefined) {
+      if (data.homeScore === undefined || data.awayScore === undefined) {
+        return NextResponse.json(
+          {
+            error: "Informe os dois valores do placar para editar o resultado",
+            code: "SCORE_REQUIRES_BOTH_VALUES",
+          },
+          { status: 400 }
+        );
+      }
+
+      postgameUpdateData.homeScore = data.homeScore;
+      postgameUpdateData.awayScore = data.awayScore;
     }
 
     if (data.opponentBadgeUrl !== undefined) {
@@ -228,7 +241,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     return NextResponse.json(
       {
-        error: "No pos-jogo, so mando casa/fora e escudo do adversario (se vazio) podem ser alterados por aqui",
+        error: "No pos-jogo, so placar, mando casa/fora e escudo do adversario (se vazio) podem ser alterados por aqui",
         code: "NO_POSTGAME_CHANGES",
       },
       { status: 400 }

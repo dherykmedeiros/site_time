@@ -134,6 +134,11 @@ export function PostGameForm({
         metadataPayload.isHome = isHome;
       }
 
+      if (mode === "edit") {
+        metadataPayload.homeScore = homeScore;
+        metadataPayload.awayScore = awayScore;
+      }
+
       if (allowOpponentBadgeEdit && opponentBadgeInput.trim()) {
         metadataPayload.opponentBadgeUrl = opponentBadgeInput.trim();
       }
@@ -279,7 +284,26 @@ export function PostGameForm({
         <>
           {mode === "edit" && (
             <div className="rounded-md border border-blue-100 bg-blue-50 p-3 text-sm text-blue-700">
-              Placar final registrado: <strong>{homeScore}</strong> x <strong>{awayScore}</strong>. No pos-jogo voce pode ajustar mando casa/fora e completar escudo adversario.
+              No pos-jogo voce pode ajustar placar, mando casa/fora, escudo adversario (se vazio) e estatisticas.
+            </div>
+          )}
+
+          {mode === "edit" && (
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Placar nosso time"
+                type="number"
+                min={0}
+                value={homeScore}
+                onChange={(e) => setHomeScore(parseInt(e.target.value) || 0)}
+              />
+              <Input
+                label="Placar adversario"
+                type="number"
+                min={0}
+                value={awayScore}
+                onChange={(e) => setAwayScore(parseInt(e.target.value) || 0)}
+              />
             </div>
           )}
 
