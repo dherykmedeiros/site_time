@@ -239,6 +239,7 @@ model Match {
   date       DateTime
   venue      String
   opponent   String
+  opponentBadgeUrl String?
   type       MatchType
   homeScore  Int?
   awayScore  Int?

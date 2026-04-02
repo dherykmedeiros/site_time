@@ -15,6 +15,19 @@ const positionLimitSchema = z.object({
     .max(30, "Limite máximo permitido é 30"),
 });
 
+const optionalBadgeUrlSchema = z
+  .string()
+  .max(2048, "URL do escudo do adversário muito longa")
+  .refine(
+    (value) =>
+      value.startsWith("/uploads/") ||
+      value.startsWith("http://") ||
+      value.startsWith("https://"),
+    "URL do escudo do adversário deve começar com /uploads/, http:// ou https://"
+  )
+  .optional()
+  .nullable();
+
 export const createMatchSchema = z.object({
   date: z
     .string()
@@ -28,6 +41,7 @@ export const createMatchSchema = z.object({
     .string()
     .min(2, "Adversário deve ter no mínimo 2 caracteres")
     .max(100, "Adversário deve ter no máximo 100 caracteres"),
+  opponentBadgeUrl: optionalBadgeUrlSchema,
   type: z.enum(["FRIENDLY", "CHAMPIONSHIP"], {
     message: "Tipo inválido",
   }),
@@ -50,6 +64,7 @@ export const updateMatchSchema = z.object({
     .min(2, "Adversário deve ter no mínimo 2 caracteres")
     .max(100, "Adversário deve ter no máximo 100 caracteres")
     .optional(),
+  opponentBadgeUrl: optionalBadgeUrlSchema,
   type: z
     .enum(["FRIENDLY", "CHAMPIONSHIP"], {
       message: "Tipo inválido",

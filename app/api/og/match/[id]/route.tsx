@@ -8,7 +8,27 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+function resolveAssetUrl(path: string | null | undefined, requestUrl: string) {
+  if (!path) return null;
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+
+  const origin =
+    (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "") ||
+    new URL(requestUrl).origin;
+
+  if (!path.startsWith("/")) {
+    return `${origin}/${path}`;
+  }
+
+  return `${origin}${path}`;
+}
+
+function cut(value: string, max: number) {
+  if (value.length <= max) return value;
+  return `${value.slice(0, max - 1)}...`;
+}
+
+export async function GET(request: Request, context: RouteContext) {
   const { id } = await context.params;
 
   const match = await prisma.match.findUnique({
@@ -19,6 +39,7 @@ export async function GET(_request: Request, context: RouteContext) {
           name: true,
           primaryColor: true,
           secondaryColor: true,
+          badgeUrl: true,
         },
       },
       matchStats: {
@@ -30,22 +51,38 @@ export async function GET(_request: Request, context: RouteContext) {
     },
   });
 
-  if (
-    !match ||
-    match.status !== "COMPLETED" ||
-    match.homeScore === null ||
-    match.awayScore === null
-  ) {
+  if (!match) {
     return new Response("Not found", { status: 404 });
   }
 
   const primaryColor = safeHex(match.team.primaryColor, "#1e40af");
-  const home = match.homeScore;
-  const away = match.awayScore;
+  const secondaryColor = safeHex(match.team.secondaryColor, "#0f172a");
+  const teamBadgeUrl = resolveAssetUrl(match.team.badgeUrl, request.url);
+  const opponentBadgeUrl = resolveAssetUrl(match.opponentBadgeUrl, request.url);
+  const isCompleted =
+    match.status === "COMPLETED" &&
+    match.homeScore !== null &&
+    match.awayScore !== null;
 
-  const resultLabel = home > away ? "VITÓRIA" : home < away ? "DERROTA" : "EMPATE";
-  const resultBg = home > away ? "#34d399" : home < away ? "#f87171" : "#fbbf24";
-  const resultText = home > away ? "#052e16" : home < away ? "#450a0a" : "#451a03";
+  const home = match.homeScore ?? "-";
+  const away = match.awayScore ?? "-";
+
+  const resultLabel =
+    typeof home === "number" && typeof away === "number"
+      ? home > away
+        ? "VITORIA"
+        : home < away
+          ? "DERROTA"
+          : "EMPATE"
+      : "PRE-JOGO";
+  const resultBg =
+    resultLabel === "VITORIA"
+      ? "rgba(16,185,129,0.3)"
+      : resultLabel === "DERROTA"
+        ? "rgba(239,68,68,0.3)"
+        : resultLabel === "EMPATE"
+          ? "rgba(234,179,8,0.3)"
+          : "rgba(59,130,246,0.28)";
 
   const scorers = match.matchStats
     .map((s) => `${s.player.name} (${s.goals})`)
@@ -62,154 +99,169 @@ export async function GET(_request: Request, context: RouteContext) {
           width: "1200px",
           height: "630px",
           display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          background: `linear-gradient(135deg, ${primaryColor} 0%, #0f172a 100%)`,
+          background: `linear-gradient(132deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
           position: "relative",
-          overflow: "hidden",
-          fontFamily: "sans-serif",
+          color: "white",
+          fontFamily: "Verdana, Arial, sans-serif",
         }}
       >
-        {/* Decorative circles */}
         <div
           style={{
             position: "absolute",
-            top: "-120px",
-            right: "-120px",
-            width: "450px",
-            height: "450px",
-            borderRadius: "50%",
-            background: "rgba(255,255,255,0.07)",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            bottom: "-100px",
-            left: "-100px",
-            width: "380px",
-            height: "380px",
-            borderRadius: "50%",
-            background: "rgba(255,255,255,0.05)",
+            inset: "0",
+            display: "flex",
+            background:
+              "radial-gradient(circle at 15% 20%, rgba(255,255,255,0.2), transparent 34%), radial-gradient(circle at 82% 0%, rgba(255,255,255,0.14), transparent 36%)",
           }}
         />
 
-        {/* Team name */}
         <div
           style={{
+            margin: "36px",
+            borderRadius: "30px",
             display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            marginBottom: "36px",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            width: "calc(100% - 72px)",
+            height: "calc(100% - 72px)",
+            padding: "36px 38px",
+            background: "rgba(0,0,0,0.18)",
           }}
         >
-          <span style={{ fontSize: "28px" }}>⚽</span>
-          <span
-            style={{
-              color: "rgba(255,255,255,0.82)",
-              fontSize: "20px",
-              fontWeight: "700",
-              letterSpacing: "0.15em",
-              textTransform: "uppercase",
-            }}
-          >
-            {match.team.name}
-          </span>
-        </div>
-
-        {/* Score */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "28px",
-          }}
-        >
-          <span
-            style={{
-              fontSize: "136px",
-              fontWeight: "900",
-              color: "white",
-              lineHeight: 1,
-            }}
-          >
-            {home}
-          </span>
-          <span
-            style={{
-              fontSize: "64px",
-              color: "rgba(255,255,255,0.45)",
-              fontWeight: "300",
-            }}
-          >
-            ×
-          </span>
-          <span
-            style={{
-              fontSize: "136px",
-              fontWeight: "900",
-              color: "rgba(255,255,255,0.65)",
-              lineHeight: 1,
-            }}
-          >
-            {away}
-          </span>
-        </div>
-
-        {/* Opponent & date */}
-        <div
-          style={{
-            color: "rgba(255,255,255,0.58)",
-            fontSize: "22px",
-            marginTop: "12px",
-          }}
-        >
-          vs {match.opponent} · {dateStr}
-        </div>
-
-        {/* Result badge */}
-        <div
-          style={{
-            marginTop: "28px",
-            backgroundColor: resultBg,
-            color: resultText,
-            fontSize: "18px",
-            fontWeight: "800",
-            letterSpacing: "0.12em",
-            padding: "10px 28px",
-            borderRadius: "100px",
-          }}
-        >
-          {resultLabel}
-        </div>
-
-        {/* Scorers */}
-        {scorers.length > 0 && (
           <div
             style={{
-              marginTop: "18px",
-              color: "rgba(255,255,255,0.55)",
-              fontSize: "16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            ⚽ {scorers}
-          </div>
-        )}
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxWidth: "74%" }}>
+              <div style={{ display: "flex", fontSize: "18px", letterSpacing: "0.16em", opacity: 0.84 }}>
+                {isCompleted ? "MATCHDAY FINAL" : "MATCHDAY PREVIEW"}
+              </div>
+              <div style={{ display: "flex", fontSize: "63px", fontWeight: 900, lineHeight: 1.02 }}>
+                {cut(match.team.name, 28)}
+              </div>
+              <div style={{ display: "flex", fontSize: "30px", opacity: 0.92 }}>
+                vs {cut(match.opponent, 30)} | {dateStr}
+              </div>
+            </div>
 
-        {/* Branding */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: "22px",
-            right: "28px",
-            color: "rgba(255,255,255,0.28)",
-            fontSize: "14px",
-            fontWeight: "600",
-            letterSpacing: "0.06em",
-          }}
-        >
-          VARzea
+            <div
+              style={{
+                display: "flex",
+                borderRadius: "999px",
+                background: resultBg,
+                padding: "10px 18px",
+                fontSize: "18px",
+                fontWeight: 800,
+                letterSpacing: "0.08em",
+              }}
+            >
+              {resultLabel}
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              borderRadius: "28px",
+              background: "rgba(255,255,255,0.14)",
+              padding: "30px 28px",
+              justifyContent: "space-between",
+              alignItems: "center",
+              minHeight: "280px",
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "260px", gap: "10px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  width: "88px",
+                  height: "88px",
+                  borderRadius: "22px",
+                  background: "rgba(255,255,255,0.16)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                }}
+              >
+                {teamBadgeUrl ? (
+                  <img
+                    src={teamBadgeUrl}
+                    alt={match.team.name}
+                    style={{
+                      display: "flex",
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <div style={{ display: "flex", fontSize: "30px", fontWeight: 800 }}>
+                    {match.team.name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <div style={{ display: "flex", fontSize: "20px", opacity: 0.86 }}>Nosso time</div>
+              <div style={{ display: "flex", fontSize: "106px", fontWeight: 900 }}>{home}</div>
+            </div>
+
+            <div style={{ display: "flex", fontSize: "44px", fontWeight: 800, opacity: 0.86 }}>x</div>
+
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "260px", gap: "10px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  width: "88px",
+                  height: "88px",
+                  borderRadius: "22px",
+                  background: "rgba(255,255,255,0.16)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                }}
+              >
+                {opponentBadgeUrl ? (
+                  <img
+                    src={opponentBadgeUrl}
+                    alt={match.opponent}
+                    style={{
+                      display: "flex",
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : (
+                  <div style={{ display: "flex", fontSize: "30px", fontWeight: 800 }}>
+                    {match.opponent.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <div style={{ display: "flex", fontSize: "20px", opacity: 0.86 }}>Adversario</div>
+              <div style={{ display: "flex", fontSize: "106px", fontWeight: 900 }}>{away}</div>
+            </div>
+          </div>
+
+          {isCompleted ? (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div style={{ display: "flex", fontSize: "16px", opacity: 0.72 }}>
+                {scorers.length > 0 ? `Goleadores: ${cut(scorers, 80)}` : "Sem gols registrados na sumula"}
+              </div>
+              <div style={{ display: "flex", fontSize: "14px", opacity: 0.56, letterSpacing: "0.06em" }}>VARzea</div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", fontSize: "16px", opacity: 0.74 }}>
+              Compartilhe este card para convocar e engajar o elenco antes da partida.
+            </div>
+          )}
         </div>
       </div>
     ),

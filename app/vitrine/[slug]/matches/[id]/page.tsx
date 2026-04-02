@@ -80,9 +80,7 @@ export async function generateMetadata({
       images:
         data.match.status === "COMPLETED"
           ? [{ url: `/api/og/team-recap/${id}`, width: 1200, height: 630, alt: `${data.team.name} vs ${data.match.opponent}` }]
-          : data.team.badgeUrl
-          ? [{ url: data.team.badgeUrl, width: 200, height: 200, alt: `Escudo ${data.team.name}` }]
-          : [],
+          : [{ url: `/api/og/match/${id}`, width: 1200, height: 630, alt: `${data.team.name} vs ${data.match.opponent}` }],
     },
     twitter: {
       card: data.match.status === "COMPLETED" ? "summary_large_image" : "summary",
@@ -91,9 +89,7 @@ export async function generateMetadata({
       images:
         data.match.status === "COMPLETED"
           ? [`/api/og/team-recap/${id}`]
-          : data.team.badgeUrl
-          ? [data.team.badgeUrl]
-          : [],
+          : [`/api/og/match/${id}`],
     },
   };
 }

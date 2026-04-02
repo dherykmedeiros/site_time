@@ -73,7 +73,8 @@ export async function GET(request: Request, context: RouteContext) {
           ? "rgba(239, 68, 68, 0.30)"
           : "rgba(234, 179, 8, 0.30)";
 
-    const badgeUrl = resolveAssetUrl(recap.team.badgeUrl, request.url);
+    const teamBadgeUrl = resolveAssetUrl(recap.team.badgeUrl, request.url);
+    const opponentBadgeUrl = resolveAssetUrl(recap.match.opponentBadgeUrl, request.url);
     const recentFormLabel =
       recap.recentForm.matches > 0
         ? `${recap.recentForm.wins}V ${recap.recentForm.draws}E ${recap.recentForm.losses}D | ${recap.recentForm.goalsFor} GF ${recap.recentForm.goalsAgainst} GA`
@@ -140,9 +141,9 @@ export async function GET(request: Request, context: RouteContext) {
                   overflow: "hidden",
                 }}
               >
-                {badgeUrl ? (
+                {teamBadgeUrl ? (
                   <img
-                    src={badgeUrl}
+                    src={teamBadgeUrl}
                     alt={recap.team.name}
                     style={{
                       display: "flex",
@@ -198,14 +199,72 @@ export async function GET(request: Request, context: RouteContext) {
                 alignItems: "center",
               }}
             >
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "300px" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "300px", gap: "6px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    width: "64px",
+                    height: "64px",
+                    borderRadius: "16px",
+                    background: "rgba(255,255,255,0.16)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                  }}
+                >
+                  {teamBadgeUrl ? (
+                    <img
+                      src={teamBadgeUrl}
+                      alt={recap.team.name}
+                      style={{
+                        display: "flex",
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    <div style={{ display: "flex", fontSize: "22px", fontWeight: 800 }}>
+                      {recap.team.name.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                </div>
                 <div style={{ display: "flex", fontSize: "22px", opacity: 0.86 }}>Nosso time</div>
                 <div style={{ display: "flex", fontSize: "108px", fontWeight: 900 }}>{recap.match.homeScore}</div>
               </div>
 
               <div style={{ display: "flex", fontSize: "42px", fontWeight: 800, opacity: 0.86 }}>x</div>
 
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "300px" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "300px", gap: "6px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    width: "64px",
+                    height: "64px",
+                    borderRadius: "16px",
+                    background: "rgba(255,255,255,0.16)",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                  }}
+                >
+                  {opponentBadgeUrl ? (
+                    <img
+                      src={opponentBadgeUrl}
+                      alt={recap.match.opponent}
+                      style={{
+                        display: "flex",
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    <div style={{ display: "flex", fontSize: "22px", fontWeight: 800 }}>
+                      {recap.match.opponent.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                </div>
                 <div style={{ display: "flex", fontSize: "22px", opacity: 0.86 }}>Adversario</div>
                 <div style={{ display: "flex", fontSize: "108px", fontWeight: 900 }}>{recap.match.awayScore}</div>
               </div>

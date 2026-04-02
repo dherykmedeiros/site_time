@@ -48,6 +48,7 @@ interface MatchFormProps {
     date?: string;
     venue?: string;
     opponent?: string;
+    opponentBadgeUrl?: string | null;
     type?: string;
     seasonId?: string;
     positionLimits?: Array<{ position: string; maxPlayers: number }>;
@@ -119,6 +120,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
       date: formatDateForInput(defaultValues?.date) || "",
       venue: defaultValues?.venue || "",
       opponent: defaultValues?.opponent || "",
+      opponentBadgeUrl: defaultValues?.opponentBadgeUrl || "",
       type: (defaultValues?.type as "FRIENDLY" | "CHAMPIONSHIP") || undefined,
     },
   });
@@ -191,6 +193,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
       const body: Record<string, unknown> = {
         ...data,
         date: new Date(data.date).toISOString(),
+        opponentBadgeUrl: data.opponentBadgeUrl?.trim() ? data.opponentBadgeUrl.trim() : null,
       };
 
       if (seasonId) body.seasonId = seasonId;
@@ -342,6 +345,13 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         placeholder="Nome do time adversário"
         error={errors.opponent?.message}
         {...register("opponent")}
+      />
+
+      <Input
+        label="URL do escudo adversário (opcional)"
+        placeholder="https://... ou /uploads/..."
+        error={errors.opponentBadgeUrl?.message}
+        {...register("opponentBadgeUrl")}
       />
 
       <Select

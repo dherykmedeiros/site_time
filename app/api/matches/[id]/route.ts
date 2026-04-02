@@ -62,6 +62,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     date: match.date.toISOString(),
     venue: match.venue,
     opponent: match.opponent,
+    opponentBadgeUrl: match.opponentBadgeUrl,
     type: match.type,
     homeScore: match.homeScore,
     awayScore: match.awayScore,
@@ -241,6 +242,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   if (data.date) updateData.date = new Date(data.date);
   if (data.venue) updateData.venue = data.venue;
   if (data.opponent) updateData.opponent = data.opponent;
+  if (data.opponentBadgeUrl !== undefined) updateData.opponentBadgeUrl = data.opponentBadgeUrl;
   if (data.type) updateData.type = data.type;
   if (data.seasonId !== undefined) updateData.seasonId = data.seasonId;
 
@@ -339,6 +341,7 @@ function buildMatchDetailResponse(
     date: Date;
     venue: string;
     opponent: string;
+    opponentBadgeUrl: string | null;
     type: string;
     homeScore: number | null;
     awayScore: number | null;
@@ -375,6 +378,7 @@ function buildMatchDetailResponse(
     date: match.date.toISOString(),
     venue: match.venue,
     opponent: match.opponent,
+    opponentBadgeUrl: match.opponentBadgeUrl,
     type: match.type,
     homeScore: match.homeScore,
     awayScore: match.awayScore,
