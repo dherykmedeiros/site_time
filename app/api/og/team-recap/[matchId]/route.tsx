@@ -27,6 +27,11 @@ function svgResponse(svg: string, status = 200) {
   });
 }
 
+function cut(value: string, max: number) {
+  if (value.length <= max) return value;
+  return `${value.slice(0, max - 1)}...`;
+}
+
 function buildResultLabel(home: number, away: number) {
   if (home > away) return "VITORIA";
   if (home < away) return "DERROTA";
@@ -64,6 +69,11 @@ export async function GET(_request: Request, context: RouteContext) {
       awayScore: recap.match.awayScore,
     });
 
+    const teamName = escapeXml(cut(recap.team.name, 26));
+    const opponentName = escapeXml(cut(recap.match.opponent, 26));
+    const scorerName = escapeXml(cut(topScorerLabel, 34));
+    const assistantName = escapeXml(cut(topAssistantLabel, 34));
+
     const svg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
         <defs>
@@ -71,28 +81,34 @@ export async function GET(_request: Request, context: RouteContext) {
             <stop offset="0%" stop-color="${primary}" />
             <stop offset="100%" stop-color="${secondary}" />
           </linearGradient>
+          <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.22)" />
+            <stop offset="100%" stop-color="rgba(255,255,255,0.08)" />
+          </linearGradient>
         </defs>
         <rect width="1200" height="630" fill="url(#bg)" />
-        <circle cx="1030" cy="80" r="190" fill="rgba(255,255,255,0.15)" />
+        <circle cx="1040" cy="-90" r="300" fill="rgba(255,255,255,0.10)" />
+        <rect x="36" y="34" width="1128" height="562" rx="30" fill="rgba(0,0,0,0.14)" />
 
-        <text x="56" y="72" fill="white" font-family="Arial, sans-serif" font-size="20" letter-spacing="2" opacity="0.8">TEAM RECAP</text>
-        <text x="56" y="140" fill="white" font-family="Arial, sans-serif" font-size="54" font-weight="900">${escapeXml(recap.team.name)}</text>
-        <text x="56" y="185" fill="white" font-family="Arial, sans-serif" font-size="26" opacity="0.9">vs ${escapeXml(recap.match.opponent)} · ${escapeXml(dateLabel)}</text>
+        <text x="76" y="92" fill="white" font-family="Arial, sans-serif" font-size="20" letter-spacing="3" opacity="0.86">TEAM RECAP</text>
+        <text x="76" y="152" fill="white" font-family="Arial, sans-serif" font-size="58" font-weight="900">${teamName}</text>
+        <text x="76" y="198" fill="white" font-family="Arial, sans-serif" font-size="30" opacity="0.92">vs ${opponentName} · ${escapeXml(dateLabel)}</text>
 
-        <text x="56" y="350" fill="white" font-family="Arial, sans-serif" font-size="112" font-weight="900">${recap.match.homeScore}</text>
-        <text x="180" y="350" fill="white" font-family="Arial, sans-serif" font-size="60" opacity="0.7">x</text>
-        <text x="240" y="350" fill="white" font-family="Arial, sans-serif" font-size="112" font-weight="900" opacity="0.85">${recap.match.awayScore}</text>
+        <rect x="76" y="232" width="220" height="44" rx="22" fill="url(#glass)" />
+        <text x="186" y="261" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="20" font-weight="700">${escapeXml(resultLabel)}</text>
 
-        <rect x="430" y="285" width="240" height="52" rx="26" fill="rgba(255,255,255,0.16)" />
-        <text x="550" y="318" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="22" font-weight="700" letter-spacing="1">${escapeXml(resultLabel)}</text>
+        <rect x="340" y="250" width="780" height="190" rx="30" fill="rgba(255,255,255,0.14)" />
+        <text x="500" y="365" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="132" font-weight="900">${recap.match.homeScore}</text>
+        <text x="730" y="360" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="74" opacity="0.7">x</text>
+        <text x="960" y="365" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="132" font-weight="900" opacity="0.86">${recap.match.awayScore}</text>
 
-        <rect x="56" y="430" width="530" height="120" rx="16" fill="rgba(255,255,255,0.12)" />
-        <text x="78" y="464" fill="white" font-family="Arial, sans-serif" font-size="15" opacity="0.82">Artilheiro</text>
-        <text x="78" y="505" fill="white" font-family="Arial, sans-serif" font-size="30" font-weight="700">${escapeXml(topScorerLabel)}</text>
+        <rect x="76" y="462" width="520" height="110" rx="18" fill="rgba(255,255,255,0.14)" />
+        <text x="98" y="496" fill="white" font-family="Arial, sans-serif" font-size="16" opacity="0.84">Artilheiro</text>
+        <text x="98" y="540" fill="white" font-family="Arial, sans-serif" font-size="34" font-weight="700">${scorerName}</text>
 
-        <rect x="614" y="430" width="530" height="120" rx="16" fill="rgba(255,255,255,0.12)" />
-        <text x="636" y="464" fill="white" font-family="Arial, sans-serif" font-size="15" opacity="0.82">Lider em assistencias</text>
-        <text x="636" y="505" fill="white" font-family="Arial, sans-serif" font-size="30" font-weight="700">${escapeXml(topAssistantLabel)}</text>
+        <rect x="624" y="462" width="500" height="110" rx="18" fill="rgba(255,255,255,0.14)" />
+        <text x="646" y="496" fill="white" font-family="Arial, sans-serif" font-size="16" opacity="0.84">Lider em assistencias</text>
+        <text x="646" y="540" fill="white" font-family="Arial, sans-serif" font-size="34" font-weight="700">${assistantName}</text>
       </svg>
     `;
 

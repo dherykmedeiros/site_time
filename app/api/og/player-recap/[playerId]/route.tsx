@@ -27,6 +27,11 @@ function svgResponse(svg: string, status = 200) {
   });
 }
 
+function cut(value: string, max: number) {
+  if (value.length <= max) return value;
+  return `${value.slice(0, max - 1)}...`;
+}
+
 export async function GET(_request: Request, context: RouteContext) {
   const { playerId } = await context.params;
 
@@ -49,6 +54,10 @@ export async function GET(_request: Request, context: RouteContext) {
       matches: recap.career.matches,
     });
 
+    const playerName = escapeXml(cut(recap.player.name, 28));
+    const teamName = escapeXml(cut(recap.team.name, 42));
+    const badge = escapeXml(cut(recentBadge, 44));
+
     const svg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
         <defs>
@@ -56,29 +65,38 @@ export async function GET(_request: Request, context: RouteContext) {
             <stop offset="0%" stop-color="${primary}" />
             <stop offset="100%" stop-color="${secondary}" />
           </linearGradient>
+          <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.22)" />
+            <stop offset="100%" stop-color="rgba(255,255,255,0.08)" />
+          </linearGradient>
         </defs>
         <rect width="1200" height="630" fill="url(#bg)" />
-        <circle cx="180" cy="120" r="200" fill="rgba(255,255,255,0.15)" />
+        <circle cx="1080" cy="-80" r="320" fill="rgba(255,255,255,0.08)" />
+        <circle cx="130" cy="140" r="220" fill="rgba(255,255,255,0.10)" />
+        <rect x="36" y="34" width="1128" height="562" rx="30" fill="rgba(0,0,0,0.14)" />
 
-        <text x="64" y="72" fill="white" font-family="Arial, sans-serif" font-size="20" letter-spacing="2" opacity="0.8">PLAYER RECAP</text>
-        <text x="64" y="160" fill="white" font-family="Arial, sans-serif" font-size="64" font-weight="900">${escapeXml(recap.player.name)}</text>
-        <text x="64" y="205" fill="white" font-family="Arial, sans-serif" font-size="26" opacity="0.9">${escapeXml(recap.team.name)}</text>
+        <text x="76" y="92" fill="white" font-family="Arial, sans-serif" font-size="20" letter-spacing="3" opacity="0.86">PLAYER RECAP</text>
+        <text x="76" y="188" fill="white" font-family="Arial, sans-serif" font-size="72" font-weight="900">${playerName}</text>
+        <text x="76" y="236" fill="white" font-family="Arial, sans-serif" font-size="32" opacity="0.92">${teamName}</text>
 
-        <rect x="64" y="292" width="220" height="110" rx="18" fill="rgba(255,255,255,0.14)" />
-        <rect x="304" y="292" width="220" height="110" rx="18" fill="rgba(255,255,255,0.14)" />
-        <rect x="544" y="292" width="220" height="110" rx="18" fill="rgba(255,255,255,0.14)" />
+        <rect x="76" y="276" width="380" height="44" rx="22" fill="url(#glass)" />
+        <text x="98" y="305" fill="white" font-family="Arial, sans-serif" font-size="20" opacity="0.95">Ultimos jogos: ${badge}</text>
 
-        <text x="84" y="325" fill="white" font-family="Arial, sans-serif" font-size="16" opacity="0.85">Partidas</text>
-        <text x="84" y="372" fill="white" font-family="Arial, sans-serif" font-size="40" font-weight="800">${recap.career.matches}</text>
+        <rect x="76" y="422" width="312" height="132" rx="20" fill="rgba(255,255,255,0.16)" />
+        <rect x="444" y="422" width="312" height="132" rx="20" fill="rgba(255,255,255,0.16)" />
+        <rect x="812" y="422" width="312" height="132" rx="20" fill="rgba(255,255,255,0.16)" />
 
-        <text x="324" y="325" fill="white" font-family="Arial, sans-serif" font-size="16" opacity="0.85">Gols</text>
-        <text x="324" y="372" fill="white" font-family="Arial, sans-serif" font-size="40" font-weight="800">${recap.career.goals}</text>
+        <text x="104" y="462" fill="white" font-family="Arial, sans-serif" font-size="20" opacity="0.88">Partidas</text>
+        <text x="104" y="526" fill="white" font-family="Arial, sans-serif" font-size="64" font-weight="800">${recap.career.matches}</text>
 
-        <text x="564" y="325" fill="white" font-family="Arial, sans-serif" font-size="16" opacity="0.85">Assistencias</text>
-        <text x="564" y="372" fill="white" font-family="Arial, sans-serif" font-size="40" font-weight="800">${recap.career.assists}</text>
+        <text x="472" y="462" fill="white" font-family="Arial, sans-serif" font-size="20" opacity="0.88">Gols</text>
+        <text x="472" y="526" fill="white" font-family="Arial, sans-serif" font-size="64" font-weight="800">${recap.career.goals}</text>
 
-        <text x="64" y="560" fill="white" font-family="Arial, sans-serif" font-size="22" opacity="0.92">${escapeXml(recentBadge)}</text>
-        <text x="1020" y="560" fill="white" font-family="Arial, sans-serif" font-size="16" opacity="0.7">VARzea recap</text>
+        <text x="840" y="462" fill="white" font-family="Arial, sans-serif" font-size="20" opacity="0.88">Assistencias</text>
+        <text x="840" y="526" fill="white" font-family="Arial, sans-serif" font-size="64" font-weight="800">${recap.career.assists}</text>
+
+        <text x="76" y="585" fill="white" font-family="Arial, sans-serif" font-size="16" opacity="0.70">Generated by VARzea</text>
+        <text x="1002" y="585" text-anchor="end" fill="white" font-family="Arial, sans-serif" font-size="16" opacity="0.70">player summary</text>
       </svg>
     `;
 
