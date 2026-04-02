@@ -92,6 +92,10 @@ function buildResultLabel(home: number, away: number) {
   return "EMPATE";
 }
 
+function fitTeamName(name: string) {
+  return name.length > 24 ? `${name.slice(0, 23)}...` : name;
+}
+
 function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps) {
   const resultTone =
     match.status.result === "VITORIA"
@@ -111,6 +115,8 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
   const recentFormLabel =
     `${match.recent_form.wins}V ${match.recent_form.draws}E ${match.recent_form.losses}D | ` +
     `${match.recent_form.goals_for} GF ${match.recent_form.goals_against} GA`;
+  const homeDisplayName = fitTeamName(match.home.name).toUpperCase();
+  const awayDisplayName = fitTeamName(match.away.name).toUpperCase();
 
   return (
     <div
@@ -174,7 +180,7 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
               {match.title}
             </div>
             <div style={{ display: "flex", fontSize: `${subtitleSize}px`, opacity: 0.92 }}>
-              vs {match.away.name} | {match.dateLabel}
+              vs {fitTeamName(match.away.name)} | {match.dateLabel}
             </div>
           </div>
 
@@ -245,7 +251,7 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              flex: "0 0 45%",
+              flex: "0 0 40%",
               minWidth: 0,
               width: "100%",
               borderRadius: "22px",
@@ -290,11 +296,11 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
             <div
               style={{
                 display: "flex",
-                fontSize: "19px",
+                fontSize: "16px",
                 opacity: 0.9,
                 fontWeight: 700,
                 textTransform: "uppercase",
-                letterSpacing: "0.08em",
+                letterSpacing: "0.10em",
                 maxWidth: "100%",
                 textAlign: "center",
                 justifyContent: "center",
@@ -303,15 +309,15 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
                 alignItems: "center",
               }}
             >
-              {match.home.name}
+              {homeDisplayName}
             </div>
             <div
               style={{
                 display: "flex",
-                width: "100%",
+                width: "180px",
                 justifyContent: "center",
                 alignItems: "flex-end",
-                fontSize: "156px",
+                fontSize: "150px",
                 lineHeight: 0.88,
                 fontWeight: 900,
                 fontVariantNumeric: "tabular-nums",
@@ -319,6 +325,7 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
                 marginTop: "auto",
                 minHeight: "168px",
                 textAlign: "center",
+                textShadow: "0 10px 20px rgba(0,0,0,0.45)",
               }}
             >
               {match.goals.home}
@@ -338,11 +345,27 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
               justifyContent: "center",
               background: "rgba(2,6,23,0.28)",
               border: "1px solid rgba(255,255,255,0.18)",
-              flex: "0 0 88px",
+              flex: "0 0 20%",
               alignSelf: "center",
             }}
           >
-            X
+            <div
+              style={{
+                display: "flex",
+                width: "64px",
+                height: "64px",
+                borderRadius: "50%",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.14)",
+                color: "rgba(255,255,255,0.42)",
+                fontSize: "34px",
+                fontWeight: 700,
+              }}
+            >
+              X
+            </div>
           </div>
 
           <div
@@ -351,7 +374,7 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              flex: "0 0 45%",
+              flex: "0 0 40%",
               minWidth: 0,
               width: "100%",
               borderRadius: "22px",
@@ -396,11 +419,11 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
             <div
               style={{
                 display: "flex",
-                fontSize: "19px",
+                fontSize: "16px",
                 opacity: 0.9,
                 fontWeight: 700,
                 textTransform: "uppercase",
-                letterSpacing: "0.08em",
+                letterSpacing: "0.10em",
                 maxWidth: "100%",
                 textAlign: "center",
                 justifyContent: "center",
@@ -409,15 +432,15 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
                 alignItems: "center",
               }}
             >
-              {match.away.name}
+              {awayDisplayName}
             </div>
             <div
               style={{
                 display: "flex",
-                width: "100%",
+                width: "180px",
                 justifyContent: "center",
                 alignItems: "flex-end",
-                fontSize: "156px",
+                fontSize: "150px",
                 lineHeight: 0.88,
                 fontWeight: 900,
                 fontVariantNumeric: "tabular-nums",
@@ -425,6 +448,7 @@ function MatchdayRecapCard({ match, primary, secondary }: MatchdayRecapCardProps
                 marginTop: "auto",
                 minHeight: "168px",
                 textAlign: "center",
+                textShadow: "0 10px 20px rgba(0,0,0,0.45)",
               }}
             >
               {match.goals.away}
