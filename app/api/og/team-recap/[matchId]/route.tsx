@@ -115,14 +115,15 @@ export async function GET(request: Request, context: RouteContext) {
 
           <div
             style={{
-              margin: "36px",
+              margin: "30px",
               borderRadius: "32px",
               display: "flex",
               flexDirection: "column",
-              width: "calc(100% - 72px)",
-              height: "calc(100% - 72px)",
-              padding: "28px 30px",
-              background: "rgba(3,8,24,0.38)",
+              width: "calc(100% - 60px)",
+              height: "calc(100% - 60px)",
+              padding: "24px 26px",
+              background: "rgba(3,8,24,0.44)",
+              border: "1px solid rgba(255,255,255,0.18)",
               justifyContent: "space-between",
             }}
           >
@@ -131,7 +132,7 @@ export async function GET(request: Request, context: RouteContext) {
                 <div style={{ display: "flex", fontSize: "17px", letterSpacing: "0.16em", opacity: 0.84 }}>
                   MATCHDAY RECAP
                 </div>
-                <div style={{ display: "flex", fontSize: "58px", fontWeight: 900, lineHeight: 1.02 }}>
+                <div style={{ display: "flex", fontSize: "60px", fontWeight: 900, lineHeight: 1.02 }}>
                   {teamLabel}
                 </div>
                 <div style={{ display: "flex", fontSize: "30px", opacity: 0.92 }}>
@@ -168,7 +169,7 @@ export async function GET(request: Request, context: RouteContext) {
                   fontWeight: 600,
                 }}
               >
-                  Campo: {recap.match.isHome ? "Mandante" : "Visitante"}
+                Campo: {recap.match.isHome ? "Mandante" : "Visitante"}
               </div>
               <div
                 style={{
@@ -187,27 +188,27 @@ export async function GET(request: Request, context: RouteContext) {
             <div
               style={{
                 display: "flex",
-                borderRadius: "28px",
-                background: "linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.10) 100%)",
-                padding: "22px 26px",
+                borderRadius: "30px",
+                background: "linear-gradient(180deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.10) 100%)",
+                padding: "18px 24px",
                 justifyContent: "space-between",
                 alignItems: "center",
                 border: "1px solid rgba(255,255,255,0.2)",
               }}
             >
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "300px", gap: "6px" }}>
-                <div style={{ display: "flex", fontSize: "13px", letterSpacing: "0.14em", opacity: 0.74 }}>CASA</div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "300px", gap: "8px" }}>
+                <div style={{ display: "flex", fontSize: "13px", letterSpacing: "0.14em", opacity: 0.78 }}>CASA</div>
                 <div
                   style={{
                     display: "flex",
-                    width: "70px",
-                    height: "70px",
-                    borderRadius: "18px",
+                    width: "154px",
+                    height: "154px",
+                    borderRadius: "50%",
                     background: "rgba(2,6,23,0.3)",
                     alignItems: "center",
                     justifyContent: "center",
                     overflow: "hidden",
-                    border: "1px solid rgba(255,255,255,0.22)",
+                    border: "3px solid rgba(255,255,255,0.28)",
                   }}
                 >
                   {homeBadge ? (
@@ -228,17 +229,17 @@ export async function GET(request: Request, context: RouteContext) {
                   )}
                 </div>
                 <div style={{ display: "flex", fontSize: "24px", opacity: 0.94, fontWeight: 700 }}>{homeName}</div>
-                <div style={{ display: "flex", fontSize: "126px", lineHeight: 0.95, fontWeight: 900 }}>{homeScore}</div>
+                <div style={{ display: "flex", fontSize: "156px", lineHeight: 0.9, fontWeight: 900 }}>{homeScore}</div>
               </div>
 
               <div
                 style={{
                   display: "flex",
-                  fontSize: "40px",
+                  fontSize: "46px",
                   fontWeight: 800,
                   opacity: 0.86,
-                  width: "78px",
-                  height: "78px",
+                  width: "112px",
+                  height: "112px",
                   borderRadius: "50%",
                   alignItems: "center",
                   justifyContent: "center",
@@ -249,19 +250,19 @@ export async function GET(request: Request, context: RouteContext) {
                 X
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "300px", gap: "6px" }}>
-                <div style={{ display: "flex", fontSize: "13px", letterSpacing: "0.14em", opacity: 0.74 }}>VISITANTE</div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "300px", gap: "8px" }}>
+                <div style={{ display: "flex", fontSize: "13px", letterSpacing: "0.14em", opacity: 0.78 }}>VISITANTE</div>
                 <div
                   style={{
                     display: "flex",
-                    width: "70px",
-                    height: "70px",
-                    borderRadius: "18px",
+                    width: "154px",
+                    height: "154px",
+                    borderRadius: "50%",
                     background: "rgba(2,6,23,0.3)",
                     alignItems: "center",
                     justifyContent: "center",
                     overflow: "hidden",
-                    border: "1px solid rgba(255,255,255,0.22)",
+                    border: "3px solid rgba(255,255,255,0.28)",
                   }}
                 >
                   {awayBadge ? (
@@ -282,7 +283,7 @@ export async function GET(request: Request, context: RouteContext) {
                   )}
                 </div>
                 <div style={{ display: "flex", fontSize: "24px", opacity: 0.94, fontWeight: 700 }}>{awayName}</div>
-                <div style={{ display: "flex", fontSize: "126px", lineHeight: 0.95, fontWeight: 900 }}>{awayScore}</div>
+                <div style={{ display: "flex", fontSize: "156px", lineHeight: 0.9, fontWeight: 900 }}>{awayScore}</div>
               </div>
             </div>
 
@@ -298,7 +299,7 @@ export async function GET(request: Request, context: RouteContext) {
                 }}
               >
                 <div style={{ display: "flex", fontSize: "14px", opacity: 0.84 }}>Artilheiro</div>
-                <div style={{ display: "flex", fontSize: "28px", fontWeight: 700 }}>{cut(topScorerLabel, 34)}</div>
+                <div style={{ display: "flex", fontSize: "30px", fontWeight: 700 }}>{cut(topScorerLabel, 34)}</div>
               </div>
               <div
                 style={{
@@ -311,7 +312,7 @@ export async function GET(request: Request, context: RouteContext) {
                 }}
               >
                 <div style={{ display: "flex", fontSize: "14px", opacity: 0.84 }}>Lider em assistencias</div>
-                <div style={{ display: "flex", fontSize: "28px", fontWeight: 700 }}>
+                <div style={{ display: "flex", fontSize: "30px", fontWeight: 700 }}>
                   {cut(topAssistantLabel, 34)}
                 </div>
               </div>

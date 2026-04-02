@@ -97,6 +97,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   const dateStr = new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
+    timeStyle: "short",
   }).format(match.date);
 
   return new ImageResponse(
@@ -124,33 +125,28 @@ export async function GET(request: Request, context: RouteContext) {
 
         <div
           style={{
-            margin: "36px",
-            borderRadius: "30px",
+            margin: "30px",
+            borderRadius: "32px",
             display: "flex",
             flexDirection: "column",
+            width: "calc(100% - 60px)",
+            height: "calc(100% - 60px)",
+            padding: "26px 28px",
+            background: "rgba(2,6,23,0.42)",
+            border: "1px solid rgba(255,255,255,0.16)",
             justifyContent: "space-between",
-            width: "calc(100% - 72px)",
-            height: "calc(100% - 72px)",
-            padding: "36px 38px",
-            background: "rgba(0,0,0,0.18)",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxWidth: "74%" }}>
-              <div style={{ display: "flex", fontSize: "18px", letterSpacing: "0.16em", opacity: 0.84 }}>
-                {isCompleted ? "MATCHDAY FINAL" : "MATCHDAY PREVIEW"}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxWidth: "72%" }}>
+              <div style={{ display: "flex", fontSize: "16px", letterSpacing: "0.16em", opacity: 0.82 }}>
+                {isCompleted ? "MATCHDAY RESULT" : "MATCHDAY PREVIEW"}
               </div>
-              <div style={{ display: "flex", fontSize: "63px", fontWeight: 900, lineHeight: 1.02 }}>
-                  {teamLabel}
+              <div style={{ display: "flex", fontSize: "56px", fontWeight: 900, lineHeight: 1.02 }}>
+                {teamLabel}
               </div>
-              <div style={{ display: "flex", fontSize: "30px", opacity: 0.92 }}>
-                vs {cut(match.opponent, 30)} | {dateStr}
+              <div style={{ display: "flex", fontSize: "28px", opacity: 0.94 }}>
+                vs {cut(match.opponent, 26)}
               </div>
             </div>
 
@@ -160,38 +156,42 @@ export async function GET(request: Request, context: RouteContext) {
                 borderRadius: "999px",
                 background: resultBg,
                 padding: "10px 18px",
-                fontSize: "18px",
+                fontSize: "17px",
                 fontWeight: 800,
                 letterSpacing: "0.08em",
+                minWidth: "220px",
+                justifyContent: "center",
               }}
             >
-              {resultLabel}
+              {isCompleted ? `FINAL | ${resultLabel}` : "PRE-JOGO"}
             </div>
           </div>
 
           <div
             style={{
               display: "flex",
-              borderRadius: "28px",
-              background: "rgba(255,255,255,0.14)",
-              padding: "30px 28px",
+              borderRadius: "30px",
+              background: "linear-gradient(180deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.10) 100%)",
+              padding: "20px 24px",
               justifyContent: "space-between",
               alignItems: "center",
-              minHeight: "280px",
+              border: "1px solid rgba(255,255,255,0.2)",
+              minHeight: "320px",
             }}
           >
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "260px", gap: "10px" }}>
-              <div style={{ display: "flex", fontSize: "14px", letterSpacing: "0.12em", opacity: 0.72 }}>CASA</div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "290px", gap: "8px" }}>
+              <div style={{ display: "flex", fontSize: "13px", letterSpacing: "0.14em", opacity: 0.78 }}>CASA</div>
               <div
                 style={{
                   display: "flex",
-                  width: "88px",
-                  height: "88px",
-                  borderRadius: "22px",
-                  background: "rgba(255,255,255,0.16)",
+                  width: "162px",
+                  height: "162px",
+                  borderRadius: "50%",
+                  background: "rgba(2,6,23,0.38)",
                   alignItems: "center",
                   justifyContent: "center",
                   overflow: "hidden",
+                  border: "3px solid rgba(255,255,255,0.26)",
                 }}
               >
                 {homeBadge ? (
@@ -206,29 +206,48 @@ export async function GET(request: Request, context: RouteContext) {
                     }}
                   />
                 ) : (
-                  <div style={{ display: "flex", fontSize: "30px", fontWeight: 800 }}>
+                  <div style={{ display: "flex", fontSize: "52px", fontWeight: 900 }}>
                     {homeName.slice(0, 2).toUpperCase()}
                   </div>
                 )}
               </div>
-              <div style={{ display: "flex", fontSize: "20px", opacity: 0.86 }}>{homeName}</div>
-              <div style={{ display: "flex", fontSize: "106px", fontWeight: 900 }}>{home}</div>
+              <div style={{ display: "flex", fontSize: "24px", fontWeight: 700 }}>{homeName}</div>
+              <div style={{ display: "flex", fontSize: "152px", lineHeight: 0.9, fontWeight: 900 }}>
+                {home}
+              </div>
             </div>
 
-            <div style={{ display: "flex", fontSize: "44px", fontWeight: 800, opacity: 0.86 }}>x</div>
+            <div
+              style={{
+                display: "flex",
+                width: "110px",
+                height: "110px",
+                borderRadius: "50%",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(2,6,23,0.34)",
+                border: "1px solid rgba(255,255,255,0.2)",
+                fontSize: "44px",
+                fontWeight: 900,
+                opacity: 0.9,
+              }}
+            >
+              X
+            </div>
 
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "260px", gap: "10px" }}>
-              <div style={{ display: "flex", fontSize: "14px", letterSpacing: "0.12em", opacity: 0.72 }}>VISITANTE</div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "290px", gap: "8px" }}>
+              <div style={{ display: "flex", fontSize: "13px", letterSpacing: "0.14em", opacity: 0.78 }}>VISITANTE</div>
               <div
                 style={{
                   display: "flex",
-                  width: "88px",
-                  height: "88px",
-                  borderRadius: "22px",
-                  background: "rgba(255,255,255,0.16)",
+                  width: "162px",
+                  height: "162px",
+                  borderRadius: "50%",
+                  background: "rgba(2,6,23,0.38)",
                   alignItems: "center",
                   justifyContent: "center",
                   overflow: "hidden",
+                  border: "3px solid rgba(255,255,255,0.26)",
                 }}
               >
                 {awayBadge ? (
@@ -243,32 +262,57 @@ export async function GET(request: Request, context: RouteContext) {
                     }}
                   />
                 ) : (
-                  <div style={{ display: "flex", fontSize: "30px", fontWeight: 800 }}>
+                  <div style={{ display: "flex", fontSize: "52px", fontWeight: 900 }}>
                     {awayName.slice(0, 2).toUpperCase()}
                   </div>
                 )}
               </div>
-              <div style={{ display: "flex", fontSize: "20px", opacity: 0.86 }}>{awayName}</div>
-              <div style={{ display: "flex", fontSize: "106px", fontWeight: 900 }}>{away}</div>
+              <div style={{ display: "flex", fontSize: "24px", fontWeight: 700 }}>{awayName}</div>
+              <div style={{ display: "flex", fontSize: "152px", lineHeight: 0.9, fontWeight: 900 }}>
+                {away}
+              </div>
             </div>
           </div>
 
-          {isCompleted ? (
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "10px" }}>
             <div
               style={{
                 display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
+                borderRadius: "999px",
+                background: "rgba(255,255,255,0.14)",
+                padding: "10px 14px",
+                fontSize: "16px",
               }}
             >
-              <div style={{ display: "flex", fontSize: "16px", opacity: 0.72 }}>
-                {scorers.length > 0 ? `Goleadores: ${cut(scorers, 80)}` : "Sem gols registrados na sumula"}
-              </div>
-              <div style={{ display: "flex", fontSize: "14px", opacity: 0.56, letterSpacing: "0.06em" }}>VARzea</div>
+              Local: {cut(match.venue, 34)}
             </div>
-          ) : (
-            <div style={{ display: "flex", fontSize: "16px", opacity: 0.74 }}>
-              Compartilhe este card para convocar e engajar o elenco antes da partida.
+            <div
+              style={{
+                display: "flex",
+                borderRadius: "999px",
+                background: "rgba(255,255,255,0.14)",
+                padding: "10px 14px",
+                fontSize: "16px",
+              }}
+            >
+              Data e hora: {dateStr}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                borderRadius: "999px",
+                background: "rgba(255,255,255,0.14)",
+                padding: "10px 14px",
+                fontSize: "16px",
+              }}
+            >
+              Campo: {match.isHome ? "Mandante" : "Visitante"}
+            </div>
+          </div>
+
+          {isCompleted && (
+            <div style={{ display: "flex", fontSize: "15px", opacity: 0.74 }}>
+              {scorers.length > 0 ? `Goleadores: ${cut(scorers, 96)}` : "Sem gols registrados na sumula"}
             </div>
           )}
         </div>
