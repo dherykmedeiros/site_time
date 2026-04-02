@@ -8,7 +8,7 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-// GET /api/matches/:id — Match detail with RSVPs, stats, canSubmitPostGame
+// GET /api/matches/:id � Match detail with RSVPs, stats, canSubmitPostGame
 export async function GET(request: Request, { params }: RouteParams) {
   const { session, error } = await requireAuth();
   if (error) return error;
@@ -17,10 +17,11 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   if (!session.user.teamId) {
     return NextResponse.json(
-      { error: "Usuário não possui time vinculado" },
+      { error: "Usuario nao possui time vinculado" },
       { status: 404 }
     );
   }
+
   const match = await prisma.match.findFirst({
     where: { id, teamId: session.user.teamId },
     include: {
@@ -39,18 +40,13 @@ export async function GET(request: Request, { params }: RouteParams) {
         select: { position: true, maxPlayers: true },
       },
       team: { select: { slug: true } },
-
-    if (data.isHome !== undefined) {
-      postgameUpdateData.isHome = data.isHome;
-    }
-
       season: { select: { id: true, name: true, type: true, status: true } },
     },
   });
 
   if (!match) {
     return NextResponse.json(
-      { error: "Partida não encontrada", code: "NOT_FOUND" },
+      { error: "Partida nao encontrada", code: "NOT_FOUND" },
       { status: 404 }
     );
   }
@@ -92,11 +88,11 @@ export async function GET(request: Request, { params }: RouteParams) {
     })),
     canSubmitPostGame,
     createdAt: match.createdAt.toISOString(),
-        error: "No pós-jogo, so mando casa/fora e escudo do adversario (se vazio) podem ser alterados por aqui",
+    updatedAt: match.updatedAt.toISOString(),
   });
 }
 
-// PATCH /api/matches/:id — Update match (ADMIN only)
+// PATCH /api/matches/:id � Update match (ADMIN only)
 export async function PATCH(request: Request, { params }: RouteParams) {
   const { session, error } = await requireAdmin();
   if (error) return error;
@@ -105,7 +101,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   if (!session.user.teamId) {
     return NextResponse.json(
-      { error: "Usuário não possui time vinculado" },
+      { error: "Usuario nao possui time vinculado" },
       { status: 404 }
     );
   }
@@ -116,7 +112,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   if (!match) {
     return NextResponse.json(
-      { error: "Partida não encontrada", code: "NOT_FOUND" },
+      { error: "Partida nao encontrada", code: "NOT_FOUND" },
       { status: 404 }
     );
   }
@@ -126,7 +122,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "JSON inválido", code: "VALIDATION_ERROR" },
+      { error: "JSON invalido", code: "VALIDATION_ERROR" },
       { status: 400 }
     );
   }
@@ -135,7 +131,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   if (!parsed.success) {
     return NextResponse.json(
       {
-        error: "Campos inválidos",
+        error: "Campos invalidos",
         code: "VALIDATION_ERROR",
         details: parsed.error.flatten().fieldErrors,
       },
@@ -161,7 +157,6 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       data.venue !== undefined ||
       data.opponent !== undefined ||
       data.type !== undefined ||
-      data.isHome !== undefined ||
       data.seasonId !== undefined ||
       data.positionLimits !== undefined ||
       data.status !== undefined ||
@@ -172,11 +167,17 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json(
         {
           error:
-            "No pós-jogo apenas estatisticas podem ser alteradas e o escudo do adversario pode ser adicionado se estiver vazio",
+            "No pos-jogo apenas estatisticas podem ser alteradas e o escudo do adversario pode ser adicionado se estiver vazio",
           code: "POSTGAME_RESTRICTED_EDIT",
         },
         { status: 400 }
       );
+    }
+
+    const postgameUpdateData: Record<string, unknown> = {};
+
+    if (data.isHome !== undefined) {
+      postgameUpdateData.isHome = data.isHome;
     }
 
     if (data.opponentBadgeUrl !== undefined) {
@@ -200,9 +201,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         );
       }
 
+      postgameUpdateData.opponentBadgeUrl = data.opponentBadgeUrl;
+    }
+
+    if (Object.keys(postgameUpdateData).length > 0) {
       const updated = await prisma.match.update({
         where: { id },
-        data: { opponentBadgeUrl: data.opponentBadgeUrl },
+        data: postgameUpdateData,
         include: {
           rsvps: {
             include: { player: { select: { name: true } } },
@@ -223,7 +228,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     return NextResponse.json(
       {
-        error: "Nenhum campo elegivel para edicao no pos-jogo foi enviado",
+        error: "No pos-jogo, so mando casa/fora e escudo do adversario (se vazio) podem ser alterados por aqui",
         code: "NO_POSTGAME_CHANGES",
       },
       { status: 400 }
@@ -235,7 +240,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (uniquePositions.size !== data.positionLimits.length) {
       return NextResponse.json(
         {
-          error: "Posições duplicadas nos limites",
+          error: "Posicoes duplicadas nos limites",
           code: "DUPLICATE_POSITION_LIMIT",
         },
         { status: 400 }
@@ -251,7 +256,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     if (!season) {
       return NextResponse.json(
-        { error: "Temporada não encontrada", code: "SEASON_NOT_FOUND" },
+        { error: "Temporada nao encontrada", code: "SEASON_NOT_FOUND" },
         { status: 404 }
       );
     }
@@ -295,7 +300,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (match.date >= new Date()) {
       return NextResponse.json(
         {
-          error: "Não é possível registrar pós-jogo antes da data da partida",
+          error: "Nao e possivel registrar pos-jogo antes da data da partida",
           code: "MATCH_NOT_PAST",
         },
         { status: 400 }
@@ -373,7 +378,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   return buildMatchDetailResponse(updated);
 }
 
-// DELETE /api/matches/:id — Delete match (ADMIN only)
+// DELETE /api/matches/:id � Delete match (ADMIN only)
 export async function DELETE(request: Request, { params }: RouteParams) {
   const { session, error } = await requireAdmin();
   if (error) return error;
@@ -382,7 +387,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
   if (!session.user.teamId) {
     return NextResponse.json(
-      { error: "Usuário não possui time vinculado" },
+      { error: "Usuario nao possui time vinculado" },
       { status: 404 }
     );
   }
@@ -396,7 +401,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
   if (!match) {
     return NextResponse.json(
-      { error: "Partida não encontrada", code: "NOT_FOUND" },
+      { error: "Partida nao encontrada", code: "NOT_FOUND" },
       { status: 404 }
     );
   }
@@ -408,7 +413,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     return NextResponse.json(
       {
         error:
-          "Partida possui estatísticas registradas. Envie ?confirm=true para confirmar.",
+          "Partida possui estatisticas registradas. Envie ?confirm=true para confirmar.",
         code: "HAS_STATS_NEEDS_CONFIRM",
       },
       { status: 400 }
