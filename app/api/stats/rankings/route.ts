@@ -70,7 +70,7 @@ export async function GET(request: Request) {
   // Team record: only COMPLETED matches
   const completedMatches = await prisma.match.findMany({
     where: { teamId, status: "COMPLETED" },
-    select: { homeScore: true, awayScore: true },
+    select: { homeScore: true, awayScore: true, isHome: true },
   });
 
   let wins = 0;
@@ -80,12 +80,12 @@ export async function GET(request: Request) {
   let goalsConceded = 0;
 
   for (const m of completedMatches) {
-    const home = m.homeScore ?? 0;
-    const away = m.awayScore ?? 0;
-    goalsScored += home;
-    goalsConceded += away;
-    if (home > away) wins++;
-    else if (home < away) losses++;
+    const teamGoalsFor = m.isHome ? m.homeScore ?? 0 : m.awayScore ?? 0;
+    const teamGoalsAgainst = m.isHome ? m.awayScore ?? 0 : m.homeScore ?? 0;
+    goalsScored += teamGoalsFor;
+    goalsConceded += teamGoalsAgainst;
+    if (teamGoalsFor > teamGoalsAgainst) wins++;
+    else if (teamGoalsFor < teamGoalsAgainst) losses++;
     else draws++;
   }
 

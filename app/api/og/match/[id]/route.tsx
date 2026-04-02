@@ -73,12 +73,14 @@ export async function GET(request: Request, context: RouteContext) {
 
   const home = match.homeScore ?? "-";
   const away = match.awayScore ?? "-";
+  const teamGoals = match.isHome ? match.homeScore : match.awayScore;
+  const opponentGoals = match.isHome ? match.awayScore : match.homeScore;
 
   const resultLabel =
-    typeof home === "number" && typeof away === "number"
-      ? home > away
+    typeof teamGoals === "number" && typeof opponentGoals === "number"
+      ? teamGoals > opponentGoals
         ? "VITORIA"
-        : home < away
+        : teamGoals < opponentGoals
           ? "DERROTA"
           : "EMPATE"
       : "PRE-JOGO";
