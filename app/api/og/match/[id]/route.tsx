@@ -1,6 +1,8 @@
-import { ImageResponse } from "next/og";
 import { prisma } from "@/lib/prisma";
-import { safeHex } from "../../route-utils";
+import { safeHex, OG_CACHE_HEADERS, resolveFormat, OG_DIMENSIONS } from "../../route-utils";
+import { resolveTheme } from "../../themes";
+import { renderHtmlToImage } from "../../html-renderer";
+import { baseLayout, esc, cut, resolveAssetUrl } from "../../html-templates";
 
 export const runtime = "nodejs";
 
@@ -8,28 +10,18 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-function resolveAssetUrl(path: string | null | undefined, requestUrl: string) {
-  if (!path) return null;
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
-
-  const origin =
-    (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "") ||
-    new URL(requestUrl).origin;
-
-  if (!path.startsWith("/")) {
-    return `${origin}/${path}`;
-  }
-
-  return `${origin}${path}`;
-}
-
-function cut(value: string, max: number) {
-  if (value.length <= max) return value;
-  return `${value.slice(0, max - 1)}...`;
+function badgeHtml(url: string | null, name: string): string {
+  return url
+    ? `<img src="${esc(url)}" alt="${esc(name)}" style="width:100%;height:100%;object-fit:cover">`
+    : `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:52px;font-weight:900">${esc(name.slice(0, 2).toUpperCase())}</div>`;
 }
 
 export async function GET(request: Request, context: RouteContext) {
   const { id } = await context.params;
+  const { searchParams } = new URL(request.url);
+  const format = resolveFormat(searchParams.get("format"));
+  const theme = resolveTheme(searchParams.get("theme"));
+  const dims = OG_DIMENSIONS[format];
 
   const match = await prisma.match.findUnique({
     where: { id },
@@ -66,10 +58,7 @@ export async function GET(request: Request, context: RouteContext) {
   const awayName = match.isHome ? opponentLabel : teamLabel;
   const homeBadge = match.isHome ? teamBadgeUrl : opponentBadgeUrl;
   const awayBadge = match.isHome ? opponentBadgeUrl : teamBadgeUrl;
-  const isCompleted =
-    match.status === "COMPLETED" &&
-    match.homeScore !== null &&
-    match.awayScore !== null;
+  const isCompleted = match.status === "COMPLETED" && match.homeScore !== null && match.awayScore !== null;
 
   const home = match.homeScore ?? "-";
   const away = match.awayScore ?? "-";
@@ -78,234 +67,69 @@ export async function GET(request: Request, context: RouteContext) {
 
   const resultLabel =
     typeof teamGoals === "number" && typeof opponentGoals === "number"
-      ? teamGoals > opponentGoals
-        ? "VITORIA"
-        : teamGoals < opponentGoals
-          ? "DERROTA"
-          : "EMPATE"
+      ? teamGoals > opponentGoals ? "VITORIA" : teamGoals < opponentGoals ? "DERROTA" : "EMPATE"
       : "PRE-JOGO";
-  const resultBg =
-    resultLabel === "VITORIA"
-      ? "rgba(16,185,129,0.3)"
-      : resultLabel === "DERROTA"
-        ? "rgba(239,68,68,0.3)"
-        : resultLabel === "EMPATE"
-          ? "rgba(234,179,8,0.3)"
-          : "rgba(59,130,246,0.28)";
+  const resultClass =
+    resultLabel === "VITORIA" ? "win"
+      : resultLabel === "DERROTA" ? "loss"
+        : resultLabel === "EMPATE" ? "draw"
+          : "draw";
 
-  const scorers = match.matchStats
-    .map((s) => `${s.player.name} (${s.goals})`)
-    .join("  ·  ");
+  const scorers = match.matchStats.map((s) => `${s.player.name} (${s.goals})`).join("  ·  ");
+  const dateStr = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(match.date);
 
-  const dateStr = new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(match.date);
+  const content = `
+    <div class="card card-padded" style="padding:28px 34px;gap:0">
+      <div class="glow-line"></div>
 
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: "1200px",
-          height: "630px",
-          display: "flex",
-          background: `linear-gradient(132deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-          position: "relative",
-          color: "white",
-          fontFamily: "Verdana, Arial, sans-serif",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            inset: "0",
-            display: "flex",
-            background:
-              "radial-gradient(circle at 15% 20%, rgba(255,255,255,0.2), transparent 34%), radial-gradient(circle at 82% 0%, rgba(255,255,255,0.14), transparent 36%)",
-          }}
-        />
-
-        <div
-          style={{
-            margin: "30px",
-            display: "flex",
-            flexDirection: "column",
-            width: 1140,
-            height: 570,
-            padding: "26px 28px",
-            background: "rgba(2,6,23,0.42)",
-            justifyContent: "space-between",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "6px", maxWidth: "72%" }}>
-              <div style={{ display: "flex", fontSize: "16px", letterSpacing: "0.16em", opacity: 0.82 }}>
-                {isCompleted ? "MATCHDAY RESULT" : "MATCHDAY PREVIEW"}
-              </div>
-              <div style={{ display: "flex", fontSize: "56px", fontWeight: 900, lineHeight: 1.02 }}>
-                {teamLabel}
-              </div>
-              <div style={{ display: "flex", fontSize: "28px", opacity: 0.94 }}>
-                vs {cut(match.opponent, 26)}
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                borderRadius: "999px",
-                background: resultBg,
-                padding: "10px 18px",
-                fontSize: "17px",
-                fontWeight: 800,
-                letterSpacing: "0.08em",
-                minWidth: "220px",
-                justifyContent: "center",
-              }}
-            >
-              {isCompleted ? `FINAL | ${resultLabel}` : "PRE-JOGO"}
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              minHeight: "320px",
-            }}
-          >
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "290px", gap: "8px" }}>
-              <div style={{ display: "flex", fontSize: "13px", letterSpacing: "0.14em", opacity: 0.78 }}>CASA</div>
-              <div
-                style={{
-                  display: "flex",
-                  width: "162px",
-                  height: "162px",
-                  background: "rgba(2,6,23,0.38)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  overflow: "hidden",
-                }}
-              >
-                {homeBadge ? (
-                  <img
-                    src={homeBadge}
-                    alt={homeName}
-                    style={{
-                      display: "flex",
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
-                  />
-                ) : (
-                  <div style={{ display: "flex", fontSize: "52px", fontWeight: 900 }}>
-                    {homeName.slice(0, 2).toUpperCase()}
-                  </div>
-                )}
-              </div>
-              <div style={{ display: "flex", fontSize: "24px", fontWeight: 700 }}>{homeName}</div>
-              <div style={{ display: "flex", fontSize: "152px", lineHeight: 0.9, margin: 0, fontWeight: 900 }}>
-                {home}
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                width: "110px",
-                height: "110px",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "rgba(2,6,23,0.34)",
-                fontSize: "44px",
-                fontWeight: 900,
-                opacity: 0.9,
-              }}
-            >
-              X
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: "290px", gap: "8px" }}>
-              <div style={{ display: "flex", fontSize: "13px", letterSpacing: "0.14em", opacity: 0.78 }}>VISITANTE</div>
-              <div
-                style={{
-                  display: "flex",
-                  width: "162px",
-                  height: "162px",
-                  background: "rgba(2,6,23,0.38)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  overflow: "hidden",
-                }}
-              >
-                {awayBadge ? (
-                  <img
-                    src={awayBadge}
-                    alt={awayName}
-                    style={{
-                      display: "flex",
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
-                  />
-                ) : (
-                  <div style={{ display: "flex", fontSize: "52px", fontWeight: 900 }}>
-                    {awayName.slice(0, 2).toUpperCase()}
-                  </div>
-                )}
-              </div>
-              <div style={{ display: "flex", fontSize: "24px", fontWeight: 700 }}>{awayName}</div>
-              <div style={{ display: "flex", fontSize: "152px", lineHeight: 0.9, margin: 0, fontWeight: 900 }}>
-                {away}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "10px" }}>
-            <div
-              style={{
-                display: "flex",
-                background: "rgba(255,255,255,0.14)",
-                padding: "10px 14px",
-                fontSize: "16px",
-              }}
-            >
-              Local: {cut(match.venue, 34)}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                background: "rgba(255,255,255,0.14)",
-                padding: "10px 14px",
-                fontSize: "16px",
-              }}
-            >
-              Data e hora: {dateStr}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                borderRadius: "999px",
-                background: "rgba(255,255,255,0.14)",
-                padding: "10px 14px",
-                fontSize: "16px",
-              }}
-            >
-              Campo: {match.isHome ? "Mandante" : "Visitante"}
-            </div>
-          </div>
-
-          {isCompleted && (
-            <div style={{ display: "flex", fontSize: "15px", opacity: 0.74 }}>
-              {scorers.length > 0 ? `Goleadores: ${cut(scorers, 96)}` : "Sem gols registrados na sumula"}
-            </div>
-          )}
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:0">
+          <div class="tracking-wide text-muted" style="font-size:13px;font-weight:600">${isCompleted ? "MATCHDAY RESULT" : "MATCHDAY PREVIEW"}</div>
+          <div class="font-black" style="font-size:48px;line-height:1;letter-spacing:-0.02em">${esc(teamLabel)} vs ${esc(cut(match.opponent, 18))}</div>
+        </div>
+        <div class="result-pill-${resultClass} pill" style="font-size:14px;font-weight:800;padding:10px 20px;letter-spacing:0.06em;margin-top:4px">
+          ${isCompleted ? esc(resultLabel) : "PRÉ-JOGO"}
         </div>
       </div>
-    ),
-    { width: 1200, height: 630 }
-  );
+
+      <!-- Scoreboard -->
+      <div style="display:flex;align-items:center;justify-content:center;flex:1;gap:0;margin:16px 0 12px">
+        <!-- Home side -->
+        <div style="display:flex;flex-direction:column;align-items:center;width:38%;gap:12px">
+          <div class="badge badge-xl">${badgeHtml(homeBadge, homeName)}</div>
+          <div style="font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.85;text-align:center;line-height:1.2">${esc(homeName)}</div>
+          <div class="mono font-black tabular" style="font-size:128px;line-height:0.85;text-shadow:0 8px 40px rgba(0,0,0,0.5)">${home}</div>
+        </div>
+
+        <!-- Separator -->
+        <div style="display:flex;flex-direction:column;align-items:center;width:24%;gap:8px">
+          <div style="width:1px;height:40px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.15),transparent)"></div>
+          <div style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);font-size:22px;font-weight:800;opacity:0.5">×</div>
+          <div style="width:1px;height:40px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.15),transparent)"></div>
+        </div>
+
+        <!-- Away side -->
+        <div style="display:flex;flex-direction:column;align-items:center;width:38%;gap:12px">
+          <div class="badge badge-xl">${badgeHtml(awayBadge, awayName)}</div>
+          <div style="font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.85;text-align:center;line-height:1.2">${esc(awayName)}</div>
+          <div class="mono font-black tabular" style="font-size:128px;line-height:0.85;text-shadow:0 8px 40px rgba(0,0,0,0.5)">${away}</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Footer info + scorers -->
+      <div style="display:flex;gap:10px;margin-top:10px;align-items:center">
+        <span class="pill" style="font-size:14px;font-weight:600">${esc(cut(match.venue, 30))}</span>
+        <span class="pill" style="font-size:14px;font-weight:600">${esc(dateStr)}</span>
+        <span class="pill" style="font-size:14px;font-weight:600">${match.isHome ? "Mandante" : "Visitante"}</span>
+        ${isCompleted && scorers.length > 0 ? `<span class="text-muted" style="font-size:14px;margin-left:auto">⚽ ${esc(cut(scorers, 60))}</span>` : ""}
+      </div>
+    </div>
+  `;
+
+  const html = baseLayout({ width: dims.width, height: dims.height, theme, primary: primaryColor, secondary: secondaryColor, content });
+  const png = await renderHtmlToImage(html, dims);
+  return new Response(png, { headers: { "Content-Type": "image/png", ...OG_CACHE_HEADERS } });
 }

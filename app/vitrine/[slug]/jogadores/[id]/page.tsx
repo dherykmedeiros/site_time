@@ -251,7 +251,7 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
         </section>
 
         <section className="mt-8" aria-label="Recap compartilhavel">
-          <PlayerRecapWidget playerId={player.id} playerName={player.name} />
+          <PlayerRecapWidget playerId={player.id} playerName={player.name} vitrineUrl={`/vitrine/${slug}/jogadores/${player.id}`} />
         </section>
 
         {/* Achievements */}
