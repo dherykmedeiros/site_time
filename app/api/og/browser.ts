@@ -2,14 +2,16 @@ import puppeteer, { type Browser } from "puppeteer-core";
 
 let browser: Browser | null = null;
 
+const CHROMIUM_CDN = "https://github.com/nicholasgasior/docker-chromium/releases/download/v143.0.0/chromium-v143.0.0-pack.tar";
+
 export async function getOgBrowser(): Promise<Browser> {
   if (browser?.connected) return browser;
 
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
-    const chromium = (await import("@sparticuz/chromium")).default;
+    const chromium = (await import("@sparticuz/chromium-min")).default;
     browser = await puppeteer.launch({
       args: chromium.args,
-      executablePath: await chromium.executablePath(),
+      executablePath: await chromium.executablePath(CHROMIUM_CDN),
       headless: "shell",
     });
   } else {
