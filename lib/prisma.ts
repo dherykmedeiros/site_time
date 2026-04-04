@@ -27,13 +27,14 @@ function createPrismaClient() {
   return new PrismaClient({ adapter });
 }
 
-export const prisma = new Proxy({} as PrismaClient, {
-  get(_target, prop: string | symbol) {
+export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
+  get(_target, prop, receiver) {
+    if (prop === "then") return undefined;
     if (!globalForPrisma.prisma) {
       globalForPrisma.prisma = createPrismaClient();
     }
     const client = globalForPrisma.prisma;
-    const value = client[prop as keyof PrismaClient];
-    return typeof value === "function" ? (value as Function).bind(client) : value;
+    const value = Reflect.get(client, prop, client);
+    return typeof value === "function" ? value.bind(client) : value;
   },
 });

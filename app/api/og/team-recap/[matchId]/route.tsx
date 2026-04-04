@@ -169,6 +169,8 @@ export async function GET(request: Request, context: RouteContext) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown_error";
+    const stack = error instanceof Error ? error.stack : "";
+    console.error(`[og/team-recap] matchId=${matchId} error=${message}`, stack);
     trackOperationalEvent("recap_team_card_failed", { matchId, message });
 
     const fallbackSvg = `
