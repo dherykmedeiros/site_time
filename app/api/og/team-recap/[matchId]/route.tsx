@@ -24,7 +24,7 @@ function fitTeamName(name: string) {
 
 function badgeHtml(url: string | null, name: string): string {
   return url
-    ? `<img src="${esc(url)}" alt="${esc(name)}" style="width:100%;height:100%;object-fit:cover">`
+    ? `<img src="${esc(url)}" alt="${esc(name)}" style="width:100%;height:100%;object-fit:contain;padding:8%">`
     : `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:22px;font-weight:800">${esc(name.slice(0, 2).toUpperCase())}</div>`;
 }
 
@@ -109,26 +109,26 @@ export async function GET(request: Request, context: RouteContext) {
         </div>
 
         <!-- Scoreboard -->
-        <div style="display:flex;align-items:center;justify-content:center;flex:1;gap:0;margin:12px 0 8px">
+        <div style="display:flex;align-items:center;justify-content:center;gap:0;margin:8px 0 4px">
           <!-- Home side -->
-          <div style="display:flex;flex-direction:column;align-items:center;width:38%;gap:12px">
-            <div class="badge badge-xl">${badgeHtml(homeBadge, homeName)}</div>
+          <div style="display:flex;flex-direction:column;align-items:center;width:38%;gap:8px">
+            <div class="badge" style="width:130px;height:130px;border-width:3px;box-shadow:0 20px 60px rgba(0,0,0,0.4),0 0 80px ${primary}18">${badgeHtml(homeBadge, homeName)}</div>
             <div style="font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.85;text-align:center;line-height:1.2">${esc(homeDisplayName)}</div>
-            <div class="mono font-black tabular" style="font-size:120px;line-height:0.85;text-shadow:0 8px 40px rgba(0,0,0,0.5)">${recap.match.homeScore}</div>
+            <div class="mono font-black tabular" style="font-size:80px;line-height:0.85;text-shadow:0 8px 40px rgba(0,0,0,0.5)">${recap.match.homeScore}</div>
           </div>
 
           <!-- Separator -->
-          <div style="display:flex;flex-direction:column;align-items:center;width:24%;gap:8px">
-            <div style="width:1px;height:40px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.15),transparent)"></div>
-            <div style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);font-size:22px;font-weight:800;opacity:0.5">×</div>
-            <div style="width:1px;height:40px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.15),transparent)"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;width:24%;gap:6px">
+            <div style="width:1px;height:32px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.15),transparent)"></div>
+            <div style="width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);font-size:20px;font-weight:800;opacity:0.5">×</div>
+            <div style="width:1px;height:32px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.15),transparent)"></div>
           </div>
 
           <!-- Away side -->
-          <div style="display:flex;flex-direction:column;align-items:center;width:38%;gap:12px">
-            <div class="badge badge-xl">${badgeHtml(awayBadge, awayName)}</div>
+          <div style="display:flex;flex-direction:column;align-items:center;width:38%;gap:8px">
+            <div class="badge" style="width:130px;height:130px;border-width:3px;box-shadow:0 20px 60px rgba(0,0,0,0.4),0 0 80px ${primary}18">${badgeHtml(awayBadge, awayName)}</div>
             <div style="font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.85;text-align:center;line-height:1.2">${esc(awayDisplayName)}</div>
-            <div class="mono font-black tabular" style="font-size:120px;line-height:0.85;text-shadow:0 8px 40px rgba(0,0,0,0.5)">${recap.match.awayScore}</div>
+            <div class="mono font-black tabular" style="font-size:80px;line-height:0.85;text-shadow:0 8px 40px rgba(0,0,0,0.5)">${recap.match.awayScore}</div>
           </div>
         </div>
 

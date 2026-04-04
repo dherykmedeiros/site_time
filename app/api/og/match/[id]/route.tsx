@@ -12,7 +12,7 @@ interface RouteContext {
 
 function badgeHtml(url: string | null, name: string): string {
   return url
-    ? `<img src="${esc(url)}" alt="${esc(name)}" style="width:100%;height:100%;object-fit:cover">`
+    ? `<img src="${esc(url)}" alt="${esc(name)}" style="width:100%;height:100%;object-fit:contain;padding:8%">`
     : `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:52px;font-weight:900">${esc(name.slice(0, 2).toUpperCase())}</div>`;
 }
 

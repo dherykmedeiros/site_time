@@ -42,7 +42,7 @@ export async function GET(request: Request, context: RouteContext) {
     });
 
     const badgeHtml = badgeUrl
-      ? `<div class="badge badge-xl"><img src="${esc(badgeUrl)}" alt="${esc(recap.team.name)}" style="width:100%;height:100%;object-fit:cover"></div>`
+      ? `<div class="badge badge-xl"><img src="${esc(badgeUrl)}" alt="${esc(recap.team.name)}" style="width:100%;height:100%;object-fit:contain;padding:8%"></div>`
       : "";
 
     const diffBg = recap.goals.difference >= 0 ? "rgba(16,185,129,0.18)" : "rgba(239,68,68,0.18)";

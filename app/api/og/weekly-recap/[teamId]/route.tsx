@@ -40,7 +40,7 @@ export async function GET(request: Request, context: RouteContext) {
     const untilLabel = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(recap.period.until);
 
     const badgeHtml = badgeUrl
-      ? `<div class="badge badge-xl"><img src="${esc(badgeUrl)}" alt="${esc(recap.team.name)}" style="width:100%;height:100%;object-fit:cover"></div>`
+      ? `<div class="badge badge-xl"><img src="${esc(badgeUrl)}" alt="${esc(recap.team.name)}" style="width:100%;height:100%;object-fit:contain;padding:8%"></div>`
       : "";
 
     const content = `

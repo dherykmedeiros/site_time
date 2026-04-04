@@ -159,8 +159,9 @@ export function baseLayout(opts: BaseLayoutOpts): string {
     border: 2.5px solid rgba(255,255,255,0.22);
     flex-shrink: 0;
     box-shadow: 0 8px 32px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.06);
   }
-  .badge img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .badge img { width: 100%; height: 100%; object-fit: contain; display: block; image-rendering: -webkit-optimize-contrast; padding: 8%; }
   .badge-lg {
     width: 140px; height: 140px;
     border: 3px solid rgba(255,255,255,0.2);
