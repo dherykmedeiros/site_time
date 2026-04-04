@@ -161,7 +161,7 @@ export function baseLayout(opts: BaseLayoutOpts): string {
     box-shadow: 0 8px 32px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.08);
     background: rgba(255,255,255,0.06);
   }
-  .badge img { width: 100%; height: 100%; object-fit: contain; display: block; image-rendering: -webkit-optimize-contrast; padding: 8%; }
+  .badge img { width: 100%; height: 100%; object-fit: cover; display: block; image-rendering: -webkit-optimize-contrast; border-radius: 50%; }
   .badge-lg {
     width: 140px; height: 140px;
     border: 3px solid rgba(255,255,255,0.2);

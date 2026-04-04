@@ -24,7 +24,7 @@ function fitTeamName(name: string) {
 
 function badgeHtml(url: string | null, name: string): string {
   return url
-    ? `<img src="${esc(url)}" alt="${esc(name)}" style="width:100%;height:100%;object-fit:contain;padding:8%">`
+    ? `<img src="${esc(url)}" alt="${esc(name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
     : `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:22px;font-weight:800">${esc(name.slice(0, 2).toUpperCase())}</div>`;
 }
 
@@ -109,45 +109,45 @@ export async function GET(request: Request, context: RouteContext) {
         </div>
 
         <!-- Scoreboard -->
-        <div style="display:flex;align-items:center;justify-content:center;gap:0;margin:8px 0 4px">
+        <div style="display:flex;align-items:center;justify-content:center;gap:0;margin:6px 0 2px">
           <!-- Home side -->
-          <div style="display:flex;flex-direction:column;align-items:center;width:38%;gap:8px">
-            <div class="badge" style="width:130px;height:130px;border-width:3px;box-shadow:0 20px 60px rgba(0,0,0,0.4),0 0 80px ${primary}18">${badgeHtml(homeBadge, homeName)}</div>
-            <div style="font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.85;text-align:center;line-height:1.2">${esc(homeDisplayName)}</div>
-            <div class="mono font-black tabular" style="font-size:80px;line-height:0.85;text-shadow:0 8px 40px rgba(0,0,0,0.5)">${recap.match.homeScore}</div>
+          <div style="display:flex;flex-direction:column;align-items:center;width:38%;gap:6px">
+            <div class="badge" style="width:110px;height:110px;border-width:3px;box-shadow:0 16px 48px rgba(0,0,0,0.4),0 0 60px ${primary}18">${badgeHtml(homeBadge, homeName)}</div>
+            <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.85;text-align:center;line-height:1.2">${esc(homeDisplayName)}</div>
+            <div class="mono font-black tabular" style="font-size:68px;line-height:0.85;text-shadow:0 6px 32px rgba(0,0,0,0.5)">${recap.match.homeScore}</div>
           </div>
 
           <!-- Separator -->
-          <div style="display:flex;flex-direction:column;align-items:center;width:24%;gap:6px">
-            <div style="width:1px;height:32px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.15),transparent)"></div>
-            <div style="width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);font-size:20px;font-weight:800;opacity:0.5">×</div>
-            <div style="width:1px;height:32px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.15),transparent)"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;width:24%;gap:4px">
+            <div style="width:1px;height:28px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.15),transparent)"></div>
+            <div style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);font-size:18px;font-weight:800;opacity:0.5">×</div>
+            <div style="width:1px;height:28px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.15),transparent)"></div>
           </div>
 
           <!-- Away side -->
-          <div style="display:flex;flex-direction:column;align-items:center;width:38%;gap:8px">
-            <div class="badge" style="width:130px;height:130px;border-width:3px;box-shadow:0 20px 60px rgba(0,0,0,0.4),0 0 80px ${primary}18">${badgeHtml(awayBadge, awayName)}</div>
-            <div style="font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.85;text-align:center;line-height:1.2">${esc(awayDisplayName)}</div>
-            <div class="mono font-black tabular" style="font-size:80px;line-height:0.85;text-shadow:0 8px 40px rgba(0,0,0,0.5)">${recap.match.awayScore}</div>
+          <div style="display:flex;flex-direction:column;align-items:center;width:38%;gap:6px">
+            <div class="badge" style="width:110px;height:110px;border-width:3px;box-shadow:0 16px 48px rgba(0,0,0,0.4),0 0 60px ${primary}18">${badgeHtml(awayBadge, awayName)}</div>
+            <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.85;text-align:center;line-height:1.2">${esc(awayDisplayName)}</div>
+            <div class="mono font-black tabular" style="font-size:68px;line-height:0.85;text-shadow:0 6px 32px rgba(0,0,0,0.5)">${recap.match.awayScore}</div>
           </div>
         </div>
 
         <div class="divider"></div>
 
         <!-- Stats row + leaders -->
-        <div style="display:flex;gap:10px;margin-top:12px">
-          <div class="stat-tile" style="flex:1">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <div class="stat-tile" style="flex:1;padding:12px 14px">
             <div class="label">Artilheiro</div>
-            <div class="font-bold" style="font-size:22px;margin-top:2px">${esc(cut(topScorerLabel, 28))}</div>
+            <div class="font-bold" style="font-size:20px;margin-top:2px">${esc(cut(topScorerLabel, 28))}</div>
           </div>
-          <div class="stat-tile" style="flex:1">
+          <div class="stat-tile" style="flex:1;padding:12px 14px">
             <div class="label">Assistências</div>
-            <div class="font-bold" style="font-size:22px;margin-top:2px">${esc(cut(topAssistantLabel, 28))}</div>
+            <div class="font-bold" style="font-size:20px;margin-top:2px">${esc(cut(topAssistantLabel, 28))}</div>
           </div>
           ${stats.map((s) => `
-            <div class="stat-tile" style="width:100px;flex-shrink:0">
+            <div class="stat-tile" style="width:92px;flex-shrink:0;padding:12px 14px">
               <div class="label">${esc(s.label)}</div>
-              <div class="font-extrabold mono" style="font-size:28px;margin-top:2px">${s.value}</div>
+              <div class="font-extrabold mono" style="font-size:26px;margin-top:2px">${s.value}</div>
             </div>
           `).join("")}
         </div>
