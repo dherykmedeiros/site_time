@@ -169,7 +169,12 @@ export async function GET(request: Request, context: RouteContext) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown_error";
+    const stack = error instanceof Error ? error.stack : "";
+    console.error(`[og/team-recap] matchId=${matchId} error=${message}`, stack);
     trackOperationalEvent("recap_team_card_failed", { matchId, message });
+
+    // Show error detail in SVG for debugging (truncate for safety)
+    const safeMsg = message.replace(/[<>&"']/g, " ").slice(0, 120);
 
     const fallbackSvg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
@@ -180,11 +185,14 @@ export async function GET(request: Request, context: RouteContext) {
     </linearGradient>
   </defs>
   <rect width="1200" height="630" fill="url(#bg)" />
-  <text x="600" y="290" fill="#e2e8f0" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700">
+  <text x="600" y="270" fill="#e2e8f0" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700">
     Matchday Recap
   </text>
-  <text x="600" y="345" fill="#94a3b8" text-anchor="middle" font-family="Arial, sans-serif" font-size="30">
+  <text x="600" y="330" fill="#94a3b8" text-anchor="middle" font-family="Arial, sans-serif" font-size="30">
     Recap indisponivel no momento
+  </text>
+  <text x="600" y="400" fill="#ef4444" text-anchor="middle" font-family="monospace" font-size="18">
+    ${safeMsg}
   </text>
 </svg>`;
 

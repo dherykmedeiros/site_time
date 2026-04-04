@@ -17,7 +17,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@prisma/adapter-pg": "^7.6.0",
     "@prisma/client": "^7.6.0",
-    "@sparticuz/chromium": "^143.0.4",
+    "@sparticuz/chromium-min": "^143.0.4",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.3.1",
     "lucide-react": "^0.542.0",
