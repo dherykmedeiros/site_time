@@ -6,6 +6,7 @@ import { RecapShareActions } from "@/components/dashboard/RecapShareActions";
 interface PlayerRecapWidgetProps {
   playerId: string;
   playerName: string;
+  vitrineUrl?: string;
 }
 
 interface PlayerRecapResponse {
@@ -22,7 +23,7 @@ interface PlayerRecapResponse {
   achievements: string[];
 }
 
-export function PlayerRecapWidget({ playerId, playerName }: PlayerRecapWidgetProps) {
+export function PlayerRecapWidget({ playerId, playerName, vitrineUrl }: PlayerRecapWidgetProps) {
   const [data, setData] = useState<PlayerRecapResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -112,6 +113,7 @@ export function PlayerRecapWidget({ playerId, playerName }: PlayerRecapWidgetPro
           entityType="player"
           context="public_player"
           labelPrefix={`Confira o recap de ${playerName} no VARzea`}
+          vitrineUrl={vitrineUrl}
         />
       </div>
     </article>

@@ -3,8 +3,11 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
-const connectionString = process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL!;
-const adapter = new PrismaPg(connectionString);
+const rawUrl = process.env.POSTGRES_URL_NON_POOLING || process.env.DIRECT_URL || process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL!;
+const url = new URL(rawUrl);
+if (!url.searchParams.has("sslmode")) url.searchParams.set("sslmode", "require");
+if (!url.searchParams.has("uselibpqcompat")) url.searchParams.set("uselibpqcompat", "true");
+const adapter = new PrismaPg({ connectionString: url.toString() });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {

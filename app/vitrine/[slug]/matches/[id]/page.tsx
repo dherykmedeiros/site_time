@@ -255,6 +255,7 @@ export default async function PublicMatchPage({
                 entityType="match"
                 context="public_match"
                 labelPrefix="Confira o recap da partida no VARzea"
+                vitrineUrl={`/vitrine/${slug}/matches/${match.id}`}
               />
             </div>
           </section>
