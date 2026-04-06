@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, Space_Grotesk } from "next/font/google";
 import { PwaInit } from "@/components/pwa/PwaInit";
 import { AuthSessionProvider } from "@/components/providers/AuthSessionProvider";
+import { ToastProvider } from "@/components/ui/Toast";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -37,8 +38,10 @@ export default function RootLayout({
     >
       <body suppressHydrationWarning className="min-h-full flex flex-col">
         <AuthSessionProvider>
-          <PwaInit />
-          {children}
+          <ToastProvider>
+            <PwaInit />
+            {children}
+          </ToastProvider>
         </AuthSessionProvider>
       </body>
     </html>

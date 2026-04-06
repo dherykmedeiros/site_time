@@ -7,11 +7,16 @@ interface BadgeProps {
 }
 
 const variants = {
-  default: "bg-[#edf2ed] text-[#334652] border border-[#d6e0d6]",
-  success: "bg-[#e4f5ee] text-[#1d5f4f] border border-[#bde0d1]",
-  warning: "bg-[#fff4dc] text-[#7b5a1c] border border-[#f3ddab]",
-  danger: "bg-[#fdecea] text-[#8c3626] border border-[#efc3bb]",
-  info: "bg-[#e7f3f8] text-[#2e5d73] border border-[#b7d5e3]",
+  default:
+    "bg-[var(--badge-default-bg)] text-[var(--badge-default-text)] border border-[var(--badge-default-border)]",
+  success:
+    "bg-[var(--badge-success-bg)] text-[var(--badge-success-text)] border border-[var(--badge-success-border)]",
+  warning:
+    "bg-[var(--badge-warning-bg)] text-[var(--badge-warning-text)] border border-[var(--badge-warning-border)]",
+  danger:
+    "bg-[var(--badge-danger-bg)] text-[var(--badge-danger-text)] border border-[var(--badge-danger-border)]",
+  info:
+    "bg-[var(--badge-info-bg)] text-[var(--badge-info-text)] border border-[var(--badge-info-border)]",
 };
 
 export function Badge({ children, variant = "default", className = "" }: BadgeProps) {
