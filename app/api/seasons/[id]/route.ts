@@ -4,20 +4,25 @@ import { requireAdmin } from "@/lib/auth";
 import { updateSeasonSchema } from "@/lib/validations/season";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
+import { withErrorHandler } from "@/lib/api-handler";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
 // GET /api/seasons/:id
-export async function GET(_request: Request, context: RouteContext) {
+export const GET = withErrorHandler(async (_request: Request, context: RouteContext) => {
   const { session, error } = await requireAdmin();
   if (error) return error;
+
+  if (!session.user.teamId) {
+    return NextResponse.json({ error: "Usuário não possui time vinculado" }, { status: 403 });
+  }
 
   const { id } = await context.params;
 
   const season = await prisma.season.findFirst({
-    where: { id, teamId: session.user.teamId! },
+    where: { id, teamId: session.user.teamId },
     include: {
       matches: {
         orderBy: { date: "asc" },
@@ -40,12 +45,16 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   return NextResponse.json({ season });
-}
+});
 
 // PATCH /api/seasons/:id
-export async function PATCH(request: Request, context: RouteContext) {
+export const PATCH = withErrorHandler(async (request: Request, context: RouteContext) => {
   const { session, error } = await requireAdmin();
   if (error) return error;
+
+  if (!session.user.teamId) {
+    return NextResponse.json({ error: "Usuário não possui time vinculado" }, { status: 403 });
+  }
 
   const ip = extractClientIp(request);
   const rl = await rateLimitMutation(ip);
@@ -63,13 +72,13 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Dados inválidos", details: parsed.error.flatten() },
-      { status: 422 }
+      { error: "Campos inválidos", code: "VALIDATION_ERROR", details: parsed.error.flatten().fieldErrors },
+      { status: 400 }
     );
   }
 
   const existing = await prisma.season.findFirst({
-    where: { id, teamId: session.user.teamId! },
+    where: { id, teamId: session.user.teamId },
   });
 
   if (!existing) {
@@ -90,12 +99,16 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
 
   return NextResponse.json({ season });
-}
+});
 
 // DELETE /api/seasons/:id
-export async function DELETE(request: Request, context: RouteContext) {
+export const DELETE = withErrorHandler(async (request: Request, context: RouteContext) => {
   const { session, error } = await requireAdmin();
   if (error) return error;
+
+  if (!session.user.teamId) {
+    return NextResponse.json({ error: "Usuário não possui time vinculado" }, { status: 403 });
+  }
 
   const ip = extractClientIp(request);
   const rl = await rateLimitMutation(ip);
@@ -109,7 +122,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   const { id } = await context.params;
 
   const existing = await prisma.season.findFirst({
-    where: { id, teamId: session.user.teamId! },
+    where: { id, teamId: session.user.teamId },
   });
 
   if (!existing) {
@@ -123,4 +136,4 @@ export async function DELETE(request: Request, context: RouteContext) {
   ]);
 
   return new NextResponse(null, { status: 204 });
-}
+});

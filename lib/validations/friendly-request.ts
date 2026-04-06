@@ -4,9 +4,10 @@ export const createFriendlyRequestSchema = z.object({
   teamSlug: z.string().min(1, "Slug do time é obrigatório"),
   requesterTeamName: z
     .string()
+    .trim()
     .min(2, "Nome do time deve ter no mínimo 2 caracteres")
     .max(100, "Nome do time deve ter no máximo 100 caracteres"),
-  contactEmail: z.string().email("E-mail inválido"),
+  contactEmail: z.string().trim().email("E-mail inválido"),
   contactPhone: z
     .string()
     .max(20, "Telefone deve ter no máximo 20 caracteres")

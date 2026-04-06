@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { withErrorHandler } from "@/lib/api-handler";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -24,14 +25,18 @@ interface StandingRow {
 }
 
 // GET /api/seasons/:id/standings — compute player standings from team CHAMPIONSHIP matches in the season
-export async function GET(_request: Request, context: RouteContext) {
+export const GET = withErrorHandler(async (_request: Request, context: RouteContext) => {
   const { session, error } = await requireAdmin();
   if (error) return error;
+
+  if (!session.user.teamId) {
+    return NextResponse.json({ error: "Usuário não possui time vinculado" }, { status: 403 });
+  }
 
   const { id } = await context.params;
 
   const season = await prisma.season.findFirst({
-    where: { id, teamId: session.user.teamId! },
+    where: { id, teamId: session.user.teamId },
   });
 
   if (!season) {
@@ -42,7 +47,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const matches = await prisma.match.findMany({
     where: {
       seasonId: id,
-      teamId: session.user.teamId!,
+      teamId: session.user.teamId,
       type: "CHAMPIONSHIP",
       status: "COMPLETED",
       homeScore: { not: null },
@@ -122,4 +127,4 @@ export async function GET(_request: Request, context: RouteContext) {
   );
 
   return NextResponse.json({ season, standings, matchCount: matches.length });
-}
+});

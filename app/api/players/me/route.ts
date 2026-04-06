@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { updateOwnPlayerProfileSchema } from "@/lib/validations/player";
+import { withErrorHandler } from "@/lib/api-handler";
+import { rateLimitMutation } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 async function getOwnedPlayer(userId: string, teamId: string) {
   const user = await prisma.user.findUnique({
@@ -24,7 +27,7 @@ async function getOwnedPlayer(userId: string, teamId: string) {
 }
 
 // GET /api/players/me - Player self profile data
-export async function GET() {
+export const GET = withErrorHandler(async () => {
   const { session, error } = await requireAuth();
   if (error) return error;
 
@@ -56,12 +59,21 @@ export async function GET() {
     description: player.description,
     updatedAt: player.updatedAt.toISOString(),
   });
-}
+});
 
 // PATCH /api/players/me - Update self editable profile fields only
-export async function PATCH(request: Request) {
+export const PATCH = withErrorHandler(async (request: Request) => {
   const { session, error } = await requireAuth();
   if (error) return error;
+
+  const ip = extractClientIp(request);
+  const rl = await rateLimitMutation(ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Muitas tentativas. Tente em ${rl.retryAfterMinutes} min.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
 
   if (!session.user.teamId) {
     return NextResponse.json(
@@ -126,4 +138,4 @@ export async function PATCH(request: Request) {
     description: updated.description,
     updatedAt: updated.updatedAt.toISOString(),
   });
-}
+});

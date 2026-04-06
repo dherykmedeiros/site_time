@@ -33,10 +33,12 @@ export const createMatchSchema = z.object({
     .refine((val: string) => new Date(val) > new Date(), "Data deve ser no futuro"),
   venue: z
     .string()
+    .trim()
     .min(2, "Local deve ter no mínimo 2 caracteres")
     .max(200, "Local deve ter no máximo 200 caracteres"),
   opponent: z
     .string()
+    .trim()
     .min(2, "Adversário deve ter no mínimo 2 caracteres")
     .max(100, "Adversário deve ter no máximo 100 caracteres"),
   isHome: z.boolean().optional(),
@@ -55,11 +57,13 @@ export const updateMatchSchema = z.object({
     .optional(),
   venue: z
     .string()
+    .trim()
     .min(2, "Local deve ter no mínimo 2 caracteres")
     .max(200, "Local deve ter no máximo 200 caracteres")
     .optional(),
   opponent: z
     .string()
+    .trim()
     .min(2, "Adversário deve ter no mínimo 2 caracteres")
     .max(100, "Adversário deve ter no máximo 100 caracteres")
     .optional(),

@@ -5,13 +5,14 @@ import { requireAdmin, requireAuth } from "@/lib/auth";
 import { updateMatchSchema } from "@/lib/validations/match";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
+import { withErrorHandler } from "@/lib/api-handler";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
 // GET /api/matches/:id - Match detail with RSVPs, stats, canSubmitPostGame
-export async function GET(request: Request, { params }: RouteParams) {
+export const GET = withErrorHandler(async (request: Request, { params }: RouteParams) => {
   const { session, error } = await requireAuth();
   if (error) return error;
 
@@ -92,10 +93,10 @@ export async function GET(request: Request, { params }: RouteParams) {
     createdAt: match.createdAt.toISOString(),
     updatedAt: match.updatedAt.toISOString(),
   });
-}
+});
 
 // PATCH /api/matches/:id - Update match (ADMIN only)
-export async function PATCH(request: Request, { params }: RouteParams) {
+export const PATCH = withErrorHandler(async (request: Request, { params }: RouteParams) => {
   const { session, error } = await requireAdmin();
   if (error) return error;
 
@@ -400,10 +401,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   });
 
   return buildMatchDetailResponse(updated);
-}
+});
 
 // DELETE /api/matches/:id - Delete match (ADMIN only)
-export async function DELETE(request: Request, { params }: RouteParams) {
+export const DELETE = withErrorHandler(async (request: Request, { params }: RouteParams) => {
   const { session, error } = await requireAdmin();
   if (error) return error;
 
@@ -452,7 +453,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   });
 
   return NextResponse.json({ message: "Match deleted" });
-}
+});
 
 // Helper to build match detail response
 function buildMatchDetailResponse(

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations/auth";
@@ -43,12 +44,28 @@ export async function POST(request: Request) {
       targetRole = "ADMIN";
     } else if (allowPublicAdminRegister) {
       const expectedCode = process.env.ADMIN_REGISTRATION_CODE;
-      if (expectedCode && registrationCode === expectedCode) {
+      if (
+        expectedCode &&
+        registrationCode &&
+        expectedCode.length === registrationCode.length &&
+        crypto.timingSafeEqual(
+          Buffer.from(expectedCode, "utf-8"),
+          Buffer.from(registrationCode, "utf-8")
+        )
+      ) {
         targetRole = "ADMIN";
       }
     } else {
       const expectedCode = process.env.ADMIN_REGISTRATION_CODE;
-      if (!expectedCode || registrationCode !== expectedCode) {
+      if (
+        !expectedCode ||
+        !registrationCode ||
+        expectedCode.length !== registrationCode.length ||
+        !crypto.timingSafeEqual(
+          Buffer.from(expectedCode, "utf-8"),
+          Buffer.from(registrationCode, "utf-8")
+        )
+      ) {
         return NextResponse.json(
           {
             error: "REGISTRATION_LOCKED",

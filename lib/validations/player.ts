@@ -5,6 +5,7 @@ import { isSafeUrl } from "@/lib/utils";
 export const createPlayerSchema = z.object({
   name: z
     .string()
+    .trim()
     .min(2, "Nome deve ter no mínimo 2 caracteres")
     .max(100, "Nome deve ter no máximo 100 caracteres"),
   position: z.enum(playerPositions, {
@@ -21,6 +22,7 @@ export const createPlayerSchema = z.object({
 export const updatePlayerSchema = z.object({
   name: z
     .string()
+    .trim()
     .min(2, "Nome deve ter no mínimo 2 caracteres")
     .max(100, "Nome deve ter no máximo 100 caracteres")
     .optional(),

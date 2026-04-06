@@ -7,6 +7,7 @@ export const createTransactionSchema = z.object({
   amount: z.number().positive("Valor deve ser maior que 0"),
   description: z
     .string()
+    .trim()
     .min(2, "Descrição deve ter no mínimo 2 caracteres")
     .max(200, "Descrição deve ter no máximo 200 caracteres"),
   category: z.enum(
@@ -41,6 +42,7 @@ export const updateTransactionSchema = z.object({
     .optional(),
   description: z
     .string()
+    .trim()
     .min(2, "Descrição deve ter no mínimo 2 caracteres")
     .max(200, "Descrição deve ter no máximo 200 caracteres")
     .optional(),

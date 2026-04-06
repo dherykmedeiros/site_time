@@ -214,6 +214,7 @@ model Player {
   updatedAt    DateTime       @updatedAt
 
   @@unique([teamId, shirtNumber])
+  @@index([teamId, status])
   @@map("players")
 }
 
@@ -266,6 +267,7 @@ model Match {
 
   @@index([teamId])
   @@index([seasonId])
+  @@index([teamId, status])
   @@map("matches")
 }
 
@@ -295,7 +297,7 @@ model MatchPositionLimit {
   position   PlayerPosition
   maxPlayers Int
   createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
+  updatedAt  DateTime       @default(now()) @updatedAt
 
   @@unique([matchId, position])
   @@index([matchId])
@@ -311,7 +313,7 @@ model RSVP {
   match       Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
   respondedAt DateTime?
   createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  updatedAt   DateTime   @default(now()) @updatedAt
 
   @@unique([playerId, matchId])
   @@index([matchId])
@@ -330,7 +332,7 @@ model MatchStats {
   matchId     String
   match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now()) @updatedAt
 
   @@unique([playerId, matchId])
   @@index([matchId])
@@ -345,7 +347,7 @@ model FriendlyRequest {
   contactPhone      String?
   suggestedDates    String
   suggestedVenue    String?
-  proposedFee       Decimal?
+  proposedFee       Decimal?              @db.Decimal(10, 2)
   status            FriendlyRequestStatus @default(PENDING)
   rejectionReason   String?
   teamId            String
@@ -378,7 +380,7 @@ model OpenMatchSlot {
 model Transaction {
   id          String              @id @default(cuid())
   type        TransactionType
-  amount      Decimal
+  amount      Decimal             @db.Decimal(10, 2)
   description String
   category    TransactionCategory
   date        DateTime
@@ -437,7 +439,7 @@ model InviteToken {
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  updatedAt DateTime  @default(now()) @updatedAt
 
   @@index([teamId])
   @@index([playerId])
@@ -456,7 +458,7 @@ model MembershipPayment {
   player        Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
   team          Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
   transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
-  updatedAt     DateTime     @updatedAt
+  updatedAt     DateTime     @default(now()) @updatedAt
 
   @@unique([playerId, month, year])
   @@index([teamId])
@@ -473,8 +475,9 @@ model Achievement {
   awardedAt DateTime        @default(now())
   player    Player          @relation(fields: [playerId], references: [id], onDelete: Cascade)
   match     Match?          @relation(fields: [matchId], references: [id], onDelete: SetNull)
-  updatedAt DateTime        @updatedAt
+  updatedAt DateTime        @default(now()) @updatedAt
 
+  @@unique([playerId, type, matchId])
   @@index([playerId])
   @@index([matchId])
   @@map("achievements")
