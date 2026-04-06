@@ -4,14 +4,19 @@ import { requireAdmin } from "@/lib/auth";
 import { createSeasonSchema } from "@/lib/validations/season";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
+import { withErrorHandler } from "@/lib/api-handler";
 
 // GET /api/seasons — list all seasons for the team
-export async function GET() {
+export const GET = withErrorHandler(async () => {
   const { session, error } = await requireAdmin();
   if (error) return error;
 
+  if (!session.user.teamId) {
+    return NextResponse.json({ error: "Usuário não possui time vinculado" }, { status: 403 });
+  }
+
   const seasons = await prisma.season.findMany({
-    where: { teamId: session.user.teamId! },
+    where: { teamId: session.user.teamId },
     orderBy: { startDate: "desc" },
     include: {
       _count: { select: { matches: true } },
@@ -19,12 +24,16 @@ export async function GET() {
   });
 
   return NextResponse.json({ seasons });
-}
+});
 
 // POST /api/seasons — create a new season
-export async function POST(request: Request) {
+export const POST = withErrorHandler(async (request: Request) => {
   const { session, error } = await requireAdmin();
   if (error) return error;
+
+  if (!session.user.teamId) {
+    return NextResponse.json({ error: "Usuário não possui time vinculado" }, { status: 403 });
+  }
 
   const ip = extractClientIp(request);
   const rl = await rateLimitMutation(ip);
@@ -40,8 +49,8 @@ export async function POST(request: Request) {
 
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Dados inválidos", details: parsed.error.flatten() },
-      { status: 422 }
+      { error: "Campos inválidos", code: "VALIDATION_ERROR", details: parsed.error.flatten().fieldErrors },
+      { status: 400 }
     );
   }
 
@@ -49,7 +58,7 @@ export async function POST(request: Request) {
 
   const season = await prisma.season.create({
     data: {
-      teamId: session.user.teamId!,
+      teamId: session.user.teamId,
       name,
       type,
       startDate: new Date(startDate),
@@ -59,4 +68,4 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json({ season }, { status: 201 });
-}
+});

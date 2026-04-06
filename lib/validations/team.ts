@@ -1,17 +1,19 @@
 import { z } from "zod";
+import { isSafeUrl } from "@/lib/utils";
 
 const hexColorRegex = /^#[0-9A-Fa-f]{6}$/;
 const badgeUrlSchema = z
   .string()
   .max(2048, "URL do escudo muito longa")
   .refine(
-    (value) => value.startsWith("/uploads/") || value.startsWith("http://") || value.startsWith("https://"),
+    (value) => isSafeUrl(value),
     "URL do escudo inválida"
   );
 
 export const createTeamSchema = z.object({
   name: z
     .string()
+    .trim()
     .min(2, "Nome deve ter no mínimo 2 caracteres")
     .max(100, "Nome deve ter no máximo 100 caracteres"),
   shortName: z
@@ -43,6 +45,7 @@ export const createTeamSchema = z.object({
 export const updateTeamSchema = z.object({
   name: z
     .string()
+    .trim()
     .min(2, "Nome deve ter no mínimo 2 caracteres")
     .max(100, "Nome deve ter no máximo 100 caracteres")
     .optional(),

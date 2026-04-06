@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { trackOperationalEvent } from "@/lib/telemetry";
+import { rateLimitMutation } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 import {
   createOpenSlotSchema,
   updateOpenSlotSchema,
   updateTeamDiscoverySchema,
 } from "@/lib/validations/discovery";
+import { withErrorHandler } from "@/lib/api-handler";
 
 function serializeSlot(slot: {
   id: string;
@@ -27,7 +30,7 @@ function serializeSlot(slot: {
   };
 }
 
-export async function GET() {
+export const GET = withErrorHandler(async () => {
   const { session, error } = await requireAdmin();
   if (error) return error;
 
@@ -53,6 +56,7 @@ export async function GET() {
     prisma.openMatchSlot.findMany({
       where: { teamId: session.user.teamId },
       orderBy: { date: "asc" },
+      take: 100,
     }),
   ]);
 
@@ -60,11 +64,20 @@ export async function GET() {
     team,
     slots: slots.map(serializeSlot),
   });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withErrorHandler(async (request: Request) => {
   const { session, error } = await requireAdmin();
   if (error) return error;
+
+  const ip = extractClientIp(request);
+  const rl = await rateLimitMutation(ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Muitas tentativas. Tente em ${rl.retryAfterMinutes} min.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
 
   if (!session.user.teamId) {
     return NextResponse.json(
@@ -112,11 +125,20 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json(serializeSlot(slot), { status: 201 });
-}
+});
 
-export async function PATCH(request: Request) {
+export const PATCH = withErrorHandler(async (request: Request) => {
   const { session, error } = await requireAdmin();
   if (error) return error;
+
+  const ip = extractClientIp(request);
+  const rl = await rateLimitMutation(ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Muitas tentativas. Tente em ${rl.retryAfterMinutes} min.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
 
   if (!session.user.teamId) {
     return NextResponse.json(
@@ -220,4 +242,4 @@ export async function PATCH(request: Request) {
     ...team,
     updatedAt: team.updatedAt.toISOString(),
   });
-}
+});

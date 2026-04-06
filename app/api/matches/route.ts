@@ -7,9 +7,10 @@ import { createMatchSchema, matchListQuerySchema } from "@/lib/validations/match
 import { notifyScheduledMatch } from "@/lib/push";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
+import { withErrorHandler } from "@/lib/api-handler";
 
 // GET /api/matches — List matches for the team
-export async function GET(request: Request) {
+export const GET = withErrorHandler(async (request: Request) => {
   const { session, error } = await requireAuth();
   if (error) return error;
 
@@ -68,6 +69,7 @@ export async function GET(request: Request) {
       },
     },
     orderBy: { date: "asc" },
+    take: 500,
   });
 
   const result = matches.map((match) => {
@@ -94,10 +96,10 @@ export async function GET(request: Request) {
   });
 
   return NextResponse.json({ matches: result });
-}
+});
 
 // POST /api/matches — Create a new match (ADMIN only)
-export async function POST(request: Request) {
+export const POST = withErrorHandler(async (request: Request) => {
   const { session, error } = await requireAdmin();
   if (error) return error;
 
@@ -253,4 +255,4 @@ export async function POST(request: Request) {
     },
     { status: 201 }
   );
-}
+});

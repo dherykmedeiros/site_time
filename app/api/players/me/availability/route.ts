@@ -8,6 +8,9 @@ import {
   type AvailabilityLevelValue,
   type PlayerAvailabilityRuleInput,
 } from "@/lib/validations/player-availability";
+import { withErrorHandler } from "@/lib/api-handler";
+import { rateLimitMutation } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 type AvailabilityRuleRow = {
   id: string;
@@ -102,7 +105,7 @@ async function replaceRules(tx: Prisma.TransactionClient, playerId: string, rule
   }
 }
 
-export async function GET() {
+export const GET = withErrorHandler(async () => {
   const { session, error } = await requireAuth();
   if (error) return error;
 
@@ -126,11 +129,20 @@ export async function GET() {
   return NextResponse.json({
     rules: serializeRules(rules),
   });
-}
+});
 
-export async function PATCH(request: Request) {
+export const PATCH = withErrorHandler(async (request: Request) => {
   const { session, error } = await requireAuth();
   if (error) return error;
+
+  const ip = extractClientIp(request);
+  const rl = await rateLimitMutation(ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Muitas tentativas. Tente em ${rl.retryAfterMinutes} min.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
 
   if (!session.user.teamId) {
     return NextResponse.json(
@@ -178,4 +190,4 @@ export async function PATCH(request: Request) {
   return NextResponse.json({
     rules: serializeRules(rules),
   });
-}
+});

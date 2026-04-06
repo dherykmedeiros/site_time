@@ -5,9 +5,10 @@ import { pushSubscriptionSchema } from "@/lib/validations/push";
 import { extractClientIp } from "@/lib/request-ip";
 import { rateLimitPush } from "@/lib/rate-limit";
 import { isPushConfigured } from "@/lib/push";
+import { withErrorHandler } from "@/lib/api-handler";
 
 // POST /api/push/subscribe
-export async function POST(request: Request) {
+export const POST = withErrorHandler(async (request: Request) => {
   const { session, error } = await requireAuth();
   if (error) return error;
 
@@ -31,8 +32,8 @@ export async function POST(request: Request) {
   const parsed = pushSubscriptionSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Payload inválido", details: parsed.error.flatten().fieldErrors },
-      { status: 422 }
+      { error: "Payload inválido", code: "VALIDATION_ERROR", details: parsed.error.flatten().fieldErrors },
+      { status: 400 }
     );
   }
 
@@ -54,10 +55,10 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json({ ok: true });
-}
+});
 
 // DELETE /api/push/subscribe
-export async function DELETE(request: Request) {
+export const DELETE = withErrorHandler(async (request: Request) => {
   const { session, error } = await requireAuth();
   if (error) return error;
 
@@ -65,8 +66,8 @@ export async function DELETE(request: Request) {
   const parsed = pushSubscriptionSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Payload inválido", details: parsed.error.flatten().fieldErrors },
-      { status: 422 }
+      { error: "Payload inválido", code: "VALIDATION_ERROR", details: parsed.error.flatten().fieldErrors },
+      { status: 400 }
     );
   }
 
@@ -78,4 +79,4 @@ export async function DELETE(request: Request) {
   });
 
   return new NextResponse(null, { status: 204 });
-}
+});

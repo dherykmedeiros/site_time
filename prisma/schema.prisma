@@ -214,6 +214,7 @@ model Player {
   updatedAt    DateTime       @updatedAt
 
   @@unique([teamId, shirtNumber])
+  @@index([teamId, status])
   @@map("players")
 }
 
@@ -266,6 +267,7 @@ model Match {
 
   @@index([teamId])
   @@index([seasonId])
+  @@index([teamId, status])
   @@map("matches")
 }
 
@@ -345,7 +347,7 @@ model FriendlyRequest {
   contactPhone      String?
   suggestedDates    String
   suggestedVenue    String?
-  proposedFee       Decimal?
+  proposedFee       Decimal?              @db.Decimal(10, 2)
   status            FriendlyRequestStatus @default(PENDING)
   rejectionReason   String?
   teamId            String
@@ -378,7 +380,7 @@ model OpenMatchSlot {
 model Transaction {
   id          String              @id @default(cuid())
   type        TransactionType
-  amount      Decimal
+  amount      Decimal             @db.Decimal(10, 2)
   description String
   category    TransactionCategory
   date        DateTime
@@ -475,6 +477,7 @@ model Achievement {
   match     Match?          @relation(fields: [matchId], references: [id], onDelete: SetNull)
   updatedAt DateTime        @default(now()) @updatedAt
 
+  @@unique([playerId, type, matchId])
   @@index([playerId])
   @@index([matchId])
   @@map("achievements")

@@ -1,20 +1,25 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
+import { withErrorHandler } from "@/lib/api-handler";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
 // GET /api/players/:id/achievements — list achievements for a player (public-ish, still needs session for team scoping)
-export async function GET(_request: Request, context: RouteContext) {
+export const GET = withErrorHandler(async (_request: Request, context: RouteContext) => {
   const { session, error } = await requireAuth();
   if (error) return error;
+
+  if (!session.user.teamId) {
+    return NextResponse.json({ error: "Usuário não possui time vinculado" }, { status: 403 });
+  }
 
   const { id: playerId } = await context.params;
 
   const player = await prisma.player.findFirst({
-    where: { id: playerId, teamId: session.user.teamId! },
+    where: { id: playerId, teamId: session.user.teamId },
     select: { id: true },
   });
 
@@ -25,6 +30,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const achievements = await prisma.achievement.findMany({
     where: { playerId },
     orderBy: { awardedAt: "desc" },
+    take: 500,
     select: {
       id: true,
       type: true,
@@ -34,4 +40,4 @@ export async function GET(_request: Request, context: RouteContext) {
   });
 
   return NextResponse.json({ achievements });
-}
+});

@@ -4,9 +4,10 @@ import { requireAdmin } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { createFriendlyRequestSchema } from "@/lib/validations/friendly-request";
 import { extractClientIp } from "@/lib/request-ip";
+import { withErrorHandler } from "@/lib/api-handler";
 
 // GET /api/friendly-requests — List friendly requests (ADMIN)
-export async function GET(request: Request) {
+export const GET = withErrorHandler(async (request: Request) => {
   const { session, error } = await requireAdmin();
   if (error) return error;
 
@@ -31,6 +32,7 @@ export async function GET(request: Request) {
   const requests = await prisma.friendlyRequest.findMany({
     where,
     orderBy: { createdAt: "desc" },
+    take: 200,
   });
 
   return NextResponse.json({
@@ -46,10 +48,10 @@ export async function GET(request: Request) {
       createdAt: r.createdAt.toISOString(),
     })),
   });
-}
+});
 
 // POST /api/friendly-requests — Create friendly request (PUBLIC, rate-limited)
-export async function POST(request: Request) {
+export const POST = withErrorHandler(async (request: Request) => {
   const ip = extractClientIp(request);
   const { allowed, retryAfterMinutes } = await rateLimit(ip);
   if (!allowed) {
@@ -118,4 +120,4 @@ export async function POST(request: Request) {
     },
     { status: 201 }
   );
-}
+});
