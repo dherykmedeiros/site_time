@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireAuth } from "@/lib/auth";
 import { updateMatchSchema } from "@/lib/validations/match";
+import { rateLimitMutation } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -96,6 +98,15 @@ export async function GET(request: Request, { params }: RouteParams) {
 export async function PATCH(request: Request, { params }: RouteParams) {
   const { session, error } = await requireAdmin();
   if (error) return error;
+
+  const ip = extractClientIp(request);
+  const rl = await rateLimitMutation(ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Muitas tentativas. Tente em ${rl.retryAfterMinutes} min.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
 
   const { id } = await params;
 

@@ -1,8 +1,19 @@
 import { NextResponse } from "next/server";
 import { trackOperationalEvent } from "@/lib/telemetry";
 import { telemetryEventSchema } from "@/lib/validations/telemetry";
+import { rateLimitTelemetry } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 export async function POST(request: Request) {
+  const ip = extractClientIp(request);
+  const { allowed, retryAfterMinutes } = await rateLimitTelemetry(ip);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: `Rate limited. Tente em ${retryAfterMinutes} minutos.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
+
   let body: unknown;
 
   try {

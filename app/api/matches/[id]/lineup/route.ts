@@ -6,6 +6,8 @@ import { requireAdmin } from "@/lib/auth";
 import { buildMatchLineupSnapshot } from "@/lib/match-lineup";
 import { trackOperationalEvent } from "@/lib/telemetry";
 import { patchMatchLineupSchema } from "@/lib/validations/match";
+import { rateLimitMutation } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -113,7 +115,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 404 }
+      { status: 403 }
     );
   }
 
@@ -134,10 +136,19 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   const { session, error } = await requireAdmin();
   if (error) return error;
 
+  const ip = extractClientIp(request);
+  const rl = await rateLimitMutation(ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Muitas tentativas. Tente em ${rl.retryAfterMinutes} min.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
+
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 404 }
+      { status: 403 }
     );
   }
 
@@ -280,7 +291,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 404 }
+      { status: 403 }
     );
   }
 

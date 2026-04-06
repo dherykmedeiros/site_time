@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 400 }
+      { status: 403 }
     );
   }
 

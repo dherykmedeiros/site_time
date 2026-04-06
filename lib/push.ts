@@ -3,19 +3,12 @@ import { prisma } from "@/lib/prisma";
 
 let configured = false;
 
-function getEnv(name: string): string | undefined {
-  const env =
-    (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ??
-    {};
-  return env[name];
-}
-
 function ensureVapidConfigured() {
   if (configured) return;
 
-  const contact = getEnv("PUSH_CONTACT_EMAIL");
-  const publicKey = getEnv("NEXT_PUBLIC_VAPID_PUBLIC_KEY");
-  const privateKey = getEnv("VAPID_PRIVATE_KEY");
+  const contact = process.env.PUSH_CONTACT_EMAIL;
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
 
   if (!contact || !publicKey || !privateKey) {
     return;
@@ -27,9 +20,9 @@ function ensureVapidConfigured() {
 
 export function isPushConfigured() {
   return Boolean(
-    getEnv("PUSH_CONTACT_EMAIL") &&
-      getEnv("NEXT_PUBLIC_VAPID_PUBLIC_KEY") &&
-      getEnv("VAPID_PRIVATE_KEY")
+    process.env.PUSH_CONTACT_EMAIL &&
+      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY &&
+      process.env.VAPID_PRIVATE_KEY
   );
 }
 

@@ -78,7 +78,7 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 7 * 24 * 60 * 60, // 7 days
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -109,7 +109,8 @@ export const authOptions: NextAuthOptions = {
             token.role = dbUser.role;
             token.teamId = dbUser.teamId;
           }
-        } catch {
+        } catch (err) {
+          console.error("[AUTH] JWT refresh failed:", err);
           // Keep last known claims if DB is temporarily unavailable.
         }
       }

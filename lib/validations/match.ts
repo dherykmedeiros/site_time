@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { playerPositions } from "@/lib/player-positions";
+import { isSafeUrl } from "@/lib/utils";
 
 const optionalIsoDate = z
   .string()
@@ -19,11 +20,8 @@ const optionalBadgeUrlSchema = z
   .string()
   .max(2048, "URL do escudo do adversário muito longa")
   .refine(
-    (value) =>
-      value.startsWith("/uploads/") ||
-      value.startsWith("http://") ||
-      value.startsWith("https://"),
-    "URL do escudo do adversário deve começar com /uploads/, http:// ou https://"
+    (value) => isSafeUrl(value),
+    "URL do escudo do adversário deve começar com /uploads/ ou ser https:// de domínio permitido"
   )
   .optional()
   .nullable();

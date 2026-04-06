@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { updateTransactionSchema } from "@/lib/validations/finance";
+import { rateLimitMutation } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -12,12 +14,21 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   const { session, error } = await requireAdmin();
   if (error) return error;
 
+  const ip = extractClientIp(request);
+  const rl = await rateLimitMutation(ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Muitas tentativas. Tente em ${rl.retryAfterMinutes} min.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
+
   const { id } = await params;
 
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 404 }
+      { status: 403 }
     );
   }
 
@@ -82,12 +93,21 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   const { session, error } = await requireAdmin();
   if (error) return error;
 
+  const ip = extractClientIp(request);
+  const rl = await rateLimitMutation(ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Muitas tentativas. Tente em ${rl.retryAfterMinutes} min.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
+
   const { id } = await params;
 
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 404 }
+      { status: 403 }
     );
   }
 

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { updateSeasonSchema } from "@/lib/validations/season";
+import { rateLimitMutation } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -45,6 +47,15 @@ export async function PATCH(request: Request, context: RouteContext) {
   const { session, error } = await requireAdmin();
   if (error) return error;
 
+  const ip = extractClientIp(request);
+  const rl = await rateLimitMutation(ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Muitas tentativas. Tente em ${rl.retryAfterMinutes} min.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
+
   const { id } = await context.params;
 
   const body = await request.json().catch(() => null);
@@ -82,9 +93,18 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 // DELETE /api/seasons/:id
-export async function DELETE(_request: Request, context: RouteContext) {
+export async function DELETE(request: Request, context: RouteContext) {
   const { session, error } = await requireAdmin();
   if (error) return error;
+
+  const ip = extractClientIp(request);
+  const rl = await rateLimitMutation(ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Muitas tentativas. Tente em ${rl.retryAfterMinutes} min.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
 
   const { id } = await context.params;
 

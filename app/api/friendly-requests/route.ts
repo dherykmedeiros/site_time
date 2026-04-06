@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 404 }
+      { status: 403 }
     );
   }
 

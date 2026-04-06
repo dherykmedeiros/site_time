@@ -34,7 +34,19 @@ export async function POST(request: Request) {
       where: { role: "ADMIN" },
     });
 
-    if (!allowPublicAdminRegister && adminCount > 0) {
+    // Determine target role: only the first user (bootstrap) or users with
+    // the correct registration code become ADMIN. Everyone else is PLAYER.
+    let targetRole: "ADMIN" | "PLAYER" = "PLAYER";
+
+    if (adminCount === 0) {
+      // Bootstrap: first ever user becomes admin automatically.
+      targetRole = "ADMIN";
+    } else if (allowPublicAdminRegister) {
+      const expectedCode = process.env.ADMIN_REGISTRATION_CODE;
+      if (expectedCode && registrationCode === expectedCode) {
+        targetRole = "ADMIN";
+      }
+    } else {
       const expectedCode = process.env.ADMIN_REGISTRATION_CODE;
       if (!expectedCode || registrationCode !== expectedCode) {
         return NextResponse.json(
@@ -45,6 +57,7 @@ export async function POST(request: Request) {
           { status: 403 }
         );
       }
+      targetRole = "ADMIN";
     }
 
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -62,7 +75,7 @@ export async function POST(request: Request) {
         email,
         passwordHash,
         name,
-        role: "ADMIN",
+        role: targetRole,
         teamId: null,
       },
       select: {

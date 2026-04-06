@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { updatePlayerSchema } from "@/lib/validations/player";
+import { rateLimitMutation } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -15,7 +17,7 @@ export async function GET(request: Request, context: RouteContext) {
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 400 }
+      { status: 403 }
     );
   }
 
@@ -75,10 +77,19 @@ export async function PATCH(request: Request, context: RouteContext) {
   const { session, error } = await requireAdmin();
   if (error) return error;
 
+  const ip = extractClientIp(request);
+  const rl = await rateLimitMutation(ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Muitas tentativas. Tente em ${rl.retryAfterMinutes} min.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
+
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 400 }
+      { status: 403 }
     );
   }
 
@@ -189,7 +200,7 @@ export async function DELETE(request: Request, context: RouteContext) {
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 400 }
+      { status: 403 }
     );
   }
 

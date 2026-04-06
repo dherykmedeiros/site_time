@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import sharp from "sharp";
 import { generateUUID } from "@/lib/utils";
 import { rateLimitUpload } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
@@ -142,9 +143,27 @@ export async function POST(request: Request) {
 
     const fileName = `${generateUUID()}.${ext}`;
     const mimeType = MIME_BY_EXT[ext];
+
+    // Re-encode through sharp to strip any embedded payloads
+    let cleanBuffer: Buffer;
+    try {
+      if (ext === "png") {
+        cleanBuffer = await sharp(buffer).png().toBuffer();
+      } else if (ext === "webp") {
+        cleanBuffer = await sharp(buffer).webp().toBuffer();
+      } else {
+        cleanBuffer = await sharp(buffer).jpeg({ quality: 90 }).toBuffer();
+      }
+    } catch {
+      return NextResponse.json(
+        { error: "Imagem corrompida ou inválida" },
+        { status: 400 }
+      );
+    }
+
     const url = canUseSupabaseStorage()
-      ? await uploadToSupabaseStorage(buffer, fileName, mimeType)
-      : await uploadToLocalStorage(buffer, fileName);
+      ? await uploadToSupabaseStorage(cleanBuffer, fileName, mimeType)
+      : await uploadToLocalStorage(cleanBuffer, fileName);
 
     return NextResponse.json({ url }, { status: 201 });
   } catch (err) {

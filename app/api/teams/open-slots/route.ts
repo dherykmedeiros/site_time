@@ -34,7 +34,7 @@ export async function GET() {
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 404 }
+      { status: 403 }
     );
   }
 
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 404 }
+      { status: 403 }
     );
   }
 
@@ -121,7 +121,7 @@ export async function PATCH(request: Request) {
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 404 }
+      { status: 403 }
     );
   }
 

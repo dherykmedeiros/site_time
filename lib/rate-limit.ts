@@ -17,7 +17,15 @@ const INVITE_MAX_REQUESTS = 20;
 const PUSH_WINDOW_MS = 15 * 60 * 1000;
 const PUSH_MAX_REQUESTS = 30;
 
-// Cleanup expired entries every 10 minutes
+// Telemetry: 30 events per minute per IP
+const TELEMETRY_WINDOW_MS = 60 * 1000;
+const TELEMETRY_MAX_REQUESTS = 30;
+
+// Generic mutations: 30 writes per minute per IP
+const MUTATION_WINDOW_MS = 60 * 1000;
+const MUTATION_MAX_REQUESTS = 30;
+
+// Cleanup expired entries every 60 seconds
 const cleanupHandle = setInterval(() => {
   const now = Date.now();
   for (const [key, value] of rateLimitMap) {
@@ -25,7 +33,7 @@ const cleanupHandle = setInterval(() => {
       rateLimitMap.delete(key);
     }
   }
-}, 10 * 60 * 1000);
+}, 60 * 1000);
 
 if (typeof cleanupHandle.unref === "function") {
   cleanupHandle.unref();
@@ -157,4 +165,12 @@ export async function rateLimitInvite(ip: string): Promise<RateLimitResult> {
 
 export async function rateLimitPush(ip: string): Promise<RateLimitResult> {
   return rateLimitWithConfig("push", ip, PUSH_MAX_REQUESTS, PUSH_WINDOW_MS);
+}
+
+export async function rateLimitTelemetry(ip: string): Promise<RateLimitResult> {
+  return rateLimitWithConfig("telemetry", ip, TELEMETRY_MAX_REQUESTS, TELEMETRY_WINDOW_MS);
+}
+
+export async function rateLimitMutation(ip: string): Promise<RateLimitResult> {
+  return rateLimitWithConfig("mutation", ip, MUTATION_MAX_REQUESTS, MUTATION_WINDOW_MS);
 }
