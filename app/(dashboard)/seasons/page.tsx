@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { Modal } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
+import { useToast } from "@/components/ui/Toast";
 
 type SeasonType = "LEAGUE" | "CUP" | "TOURNAMENT";
 type SeasonStatus = "ACTIVE" | "FINISHED";
@@ -31,6 +34,7 @@ const statusLabels: Record<SeasonStatus, { label: string; cls: string }> = {
 export default function SeasonsPage() {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "ADMIN";
+  const { toast } = useToast();
 
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +48,14 @@ export default function SeasonsPage() {
     () => new Date().toISOString().substring(0, 10)
   );
   const [endDate, setEndDate] = useState("");
+
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    action: () => Promise<void>;
+  }>({ open: false, title: "", message: "", action: async () => {} });
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -81,25 +93,50 @@ export default function SeasonsPage() {
       setStartDate(new Date().toISOString().substring(0, 10));
       setEndDate("");
       await load();
+      toast("Temporada criada com sucesso!");
     } finally {
       setSaving(false);
     }
   }
 
   async function handleFinish(id: string) {
-    if (!confirm("Encerrar esta temporada?")) return;
-    await fetch(`/api/seasons/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "FINISHED" }),
+    setConfirmModal({
+      open: true,
+      title: "Encerrar temporada",
+      message: "Tem certeza que deseja encerrar esta temporada?",
+      action: async () => {
+        await fetch(`/api/seasons/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "FINISHED" }),
+        });
+        await load();
+        toast("Temporada encerrada");
+      },
     });
-    await load();
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Excluir esta temporada? As partidas serão desvinculadas.")) return;
-    await fetch(`/api/seasons/${id}`, { method: "DELETE" });
-    await load();
+    setConfirmModal({
+      open: true,
+      title: "Excluir temporada",
+      message: "Excluir esta temporada? As partidas serão desvinculadas.",
+      action: async () => {
+        await fetch(`/api/seasons/${id}`, { method: "DELETE" });
+        await load();
+        toast("Temporada excluída");
+      },
+    });
+  }
+
+  async function executeConfirm() {
+    setConfirmLoading(true);
+    try {
+      await confirmModal.action();
+    } finally {
+      setConfirmLoading(false);
+      setConfirmModal((prev) => ({ ...prev, open: false }));
+    }
   }
 
   if (loading) {
@@ -297,6 +334,33 @@ export default function SeasonsPage() {
           })}
         </div>
       )}
+
+      {/* Confirm modal */}
+      <Modal
+        open={confirmModal.open}
+        onClose={() => setConfirmModal((prev) => ({ ...prev, open: false }))}
+        title={confirmModal.title}
+      >
+        <p className="text-sm text-[var(--text-muted)]">{confirmModal.message}</p>
+        <div className="mt-5 flex justify-end gap-3">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setConfirmModal((prev) => ({ ...prev, open: false }))}
+            disabled={confirmLoading}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={executeConfirm}
+            loading={confirmLoading}
+          >
+            Confirmar
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

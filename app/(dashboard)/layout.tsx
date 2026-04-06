@@ -108,6 +108,7 @@ export default function DashboardLayout({
             <Link
               key={item.href}
               href={item.href}
+              aria-current={isActive ? "page" : undefined}
               className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all ${
                 isActive
                   ? "bg-white/95 text-[#13453a] shadow-sm"
@@ -120,7 +121,10 @@ export default function DashboardLayout({
               </span>
               <span className="flex-1">{item.label}</span>
               {badgeCount > 0 && (
-                <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#f8cf85] px-1.5 text-xs font-semibold text-[#4f2f00]">
+                <span
+                  className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#f8cf85] px-1.5 text-xs font-semibold text-[#4f2f00]"
+                  aria-label={`${badgeCount} pendente${badgeCount !== 1 ? "s" : ""}`}
+                >
                   {badgeCount}
                 </span>
               )}

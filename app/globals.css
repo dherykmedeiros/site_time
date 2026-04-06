@@ -16,6 +16,23 @@
   --radius-sm: 10px;
   --radius-md: 16px;
   --radius-lg: 22px;
+
+  /* Badge semantic tokens */
+  --badge-default-bg: #edf2ed;
+  --badge-default-text: #334652;
+  --badge-default-border: #d6e0d6;
+  --badge-success-bg: #e4f5ee;
+  --badge-success-text: #1d5f4f;
+  --badge-success-border: #bde0d1;
+  --badge-warning-bg: #fff4dc;
+  --badge-warning-text: #7b5a1c;
+  --badge-warning-border: #f3ddab;
+  --badge-danger-bg: #fdecea;
+  --badge-danger-text: #8c3626;
+  --badge-danger-border: #efc3bb;
+  --badge-info-bg: #e7f3f8;
+  --badge-info-text: #2e5d73;
+  --badge-info-border: #b7d5e3;
 }
 
 @theme inline {
@@ -61,4 +78,22 @@ select:focus-visible {
   background: var(--bg-elevated);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+}
+
+/* Toast slide-in animation */
+.animate-in {
+  animation: animate-in 200ms ease-out;
+}
+.slide-in-from-right-5 {
+  --tw-enter-translate-x: 1.25rem;
+}
+@keyframes animate-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--tw-enter-translate-x, 0));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
