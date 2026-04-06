@@ -1,5 +1,5 @@
 const IPV4_RE = /^\d{1,3}(?:\.\d{1,3}){3}$/;
-const IPV6_RE = /^[A-Fa-f0-9:]+$/;
+const IPV6_RE = /^[A-Fa-f0-9:]{2,45}$/;
 
 function sanitizeIp(value: string | null): string | null {
   if (!value) return null;

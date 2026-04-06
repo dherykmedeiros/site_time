@@ -4,6 +4,8 @@ import { requireAdmin, requireAuth } from "@/lib/auth";
 import { createTransactionSchema } from "@/lib/validations/finance";
 import { trackOperationalEvent } from "@/lib/telemetry";
 import { Prisma } from "@prisma/client";
+import { rateLimitMutation } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 type TransactionListRow = {
   id: string;
@@ -26,7 +28,7 @@ export async function GET(request: Request) {
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 404 }
+      { status: 403 }
     );
   }
 
@@ -146,10 +148,19 @@ export async function POST(request: Request) {
   const { session, error } = await requireAdmin();
   if (error) return error;
 
+  const ip = extractClientIp(request);
+  const rl = await rateLimitMutation(ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Muitas tentativas. Tente em ${rl.retryAfterMinutes} min.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
+
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 404 }
+      { status: 403 }
     );
   }
 

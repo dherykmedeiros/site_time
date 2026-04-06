@@ -5,6 +5,8 @@ import { requireAdmin, requireAuth } from "@/lib/auth";
 import { generateUUID } from "@/lib/utils";
 import { createMatchSchema, matchListQuerySchema } from "@/lib/validations/match";
 import { notifyScheduledMatch } from "@/lib/push";
+import { rateLimitMutation } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 // GET /api/matches — List matches for the team
 export async function GET(request: Request) {
@@ -14,7 +16,7 @@ export async function GET(request: Request) {
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 404 }
+      { status: 403 }
     );
   }
 
@@ -99,10 +101,19 @@ export async function POST(request: Request) {
   const { session, error } = await requireAdmin();
   if (error) return error;
 
+  const ip = extractClientIp(request);
+  const rl = await rateLimitMutation(ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Muitas tentativas. Tente em ${rl.retryAfterMinutes} min.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
+
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 404 }
+      { status: 403 }
     );
   }
 

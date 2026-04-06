@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { playerPositions } from "@/lib/player-positions";
+import { isSafeUrl } from "@/lib/utils";
 
 export const createPlayerSchema = z.object({
   name: z
@@ -49,8 +50,8 @@ const playerPhotoUrlSchema = z
   .string()
   .max(2048, "URL da foto muito longa")
   .refine(
-    (value) => value.startsWith("/uploads/") || value.startsWith("http://") || value.startsWith("https://"),
-    "URL da foto inválida"
+    (value) => isSafeUrl(value),
+    "URL da foto inválida ou domínio não permitido"
   );
 
 export const updateOwnPlayerProfileSchema = z

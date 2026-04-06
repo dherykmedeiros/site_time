@@ -36,3 +36,22 @@ export function formatCurrency(value: number): string {
 export function isPastDate(date: Date): boolean {
   return date < new Date();
 }
+
+// SSRF-safe URL allowlist: local uploads or HTTPS with no internal IPs
+const BLOCKED_HOSTS_RE =
+  /^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|\[::1\]|0\.0\.0\.0)/i;
+
+export function isSafeUrl(value: string): boolean {
+  if (value.startsWith("/uploads/")) return true;
+  if (!value.startsWith("https://")) return false;
+
+  try {
+    const url = new URL(value);
+    if (BLOCKED_HOSTS_RE.test(url.hostname)) return false;
+    // Block IP-based hosts entirely to avoid bypasses
+    if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(url.hostname)) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}

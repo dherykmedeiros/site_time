@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { createSeasonSchema } from "@/lib/validations/season";
+import { rateLimitMutation } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 // GET /api/seasons — list all seasons for the team
 export async function GET() {
@@ -23,6 +25,15 @@ export async function GET() {
 export async function POST(request: Request) {
   const { session, error } = await requireAdmin();
   if (error) return error;
+
+  const ip = extractClientIp(request);
+  const rl = await rateLimitMutation(ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Muitas tentativas. Tente em ${rl.retryAfterMinutes} min.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
 
   const body = await request.json().catch(() => null);
   const parsed = createSeasonSchema.safeParse(body);

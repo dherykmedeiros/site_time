@@ -12,7 +12,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
   if (error) return error;
 
   if (!session.user.teamId) {
-    return NextResponse.json({ error: "Usuário não possui time vinculado" }, { status: 400 });
+    return NextResponse.json({ error: "Usuário não possui time vinculado" }, { status: 403 });
   }
 
   const { id: playerId, paymentId } = await context.params;

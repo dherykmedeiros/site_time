@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { processFriendlyRequestSchema } from "@/lib/validations/friendly-request";
 import { sendFriendlyApprovalEmail, sendFriendlyRejectionEmail } from "@/lib/email";
+import { rateLimitMutation } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -19,7 +21,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 404 }
+      { status: 403 }
     );
   }
 
@@ -54,12 +56,21 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   const { session, error } = await requireAdmin();
   if (error) return error;
 
+  const ip = extractClientIp(request);
+  const rl = await rateLimitMutation(ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Muitas tentativas. Tente em ${rl.retryAfterMinutes} min.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
+
   const { id } = await params;
 
   if (!session.user.teamId) {
     return NextResponse.json(
       { error: "Usuário não possui time vinculado" },
-      { status: 404 }
+      { status: 403 }
     );
   }
 
@@ -110,12 +121,17 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const venue = matchVenue || friendlyRequest.suggestedVenue || friendlyRequest.team.defaultVenue || "A definir";
     const date = matchDate ? new Date(matchDate) : new Date();
 
-    // Create match + update request in transaction
-    const [updatedRequest, match] = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const updated = await tx.friendlyRequest.update({
-        where: { id },
-        data: { status: "APPROVED" },
-      });
+    try {
+      // Create match + update request in transaction
+      const [updatedRequest, match] = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        // Re-check status inside transaction to prevent race condition
+        const current = await tx.friendlyRequest.findUnique({ where: { id }, select: { status: true } });
+        if (current?.status !== "PENDING") throw new Error("NOT_PENDING");
+
+        const updated = await tx.friendlyRequest.update({
+          where: { id },
+          data: { status: "APPROVED" },
+        });
 
       const createdMatch = await tx.match.create({
         data: {
@@ -169,32 +185,57 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         status: match.status,
       },
     });
+    } catch (err) {
+      if (err instanceof Error && err.message === "NOT_PENDING") {
+        return NextResponse.json(
+          { error: "Solicitação já foi processada", code: "NOT_PENDING" },
+          { status: 400 }
+        );
+      }
+      throw err;
+    }
   }
 
   // Reject
   const reason = rejectionReason || "Sem motivo informado";
 
-  const updatedRequest = await prisma.friendlyRequest.update({
-    where: { id },
-    data: {
-      status: "REJECTED",
-      rejectionReason: reason,
-    },
-  });
+  try {
+    const updatedRequest = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      // Re-check status inside transaction to prevent race condition
+      const current = await tx.friendlyRequest.findUnique({ where: { id }, select: { status: true } });
+      if (current?.status !== "PENDING") throw new Error("NOT_PENDING");
 
-  // Send rejection email (non-blocking)
-  sendFriendlyRejectionEmail({
-    to: friendlyRequest.contactEmail,
-    requesterTeamName: friendlyRequest.requesterTeamName,
-    teamName: friendlyRequest.team.name,
-    reason,
-  }).catch(console.error);
+      return tx.friendlyRequest.update({
+        where: { id },
+        data: {
+          status: "REJECTED",
+          rejectionReason: reason,
+        },
+      });
+    });
 
-  return NextResponse.json({
-    request: {
-      id: updatedRequest.id,
-      status: "REJECTED",
-      rejectionReason: reason,
-    },
-  });
+    // Send rejection email (non-blocking)
+    sendFriendlyRejectionEmail({
+      to: friendlyRequest.contactEmail,
+      requesterTeamName: friendlyRequest.requesterTeamName,
+      teamName: friendlyRequest.team.name,
+      reason,
+    }).catch(console.error);
+
+    return NextResponse.json({
+      request: {
+        id: updatedRequest.id,
+        status: "REJECTED",
+        rejectionReason: reason,
+      },
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === "NOT_PENDING") {
+      return NextResponse.json(
+        { error: "Solicitação já foi processada", code: "NOT_PENDING" },
+        { status: 400 }
+      );
+    }
+    throw err;
+  }
 }

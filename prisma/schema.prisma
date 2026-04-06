@@ -264,6 +264,8 @@ model Match {
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
+  @@index([teamId])
+  @@index([seasonId])
   @@map("matches")
 }
 
@@ -293,6 +295,7 @@ model MatchPositionLimit {
   position   PlayerPosition
   maxPlayers Int
   createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
   @@unique([matchId, position])
   @@index([matchId])
@@ -303,13 +306,16 @@ model RSVP {
   id          String     @id @default(cuid())
   status      RSVPStatus @default(PENDING)
   playerId    String
-  player      Player     @relation(fields: [playerId], references: [id])
+  player      Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
   matchId     String
-  match       Match      @relation(fields: [matchId], references: [id])
+  match       Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
   respondedAt DateTime?
   createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   @@unique([playerId, matchId])
+  @@index([matchId])
+  @@index([matchId, status])
   @@map("rsvps")
 }
 
@@ -320,12 +326,15 @@ model MatchStats {
   yellowCards Int      @default(0)
   redCards    Int      @default(0)
   playerId    String
-  player      Player   @relation(fields: [playerId], references: [id])
+  player      Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
   matchId     String
-  match       Match    @relation(fields: [matchId], references: [id])
+  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([playerId, matchId])
+  @@index([matchId])
+  @@index([playerId])
   @@map("match_stats")
 }
 
@@ -340,10 +349,12 @@ model FriendlyRequest {
   status            FriendlyRequestStatus @default(PENDING)
   rejectionReason   String?
   teamId            String
-  team              Team                  @relation(fields: [teamId], references: [id])
+  team              Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
 
+  @@index([teamId])
+  @@index([teamId, status])
   @@map("friendly_requests")
 }
 
@@ -373,12 +384,15 @@ model Transaction {
   date        DateTime
   teamId      String
   matchId     String?
-  team        Team                @relation(fields: [teamId], references: [id])
-  match       Match?              @relation(fields: [matchId], references: [id])
+  team        Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  match       Match?              @relation(fields: [matchId], references: [id], onDelete: SetNull)
   membershipPayment MembershipPayment?
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
+  @@index([teamId])
+  @@index([matchId])
+  @@index([teamId, date])
   @@map("transactions")
 }
 
@@ -417,13 +431,16 @@ model InviteToken {
   id        String    @id @default(cuid())
   token     String    @unique @default(uuid())
   teamId    String
-  team      Team      @relation(fields: [teamId], references: [id])
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
   playerId  String
-  player    Player    @relation(fields: [playerId], references: [id])
+  player    Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
+  @@index([teamId])
+  @@index([playerId])
   @@map("invite_tokens")
 }
 
@@ -436,11 +453,15 @@ model MembershipPayment {
   amount        Decimal      @db.Decimal(10, 2)
   paidAt        DateTime     @default(now())
   transactionId String?      @unique
-  player        Player       @relation(fields: [playerId], references: [id])
-  team          Team         @relation(fields: [teamId], references: [id])
-  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+  player        Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  team          Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  updatedAt     DateTime     @updatedAt
 
   @@unique([playerId, month, year])
+  @@index([teamId])
+  @@index([playerId, teamId])
+  @@index([year, month])
   @@map("membership_payments")
 }
 
@@ -450,9 +471,12 @@ model Achievement {
   type      AchievementType
   matchId   String?
   awardedAt DateTime        @default(now())
-  player    Player          @relation(fields: [playerId], references: [id])
-  match     Match?          @relation(fields: [matchId], references: [id])
+  player    Player          @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  match     Match?          @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  updatedAt DateTime        @updatedAt
 
+  @@index([playerId])
+  @@index([matchId])
   @@map("achievements")
 }
 
@@ -464,11 +488,13 @@ model Season {
   startDate DateTime
   endDate   DateTime?
   status    SeasonStatus @default(ACTIVE)
-  team      Team         @relation(fields: [teamId], references: [id])
+  team      Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
   matches   Match[]
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
+  @@index([teamId])
+  @@index([teamId, status])
   @@map("seasons")
 }
 
