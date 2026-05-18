@@ -3,9 +3,9 @@ import path from "path";
 import fs from "fs";
 
 /* ── Seed Credentials ─────────────────────────────── */
-export const ADMIN_EMAIL = "admin@sitetime.com.br";
-export const ADMIN_PASSWORD = "Admin@123";
-export const ADMIN_NAME = "Carlos Eduardo Silva";
+export const ADMIN_EMAIL = "admin@admin.com";
+export const ADMIN_PASSWORD = "Admin123456";
+export const ADMIN_NAME = "Administrador Geral";
 
 /* ── Auth state file ──────────────────────────────── */
 export const AUTH_FILE = path.join(__dirname, ".auth", "admin.json");

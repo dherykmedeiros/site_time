@@ -117,7 +117,7 @@ export default function DashboardHomePage() {
         <p className="mt-3 text-[var(--text-muted)]">
           Voce ainda nao criou uma equipe. Configure a equipe para comecar.
         </p>
-        <Link href="/team/settings">
+        <Link href="/dashboard/team/settings">
           <Button className="mt-7">Criar meu primeiro time</Button>
         </Link>
       </div>

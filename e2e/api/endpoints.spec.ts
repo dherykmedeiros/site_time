@@ -76,7 +76,7 @@ test.describe("API — Auth Validation", () => {
   test("POST /api/auth/register rejects duplicate email", async ({ request }) => {
     const res = await request.post("/api/auth/register", {
       data: {
-        email: "admin@sitetime.com.br",
+        email: "admin@admin.com",
         password: "SomePass123!",
         name: "Duplicate User",
       },
