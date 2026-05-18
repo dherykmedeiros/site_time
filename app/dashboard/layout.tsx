@@ -94,7 +94,9 @@ export default function DashboardLayout({
     weekday: "long",
     day: "2-digit",
     month: "long",
-  }).fo  function NavLinks({ mobile = false }: { mobile?: boolean }) {
+  }).format(new Date());
+
+  function NavLinks({ mobile = false }: { mobile?: boolean }) {
     return (
       <>
         {visibleNavItems.map((item) => {

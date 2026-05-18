@@ -186,42 +186,6 @@ export default function SquadPage() {
     }
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-[22px] border border-[#b7d8ce] bg-gradient-to-r from-[#e4f3ed] via-[#eff7ef] to-[#f7f1e7] p-6 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.17em] text-[#2a6f60]">
-            Gestao de atletas
-          </p>
-          <h1 className="text-2xl font-bold text-[var(--text)]">Elenco</h1>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {isAdmin && (
-            <>
-              <Link
-                href="/squad/mensalidade"
-                className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-              >
-                💰 Mensalidade
-              </Link>
-              <Button onClick={() => setShowAddModal(true)}>+ Adicionar Jogador</Button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {feedback && (
-        <div className="rounded-[12px] border border-[#bde0d3] bg-[#e9f8f1] p-3 text-sm text-[#1d5f4f]">
-          {feedback}
-        </div>
-      )}
-
-      {actionError && (
-        <div className="rounded-[12px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[var(--danger)]">
-          {actionError}
-        </div>
-      )}
-
   const filteredPlayers = players.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.shirtNumber.toString().includes(search)
