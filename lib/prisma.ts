@@ -14,9 +14,9 @@ function createPrismaClient() {
 
   const url = new URL(rawUrl);
 
-  // Supabase + pg: evita warning de sslmode e mantém comportamento compatível.
+  const isLocal = url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname.startsWith("192.168.");
   if (!url.searchParams.has("sslmode")) {
-    url.searchParams.set("sslmode", "require");
+    url.searchParams.set("sslmode", isLocal ? "disable" : "require");
   }
 
   if (!url.searchParams.has("uselibpqcompat")) {

@@ -1,33 +1,30 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { RecapShareActions } from "@/components/dashboard/RecapShareActions";
 import { TeamRecapWidget } from "@/components/dashboard/TeamRecapWidget";
 
 interface PublicMatchPageProps {
-  params: Promise<{ slug: string; id: string }>;
+  params: Promise<{ id: string }>;
   searchParams: Promise<{ t?: string }>;
 }
 
-async function getMatchData(slug: string, matchId: string, token?: string) {
+async function getMatchData(matchId: string, token?: string) {
   if (!token) return null;
 
-  const team = await prisma.team.findUnique({
-    where: { slug },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      badgeUrl: true,
-      primaryColor: true,
-    },
-  });
-
-  if (!team) return null;
-
   const match = await prisma.match.findFirst({
-    where: { id: matchId, teamId: team.id, shareToken: token },
+    where: { id: matchId, shareToken: token },
     include: {
+      team: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          badgeUrl: true,
+          primaryColor: true,
+        },
+      },
       rsvps: {
         select: {
           status: true,
@@ -44,16 +41,16 @@ async function getMatchData(slug: string, matchId: string, token?: string) {
 
   if (!match) return null;
 
-  return { team, match };
+  return { team: match.team, match };
 }
 
 export async function generateMetadata({
   searchParams,
   params,
 }: PublicMatchPageProps): Promise<Metadata> {
-  const { slug, id } = await params;
+  const { id } = await params;
   const { t } = await searchParams;
-  const data = await getMatchData(slug, id, t);
+  const data = await getMatchData(id, t);
 
   if (!data) {
     return { title: "Partida não encontrada" };
@@ -74,8 +71,8 @@ export async function generateMetadata({
       title,
       description,
       type: "website",
-      url: `/vitrine/${slug}/matches/${id}?t=${t}`,
-      siteName: "VARzea",
+      url: `/matches/${id}?t=${t}`,
+      siteName: "Portal Oficial",
       locale: "pt_BR",
       images:
         data.match.status === "COMPLETED"
@@ -116,9 +113,9 @@ export default async function PublicMatchPage({
   searchParams,
   params,
 }: PublicMatchPageProps) {
-  const { slug, id } = await params;
+  const { id } = await params;
   const { t } = await searchParams;
-  const data = await getMatchData(slug, id, t);
+  const data = await getMatchData(id, t);
 
   if (!data) {
     notFound();
@@ -142,32 +139,34 @@ export default async function PublicMatchPage({
         : "border-amber-200 bg-amber-50 text-amber-700";
 
   return (
-    <div className="min-h-screen bg-transparent pb-16">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_12%_18%,rgba(12,111,93,0.05),transparent_40%),linear-gradient(180deg,#f8fbf9_0%,#f0f5f2_100%)] pb-16">
       <header
         className="relative overflow-hidden px-4 pb-20 pt-14 text-white"
-        style={{ backgroundColor: team.primaryColor || "#1e40af" }}
+        style={{ backgroundColor: team.primaryColor || "#0a584b" }}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,255,255,0.28),transparent_35%),radial-gradient(circle_at_85%_0%,rgba(255,225,185,0.32),transparent_32%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,255,255,0.18),transparent_35%),radial-gradient(circle_at_85%_0%,rgba(244,221,183,0.22),transparent_32%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-[#f8fbf9]/15" />
+
         <div className="relative mx-auto max-w-5xl">
-          <a
-            href={`/vitrine/${team.slug}`}
+          <Link
+            href="/"
             className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-white/25"
           >
-            Voltar para a vitrine
-          </a>
+            ← Voltar para o Portal
+          </Link>
         </div>
         <div className="relative mx-auto mt-7 max-w-5xl text-center">
           {team.badgeUrl && (
             <img
               src={team.badgeUrl}
               alt={team.name}
-              className="mx-auto mb-4 h-20 w-20 rounded-full border-4 border-white/35 object-cover shadow-[0_18px_38px_rgba(0,0,0,0.25)]"
+              className="mx-auto mb-4 h-20 w-20 rounded-2xl border border-white/35 object-cover shadow-[0_18px_38px_rgba(0,0,0,0.25)]"
             />
           )}
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
-            Partida Compartilhada
+            Resumo de Partida Oferecido Pelo Portal
           </p>
-          <h1 className="mt-2 text-balance font-display text-4xl font-bold sm:text-5xl">
+          <h1 className="mt-2 text-balance font-display text-4xl font-extrabold sm:text-5xl">
             {team.name} x {match.opponent}
           </h1>
           <p className="mt-3 text-sm text-white/85 sm:text-base">{formattedDate}</p>
@@ -180,34 +179,34 @@ export default async function PublicMatchPage({
       </header>
 
       <main className="mx-auto -mt-9 max-w-5xl space-y-6 px-4">
-        <section className="app-surface rounded-[28px] p-6 shadow-[var(--shadow-lg)] sm:p-8">
-          <h2 className="text-xl font-semibold text-[var(--text)]">
+        <section className="bg-white rounded-3xl border border-[#e5ece8] p-6 shadow-sm sm:p-8">
+          <h2 className="text-xl font-bold text-[#0f3a30]">
             Informações da Partida
           </h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
-                Data
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#6b857c]">
+                Data / Horário
               </span>
-              <p className="mt-1 font-semibold text-[var(--text)]">{formattedDate}</p>
+              <p className="mt-1 font-bold text-[#0f3a30]">{formattedDate}</p>
             </div>
             <div>
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#6b857c]">
                 Local
               </span>
-              <p className="mt-1 font-semibold text-[var(--text)]">{match.venue}</p>
+              <p className="mt-1 font-bold text-[#0f3a30]">{match.venue}</p>
             </div>
             <div>
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#6b857c]">
                 Adversário
               </span>
-              <p className="mt-1 font-semibold text-[var(--text)]">{match.opponent}</p>
+              <p className="mt-1 font-bold text-[#0f3a30]">{match.opponent}</p>
             </div>
             <div>
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
-                Tipo
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#6b857c]">
+                Tipo de Partida
               </span>
-              <p className="mt-1 font-semibold text-[var(--text)]">
+              <p className="mt-1 font-bold text-[#0f3a30]">
                 {match.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
               </p>
             </div>
@@ -217,25 +216,25 @@ export default async function PublicMatchPage({
         {match.status === "COMPLETED" &&
           match.homeScore !== null &&
           match.awayScore !== null && (
-            <section className="app-surface rounded-[28px] p-6 text-center shadow-[var(--shadow-md)] sm:p-8">
-              <h2 className="text-xl font-semibold text-[var(--text)]">
+            <section className="bg-white rounded-3xl border border-[#e5ece8] p-6 text-center shadow-sm sm:p-8">
+              <h2 className="text-xl font-bold text-[#0f3a30]">
                 Placar Final
               </h2>
               <div className="mt-6 flex items-center justify-center gap-5 sm:gap-8">
                 <div className="text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6b857c]">
                     {team.name}
                   </p>
-                  <p className="mt-1 text-5xl font-bold text-[var(--brand)] sm:text-6xl">
+                  <p className="mt-1 text-5xl font-black text-[#0c6f5d] sm:text-6xl">
                     {match.homeScore}
                   </p>
                 </div>
-                <span className="text-3xl font-semibold text-[var(--text-subtle)]">x</span>
+                <span className="text-3xl font-bold text-[#6b857c]">x</span>
                 <div className="text-center">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6b857c]">
                     {match.opponent}
                   </p>
-                  <p className="mt-1 text-5xl font-bold text-rose-600 sm:text-6xl">
+                  <p className="mt-1 text-5xl font-black text-rose-700 sm:text-6xl">
                     {match.awayScore}
                   </p>
                 </div>
@@ -244,8 +243,8 @@ export default async function PublicMatchPage({
           )}
 
         {match.status === "COMPLETED" && (
-          <section className="app-surface rounded-[28px] p-6 shadow-[var(--shadow-md)] sm:p-8">
-            <h2 className="text-xl font-semibold text-[var(--text)]">Recap da Rodada</h2>
+          <section className="bg-white rounded-3xl border border-[#e5ece8] p-6 shadow-sm sm:p-8">
+            <h2 className="text-xl font-bold text-[#0f3a30]">Recap da Rodada</h2>
             <div className="mt-5">
               <TeamRecapWidget matchId={match.id} />
             </div>
@@ -254,75 +253,67 @@ export default async function PublicMatchPage({
                 entityId={match.id}
                 entityType="match"
                 context="public_match"
-                labelPrefix="Confira o recap da partida no VARzea"
-                vitrineUrl={`/vitrine/${slug}/matches/${match.id}`}
+                labelPrefix="Confira o recap da partida no nosso portal"
+                vitrineUrl={`/matches/${match.id}`}
               />
             </div>
           </section>
         )}
 
         {match.status === "SCHEDULED" && (
-          <section className="app-surface rounded-[28px] p-6 shadow-[var(--shadow-md)] sm:p-8">
-            <h2 className="text-xl font-semibold text-[var(--text)]">
+          <section className="bg-white rounded-3xl border border-[#e5ece8] p-6 shadow-sm sm:p-8">
+            <h2 className="text-xl font-bold text-[#0f3a30]">
               Confirmações de Presença
             </h2>
             <div className="mt-5 grid gap-4 text-center sm:grid-cols-3">
               <div className="rounded-2xl border border-emerald-100 bg-emerald-50/65 p-4">
-                <p className="text-3xl font-bold text-emerald-700">{confirmed}</p>
-                <p className="mt-1 text-sm text-emerald-700/85">Confirmados</p>
+                <p className="text-3xl font-extrabold text-emerald-800">{confirmed}</p>
+                <p className="mt-1 text-sm font-semibold text-emerald-800/85">Confirmados</p>
               </div>
               <div className="rounded-2xl border border-rose-100 bg-rose-50/65 p-4">
-                <p className="text-3xl font-bold text-rose-700">{declined}</p>
-                <p className="mt-1 text-sm text-rose-700/85">Recusados</p>
+                <p className="text-3xl font-extrabold text-rose-700">{declined}</p>
+                <p className="mt-1 text-sm font-semibold text-rose-700/85">Recusados</p>
               </div>
               <div className="rounded-2xl border border-amber-100 bg-amber-50/65 p-4">
-                <p className="text-3xl font-bold text-amber-700">{pending}</p>
-                <p className="mt-1 text-sm text-amber-700/85">Pendentes</p>
+                <p className="text-3xl font-extrabold text-amber-800">{pending}</p>
+                <p className="mt-1 text-sm font-semibold text-amber-800/85">Pendentes</p>
               </div>
             </div>
-            <p className="mt-4 text-sm text-[var(--text-muted)]">
-              Por privacidade, os nomes e respostas individuais não são exibidos publicamente.
+            <p className="mt-4 text-xs text-[#6b857c]">
+              Nota: Por questões de privacidade, a comissão técnica não exibe a lista nominal publicamente.
             </p>
           </section>
         )}
 
         {match.status === "COMPLETED" && match.matchStats.length > 0 && (
-          <section className="app-surface overflow-hidden rounded-[28px] p-6 shadow-[var(--shadow-md)] sm:p-8">
-            <h2 className="text-xl font-semibold text-[var(--text)]">
+          <section className="bg-white overflow-hidden rounded-3xl border border-[#e5ece8] p-6 shadow-sm sm:p-8">
+            <h2 className="text-xl font-bold text-[#0f3a30]">
               Estatísticas Individuais
             </h2>
-            <div className="mt-5 overflow-x-auto rounded-2xl border border-[var(--border)]">
+            <div className="mt-5 overflow-x-auto rounded-2xl border border-[#e5ece8]">
               <table className="w-full min-w-[680px] text-left text-sm">
-                <thead className="bg-[color-mix(in_oklab,var(--surface-soft)_78%,white_22%)]">
-                  <tr className="border-b border-[var(--border)]">
-                    <th className="px-4 py-3 font-semibold text-[var(--text-subtle)]">Jogador</th>
-                    <th className="px-4 py-3 font-semibold text-[var(--text-subtle)]">Posição</th>
-                    <th className="px-4 py-3 text-center font-semibold text-[var(--text-subtle)]">
-                      Gols
-                    </th>
-                    <th className="px-4 py-3 text-center font-semibold text-[var(--text-subtle)]">
-                      Assist.
-                    </th>
-                    <th className="px-4 py-3 text-center font-semibold text-[var(--text-subtle)]">
-                      Amarelos
-                    </th>
-                    <th className="px-4 py-3 text-center font-semibold text-[var(--text-subtle)]">
-                      Vermelhos
-                    </th>
+                <thead className="bg-[#f8fbf9]">
+                  <tr className="border-b border-[#e5ece8]">
+                    <th className="px-4 py-3 font-semibold text-[#6b857c]">Jogador</th>
+                    <th className="px-4 py-3 font-semibold text-[#6b857c]">Posição</th>
+                    <th className="px-4 py-3 text-center font-semibold text-[#6b857c]">Gols</th>
+                    <th className="px-4 py-3 text-center font-semibold text-[#6b857c]">Assist.</th>
+                    <th className="px-4 py-3 text-center font-semibold text-[#6b857c]">Amarelos</th>
+                    <th className="px-4 py-3 text-center font-semibold text-[#6b857c]">Vermelhos</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[var(--border)] bg-white/30">
+                <tbody className="divide-y divide-[#e5ece8] bg-white">
                   {match.matchStats.map((stat) => (
-                    <tr key={stat.playerId} className="transition hover:bg-white/65">
-                      <td className="px-4 py-3 font-semibold text-[var(--text)]">{stat.player.name}</td>
-                      <td className="px-4 py-3 text-[var(--text-muted)]">
+                    <tr key={stat.playerId} className="transition hover:bg-[#f8fbf9]/60">
+                      <td className="px-4 py-3 font-bold text-[#0f3a30]">{stat.player.name}</td>
+                      <td className="px-4 py-3 text-[#4f746b]">
                         {positionLabels[stat.player.position] ||
                           stat.player.position}
                       </td>
-                      <td className="px-4 py-3 text-center font-semibold text-[var(--text)]">{stat.goals}</td>
-                      <td className="px-4 py-3 text-center font-semibold text-[var(--text)]">{stat.assists}</td>
-                      <td className="px-4 py-3 text-center font-semibold text-amber-700">{stat.yellowCards}</td>
-                      <td className="px-4 py-3 text-center font-semibold text-rose-700">{stat.redCards}</td>
+                      <td className="px-4 py-3 text-center font-bold text-[#0f3a30]">{stat.goals}</td>
+                      <td className="px-4 py-3 text-center font-bold text-[#0f3a30]">{stat.assists}</td>
+                      <td className="px-4 py-3 text-center font-bold text-amber-700">{stat.yellowCards}</td>
+                      <td className="px-4 py-3 text-center font-bold text-rose-700">{stat.redCards}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -332,31 +323,31 @@ export default async function PublicMatchPage({
         )}
 
         {match.status === "SCHEDULED" && (
-          <section className="app-surface rounded-[28px] p-6 shadow-[var(--shadow-md)] sm:p-8">
+          <section className="bg-white rounded-3xl border border-[#e5ece8] p-6 shadow-sm sm:p-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-[var(--text)]">Confirmar Presença</h2>
-                <p className="mt-1 text-sm text-[var(--text-subtle)]">
-                  Você é jogador do {team.name}? Acesse o app para confirmar ou recusar sua presença nesta partida.
+                <h2 className="text-xl font-bold text-[#0f3a30]">Confirmar Presença</h2>
+                <p className="mt-1 text-sm text-[#4f746b]">
+                  Se você é atleta integrado do {team.name}, acesse a área administrativa para confirmar sua escalação nesta partida.
                 </p>
               </div>
-              <a
-                href={`/matches/${match.id}`}
-                className="inline-flex shrink-0 items-center justify-center rounded-full bg-[var(--brand)] px-6 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
+              <Link
+                href="/dashboard/matches"
+                className="inline-flex shrink-0 items-center justify-center rounded-full bg-[#0c6f5d] px-6 py-2.5 text-xs font-bold text-white transition hover:bg-[#0a5c4d] shadow-sm"
               >
-                Confirmar no app →
-              </a>
+                Confirmar Convocação &rarr;
+              </Link>
             </div>
           </section>
         )}
 
-        <div className="pt-2 text-center">
-          <a
-            href={`/vitrine/${team.slug}`}
-            className="inline-flex items-center justify-center rounded-full border border-[var(--border-strong)] bg-white/70 px-5 py-2 text-sm font-semibold text-[var(--text)] transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
+        <div className="pt-4 text-center">
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded-full border border-[#0c6f5d] bg-white px-5 py-2 text-sm font-bold text-[#0c6f5d] transition hover:bg-[#0c6f5d] hover:text-white"
           >
-            Ver perfil do {team.name}
-          </a>
+            Ver Portal do {team.name}
+          </Link>
         </div>
       </main>
     </div>

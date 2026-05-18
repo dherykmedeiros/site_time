@@ -5,7 +5,7 @@ import Link from "next/link";
 import { PlayerRecapWidget } from "@/components/dashboard/PlayerRecapWidget";
 
 interface PlayerPageProps {
-  params: Promise<{ slug: string; id: string }>;
+  params: Promise<{ id: string }>;
 }
 
 const positionLabels: Record<string, string> = {
@@ -20,9 +20,9 @@ const positionLabels: Record<string, string> = {
   RIGHT_WINGER: "Ponta direita",
 };
 
-async function getPlayerProfile(slug: string, playerId: string) {
-  const player = await prisma.player.findFirst({
-    where: { id: playerId, team: { slug } },
+async function getPlayerProfile(playerId: string) {
+  const player = await prisma.player.findUnique({
+    where: { id: playerId },
     select: {
       id: true,
       name: true,
@@ -84,7 +84,7 @@ async function getPlayerProfile(slug: string, playerId: string) {
       totalYellowCards: statsAggregate._sum.yellowCards ?? 0,
       totalRedCards: statsAggregate._sum.redCards ?? 0,
     },
-    recentMatches: recentStats.map((s: (typeof recentStats)[number]) => ({
+    recentMatches: recentStats.map((s) => ({
       matchId: s.match.id,
       date: s.match.date.toISOString(),
       opponent: s.match.opponent,
@@ -100,8 +100,8 @@ async function getPlayerProfile(slug: string, playerId: string) {
 }
 
 export async function generateMetadata({ params }: PlayerPageProps): Promise<Metadata> {
-  const { slug, id } = await params;
-  const player = await getPlayerProfile(slug, id);
+  const { id } = await params;
+  const player = await getPlayerProfile(id);
 
   if (!player) return { title: "Jogador não encontrado" };
 
@@ -115,7 +115,7 @@ export async function generateMetadata({ params }: PlayerPageProps): Promise<Met
       title: `${player.name} — ${player.team.name}`,
       description,
       type: "profile",
-      siteName: "VARzea",
+      siteName: "Portal Oficial",
       locale: "pt_BR",
       images: [{ url: recapImageUrl, width: 1200, height: 630, alt: `Recap de ${player.name}` }],
     },
@@ -129,8 +129,8 @@ export async function generateMetadata({ params }: PlayerPageProps): Promise<Met
 }
 
 export default async function PlayerProfilePage({ params }: PlayerPageProps) {
-  const { slug, id } = await params;
-  const player = await getPlayerProfile(slug, id);
+  const { id } = await params;
+  const player = await getPlayerProfile(id);
 
   if (!player) notFound();
 
@@ -160,21 +160,21 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
   const uniqueAchievements = Object.entries(achievementCounts);
 
   return (
-    <div className="min-h-screen bg-transparent pb-16">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_12%_18%,rgba(12,111,93,0.05),transparent_40%),linear-gradient(180deg,#f8fbf9_0%,#f0f5f2_100%)] pb-16">
       {/* Hero */}
       <header
         className="relative overflow-hidden px-4 pb-20 pt-10 text-white"
         style={{ backgroundColor: primaryColor }}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_22%,rgba(255,255,255,0.25),transparent_35%),linear-gradient(140deg,rgba(0,0,0,0.38),rgba(0,0,0,0.62)_55%,rgba(0,0,0,0.38))]" />
-        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-[rgba(17,20,18,0.35)]" />
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-[#f8fbf9]/15" />
 
         <div className="relative mx-auto max-w-4xl">
           <Link
-            href={`/vitrine/${slug}`}
+            href="/"
             className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-white/25"
           >
-            ← {player.team.name}
+            ← Voltar para o Portal
           </Link>
 
           <div className="mt-8 flex flex-col gap-5 sm:flex-row sm:items-end">
@@ -223,9 +223,9 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
       <main className="mx-auto mt-5 max-w-4xl px-4">
         {player.description && (
           <section className="mb-6" aria-label="Descricao do jogador">
-            <article className="app-surface rounded-[20px] border border-[var(--border)] p-5 shadow-[var(--shadow-sm)]">
-              <h2 className="text-base font-bold text-[var(--text)]">Descricao</h2>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-muted)]">
+            <article className="bg-white rounded-3xl border border-[#e5ece8] p-5 shadow-sm">
+              <h2 className="text-base font-bold text-[#0f3a30]">Sobre o Atleta</h2>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[#4f746b]">
                 {player.description}
               </p>
             </article>
@@ -240,10 +240,10 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
           {stats.map(({ label, value }) => (
             <article
               key={label}
-              className="app-surface rounded-[20px] border border-[var(--border)] p-5 text-center shadow-[var(--shadow-md)]"
+              className="bg-white rounded-2xl border border-[#e5ece8] p-5 text-center shadow-sm"
             >
-              <p className="text-3xl font-bold text-[var(--text)]">{value}</p>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
+              <p className="text-3xl font-bold text-[#0f3a30]">{value}</p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#6b857c]">
                 {label}
               </p>
             </article>
@@ -251,13 +251,13 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
         </section>
 
         <section className="mt-8" aria-label="Recap compartilhavel">
-          <PlayerRecapWidget playerId={player.id} playerName={player.name} vitrineUrl={`/vitrine/${slug}/jogadores/${player.id}`} />
+          <PlayerRecapWidget playerId={player.id} playerName={player.name} vitrineUrl={`/jogadores/${player.id}`} />
         </section>
 
         {/* Achievements */}
         {uniqueAchievements.length > 0 && (
           <section className="mt-10" aria-label="Conquistas">
-            <h2 className="mb-4 text-2xl font-bold text-[var(--text)]">Conquistas</h2>
+            <h2 className="mb-4 text-2xl font-bold text-[#0f3a30]">Conquistas Oficiais</h2>
             <div className="flex flex-wrap gap-3">
               {uniqueAchievements.map(([type, count]) => {
                 const meta = achievementMeta[type];
@@ -265,13 +265,13 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
                 return (
                   <div
                     key={type}
-                    className="app-surface flex items-center gap-2 rounded-full border border-[var(--border)] px-4 py-2 shadow-[var(--shadow-sm)]"
+                    className="bg-white flex items-center gap-2 rounded-full border border-[#e5ece8] px-4 py-2 shadow-sm"
                     title={`Conquistado ${count}x`}
                   >
                     <span className="text-xl">{meta.emoji}</span>
-                    <span className="text-sm font-semibold text-[var(--text)]">{meta.label}</span>
+                    <span className="text-sm font-semibold text-[#355249]">{meta.label}</span>
                     {count > 1 && (
-                      <span className="rounded-full bg-[var(--surface-soft)] px-1.5 py-0.5 text-xs font-bold text-[var(--text-subtle)]">
+                      <span className="rounded-full bg-[#f0f5f2] px-1.5 py-0.5 text-xs font-bold text-[#6b857c]">
                         ×{count}
                       </span>
                     )}
@@ -285,34 +285,34 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
         {/* Recent matches */}
         <section className="mt-10" aria-label="Últimas partidas">
           <div className="mb-4 flex items-end justify-between gap-3">
-            <h2 className="text-2xl font-bold text-[var(--text)]">Últimas partidas</h2>
-            <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-subtle)]">
-              Últimas {Math.min(player.recentMatches.length, 5)}
+            <h2 className="text-2xl font-bold text-[#0f3a30]">Últimas Partidas</h2>
+            <p className="text-xs uppercase tracking-[0.12em] text-[#6b857c]">
+              Histórico recente
             </p>
           </div>
 
           {player.recentMatches.length > 0 ? (
-            <div className="app-surface overflow-hidden rounded-[20px] border border-[var(--border)] shadow-[var(--shadow-sm)]">
+            <div className="bg-white overflow-hidden rounded-3xl border border-[#e5ece8] shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-[var(--border)] bg-[var(--surface-soft)]">
-                      <th className="px-4 py-3 font-semibold text-[var(--text-subtle)]">
+                    <tr className="border-b border-[#e5ece8] bg-[#f8fbf9]">
+                      <th className="px-4 py-3 font-semibold text-[#6b857c]">
                         Adversário
                       </th>
-                      <th className="px-4 py-3 font-semibold text-[var(--text-subtle)]">
+                      <th className="px-4 py-3 font-semibold text-[#6b857c]">
                         Placar
                       </th>
-                      <th className="px-4 py-3 text-center font-semibold text-[var(--text-subtle)]">
+                      <th className="px-4 py-3 text-center font-semibold text-[#6b857c]">
                         ⚽
                       </th>
-                      <th className="px-4 py-3 text-center font-semibold text-[var(--text-subtle)]">
+                      <th className="px-4 py-3 text-center font-semibold text-[#6b857c]">
                         🎯
                       </th>
-                      <th className="px-4 py-3 text-center font-semibold text-[var(--text-subtle)]">
+                      <th className="px-4 py-3 text-center font-semibold text-[#6b857c]">
                         🟨
                       </th>
-                      <th className="px-4 py-3 text-center font-semibold text-[var(--text-subtle)]">
+                      <th className="px-4 py-3 text-center font-semibold text-[#6b857c]">
                         🟥
                       </th>
                     </tr>
@@ -325,23 +325,23 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
                       return (
                         <tr
                           key={m.matchId}
-                          className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-soft)]"
+                          className="border-b border-[#e5ece8] last:border-0 hover:bg-[#f8fbf9]/60"
                         >
                           <td className="px-4 py-3">
-                            <p className="font-medium text-[var(--text)]">vs {m.opponent}</p>
-                            <p className="text-xs text-[var(--text-muted)]">{dateStr}</p>
+                            <p className="font-semibold text-[#0f3a30]">vs {m.opponent}</p>
+                            <p className="text-xs text-[#6b857c]">{dateStr}</p>
                           </td>
-                          <td className="px-4 py-3 font-mono font-semibold text-[var(--text)]">
+                          <td className="px-4 py-3 font-mono font-bold text-[#0f3a30]">
                             {m.homeScore !== null && m.awayScore !== null
                               ? `${m.homeScore} × ${m.awayScore}`
                               : "—"}
                           </td>
-                          <td className="px-4 py-3 text-center text-[var(--text)]">{m.goals}</td>
-                          <td className="px-4 py-3 text-center text-[var(--text)]">{m.assists}</td>
-                          <td className="px-4 py-3 text-center text-[var(--text)]">
+                          <td className="px-4 py-3 text-center text-[#0f3a30]">{m.goals}</td>
+                          <td className="px-4 py-3 text-center text-[#0f3a30]">{m.assists}</td>
+                          <td className="px-4 py-3 text-center text-[#0f3a30]">
                             {m.yellowCards || "—"}
                           </td>
-                          <td className="px-4 py-3 text-center text-[var(--text)]">
+                          <td className="px-4 py-3 text-center text-[#0f3a30]">
                             {m.redCards || "—"}
                           </td>
                         </tr>
@@ -352,8 +352,8 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
               </div>
             </div>
           ) : (
-            <div className="app-surface rounded-[20px] border border-dashed border-[var(--border-strong)] p-10 text-center text-[var(--text-muted)]">
-              Nenhuma estatística registrada ainda.
+            <div className="bg-white rounded-3xl border border-dashed border-[#b7d8ce] p-10 text-center text-[#6b857c]">
+              Nenhuma estatística registrada em partidas recentes.
             </div>
           )}
         </section>
@@ -361,16 +361,16 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
         {/* Back to team */}
         <div className="mt-10 text-center">
           <Link
-            href={`/vitrine/${slug}`}
-            className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--border)] px-6 py-2 text-sm font-semibold text-[var(--text)] transition hover:border-[var(--border-strong)] hover:bg-[var(--surface-soft)]"
+            href="/"
+            className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#0c6f5d] bg-white px-6 py-2 text-sm font-bold text-[#0c6f5d] transition hover:bg-[#0c6f5d] hover:text-white"
           >
-            Ver vitrine do {player.team.name}
+            Ver Portal do {player.team.name}
           </Link>
         </div>
       </main>
 
-      <footer className="mt-14 border-t border-[var(--border)] py-8 text-center text-sm text-[var(--text-muted)]">
-        <p>Powered by VARzea</p>
+      <footer className="mt-14 border-t border-[#e5ece8] py-8 text-center text-xs font-semibold text-[#8ea49c]">
+        <p>&copy; {new Date().getFullYear()} {player.team.name}. Todos os direitos reservados.</p>
       </footer>
     </div>
   );

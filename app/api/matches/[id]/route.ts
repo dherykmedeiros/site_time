@@ -58,7 +58,7 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
     match.date < new Date() && match.status === "SCHEDULED";
 
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-  const shareUrl = `${baseUrl}/vitrine/${match.team.slug}/matches/${match.id}?t=${match.shareToken}`;
+  const shareUrl = `${baseUrl}/matches/${match.id}?t=${match.shareToken}`;
 
   return NextResponse.json({
     id: match.id,
@@ -493,7 +493,7 @@ function buildMatchDetailResponse(
   const canSubmitPostGame =
     match.date < new Date() && match.status === "SCHEDULED";
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-  const shareUrl = `${baseUrl}/vitrine/${match.team.slug}/matches/${match.id}?t=${match.shareToken}`;
+  const shareUrl = `${baseUrl}/matches/${match.id}?t=${match.shareToken}`;
 
   return NextResponse.json({
     id: match.id,

@@ -6,20 +6,20 @@ import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
 const navItems = [
-  { href: "/", label: "Painel", icon: "⌂" },
-  { href: "/squad", label: "Elenco", icon: "◉" },
-  { href: "/squad/mensalidade", label: "Mensalidade", icon: "💰", adminOnly: true },
-  { href: "/matches", label: "Jogos", icon: "◍", badgeKey: "upcomingMatches" as const },
-  { href: "/seasons", label: "Temporadas", icon: "🏆", adminOnly: true },
-  { href: "/finances", label: "Finanças", icon: "◈" },
+  { href: "/dashboard", label: "Painel", icon: "⌂" },
+  { href: "/dashboard/squad", label: "Elenco", icon: "◉" },
+  { href: "/dashboard/squad/mensalidade", label: "Mensalidade", icon: "💰", adminOnly: true },
+  { href: "/dashboard/matches", label: "Jogos", icon: "◍", badgeKey: "upcomingMatches" as const },
+  { href: "/dashboard/seasons", label: "Temporadas", icon: "🏆", adminOnly: true },
+  { href: "/dashboard/finances", label: "Finanças", icon: "◈" },
   {
-    href: "/friendly-requests",
+    href: "/dashboard/friendly-requests",
     label: "Amistosos",
     icon: "◎",
     badgeKey: "pendingRequests" as const,
     adminOnly: true,
   },
-  { href: "/team/settings", label: "Configurações", icon: "⋯", adminOnly: true },
+  { href: "/dashboard/team/settings", label: "Configurações", icon: "⋯", adminOnly: true },
 ];
 
 interface BadgeCounts {
@@ -148,7 +148,7 @@ export default function DashboardLayout({
       {/* Desktop Sidebar */}
       <aside className="hidden h-screen w-80 flex-shrink-0 border-r border-[#196a5a] bg-gradient-to-b from-[#0a584b] via-[#0b6555] to-[#083d34] md:sticky md:top-0 md:flex md:flex-col">
         <div className="border-b border-white/15 px-6 py-6">
-          <Link href="/" className="inline-flex items-center gap-3 text-white">
+          <Link href="/dashboard" className="inline-flex items-center gap-3 text-white">
             <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/25 bg-white/10 text-xl">
               ⚽
             </span>
@@ -197,7 +197,7 @@ export default function DashboardLayout({
       >
         <div className="flex h-20 items-center justify-between border-b border-white/15 px-6">
           <Link
-            href="/"
+            href="/dashboard"
             className="text-lg font-bold tracking-tight text-white"
             onClick={() => setMobileMenuOpen(false)}
           >
@@ -251,7 +251,7 @@ export default function DashboardLayout({
               />
             </svg>
           </button>
-          <Link href="/" className="text-lg font-bold text-[var(--brand)]">
+          <Link href="/dashboard" className="text-lg font-bold text-[var(--brand)]">
             VARzea
           </Link>
           <div className="w-6" />

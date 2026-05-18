@@ -231,7 +231,7 @@ export const POST = withErrorHandler(async (request: Request) => {
   });
 
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-  const shareUrl = `${baseUrl}/vitrine/${team?.slug}/matches/${match.id}?t=${match.shareToken}`;
+  const shareUrl = `${baseUrl}/matches/${match.id}?t=${match.shareToken}`;
 
   try {
     await notifyScheduledMatch(match.id);

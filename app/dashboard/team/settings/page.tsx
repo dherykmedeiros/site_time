@@ -316,14 +316,14 @@ export default function TeamSettingsPage() {
         <Card className="rounded-[18px]">
           <CardContent className="py-4">
             <p className="text-sm text-[var(--text-muted)]">
-              <strong>Vitrine publica:</strong>{" "}
+              <strong>Portal Oficial do Time:</strong>{" "}
               <a
-                href={`/vitrine/${team.slug}`}
+                href="/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-semibold text-[var(--brand)] hover:underline"
               >
-                /vitrine/{team.slug}
+                / (Página Inicial)
               </a>
             </p>
           </CardContent>
@@ -532,20 +532,12 @@ export default function TeamSettingsPage() {
 
             <div className="flex flex-wrap gap-2">
               <a
-                href="/vitrine"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--border)] px-4 text-sm font-semibold text-[var(--text)] transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
-              >
-                Abrir diretorio publico
-              </a>
-              <a
-                href={`/vitrine/${team.slug}`}
+                href="/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--brand)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--brand-strong)]"
               >
-                Abrir vitrine do time
+                Abrir Portal do Time
               </a>
             </div>
           </CardContent>

@@ -127,31 +127,31 @@ export default function DashboardHomePage() {
   const record = rankings?.teamRecord;
   const quickActions = [
     {
-      href: "/squad",
+      href: "/dashboard/squad",
       title: "Gerenciar elenco",
       description: "Cadastro, status e organizacao dos jogadores.",
       icon: "👥",
     },
     {
-      href: "/matches",
+      href: "/dashboard/matches",
       title: "Planejar partidas",
       description: "Agenda, resultados e historico de jogos.",
       icon: "⚽",
     },
     {
-      href: "/finances",
+      href: "/dashboard/finances",
       title: "Controlar financas",
       description: "Lancamentos, saldo e resumo mensal.",
       icon: "💰",
     },
     {
-      href: "/friendly-requests",
+      href: "/dashboard/friendly-requests",
       title: "Responder amistosos",
       description: "Solicitacoes pendentes e negociacao de jogos.",
       icon: "🤝",
     },
     {
-      href: "/team/settings",
+      href: "/dashboard/team/settings",
       title: "Ajustar configuracoes",
       description: "Dados do time, identidade e vitrine publica.",
       icon: "⚙",
@@ -195,14 +195,14 @@ export default function DashboardHomePage() {
 
             <div className="mt-5 flex flex-wrap gap-3">
               <a
-                href={`/vitrine/${team.slug}`}
+                href="/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center rounded-xl border border-[#9fc9bc] bg-white px-4 py-2 text-sm font-semibold text-[#145045] transition hover:bg-[#f1faf6]"
               >
-                Abrir vitrine publica
+                Ver site público
               </a>
-              <Link href="/matches">
+              <Link href="/dashboard/matches">
                 <Button variant="secondary">Registrar partida</Button>
               </Link>
             </div>

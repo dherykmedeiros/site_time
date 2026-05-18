@@ -2,6 +2,30 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@sparticuz/chromium-min"],
+  async redirects() {
+    return [
+      {
+        source: "/vitrine",
+        destination: "/",
+        permanent: true,
+      },
+      {
+        source: "/vitrine/:slug",
+        destination: "/",
+        permanent: true,
+      },
+      {
+        source: "/vitrine/:slug/jogadores/:id",
+        destination: "/jogadores/:id",
+        permanent: true,
+      },
+      {
+        source: "/vitrine/:slug/matches/:id",
+        destination: "/matches/:id",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {
