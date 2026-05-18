@@ -155,12 +155,7 @@ export const POST = withErrorHandler(async (request: Request) => {
     );
   }
 
-  if (matchDate <= new Date()) {
-    return NextResponse.json(
-      { error: "Data deve ser no futuro", code: "DATE_IN_PAST" },
-      { status: 400 }
-    );
-  }
+  // Permitir partidas em qualquer data (passada ou futura)
 
   // If seasonId provided, verify it belongs to the team
   if (seasonId) {

@@ -29,8 +29,7 @@ const optionalBadgeUrlSchema = z
 export const createMatchSchema = z.object({
   date: z
     .string()
-    .refine((val: string) => !isNaN(Date.parse(val)), "Data inválida")
-    .refine((val: string) => new Date(val) > new Date(), "Data deve ser no futuro"),
+    .refine((val: string) => !isNaN(Date.parse(val)), "Data inválida"),
   venue: z
     .string()
     .trim()
