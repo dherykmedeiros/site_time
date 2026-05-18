@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
-import { updateTeamSchema, type UpdateTeamInput } from "@/lib/validations/team";
+import { updateTeamSchema, createTeamSchema, type UpdateTeamInput } from "@/lib/validations/team";
 
 interface TeamFormProps {
   defaultValues?: {
@@ -36,7 +36,7 @@ export function TeamForm({ defaultValues, onSuccess, isCreating = false }: TeamF
     handleSubmit,
     formState: { errors },
   } = useForm<UpdateTeamInput>({
-    resolver: zodResolver(updateTeamSchema),
+    resolver: zodResolver(isCreating ? createTeamSchema : updateTeamSchema),
     defaultValues: {
       name: defaultValues?.name || "",
       shortName: defaultValues?.shortName || "",
