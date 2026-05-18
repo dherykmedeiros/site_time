@@ -446,17 +446,17 @@ export default function SquadPage() {
         <div className="space-y-4">
           {inviteMsg && (
             <div
-              className={`rounded-md p-3 text-sm ${
+              className={`rounded-xl p-3 text-xs font-semibold border ${
                 inviteMsg.includes("sucesso")
-                  ? "bg-green-50 text-green-700"
-                  : "bg-red-50 text-red-700"
+                  ? "bg-[rgba(16,185,129,0.1)] text-[#34d399] border-[rgba(16,185,129,0.2)]"
+                  : "bg-[rgba(239,68,68,0.1)] text-[#f87171] border-[rgba(239,68,68,0.2)]"
               }`}
             >
               {inviteMsg}
             </div>
           )}
           <div>
-            <label htmlFor="inviteEmail" className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor="inviteEmail" className="mb-1 block text-sm font-semibold text-[#8fa39b]">
               E-mail do jogador
             </label>
             <Input

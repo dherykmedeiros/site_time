@@ -190,3 +190,16 @@ select:focus-visible {
     transform: translateX(0);
   }
 }
+
+/* Legibilidade e Estilo de Select e Options Nativos */
+select {
+  background-color: #090f0c !important;
+  color: #f0f7f4 !important;
+  border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+select option {
+  background-color: #090f0c !important;
+  color: #f0f7f4 !important;
+}
+
