@@ -37,6 +37,7 @@ export default function DashboardLayout({
 
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [badges, setBadges] = useState<BadgeCounts>({
     pendingRequests: 0,
     upcomingMatches: 0,
@@ -93,9 +94,7 @@ export default function DashboardLayout({
     weekday: "long",
     day: "2-digit",
     month: "long",
-  }).format(new Date());
-
-  function NavLinks({ mobile = false }: { mobile?: boolean }) {
+  }).fo  function NavLinks({ mobile = false }: { mobile?: boolean }) {
     return (
       <>
         {visibleNavItems.map((item) => {
@@ -103,26 +102,28 @@ export default function DashboardLayout({
             pathname === item.href ||
             (item.href !== "/" && pathname.startsWith(item.href));
           const badgeCount = item.badgeKey ? badges[item.badgeKey] : 0;
+          const isCollapsed = !mobile && collapsed;
 
           return (
             <Link
               key={item.href}
               href={item.href}
               aria-current={isActive ? "page" : undefined}
+              title={isCollapsed ? item.label : undefined}
               className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all ${
                 isActive
                   ? "bg-white/95 text-[#13453a] shadow-sm"
                   : "text-[#d7efe6] hover:bg-white/15 hover:text-white"
-              } ${mobile ? "text-base" : ""}`}
+              } ${isCollapsed ? "justify-center px-2" : ""} ${mobile ? "text-base" : ""}`}
               onClick={mobile ? () => setMobileMenuOpen(false) : undefined}
             >
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-black/10 text-xs">
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-black/10 text-xs shrink-0">
                 {item.icon}
               </span>
-              <span className="flex-1">{item.label}</span>
-              {badgeCount > 0 && (
+              {!isCollapsed && <span className="flex-1 transition-opacity duration-300">{item.label}</span>}
+              {!isCollapsed && badgeCount > 0 && (
                 <span
-                  className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#f8cf85] px-1.5 text-xs font-semibold text-[#4f2f00]"
+                  className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#f8cf85] px-1.5 text-[10px] font-bold text-[#4f2f00]"
                   aria-label={`${badgeCount} pendente${badgeCount !== 1 ? "s" : ""}`}
                 >
                   {badgeCount}
@@ -145,138 +146,156 @@ export default function DashboardLayout({
       </a>
 
       <div className="flex min-h-screen">
-      {/* Desktop Sidebar */}
-      <aside className="hidden h-screen w-80 flex-shrink-0 border-r border-[#196a5a] bg-gradient-to-b from-[#0a584b] via-[#0b6555] to-[#083d34] md:sticky md:top-0 md:flex md:flex-col">
-        <div className="border-b border-white/15 px-6 py-6">
-          <Link href="/dashboard" className="inline-flex items-center gap-3 text-white">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/25 bg-white/10 text-xl">
-              ⚽
-            </span>
-            <span>
-              <strong className="block text-lg font-bold tracking-tight">VARzea</strong>
-              <span className="text-xs font-medium uppercase tracking-[0.15em] text-[#cde7df]">
-                Painel VARzea
+        {/* Desktop Sidebar */}
+        <aside
+          className={`hidden h-screen flex-shrink-0 border-r border-[#196a5a] bg-gradient-to-b from-[#0a584b] via-[#0b6555] to-[#083d34] md:sticky md:top-0 md:flex md:flex-col transition-all duration-300 ease-in-out ${
+            collapsed ? "w-20" : "w-80"
+          }`}
+        >
+          <div className="border-b border-white/15 px-4 py-6 flex items-center justify-between">
+            <Link href="/dashboard" className="inline-flex items-center gap-3 text-white overflow-hidden">
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/25 bg-white/10 text-xl shrink-0">
+                ⚽
               </span>
-            </span>
-          </Link>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-3 py-5">
-          <p className="px-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#b9ded3]">
-            Navegacao
-          </p>
-          <nav className="mt-3 space-y-1">
-            <NavLinks />
-          </nav>
-        </div>
-
-        <div className="border-t border-white/15 px-3 py-4">
-          <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex w-full items-center gap-3 rounded-xl bg-white/10 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"
-          >
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-black/15 text-xs">↩</span>
-            Sair
-          </button>
-        </div>
-      </aside>
-
-      {/* Mobile overlay */}
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Mobile sidebar drawer */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 transform border-r border-[#196a5a] bg-gradient-to-b from-[#0a584b] via-[#0b6555] to-[#083d34] transition-transform duration-200 md:hidden ${
-          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="flex h-20 items-center justify-between border-b border-white/15 px-6">
-          <Link
-            href="/dashboard"
-            className="text-lg font-bold tracking-tight text-white"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            VARzea
-          </Link>
-          <button
-            onClick={() => setMobileMenuOpen(false)}
-            className="text-[#d3eee5] hover:text-white"
-            aria-label="Fechar menu"
-          >
-            ✕
-          </button>
-        </div>
-        <p className="px-6 pt-5 text-xs font-semibold uppercase tracking-[0.16em] text-[#b9ded3]">
-          Navegação
-        </p>
-        <nav className="mt-3 space-y-1 px-3">
-          <NavLinks mobile />
-        </nav>
-        <div className="absolute bottom-4 left-3 right-3">
-          <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex w-full items-center gap-3 rounded-xl bg-white/10 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"
-          >
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-black/15 text-xs">↩</span>
-            Sair
-          </button>
-        </div>
-      </aside>
-
-      {/* Main area */}
-      <div className="flex flex-1 flex-col">
-        {/* Mobile header */}
-        <header className="flex h-16 items-center justify-between border-b border-[var(--border)] bg-[var(--bg-elevated)]/95 px-4 backdrop-blur md:hidden">
-          <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="rounded-lg p-1 text-[var(--text)] hover:bg-[var(--brand-soft)] hover:text-[var(--brand)]"
-            aria-label="Abrir menu"
-          >
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+              {!collapsed && (
+                <span className="transition-all duration-300 whitespace-nowrap">
+                  <strong className="block text-lg font-bold tracking-tight">VARzea</strong>
+                  <span className="text-xs font-medium uppercase tracking-[0.15em] text-[#cde7df]">
+                    Painel VARzea
+                  </span>
+                </span>
+              )}
+            </Link>
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white transition-colors"
+              title={collapsed ? "Expandir menu" : "Recolher menu"}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </button>
-          <Link href="/dashboard" className="text-lg font-bold text-[var(--brand)]">
-            VARzea
-          </Link>
-          <div className="w-6" />
-        </header>
-
-        {/* Desktop page header */}
-        <header className="hidden border-b border-[var(--border)] bg-white/70 px-8 py-5 backdrop-blur md:block">
-          <div className="mx-auto flex w-full max-w-7xl items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-                {todayLabel}
-              </p>
-              <h1 className="mt-1 text-2xl font-bold text-[var(--text)]">{activeItem.label}</h1>
-            </div>
-            <div className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm font-medium text-[var(--text-muted)] shadow-[var(--shadow-sm)]">
-              Operacao da equipe na VARzea
-            </div>
+              {collapsed ? "»" : "«"}
+            </button>
           </div>
-        </header>
 
-        {/* Main content */}
-        <main id="dashboard-main-content" className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          <div className="mx-auto w-full max-w-7xl">{children}</div>
-        </main>
-      </div>
+          <div className="flex-1 overflow-y-auto px-3 py-5">
+            {!collapsed && (
+              <p className="px-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#b9ded3] transition-opacity duration-300">
+                Navegação
+              </p>
+            )}
+            <nav className={`space-y-1 ${!collapsed ? "mt-3" : ""}`}>
+              <NavLinks />
+            </nav>
+          </div>
+
+          <div className="border-t border-white/15 px-3 py-4">
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className={`flex items-center gap-3 rounded-xl bg-white/10 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20 ${
+                collapsed ? "w-full justify-center px-2" : "w-full"
+              }`}
+              title={collapsed ? "Sair" : undefined}
+            >
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-black/15 text-xs shrink-0">↩</span>
+              {!collapsed && <span>Sair</span>}
+            </button>
+          </div>
+        </aside>
+
+        {/* Mobile overlay */}
+        {mobileMenuOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+
+        {/* Mobile sidebar drawer */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-72 transform border-r border-[#196a5a] bg-gradient-to-b from-[#0a584b] via-[#0b6555] to-[#083d34] transition-transform duration-200 md:hidden ${
+            mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <div className="flex h-20 items-center justify-between border-b border-white/15 px-6">
+            <Link
+              href="/dashboard"
+              className="text-lg font-bold tracking-tight text-white"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              VARzea
+            </Link>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-[#d3eee5] hover:text-white"
+              aria-label="Fechar menu"
+            >
+              ✕
+            </button>
+          </div>
+          <p className="px-6 pt-5 text-xs font-semibold uppercase tracking-[0.16em] text-[#b9ded3]">
+            Navegação
+          </p>
+          <nav className="mt-3 space-y-1 px-3">
+            <NavLinks mobile />
+          </nav>
+          <div className="absolute bottom-4 left-3 right-3">
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="flex w-full items-center gap-3 rounded-xl bg-white/10 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-white/20"
+            >
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-black/15 text-xs">↩</span>
+              Sair
+            </button>
+          </div>
+        </aside>
+
+        {/* Main area */}
+        <div className="flex flex-1 flex-col">
+          {/* Mobile header */}
+          <header className="flex h-16 items-center justify-between border-b border-[var(--border)] bg-[var(--bg-elevated)]/95 px-4 backdrop-blur md:hidden">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="rounded-lg p-1 text-[var(--text)] hover:bg-[var(--brand-soft)] hover:text-[var(--brand)]"
+              aria-label="Abrir menu"
+            >
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
+            <Link href="/dashboard" className="text-lg font-bold text-[var(--brand)]">
+              VARzea
+            </Link>
+            <div className="w-6" />
+          </header>
+
+          {/* Desktop page header */}
+          <header className="hidden border-b border-[var(--border)] bg-[var(--bg-elevated)]/80 px-8 py-5 backdrop-blur md:block">
+            <div className="mx-auto flex w-full max-w-7xl items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+                  {todayLabel}
+                </p>
+                <h1 className="mt-1 text-2xl font-bold text-[var(--text)]">{activeItem.label}</h1>
+              </div>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] shadow-[var(--shadow-sm)]">
+                Operação da equipe na VARzea
+              </div>
+            </div>
+          </header>
+
+          {/* Main content */}
+          <main id="dashboard-main-content" className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+            <div className="mx-auto w-full max-w-7xl">{children}</div>
+          </main>
+        </div>
       </div>
     </div>
   );

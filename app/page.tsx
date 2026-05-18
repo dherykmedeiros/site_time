@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { FriendlyRequestForm } from "./FriendlyRequestForm";
+import { PublicNavbar } from "@/components/PublicNavbar";
 
 const fieldTypeLabels: Record<string, string> = {
   GRASS: "Grama",
@@ -311,91 +312,73 @@ export default async function HomePage({
   const suggestedVenueInitialValue = selectedSlot?.venueLabel || "";
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_12%_18%,rgba(12,111,93,0.05),transparent_40%),linear-gradient(180deg,#f8fbf9_0%,#f0f5f2_100%)] pb-16 font-sans antialiased text-[#1d2724]">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_12%_18%,rgba(12,111,93,0.03),transparent_40%),linear-gradient(180deg,var(--bg)_0%,var(--bg)_100%)] pb-16 font-sans antialiased text-[var(--text)] transition-colors duration-300">
       {/* Admin Quick Link Banner */}
       {session && (
-        <div className="bg-[#0c6f5d] px-4 py-2 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-[#0a5c4d]">
+        <div className="bg-[var(--brand)] px-4 py-2.5 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-[var(--brand-strong)]">
           Você está autenticado no painel.{" "}
-          <Link href="/dashboard" className="underline hover:text-[#f3f9f7]">
+          <Link href="/dashboard" className="underline hover:text-emerald-100 transition-colors">
             Acessar o Painel Administrativo do Time &rarr;
           </Link>
         </div>
       )}
 
-      {/* Top Navbar */}
-      <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-3">
-          {team.badgeUrl ? (
-            <img src={team.badgeUrl} alt="Escudo" className="h-10 w-10 rounded-xl object-cover" />
-          ) : (
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#0c6f5d] text-white">⚽</span>
-          )}
-          <span className="font-display text-xl font-bold tracking-tight text-[#0f3a30]">{team.name}</span>
-        </Link>
-        <div className="flex items-center gap-4">
-          <a href="#elenco" className="hidden text-sm font-semibold text-[#355249] hover:text-[#0c6f5d] sm:block">Elenco</a>
-          <a href="#retrospecto" className="hidden text-sm font-semibold text-[#355249] hover:text-[#0c6f5d] sm:block">Desempenho</a>
-          <a href="#amistoso" className="hidden text-sm font-semibold text-[#355249] hover:text-[#0c6f5d] sm:block">Solicitar Amistoso</a>
-          <Link
-            href="/login"
-            className="inline-flex min-h-9 items-center justify-center rounded-full bg-[#0c6f5d] px-4 text-xs font-bold text-white shadow-sm transition hover:bg-[#0a5c4d]"
-          >
-            Acesso Restrito
-          </Link>
-        </div>
-      </nav>
+      {/* Reusable Public Glassmorphic Navbar */}
+      <PublicNavbar teamName={team.name} badgeUrl={team.badgeUrl} />
 
       {/* Premium Hero Section */}
       <header
-        className="relative overflow-hidden px-4 pb-24 pt-16 text-white lg:pb-32 lg:pt-20"
+        className="relative overflow-hidden px-4 pb-28 pt-20 text-white lg:pb-36 lg:pt-24"
         style={{
           backgroundColor: team.primaryColor || "#0a584b",
         }}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_22%,rgba(255,255,255,0.18),transparent_40%),radial-gradient(circle_at_84%_6%,rgba(244,221,183,0.22),transparent_35%),linear-gradient(140deg,rgba(0,0,0,0.4),rgba(0,0,0,0.65)_60%,rgba(0,0,0,0.4))]" />
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-[#f8fbf9]/15" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_22%,rgba(255,255,255,0.15),transparent_40%),radial-gradient(circle_at_84%_6%,rgba(244,221,183,0.18),transparent_35%),linear-gradient(140deg,rgba(0,0,0,0.48),rgba(0,0,0,0.72)_60%,rgba(0,0,0,0.48))]" />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-[var(--bg)] opacity-90" />
 
-        <div className="relative mx-auto mt-4 grid max-w-6xl gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 shadow-inner">
+        <div className="relative mx-auto mt-4 grid max-w-6xl gap-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-white/10 px-4 py-2 shadow-inner backdrop-blur-sm">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />
-              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/90">Portal Oficial do Time</span>
+              <span className="text-xs font-bold uppercase tracking-[0.2em] text-white/90">Portal Oficial do Time</span>
             </div>
 
-            <h1 className="mt-6 text-balance font-display text-4xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl tracking-tight">
+            <h1 className="text-balance font-display text-4xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl tracking-tight drop-shadow-sm">
               {team.name}
             </h1>
-            <p className="mt-5 max-w-2xl text-base text-white/86 sm:text-lg leading-relaxed">
-              {team.description || `Seja bem-vindo ao portal oficial do ${team.name}. Acompanhe nossos resultados, estatísticas, plantel de atletas e envie propostas para amistosos.`}
+            <p className="max-w-2xl text-base text-white/80 sm:text-lg leading-relaxed font-medium">
+              {team.description || `Seja bem-vindo ao portal oficial do ${team.name}. Acompanhe nossos resultados, estatísticas, elenco de atletas e envie propostas para amistosos.`}
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-4 pt-2">
               <a
                 href="#elenco"
-                className="rounded-full bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-[#0a584b] shadow-md transition hover:bg-[#f1faf6] hover:scale-105 transform duration-150"
+                className="rounded-full bg-white px-6 py-3.5 text-xs font-bold uppercase tracking-[0.14em] text-[#0a584b] shadow-lg transition-all hover:bg-emerald-50 hover:scale-105 transform active:scale-95 duration-150"
               >
                 Ver Elenco Ativo
               </a>
               <a
                 href="#amistoso"
-                className="rounded-full border border-white/30 bg-white/10 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.12em] text-white transition hover:bg-white/20"
+                className="rounded-full border border-white/25 bg-white/10 px-6 py-3.5 text-xs font-bold uppercase tracking-[0.14em] text-white transition-all hover:bg-white/20 active:scale-95 transform"
               >
                 Agendar Amistoso
               </a>
             </div>
           </div>
 
-          <aside className="max-w-md rounded-3xl border border-white/20 bg-white/12 p-6 shadow-2xl backdrop-blur-md lg:ml-auto lg:w-full">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/70">Resumo da Temporada</p>
-            <p className="mt-2 text-base font-bold text-white">{summaryLine}</p>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-              <div className="rounded-2xl border border-white/15 bg-white/8 px-4 py-3.5">
-                <p className="text-xs text-white/70">Aproveitamento Geral</p>
-                <p className="text-3xl font-extrabold text-white mt-1">{stats.winRate}%</p>
+          <aside className="max-w-md rounded-3xl border border-white/15 bg-white/5 p-7 shadow-2xl backdrop-blur-xl lg:ml-auto lg:w-full space-y-5">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/60">Resumo da Temporada</p>
+              <p className="mt-2.5 text-xl font-bold text-white tracking-wide">{summaryLine}</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 shadow-sm">
+                <p className="text-xs text-white/60 font-semibold">Aproveitamento Geral</p>
+                <p className="text-3xl font-extrabold text-white mt-1.5 tracking-tight">{stats.winRate}%</p>
               </div>
-              <div className="rounded-2xl border border-white/15 bg-white/8 px-4 py-3.5">
-                <p className="text-xs text-white/70">Força Ofensiva (Gols Pró)</p>
-                <p className="text-3xl font-extrabold text-white mt-1">{avgGoalsScored} / jogo</p>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 shadow-sm">
+                <p className="text-xs text-white/60 font-semibold">Força Ofensiva</p>
+                <p className="text-3xl font-extrabold text-white mt-1.5 tracking-tight">{avgGoalsScored} / jogo</p>
               </div>
             </div>
           </aside>
@@ -403,92 +386,97 @@ export default async function HomePage({
       </header>
 
       {/* Main Content Area */}
-      <main className="mx-auto mt-8 max-w-6xl px-4 sm:px-6 lg:px-8">
+      <main className="mx-auto mt-8 max-w-6xl px-4 sm:px-6 lg:px-8 space-y-16">
         {/* Core Stats Bar */}
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 -mt-14 relative z-10">
-          <div className="bg-white rounded-3xl border border-[#e5ece8] p-6 shadow-[0_12px_30px_rgba(15,58,48,0.06)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b857c]">Elenco</p>
-            <p className="mt-2 text-4xl font-extrabold text-[#0f3a30]">{team._count.players}</p>
-            <p className="mt-1 text-sm text-[#4f746b]">Jogadores integrados</p>
+        <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 -mt-20 relative z-10">
+          <div className="app-surface p-6 shadow-md card-hover">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Elenco</p>
+            <p className="mt-2.5 text-4xl font-extrabold text-[var(--text)] tracking-tight">{team._count.players}</p>
+            <p className="mt-1.5 text-xs font-semibold text-[var(--text-muted)]">Atletas oficiais integrados</p>
           </div>
 
-          <div className="bg-white rounded-3xl border border-[#e5ece8] p-6 shadow-[0_12px_30px_rgba(15,58,48,0.06)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b857c]">Partidas Disputadas</p>
-            <p className="mt-2 text-4xl font-extrabold text-[#0f3a30]">{stats.totalMatches}</p>
-            <p className="mt-1 text-sm text-[#4f746b]">Jogos computados</p>
+          <div className="app-surface p-6 shadow-md card-hover">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Partidas Disputadas</p>
+            <p className="mt-2.5 text-4xl font-extrabold text-[var(--text)] tracking-tight">{stats.totalMatches}</p>
+            <p className="mt-1.5 text-xs font-semibold text-[var(--text-muted)]">Jogos válidos computados</p>
           </div>
 
-          <div className="bg-white rounded-3xl border border-[#e5ece8] p-6 shadow-[0_12px_30px_rgba(15,58,48,0.06)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b857c]">Saldo de Gols</p>
-            <p className="mt-2 text-4xl font-extrabold text-[#0f3a30]">{goalBalance >= 0 ? `+${goalBalance}` : goalBalance}</p>
-            <p className="mt-1 text-sm text-[#4f746b]">
+          <div className="app-surface p-6 shadow-md card-hover">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Saldo de Gols</p>
+            <p className="mt-2.5 text-4xl font-extrabold text-[var(--text)] tracking-tight">{goalBalance >= 0 ? `+${goalBalance}` : goalBalance}</p>
+            <p className="mt-1.5 text-xs font-semibold text-[var(--text-muted)]">
               {stats.goalsScored} pró · {stats.goalsConceded} contra
             </p>
           </div>
 
-          <div className="bg-white rounded-3xl border border-[#e5ece8] p-6 shadow-[0_12px_30px_rgba(15,58,48,0.06)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b857c]">Principal Artilheiro</p>
-            <p className="mt-2 line-clamp-1 text-xl font-bold text-[#0c6f5d]">
+          <div className="app-surface p-6 shadow-md card-hover">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">Principal Artilheiro</p>
+            <p className="mt-2.5 line-clamp-1 text-lg font-extrabold text-[var(--brand)] tracking-tight">
               {topScorer?.playerName || "Ainda sem gols"}
             </p>
-            <p className="mt-1 text-sm text-[#4f746b]">
-              {topScorer ? `${topScorer.total} gols anotados` : "Aguardando início dos campeonatos"}
+            <p className="mt-1.5 text-xs font-semibold text-[var(--text-muted)]">
+              {topScorer ? `${topScorer.total} gols anotados` : "Aguardando gols na temporada"}
             </p>
           </div>
         </section>
 
         {/* Retrospect Section */}
         {stats.totalMatches > 0 && (
-          <section id="retrospecto" className="scroll-mt-24 mt-16 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="bg-white rounded-3xl border border-[#e5ece8] p-6 shadow-[0_12px_30px_rgba(15,58,48,0.04)] sm:p-8">
-              <h2 className="text-2xl font-bold tracking-tight text-[#0f3a30]">Retrospecto de Partidas</h2>
-              <p className="mt-2 text-sm text-[#4f746b]">
+          <section id="retrospecto" className="scroll-mt-24 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="app-surface p-6 sm:p-8">
+              <h2 className="text-2xl font-bold tracking-tight text-[var(--text)]">Retrospecto Geral</h2>
+              <p className="mt-2 text-sm text-[var(--text-muted)]">
                 Histórico quantitativo de partidas oficiais disputadas e aproveitamento de vitórias.
               </p>
               <div className="mt-6 grid gap-4 sm:grid-cols-3">
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5 text-center">
-                  <p className="text-4xl font-extrabold text-emerald-800">{stats.wins}</p>
-                  <p className="text-sm font-semibold text-emerald-800/80 mt-1">Vitórias</p>
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-500/10 p-5 text-center transition hover:bg-emerald-500/15 duration-200">
+                  <p className="text-4xl font-black text-emerald-600">{stats.wins}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.08em] text-emerald-700 mt-1">Vitórias</p>
                 </div>
-                <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-5 text-center">
-                  <p className="text-4xl font-extrabold text-amber-800">{stats.draws}</p>
-                  <p className="text-sm font-semibold text-amber-800/80 mt-1">Empates</p>
+                <div className="rounded-2xl border border-amber-100 bg-amber-500/10 p-5 text-center transition hover:bg-amber-500/15 duration-200">
+                  <p className="text-4xl font-black text-amber-500">{stats.draws}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.08em] text-amber-600 mt-1">Empates</p>
                 </div>
-                <div className="rounded-2xl border border-rose-100 bg-rose-50/70 p-5 text-center">
-                  <p className="text-4xl font-extrabold text-rose-800">{stats.losses}</p>
-                  <p className="text-sm font-semibold text-rose-800/80 mt-1">Derrotas</p>
+                <div className="rounded-2xl border border-rose-100 bg-rose-500/10 p-5 text-center transition hover:bg-rose-500/15 duration-200">
+                  <p className="text-4xl font-black text-rose-600">{stats.losses}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.08em] text-rose-600 mt-1">Derrotas</p>
                 </div>
               </div>
-              <div className="mt-6 rounded-2xl border border-[#e5ece8] bg-[#f8fbf9] p-5">
-                <div className="mb-2.5 flex items-center justify-between text-sm font-bold text-[#355249]">
+              <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5">
+                <div className="mb-2.5 flex items-center justify-between text-sm font-bold text-[var(--text)]">
                   <span>Aproveitamento do Time</span>
                   <span>{stats.winRate}%</span>
                 </div>
-                <div className="h-3 overflow-hidden rounded-full bg-[#e5ece8]">
+                <div className="h-3.5 overflow-hidden rounded-full bg-[var(--border)]">
                   <div
-                    className="h-full rounded-full bg-[#0c6f5d]"
+                    className="h-full rounded-full bg-[var(--brand)] transition-all duration-500"
                     style={{ width: `${stats.winRate}%` }}
                   />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-3xl border border-[#e5ece8] p-6 shadow-[0_12px_30px_rgba(15,58,48,0.04)] sm:p-8">
-              <h3 className="text-lg font-bold text-[#0f3a30]">Produtividade Técnica</h3>
-              <div className="mt-5 space-y-4">
-                <div className="rounded-2xl border border-[#e5ece8] bg-[#f8fbf9] p-4.5 flex justify-between items-center">
+            <div className="app-surface p-6 sm:p-8 flex flex-col justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-[var(--text)]">Produtividade Técnica</h3>
+                <p className="mt-2 text-sm text-[var(--text-muted)]">
+                  Médias estatísticas de performance ofensiva e defensiva nas rodadas oficiais da temporada.
+                </p>
+              </div>
+              <div className="mt-6 space-y-4">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5 flex justify-between items-center card-hover">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#6b857c]">Média Gols Feitos</p>
-                    <p className="mt-1 text-3xl font-extrabold text-[#0c6f5d]">{avgGoalsScored}</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Média Gols Feitos</p>
+                    <p className="mt-1.5 text-3xl font-extrabold text-[var(--brand)]">{avgGoalsScored}</p>
                   </div>
-                  <span className="text-2xl">⚽</span>
+                  <span className="text-3xl">⚽</span>
                 </div>
-                <div className="rounded-2xl border border-[#e5ece8] bg-[#f8fbf9] p-4.5 flex justify-between items-center">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-5 flex justify-between items-center card-hover">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#6b857c]">Média Gols Sofridos</p>
-                    <p className="mt-1 text-3xl font-extrabold text-rose-700">{avgGoalsConceded}</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">Média Gols Sofridos</p>
+                    <p className="mt-1.5 text-3xl font-extrabold text-rose-500">{avgGoalsConceded}</p>
                   </div>
-                  <span className="text-2xl">🛡️</span>
+                  <span className="text-3xl">🛡️</span>
                 </div>
               </div>
             </div>
@@ -497,21 +485,26 @@ export default async function HomePage({
 
         {/* Top Scorers Gallery */}
         {stats.topScorers.length > 0 && (
-          <section className="mt-16">
-            <div className="mb-6 flex items-end justify-between gap-3 border-b border-[#e5ece8] pb-4">
-              <h2 className="text-2xl font-bold tracking-tight text-[#0f3a30]">Artilheiros em Destaque</h2>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6b857c]">Top Artilharia</p>
+          <section className="scroll-mt-24">
+            <div className="mb-6 flex items-end justify-between gap-3 border-b border-[var(--border)] pb-4">
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight text-[var(--text)]">Artilheiros em Destaque</h2>
+                <p className="text-sm text-[var(--text-muted)] mt-1">Nossos goleadores oficiais na temporada</p>
+              </div>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--brand)]">Top Goleadores</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               {stats.topScorers.map((scorer, i) => (
                 <article
                   key={`${scorer.playerName}-${i}`}
-                  className="bg-white rounded-2xl border border-[#e5ece8] p-5 text-center shadow-[0_4px_20px_rgba(15,58,48,0.02)] transition hover:shadow-md hover:border-[#b7d8ce]"
+                  className="app-surface p-5 text-center card-hover flex flex-col justify-between"
                 >
-                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#8ea49c]">#{i + 1} Artilheiro</p>
-                  <p className="mt-2 line-clamp-2 min-h-[2.5rem] text-sm font-bold text-[#0f3a30]">{scorer.playerName}</p>
-                  <p className="mt-2 text-4xl font-black text-[#0c6f5d]">{scorer.total}</p>
-                  <p className="text-xs font-semibold text-[#4f746b]">gols marcados</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">#{i + 1} Artilheiro</p>
+                  <p className="mt-3 line-clamp-2 min-h-[2.5rem] text-sm font-bold text-[var(--text)]">{scorer.playerName}</p>
+                  <div>
+                    <p className="mt-2.5 text-4xl font-black text-[var(--brand)]">{scorer.total}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)] mt-1">gols anotados</p>
+                  </div>
                 </article>
               ))}
             </div>
@@ -520,50 +513,50 @@ export default async function HomePage({
 
         {/* Active Season Standings */}
         {stats.activeSeason && (
-          <section id="classificacao" className="scroll-mt-24 mt-16">
-            <div className="mb-6 flex items-end justify-between gap-3 border-b border-[#e5ece8] pb-4">
+          <section id="classificacao" className="scroll-mt-24">
+            <div className="mb-6 flex items-end justify-between gap-3 border-b border-[var(--border)] pb-4">
               <div>
-                <h2 className="text-2xl font-bold tracking-tight text-[#0f3a30]">Desempenho no Campeonato</h2>
-                <p className="text-sm text-[#4f746b] mt-1">{stats.activeSeason.name}</p>
+                <h2 className="text-2xl font-bold tracking-tight text-[var(--text)]">Tabela Individual da Temporada</h2>
+                <p className="text-sm text-[var(--text-muted)] mt-1">{stats.activeSeason.name}</p>
               </div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#0c6f5d]">Tabela Ativa</p>
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--brand)]">Campeonato Ativo</p>
             </div>
 
             {stats.activeSeasonStandings.length > 0 ? (
-              <div className="bg-white overflow-hidden rounded-3xl border border-[#e5ece8] shadow-[0_12px_30px_rgba(15,58,48,0.03)]">
+              <div className="app-surface overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
+                  <table className="w-full text-left text-sm divide-y divide-[var(--border)]">
                     <thead>
-                      <tr className="border-b border-[#e5ece8] bg-[#f8fbf9]">
-                        <th className="px-5 py-4 font-bold text-[#4f746b]">Pos</th>
-                        <th className="px-5 py-4 font-bold text-[#4f746b]">Atleta</th>
-                        <th className="px-4 py-4 text-center font-bold text-[#4f746b]">J</th>
-                        <th className="px-4 py-4 text-center font-bold text-[#4f746b]">V</th>
-                        <th className="px-4 py-4 text-center font-bold text-[#4f746b]">E</th>
-                        <th className="px-4 py-4 text-center font-bold text-[#4f746b]">D</th>
-                        <th className="px-4 py-4 text-center font-bold text-[#4f746b]">SG</th>
-                        <th className="px-5 py-4 text-center font-extrabold text-[#0f3a30]">PTS</th>
+                      <tr className="bg-[var(--bg)]">
+                        <th className="px-5 py-4 font-bold text-[var(--text-muted)] text-xs uppercase tracking-[0.12em]">Pos</th>
+                        <th className="px-5 py-4 font-bold text-[var(--text-muted)] text-xs uppercase tracking-[0.12em]">Atleta</th>
+                        <th className="px-4 py-4 text-center font-bold text-[var(--text-muted)] text-xs uppercase tracking-[0.12em]">Jogos</th>
+                        <th className="px-4 py-4 text-center font-bold text-[var(--text-muted)] text-xs uppercase tracking-[0.12em]">Vitórias</th>
+                        <th className="px-4 py-4 text-center font-bold text-[var(--text-muted)] text-xs uppercase tracking-[0.12em]">Empates</th>
+                        <th className="px-4 py-4 text-center font-bold text-[var(--text-muted)] text-xs uppercase tracking-[0.12em]">Derrotas</th>
+                        <th className="px-4 py-4 text-center font-bold text-[var(--text-muted)] text-xs uppercase tracking-[0.12em]">SG</th>
+                        <th className="px-5 py-4 text-center font-extrabold text-[var(--text)] text-xs uppercase tracking-[0.12em]">PTS</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-[var(--border)] bg-[var(--bg-elevated)]">
                       {stats.activeSeasonStandings.map((row, idx) => (
                         <tr
                           key={row.playerId}
-                          className="border-b border-[#e5ece8] last:border-0 hover:bg-[#f8fbf9]/60 transition-colors"
+                          className="hover:bg-[var(--bg)] transition-colors duration-150"
                         >
-                          <td className="px-5 py-4 font-extrabold text-[#6b857c]">{idx + 1}</td>
+                          <td className="px-5 py-4 font-extrabold text-[var(--text-muted)]">{idx + 1}</td>
                           <td className="px-5 py-4">
-                            <p className="font-bold text-[#0f3a30]">{row.playerName}</p>
-                            <p className="text-xs text-[#6b857c]">Camisa #{row.shirtNumber ?? "—"}</p>
+                            <p className="font-bold text-[var(--text)]">{row.playerName}</p>
+                            <p className="text-xs text-[var(--text-muted)] mt-0.5">Camisa #{row.shirtNumber ?? "—"}</p>
                           </td>
-                          <td className="px-4 py-4 text-center font-semibold text-[#0f3a30]">{row.played}</td>
-                          <td className="px-4 py-4 text-center font-semibold text-emerald-700">{row.won}</td>
-                          <td className="px-4 py-4 text-center font-semibold text-[#6b857c]">{row.drawn}</td>
-                          <td className="px-4 py-4 text-center font-semibold text-rose-700">{row.lost}</td>
-                          <td className="px-4 py-4 text-center font-semibold text-[#0f3a30]">
+                          <td className="px-4 py-4 text-center font-semibold text-[var(--text)]">{row.played}</td>
+                          <td className="px-4 py-4 text-center font-semibold text-emerald-600">{row.won}</td>
+                          <td className="px-4 py-4 text-center font-semibold text-[var(--text-muted)]">{row.drawn}</td>
+                          <td className="px-4 py-4 text-center font-semibold text-rose-500">{row.lost}</td>
+                          <td className="px-4 py-4 text-center font-semibold text-[var(--text)]">
                             {row.goalDiff > 0 ? `+${row.goalDiff}` : row.goalDiff}
                           </td>
-                          <td className="px-5 py-4 text-center text-base font-black text-[#0c6f5d]">{row.points}</td>
+                          <td className="px-5 py-4 text-center text-base font-black text-[var(--brand)]">{row.points}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -571,24 +564,27 @@ export default async function HomePage({
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-3xl border border-dashed border-[#b7d8ce] p-8 text-center text-[#4f746b]">
-                Estatísticas individuais de campeonato serão exibidas assim que partidas oficiais forem computadas.
+              <div className="app-surface p-12 text-center text-[var(--text-muted)] border-dashed">
+                Estatísticas individuais de campeonato serão exibidas assim que partidas oficiais forem disputadas.
               </div>
             )}
           </section>
         )}
 
         {/* Squad Section */}
-        <section id="elenco" className="scroll-mt-24 mt-16">
-          <div className="mb-6 flex items-end justify-between gap-3 border-b border-[#e5ece8] pb-4">
-            <h2 className="text-2xl font-bold tracking-tight text-[#0f3a30]">Nosso Elenco</h2>
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6b857c]">
-              {team.players.length} Atletas Inscritos
+        <section id="elenco" className="scroll-mt-24">
+          <div className="mb-6 flex items-end justify-between gap-3 border-b border-[var(--border)] pb-4">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-[var(--text)]">Nosso Elenco</h2>
+              <p className="text-sm text-[var(--text-muted)] mt-1">Conheça os guerreiros do manto oficial</p>
+            </div>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+              {team.players.length} Atletas Ativos
             </p>
           </div>
 
           {team.players.length > 0 ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {team.players.map((player) => (
                 <Link
                   key={player.id}
@@ -596,32 +592,32 @@ export default async function HomePage({
                   className="group block"
                   aria-label={`Ver perfil de ${player.name}`}
                 >
-                  <article className="bg-white rounded-3xl border border-[#e5ece8] p-5 shadow-[0_4px_25px_rgba(15,58,48,0.01)] transition hover:border-[#0c6f5d] hover:shadow-md hover:-translate-y-0.5 transform duration-150">
+                  <article className="app-surface p-5 card-hover">
                     <div className="flex items-center gap-4">
                       {player.photoUrl ? (
                         <img
                           src={player.photoUrl}
                           alt={player.name}
-                          className="h-14 w-14 rounded-2xl border border-[#e5ece8] object-cover shadow-sm"
+                          className="h-14 w-14 rounded-2xl border border-[var(--border)] object-cover shadow-sm transition group-hover:scale-105 duration-200"
                         />
                       ) : (
                         <div
-                          className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 text-lg font-black text-white shadow-sm"
+                          className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 text-lg font-black text-white shadow-sm transition group-hover:scale-105 duration-200"
                           style={{ backgroundColor: team.primaryColor || "#0c6f5d" }}
                         >
                           {player.shirtNumber}
                         </div>
                       )}
                       <div>
-                        <p className="font-bold text-[#0f3a30] group-hover:text-[#0c6f5d] transition-colors">{player.name}</p>
-                        <p className="text-xs text-[#6b857c]">Camisa #{player.shirtNumber}</p>
+                        <p className="font-extrabold text-[var(--text)] group-hover:text-[var(--brand)] transition-colors duration-150">{player.name}</p>
+                        <p className="text-xs text-[var(--text-muted)] mt-0.5">Camisa #{player.shirtNumber}</p>
                       </div>
                     </div>
-                    <div className="mt-4 flex items-center justify-between">
-                      <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-[0.04em] ${positionStyles[player.position] || "border-[#e5ece8] bg-white/60 text-[#6b857c]"}`}>
+                    <div className="mt-5 flex items-center justify-between">
+                      <span className={`inline-flex rounded-full border px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] ${positionStyles[player.position] || "border-[var(--border)] bg-[var(--bg)] text-[var(--text-muted)]"}`}>
                         {positionLabels[player.position] || player.position}
                       </span>
-                      <span className="text-xs font-bold text-[#0c6f5d] opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-xs font-bold text-[var(--brand)] opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
                         Ver Perfil &rarr;
                       </span>
                     </div>
@@ -630,7 +626,7 @@ export default async function HomePage({
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-3xl border border-dashed border-[#b7d8ce] p-8 text-center text-[#4f746b]">
+            <div className="app-surface p-12 text-center text-[var(--text-muted)] border-dashed">
               Nenhum jogador ativo cadastrado no momento.
             </div>
           )}
@@ -638,46 +634,46 @@ export default async function HomePage({
 
         {/* Match Availability & Open Slots */}
         {(team.openMatchSlots.length > 0 || hasDiscoveryInfo) && (
-          <section id="agenda-aberta" className="scroll-mt-24 mt-16 bg-white rounded-3xl border border-[#e5ece8] p-6 shadow-[0_12px_30px_rgba(15,58,48,0.03)] sm:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e5ece8] pb-5">
+          <section id="agenda-aberta" className="scroll-mt-24 app-surface p-6 sm:p-8 space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-5">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6b857c]">Disponibilidade de Agenda</p>
-                <h2 className="mt-1.5 text-2xl font-bold tracking-tight text-[#0f3a30]">Datas Disponíveis para Amistoso</h2>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Disponibilidade de Agenda</p>
+                <h2 className="mt-1.5 text-2xl font-bold tracking-tight text-[var(--text)]">Datas Disponíveis para Amistoso</h2>
               </div>
               {team.openMatchSlots.length > 0 && (
-                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1 text-xs font-bold uppercase tracking-[0.08em] text-emerald-800">
+                <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.08em] text-emerald-600">
                   {team.openMatchSlots.length} Horário(s) Aberto(s)
                 </span>
               )}
             </div>
 
             {hasDiscoveryInfo && (
-              <div className="mt-5 flex flex-wrap gap-2.5 text-xs font-semibold text-[#4f746b]">
-                {team.city && <span className="rounded-full border border-[#e5ece8] bg-[#f8fbf9] px-3 py-1.5">Cidade: {team.city}</span>}
-                {team.region && <span className="rounded-full border border-[#e5ece8] bg-[#f8fbf9] px-3 py-1.5">Região: {team.region}</span>}
-                {team.fieldType && <span className="rounded-full border border-[#e5ece8] bg-[#f8fbf9] px-3 py-1.5">Campo: {fieldTypeLabels[team.fieldType]}</span>}
+              <div className="flex flex-wrap gap-2.5 text-xs font-semibold text-[var(--text-muted)]">
+                {team.city && <span className="rounded-full border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2">Cidade: {team.city}</span>}
+                {team.region && <span className="rounded-full border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2">Região: {team.region}</span>}
+                {team.fieldType && <span className="rounded-full border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2">Campo: {fieldTypeLabels[team.fieldType]}</span>}
                 {team.competitiveLevel && (
-                  <span className="rounded-full border border-[#e5ece8] bg-[#f8fbf9] px-3 py-1.5">Nível: {competitiveLevelLabels[team.competitiveLevel]}</span>
+                  <span className="rounded-full border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2">Nível: {competitiveLevelLabels[team.competitiveLevel]}</span>
                 )}
               </div>
             )}
 
             {team.openMatchSlots.length > 0 ? (
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-5 sm:grid-cols-2 pt-2">
                 {team.openMatchSlots.map((slot) => (
-                  <article key={slot.id} className="rounded-2xl border border-[#e5ece8] bg-[#f8fbf9]/60 p-5 flex flex-col justify-between">
-                    <div>
-                      <p className="text-base font-bold text-[#0f3a30]">
+                  <article key={slot.id} className="rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-6 flex flex-col justify-between shadow-sm card-hover">
+                    <div className="space-y-2">
+                      <p className="text-base font-extrabold text-[var(--text)]">
                         {new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short" }).format(slot.date)}
                       </p>
-                      <p className="mt-1 text-sm text-[#4f746b]">
+                      <p className="text-xs font-semibold text-[var(--text-muted)]">
                         {(slot.timeLabel || "Horário a definir") + " • " + (slot.venueLabel || "Local a definir")}
                       </p>
-                      {slot.notes && <p className="mt-2 text-xs text-[#6b857c] italic">Nota: {slot.notes}</p>}
+                      {slot.notes && <p className="text-[11px] text-[var(--text-muted)] italic pt-1">Nota: {slot.notes}</p>}
                     </div>
                     <Link
                       href={`/?slot=${slot.id}#amistoso`}
-                      className="mt-4 inline-flex min-h-9 items-center justify-center rounded-full border border-[#0c6f5d] bg-white px-4 text-xs font-bold text-[#0c6f5d] transition hover:bg-[#0c6f5d] hover:text-white"
+                      className="mt-5 inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--brand)] bg-[var(--bg-elevated)] px-5 text-xs font-bold text-[var(--brand)] transition-all hover:bg-[var(--brand)] hover:text-white hover:scale-105 active:scale-95 transform duration-150 shadow-sm"
                     >
                       Propor jogo neste horário
                     </Link>
@@ -685,7 +681,7 @@ export default async function HomePage({
                 ))}
               </div>
             ) : (
-              <p className="mt-5 text-sm text-[#4f746b]">
+              <p className="text-sm text-[var(--text-muted)] pt-2">
                 No momento não temos datas abertas cadastradas, mas você pode sugerir um dia e local no formulário abaixo!
               </p>
             )}
@@ -693,28 +689,28 @@ export default async function HomePage({
         )}
 
         {/* Challenging Form Section */}
-        <section id="amistoso" className="scroll-mt-24 mt-16 grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="bg-white rounded-3xl border border-[#e5ece8] p-6 shadow-[0_12px_30px_rgba(15,58,48,0.03)] sm:p-8 flex flex-col justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#6b857c]">Agendamento Externo</p>
-              <h2 className="mt-2 text-balance text-3xl font-extrabold tracking-tight text-[#0f3a30]">
+        <section id="amistoso" className="scroll-mt-24 grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="app-surface p-6 sm:p-8 flex flex-col justify-between">
+            <div className="space-y-4">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Agendamento Externo</p>
+              <h2 className="text-balance text-3xl font-extrabold tracking-tight text-[var(--text)]">
                 Desafie o {team.name}
               </h2>
-              <p className="mt-4 text-sm leading-relaxed text-[#4f746b]">
+              <p className="text-sm leading-relaxed text-[var(--text-muted)] font-medium">
                 Quer marcar um jogo amistoso contra nós? Preencha o formulário ao lado sugerindo datas, locais e valores de cota de arbitragem se houver.
               </p>
-              <p className="mt-3 text-sm leading-relaxed text-[#4f746b]">
+              <p className="text-sm leading-relaxed text-[var(--text-muted)] font-medium">
                 Nossa comissão administrativa avaliará sua proposta e entrará em contato via e-mail o mais rápido possível!
               </p>
             </div>
-            <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4.5 text-xs text-emerald-800 leading-relaxed">
+            <div className="mt-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5 text-xs text-emerald-700 leading-relaxed font-semibold">
               💡 <strong>Dica de Sucesso:</strong> Fornecer opções adicionais de data e informar se o local tem estrutura (vestiário, iluminação, arbitragem paga) facilita o aceite do desafio!
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl border border-[#e5ece8] p-6 shadow-[0_12px_30px_rgba(15,58,48,0.03)] sm:p-8">
+          <div className="app-surface p-6 sm:p-8 shadow-md">
             {selectedSlot && (
-              <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-800 font-semibold animate-fade-in">
+              <div className="mb-5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600 font-bold animate-fade-in">
                 🎯 Proposta personalizada para a data: {selectedSlotDateText}.
               </div>
             )}
@@ -728,19 +724,19 @@ export default async function HomePage({
 
         {/* Identity Details */}
         {(team.primaryColor || team.secondaryColor) && (
-          <section className="mt-16 text-center">
-            <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-[#6b857c] mb-4">Manto & Cores Oficiais</h2>
+          <section className="text-center pt-4">
+            <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] mb-5">Manto & Cores Oficiais</h2>
             <div className="flex justify-center gap-6">
               {team.primaryColor && (
-                <div className="flex items-center gap-2.5 bg-white rounded-full border border-[#e5ece8] px-4 py-2 shadow-sm">
-                  <div className="h-6 w-6 rounded-full border border-black/10" style={{ backgroundColor: team.primaryColor }} />
-                  <span className="text-xs font-bold text-[#355249]">Cor Principal</span>
+                <div className="flex items-center gap-3 bg-[var(--bg-elevated)] rounded-full border border-[var(--border)] px-5 py-2.5 shadow-sm card-hover">
+                  <div className="h-6 w-6 rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: team.primaryColor }} />
+                  <span className="text-xs font-extrabold text-[var(--text)]">Cor Principal</span>
                 </div>
               )}
               {team.secondaryColor && (
-                <div className="flex items-center gap-2.5 bg-white rounded-full border border-[#e5ece8] px-4 py-2 shadow-sm">
-                  <div className="h-6 w-6 rounded-full border border-black/10" style={{ backgroundColor: team.secondaryColor }} />
-                  <span className="text-xs font-bold text-[#355249]">Cor Secundária</span>
+                <div className="flex items-center gap-3 bg-[var(--bg-elevated)] rounded-full border border-[var(--border)] px-5 py-2.5 shadow-sm card-hover">
+                  <div className="h-6 w-6 rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: team.secondaryColor }} />
+                  <span className="text-xs font-extrabold text-[var(--text)]">Cor Secundária</span>
                 </div>
               )}
             </div>
@@ -749,10 +745,11 @@ export default async function HomePage({
       </main>
 
       {/* Modern Footer */}
-      <footer className="mx-auto max-w-6xl mt-24 border-t border-[#e5ece8] px-4 pt-8 text-center text-xs font-semibold text-[#8ea49c] sm:px-6 lg:px-8">
+      <footer className="mx-auto max-w-6xl mt-24 border-t border-[var(--border)] px-4 pt-8 text-center text-xs font-semibold text-[var(--text-muted)] sm:px-6 lg:px-8">
         <p>&copy; {new Date().getFullYear()} {team.name}. Todos os direitos reservados.</p>
-        <p className="mt-1 text-[#b5c7c0]">Desenvolvido profissionalmente sob a plataforma de times esportivos.</p>
+        <p className="mt-1.5 text-[var(--text-muted)] font-medium">Desenvolvido profissionalmente sob a plataforma oficial de times esportivos.</p>
       </footer>
     </div>
   );
+}
 }

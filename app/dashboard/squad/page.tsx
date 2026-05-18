@@ -59,6 +59,7 @@ export default function SquadPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteMsg, setInviteMsg] = useState("");
+  const [search, setSearch] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<"delete" | "promote" | null>(null);
@@ -221,21 +222,74 @@ export default function SquadPage() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="app-surface flex flex-wrap gap-2 rounded-[16px] p-3">
-        {["ALL", "ACTIVE", "INACTIVE"].map((s) => (
-          <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
-              statusFilter === s
-                ? "bg-[var(--brand)] text-white"
-                : "bg-[#edf2ed] text-[var(--text-muted)] hover:bg-[#e1ebe1]"
-            }`}
-          >
-            {s === "ALL" ? "Todos" : s === "ACTIVE" ? "Ativos" : "Inativos"}
-          </button>
-        ))}
+  const filteredPlayers = players.filter((p) =>
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    p.shirtNumber.toString().includes(search)
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 rounded-[22px] border border-[#b7d8ce] bg-gradient-to-r from-[#e4f3ed] via-[#eff7ef] to-[#f7f1e7] p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.17em] text-[#2a6f60]">
+            Gestao de atletas
+          </p>
+          <h1 className="text-2xl font-bold text-[var(--text)]">Elenco</h1>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {isAdmin && (
+            <>
+              <Link
+                href="/squad/mensalidade"
+                className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              >
+                💰 Mensalidade
+              </Link>
+              <Button onClick={() => setShowAddModal(true)}>+ Adicionar Jogador</Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {feedback && (
+        <div className="rounded-[12px] border border-[#bde0d3] bg-[#e9f8f1] p-3 text-sm text-[#1d5f4f]">
+          {feedback}
+        </div>
+      )}
+
+      {actionError && (
+        <div className="rounded-[12px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[var(--danger)]">
+          {actionError}
+        </div>
+      )}
+
+      {/* Filters & Search */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="app-surface flex flex-wrap gap-2 rounded-[16px] p-2">
+          {["ALL", "ACTIVE", "INACTIVE"].map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${
+                statusFilter === s
+                  ? "bg-[var(--brand)] text-white"
+                  : "bg-[var(--bg)] text-[var(--text-muted)] hover:bg-[var(--border)] border border-[var(--border)]"
+              }`}
+            >
+              {s === "ALL" ? "Todos" : s === "ACTIVE" ? "Ativos" : "Inativos"}
+            </button>
+          ))}
+        </div>
+        <div className="relative max-w-xs w-full">
+          <input
+            type="text"
+            placeholder="Buscar por nome ou camisa..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-full border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2 pl-9 text-xs font-bold text-[var(--text)] outline-none focus:border-[var(--brand)] transition-colors shadow-sm"
+          />
+          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">🔍</span>
+        </div>
       </div>
 
       {/* Player List */}
@@ -251,16 +305,16 @@ export default function SquadPage() {
             </div>
           ))}
         </div>
-      ) : players.length === 0 ? (
+      ) : filteredPlayers.length === 0 ? (
         <Card className="rounded-[18px]">
           <div className="p-8 text-center text-[var(--text-muted)]">
-            <p className="text-lg">Nenhum jogador cadastrado</p>
-            <p className="mt-1 text-sm">Adicione jogadores ao elenco para começar.</p>
+            <p className="text-sm font-bold">Nenhum jogador encontrado</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]/80">Tente buscar por outro termo ou mude os filtros.</p>
           </div>
         </Card>
       ) : (
         <div className="space-y-3">
-          {players.map((player) => (
+          {filteredPlayers.map((player) => (
             <Card key={player.id} className="rounded-[18px]">
               <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-4">

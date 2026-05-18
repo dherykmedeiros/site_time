@@ -82,6 +82,7 @@ export default function MatchesPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [search, setSearch] = useState("");
 
   const fetchMatches = useCallback(async () => {
     setLoading(true);
@@ -111,6 +112,11 @@ export default function MatchesPage() {
     fetchMatches();
   }, [fetchMatches]);
 
+  const filteredMatches = matches.filter((m) =>
+    m.opponent.toLowerCase().includes(search.toLowerCase()) ||
+    m.venue.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 rounded-[22px] border border-[#b7d8ce] bg-gradient-to-r from-[#e4f3ed] via-[#eff7ef] to-[#f7f1e7] p-6 sm:flex-row sm:items-center sm:justify-between">
@@ -123,9 +129,9 @@ export default function MatchesPage() {
         {isAdmin ? <Button onClick={() => setShowAddModal(true)}>+ Agendar Partida</Button> : null}
       </div>
 
-      {/* Filters */}
-      <div className="app-surface flex flex-wrap gap-4 rounded-[16px] p-4">
-        <div className="w-48">
+      {/* Filters & Search */}
+      <div className="app-surface flex flex-wrap items-end gap-4 rounded-[16px] p-4">
+        <div className="w-full sm:w-44">
           <Select
             label="Status"
             options={statusFilterOptions}
@@ -133,13 +139,28 @@ export default function MatchesPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
           />
         </div>
-        <div className="w-48">
+        <div className="w-full sm:w-44">
           <Select
             label="Tipo"
             options={typeFilterOptions}
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
           />
+        </div>
+        <div className="flex-1 min-w-[200px] space-y-1">
+          <label className="block text-xs font-bold uppercase tracking-[0.08em] text-[var(--text-muted)]">
+            Buscar Adversário / Local
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Digite para buscar..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg)] px-4 py-2 pl-9 text-xs font-bold text-[var(--text)] outline-none focus:border-[var(--brand)] transition-colors shadow-sm"
+            />
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">🔍</span>
+          </div>
         </div>
       </div>
 
@@ -168,16 +189,16 @@ export default function MatchesPage() {
             </div>
           ))}
         </div>
-      ) : matches.length === 0 ? (
+      ) : filteredMatches.length === 0 ? (
         <Card className="rounded-[18px] p-8 text-center shadow-sm">
-          <p className="text-[var(--text-muted)]">Nenhuma partida encontrada.</p>
-          <p className="mt-2 text-sm text-[var(--text-muted)]/80">
-            Agende a primeira partida do time!
+          <p className="text-sm font-bold text-[var(--text-muted)]">Nenhuma partida encontrada.</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]/80">
+            Tente buscar por outro termo ou mude os filtros!
           </p>
         </Card>
       ) : (
         <div className="space-y-4">
-          {matches.map((match) => (
+          {filteredMatches.map((match) => (
             <Link key={match.id} href={`/matches/${match.id}`}>
               <Card className="rounded-[18px] p-4 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

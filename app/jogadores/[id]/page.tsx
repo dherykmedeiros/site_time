@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PlayerRecapWidget } from "@/components/dashboard/PlayerRecapWidget";
+import { PublicNavbar } from "@/components/PublicNavbar";
 
 interface PlayerPageProps {
   params: Promise<{ id: string }>;
@@ -160,33 +161,28 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
   const uniqueAchievements = Object.entries(achievementCounts);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_12%_18%,rgba(12,111,93,0.05),transparent_40%),linear-gradient(180deg,#f8fbf9_0%,#f0f5f2_100%)] pb-16">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_12%_18%,rgba(12,111,93,0.03),transparent_40%),linear-gradient(180deg,var(--bg)_0%,var(--bg)_100%)] pb-16 font-sans antialiased text-[var(--text)] transition-colors duration-300">
+      <PublicNavbar teamName={player.team.name} badgeUrl={player.team.badgeUrl} />
+
       {/* Hero */}
       <header
-        className="relative overflow-hidden px-4 pb-20 pt-10 text-white"
+        className="relative overflow-hidden px-4 pb-20 pt-12 text-white"
         style={{ backgroundColor: primaryColor }}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_22%,rgba(255,255,255,0.25),transparent_35%),linear-gradient(140deg,rgba(0,0,0,0.38),rgba(0,0,0,0.62)_55%,rgba(0,0,0,0.38))]" />
-        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-[#f8fbf9]/15" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_22%,rgba(255,255,255,0.2),transparent_35%),linear-gradient(140deg,rgba(0,0,0,0.48),rgba(0,0,0,0.72)_55%,rgba(0,0,0,0.48))]" />
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-[var(--bg)] opacity-90" />
 
         <div className="relative mx-auto max-w-4xl">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/15 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-white/25"
-          >
-            ← Voltar para o Portal
-          </Link>
-
-          <div className="mt-8 flex flex-col gap-5 sm:flex-row sm:items-end">
+          <div className="mt-4 flex flex-col gap-6 sm:flex-row sm:items-end">
             {player.photoUrl ? (
               <img
                 src={player.photoUrl}
                 alt={player.name}
-                className="h-24 w-24 rounded-2xl border border-white/35 object-cover shadow-[0_14px_28px_rgba(0,0,0,0.35)]"
+                className="h-28 w-28 rounded-2xl border border-white/20 object-cover shadow-[0_14px_28px_rgba(0,0,0,0.3)] hover:scale-105 transition-transform duration-200"
               />
             ) : (
               <div
-                className="flex h-24 w-24 items-center justify-center rounded-2xl border border-white/35 text-3xl font-bold text-white shadow-[0_14px_28px_rgba(0,0,0,0.35)]"
+                className="flex h-28 w-28 items-center justify-center rounded-2xl border border-white/20 text-3xl font-black text-white shadow-[0_14px_28px_rgba(0,0,0,0.3)] hover:scale-105 transition-transform duration-200"
                 style={{ backgroundColor: player.team.secondaryColor || "#3b82f6" }}
                 aria-label={`Camisa ${player.shirtNumber}`}
               >
@@ -194,23 +190,23 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
               </div>
             )}
 
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/70">
                 #{player.shirtNumber} · {positionLabels[player.position] || player.position}
                 {player.status === "INACTIVE" && " · Inativo"}
               </p>
-              <h1 className="mt-1.5 text-3xl font-bold leading-none sm:text-4xl">
+              <h1 className="text-3xl font-extrabold leading-none sm:text-4xl drop-shadow-sm">
                 {player.name}
               </h1>
               {player.fullName && (
-                <p className="mt-2 text-sm font-medium text-white/80">{player.fullName}</p>
+                <p className="text-sm font-medium text-white/80">{player.fullName}</p>
               )}
-              <div className="mt-2.5 flex items-center gap-2 text-sm text-white/75">
+              <div className="flex items-center gap-2 text-sm text-white/75 font-semibold pt-1">
                 {player.team.badgeUrl && (
                   <img
                     src={player.team.badgeUrl}
                     alt=""
-                    className="h-4 w-4 rounded-sm object-cover"
+                    className="h-5 w-5 rounded-md object-cover border border-white/10"
                   />
                 )}
                 <span>{player.team.name}</span>
@@ -220,12 +216,12 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
         </div>
       </header>
 
-      <main className="mx-auto mt-5 max-w-4xl px-4">
+      <main className="mx-auto mt-6 max-w-4xl px-4 space-y-10">
         {player.description && (
-          <section className="mb-6" aria-label="Descricao do jogador">
-            <article className="bg-white rounded-3xl border border-[#e5ece8] p-5 shadow-sm">
-              <h2 className="text-base font-bold text-[#0f3a30]">Sobre o Atleta</h2>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[#4f746b]">
+          <section aria-label="Descricao do jogador">
+            <article className="app-surface p-6 shadow-sm">
+              <h2 className="text-lg font-bold text-[var(--text)]">Sobre o Atleta</h2>
+              <p className="mt-2.5 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-muted)] font-medium">
                 {player.description}
               </p>
             </article>
@@ -234,30 +230,30 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
 
         {/* Career stats */}
         <section
-          className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
+          className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5"
           aria-label="Estatísticas de carreira"
         >
           {stats.map(({ label, value }) => (
             <article
               key={label}
-              className="bg-white rounded-2xl border border-[#e5ece8] p-5 text-center shadow-sm"
+              className="app-surface p-5 text-center shadow-sm card-hover"
             >
-              <p className="text-3xl font-bold text-[#0f3a30]">{value}</p>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#6b857c]">
+              <p className="text-3.5xl font-black text-[var(--brand)]">{value}</p>
+              <p className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
                 {label}
               </p>
             </article>
           ))}
         </section>
 
-        <section className="mt-8" aria-label="Recap compartilhavel">
+        <section aria-label="Recap compartilhavel">
           <PlayerRecapWidget playerId={player.id} playerName={player.name} vitrineUrl={`/jogadores/${player.id}`} />
         </section>
 
         {/* Achievements */}
         {uniqueAchievements.length > 0 && (
-          <section className="mt-10" aria-label="Conquistas">
-            <h2 className="mb-4 text-2xl font-bold text-[#0f3a30]">Conquistas Oficiais</h2>
+          <section aria-label="Conquistas" className="space-y-4">
+            <h2 className="text-2xl font-bold text-[var(--text)]">Conquistas Oficiais</h2>
             <div className="flex flex-wrap gap-3">
               {uniqueAchievements.map(([type, count]) => {
                 const meta = achievementMeta[type];
@@ -265,13 +261,13 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
                 return (
                   <div
                     key={type}
-                    className="bg-white flex items-center gap-2 rounded-full border border-[#e5ece8] px-4 py-2 shadow-sm"
+                    className="app-surface flex items-center gap-2.5 rounded-full px-5 py-2.5 shadow-sm card-hover"
                     title={`Conquistado ${count}x`}
                   >
                     <span className="text-xl">{meta.emoji}</span>
-                    <span className="text-sm font-semibold text-[#355249]">{meta.label}</span>
+                    <span className="text-xs font-extrabold text-[var(--text)] uppercase tracking-wider">{meta.label}</span>
                     {count > 1 && (
-                      <span className="rounded-full bg-[#f0f5f2] px-1.5 py-0.5 text-xs font-bold text-[#6b857c]">
+                      <span className="rounded-full bg-[var(--brand-soft)] px-2.5 py-0.5 text-[10px] font-black text-[var(--brand)]">
                         ×{count}
                       </span>
                     )}
@@ -283,41 +279,41 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
         )}
 
         {/* Recent matches */}
-        <section className="mt-10" aria-label="Últimas partidas">
-          <div className="mb-4 flex items-end justify-between gap-3">
-            <h2 className="text-2xl font-bold text-[#0f3a30]">Últimas Partidas</h2>
-            <p className="text-xs uppercase tracking-[0.12em] text-[#6b857c]">
+        <section aria-label="Últimas partidas" className="space-y-4">
+          <div className="flex items-end justify-between gap-3 border-b border-[var(--border)] pb-3">
+            <h2 className="text-2xl font-bold text-[var(--text)]">Últimas Partidas</h2>
+            <p className="text-xs uppercase tracking-[0.14em] text-[var(--text-muted)] font-bold">
               Histórico recente
             </p>
           </div>
 
           {player.recentMatches.length > 0 ? (
-            <div className="bg-white overflow-hidden rounded-3xl border border-[#e5ece8] shadow-sm">
+            <div className="app-surface overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
+                <table className="w-full text-left text-sm divide-y divide-[var(--border)]">
                   <thead>
-                    <tr className="border-b border-[#e5ece8] bg-[#f8fbf9]">
-                      <th className="px-4 py-3 font-semibold text-[#6b857c]">
+                    <tr className="bg-[var(--bg)]">
+                      <th className="px-5 py-4 font-bold text-[var(--text-muted)] text-xs uppercase tracking-[0.12em]">
                         Adversário
                       </th>
-                      <th className="px-4 py-3 font-semibold text-[#6b857c]">
+                      <th className="px-5 py-4 font-bold text-[var(--text-muted)] text-xs uppercase tracking-[0.12em]">
                         Placar
                       </th>
-                      <th className="px-4 py-3 text-center font-semibold text-[#6b857c]">
+                      <th className="px-4 py-4 text-center font-bold text-[var(--text-muted)] text-xs uppercase tracking-[0.12em]">
                         ⚽
                       </th>
-                      <th className="px-4 py-3 text-center font-semibold text-[#6b857c]">
+                      <th className="px-4 py-4 text-center font-bold text-[var(--text-muted)] text-xs uppercase tracking-[0.12em]">
                         🎯
                       </th>
-                      <th className="px-4 py-3 text-center font-semibold text-[#6b857c]">
+                      <th className="px-4 py-4 text-center font-bold text-[var(--text-muted)] text-xs uppercase tracking-[0.12em]">
                         🟨
                       </th>
-                      <th className="px-4 py-3 text-center font-semibold text-[#6b857c]">
+                      <th className="px-4 py-4 text-center font-bold text-[var(--text-muted)] text-xs uppercase tracking-[0.12em]">
                         🟥
                       </th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-[var(--border)] bg-[var(--bg-elevated)]">
                     {player.recentMatches.map((m) => {
                       const dateStr = new Intl.DateTimeFormat("pt-BR", {
                         dateStyle: "short",
@@ -325,23 +321,23 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
                       return (
                         <tr
                           key={m.matchId}
-                          className="border-b border-[#e5ece8] last:border-0 hover:bg-[#f8fbf9]/60"
+                          className="hover:bg-[var(--bg)] transition-colors duration-150"
                         >
-                          <td className="px-4 py-3">
-                            <p className="font-semibold text-[#0f3a30]">vs {m.opponent}</p>
-                            <p className="text-xs text-[#6b857c]">{dateStr}</p>
+                          <td className="px-5 py-4">
+                            <p className="font-extrabold text-[var(--text)]">vs {m.opponent}</p>
+                            <p className="text-xs text-[var(--text-muted)] mt-0.5">{dateStr}</p>
                           </td>
-                          <td className="px-4 py-3 font-mono font-bold text-[#0f3a30]">
+                          <td className="px-5 py-4 font-mono font-bold text-[var(--text)]">
                             {m.homeScore !== null && m.awayScore !== null
                               ? `${m.homeScore} × ${m.awayScore}`
                               : "—"}
                           </td>
-                          <td className="px-4 py-3 text-center text-[#0f3a30]">{m.goals}</td>
-                          <td className="px-4 py-3 text-center text-[#0f3a30]">{m.assists}</td>
-                          <td className="px-4 py-3 text-center text-[#0f3a30]">
+                          <td className="px-4 py-4 text-center font-bold text-[var(--text)]">{m.goals}</td>
+                          <td className="px-4 py-4 text-center font-bold text-[var(--text)]">{m.assists}</td>
+                          <td className="px-4 py-4 text-center font-bold text-amber-600">
                             {m.yellowCards || "—"}
                           </td>
-                          <td className="px-4 py-3 text-center text-[#0f3a30]">
+                          <td className="px-4 py-4 text-center font-bold text-rose-500">
                             {m.redCards || "—"}
                           </td>
                         </tr>
@@ -352,24 +348,24 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-3xl border border-dashed border-[#b7d8ce] p-10 text-center text-[#6b857c]">
+            <div className="app-surface p-12 text-center text-[var(--text-muted)] border-dashed">
               Nenhuma estatística registrada em partidas recentes.
             </div>
           )}
         </section>
 
         {/* Back to team */}
-        <div className="mt-10 text-center">
+        <div className="text-center pt-4">
           <Link
             href="/"
-            className="inline-flex min-h-10 items-center justify-center rounded-full border border-[#0c6f5d] bg-white px-6 py-2 text-sm font-bold text-[#0c6f5d] transition hover:bg-[#0c6f5d] hover:text-white"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--brand)] bg-[var(--bg-elevated)] px-8 text-xs font-bold uppercase tracking-wider text-[var(--brand)] transition-all hover:bg-[var(--brand)] hover:text-white hover:scale-105 active:scale-95 transform shadow-sm"
           >
             Ver Portal do {player.team.name}
           </Link>
         </div>
       </main>
 
-      <footer className="mt-14 border-t border-[#e5ece8] py-8 text-center text-xs font-semibold text-[#8ea49c]">
+      <footer className="mt-16 border-t border-[var(--border)] py-8 text-center text-xs font-semibold text-[var(--text-muted)]">
         <p>&copy; {new Date().getFullYear()} {player.team.name}. Todos os direitos reservados.</p>
       </footer>
     </div>

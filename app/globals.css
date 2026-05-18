@@ -35,6 +35,37 @@
   --badge-info-border: #b7d5e3;
 }
 
+/* Stunning dark mode integration */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0a0e14;
+    --bg-elevated: #111720;
+    --text: #f3f4f6;
+    --text-muted: #9ca3af;
+    --border: #1e293b;
+    --brand: #0f8e77;
+    --brand-strong: #0c6f5d;
+    --brand-soft: rgba(15, 142, 119, 0.15);
+    --danger: #ef4444;
+    --danger-soft: rgba(239, 68, 68, 0.15);
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-md: 0 12px 40px rgb(0 0 0 / 0.45);
+    
+    --badge-default-bg: #1e293b;
+    --badge-default-text: #e2e8f0;
+    --badge-default-border: #334155;
+    --badge-success-bg: rgba(16, 185, 129, 0.15);
+    --badge-success-text: #34d399;
+    --badge-success-border: rgba(16, 185, 129, 0.3);
+    --badge-warning-bg: rgba(245, 158, 11, 0.15);
+    --badge-warning-text: #fbbf24;
+    --badge-warning-border: rgba(245, 158, 11, 0.3);
+    --badge-danger-bg: rgba(239, 68, 68, 0.15);
+    --badge-danger-text: #f87171;
+    --badge-danger-border: rgba(239, 68, 68, 0.3);
+  }
+}
+
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
@@ -42,13 +73,25 @@
   --font-mono: var(--font-space-grotesk);
 }
 
+/* Global body transitions & styling */
 body {
   background:
-    radial-gradient(circle at 15% -10%, #dbefe3 0%, transparent 40%),
-    radial-gradient(circle at 85% -25%, #f9e8d5 0%, transparent 35%),
+    radial-gradient(circle at 15% -10%, rgba(219, 239, 227, 0.45) 0%, transparent 40%),
+    radial-gradient(circle at 85% -25%, rgba(249, 232, 213, 0.45) 0%, transparent 35%),
     var(--bg);
   color: var(--text);
   font-family: var(--font-manrope), "Segoe UI", sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background:
+      radial-gradient(circle at 15% -10%, rgba(15, 142, 119, 0.12) 0%, transparent 40%),
+      radial-gradient(circle at 85% -25%, rgba(245, 158, 11, 0.06) 0%, transparent 35%),
+      var(--bg);
+  }
 }
 
 h1,
@@ -64,20 +107,46 @@ h4 {
   color: #0f2b21;
 }
 
+/* Modern focus ring standard styling */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 2px solid #0c6f5d;
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
 
+/* Premium Layout Surfaces & Micro-animations */
 .app-surface {
   border: 1px solid var(--border);
   background: var(--bg-elevated);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s ease;
+}
+
+/* Glassmorphism token utility */
+.glassmorphism {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .glassmorphism {
+    background: rgba(17, 23, 32, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+}
+
+/* Premium card hover interactive styling */
+.card-hover:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: var(--shadow-md);
+  border-color: var(--brand);
 }
 
 /* Toast slide-in animation */
