@@ -321,21 +321,21 @@ export function PostGameForm({
 
           {allowOpponentBadgeEdit && (
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Escudo do adversario (opcional)</label>
+              <label className="block text-sm font-semibold text-[#8fa39b]">Escudo do adversário (opcional)</label>
               <div className="flex items-center gap-3">
                 {opponentBadgeInput ? (
                   <img
                     src={opponentBadgeInput}
                     alt="Escudo adversario"
-                    className="h-16 w-16 rounded-lg border border-gray-200 object-cover"
+                    className="h-16 w-16 rounded-lg border border-white/10 object-cover"
                   />
                 ) : (
-                  <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 text-gray-500">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-white/10 text-[#8fa39b]">
                     <span className="text-lg">VS</span>
                   </div>
                 )}
                 <label className="cursor-pointer">
-                  <span className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+                  <span className="inline-flex items-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold uppercase tracking-wider text-white hover:bg-white/10 transition-colors shadow-sm">
                     {uploadingBadge ? "Enviando..." : "Fazer upload"}
                   </span>
                   <input
@@ -364,7 +364,7 @@ export function PostGameForm({
           </p>
 
           {playerStats.length === 0 ? (
-            <div className="rounded-md bg-yellow-50 p-3 text-sm text-yellow-700">
+            <div className="rounded-xl border border-[rgba(251,191,36,0.2)] bg-[rgba(251,191,36,0.1)] p-3 text-sm text-[#fbbf24]">
               Nenhum jogador confirmou presença. Pule esta etapa.
             </div>
           ) : (
@@ -372,9 +372,9 @@ export function PostGameForm({
               {playerStats.map((stat, idx) => (
                 <div
                   key={stat.playerId}
-                  className="rounded-md border border-gray-200 p-4"
+                  className="rounded-xl border border-white/10 bg-[#090f0c] p-4"
                 >
-                  <p className="mb-3 font-medium text-gray-900">
+                  <p className="mb-3 font-semibold text-white">
                     {stat.playerName}
                   </p>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

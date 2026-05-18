@@ -27,7 +27,7 @@ export function Modal({ open, onClose, title, children, className = "" }: ModalP
   return (
     <dialog
       ref={dialogRef}
-      className={`m-auto w-[min(92vw,560px)] rounded-[20px] border border-[var(--border)] bg-[var(--bg-elevated)] p-0 shadow-[var(--shadow-md)] backdrop:bg-[#0d1518]/55 ${className}`}
+      className={`m-auto w-[min(92vw,560px)] rounded-[20px] border border-[var(--border)] bg-[#080d0b] p-0 shadow-[var(--shadow-md)] backdrop:bg-[#020506]/85 backdrop:backdrop-blur-md ${className}`}
       onClose={onClose}
     >
       <div className="w-full">
@@ -35,7 +35,7 @@ export function Modal({ open, onClose, title, children, className = "" }: ModalP
           <h2 className="text-lg font-semibold text-[var(--text)]">{title}</h2>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-[var(--text-muted)] hover:bg-[#eef2ee] hover:text-[var(--text)]"
+            className="rounded-md p-1 text-[var(--text-muted)] hover:bg-white/10 hover:text-[var(--text)] transition-colors"
             aria-label="Fechar"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -296,57 +296,57 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
       />
 
       {(availabilityLoading || availabilityError || availabilitySnapshot) && (
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+        <div className="rounded-xl border border-[rgba(16,185,129,0.15)] bg-[rgba(10,24,20,0.3)] p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">
-                Previsao de quorum
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#34d399]">
+                Previsão de Quorum
               </p>
-              <p className="text-sm text-[var(--text-subtle)]">
-                Isso ajuda a antecipar risco do horario. Nao bloqueia o agendamento.
+              <p className="text-xs text-[#8fa39b]">
+                Isso ajuda a antecipar o risco do horário. Não bloqueia o agendamento.
               </p>
             </div>
             {availabilitySnapshot && (
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--text)]">
+              <span className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
                 Risco {riskLabels[availabilitySnapshot.snapshot.overallRisk]}
               </span>
             )}
           </div>
 
           {availabilityLoading && (
-            <p className="mt-3 text-sm text-[var(--text-subtle)]">Calculando previsao...</p>
+            <p className="mt-3 text-sm text-[#8fa39b]">Calculando previsão...</p>
           )}
 
           {!availabilityLoading && availabilityError && (
-            <div className="mt-3 rounded-[12px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[var(--danger)]">
+            <div className="mt-3 rounded-[12px] border border-[rgba(239,68,68,0.15)] bg-[rgba(239,68,68,0.06)] p-3 text-sm text-[#f87171]">
               {availabilityError}
             </div>
           )}
 
           {!availabilityLoading && availabilitySnapshot && (
             <div className="mt-4 space-y-4">
-              <div className="grid gap-3 sm:grid-cols-4">
-                <div className="rounded-[12px] bg-white p-3">
-                  <p className="text-xs uppercase tracking-wide text-[var(--text-subtle)]">Disponiveis</p>
-                  <p className="mt-1 text-xl font-bold text-[var(--text)]">
+              <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+                <div className="rounded-[12px] bg-[#090f0c] border border-white/5 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">Disponíveis</p>
+                  <p className="mt-1 text-xl font-black text-white">
                     {availabilitySnapshot.snapshot.likelyAvailableCount}
                   </p>
                 </div>
-                <div className="rounded-[12px] bg-white p-3">
-                  <p className="text-xs uppercase tracking-wide text-[var(--text-subtle)]">Incertos</p>
-                  <p className="mt-1 text-xl font-bold text-[var(--text)]">
+                <div className="rounded-[12px] bg-[#090f0c] border border-white/5 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">Incertos</p>
+                  <p className="mt-1 text-xl font-black text-[#fbbf24]">
                     {availabilitySnapshot.snapshot.uncertainCount}
                   </p>
                 </div>
-                <div className="rounded-[12px] bg-white p-3">
-                  <p className="text-xs uppercase tracking-wide text-[var(--text-subtle)]">Indisponiveis</p>
-                  <p className="mt-1 text-xl font-bold text-[var(--text)]">
+                <div className="rounded-[12px] bg-[#090f0c] border border-white/5 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">Indisponíveis</p>
+                  <p className="mt-1 text-xl font-black text-[#f87171]">
                     {availabilitySnapshot.snapshot.likelyUnavailableCount}
                   </p>
                 </div>
-                <div className="rounded-[12px] bg-white p-3">
-                  <p className="text-xs uppercase tracking-wide text-[var(--text-subtle)]">Elenco ativo</p>
-                  <p className="mt-1 text-xl font-bold text-[var(--text)]">
+                <div className="rounded-[12px] bg-[#090f0c] border border-white/5 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">Elenco Ativo</p>
+                  <p className="mt-1 text-xl font-black text-white">
                     {availabilitySnapshot.snapshot.activePlayers}
                   </p>
                 </div>
@@ -355,7 +355,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
               {availabilitySnapshot.explanations.length > 0 && (
                 <div className="space-y-2">
                   {availabilitySnapshot.explanations.map((item) => (
-                    <p key={item} className="text-sm text-[var(--text-subtle)]">
+                    <p key={item} className="text-xs text-[#8fa39b]">
                       {item}
                     </p>
                   ))}
@@ -365,12 +365,12 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
               {criticalPositions && criticalPositions.length > 0 && (
                 <div className="grid gap-3 sm:grid-cols-3">
                   {criticalPositions.map((position) => (
-                    <div key={position.position} className="rounded-[12px] border border-[#d9e6df] bg-white p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-subtle)]">
+                    <div key={position.position} className="rounded-[12px] border border-white/10 bg-[#090f0c] p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">
                         {playerPositionLabels[position.position as keyof typeof playerPositionLabels] || position.position}
                       </p>
-                      <p className="mt-1 text-sm text-[var(--text)]">
-                        {position.likelyAvailable} provaveis, {position.uncertain} incertos
+                      <p className="mt-1 text-xs text-white">
+                        {position.likelyAvailable} prováveis, {position.uncertain} incertos
                       </p>
                     </div>
                   ))}
@@ -423,7 +423,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
           )}
 
           <label className="cursor-pointer">
-            <span className="inline-flex items-center rounded-md border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--surface-soft)]">
+            <span className="inline-flex items-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold uppercase tracking-wider text-white hover:bg-white/10 transition-colors shadow-sm">
               {uploadingBadge ? "Enviando..." : "Fazer upload"}
             </span>
             <input
@@ -488,7 +488,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         {positionLimitsEnabled && (
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {playerPositions.map((position) => (
-              <div key={position} className="rounded-lg border border-[var(--border)] bg-white p-3">
+              <div key={position} className="rounded-lg border border-white/10 bg-[#090f0c] p-3">
                 <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--text-subtle)]">
                   {playerPositionLabels[position]}
                 </label>
