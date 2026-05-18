@@ -173,14 +173,18 @@ export default function FinancesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-[22px] border border-[#b7d8ce] bg-gradient-to-r from-[#e4f3ed] via-[#eff7ef] to-[#f7f1e7] p-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 rounded-[22px] border border-[rgba(16,185,129,0.18)] bg-[rgba(10,24,20,0.4)] p-6 sm:flex-row sm:items-center sm:justify-between backdrop-blur-md">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.17em] text-[#2a6f60]">
-            Controle financeiro
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#34d399]">
+            Controle Financeiro
           </p>
-          <h1 className="text-2xl font-bold text-[var(--text)]">Financas</h1>
+          <h1 className="text-2xl font-black uppercase tracking-tight text-white">Finanças</h1>
         </div>
-        {isAdmin ? <Button onClick={() => setShowForm(true)}>+ Nova Transação</Button> : null}
+        {isAdmin ? (
+          <Button onClick={() => setShowForm(true)} className="rounded-xl px-4 py-2.5 text-xs font-black uppercase tracking-wider text-[#010403] bg-[#10b981] hover:bg-[#34d399]">
+            + Nova Transação
+          </Button>
+        ) : null}
       </div>
 
       {feedback && (

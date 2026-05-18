@@ -193,23 +193,25 @@ export default function SquadPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-[22px] border border-[#b7d8ce] bg-gradient-to-r from-[#e4f3ed] via-[#eff7ef] to-[#f7f1e7] p-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 rounded-[22px] border border-[rgba(16,185,129,0.18)] bg-[rgba(10,24,20,0.4)] p-6 sm:flex-row sm:items-center sm:justify-between backdrop-blur-md">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.17em] text-[#2a6f60]">
-            Gestao de atletas
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#34d399]">
+            Gestão de Atletas
           </p>
-          <h1 className="text-2xl font-bold text-[var(--text)]">Elenco</h1>
+          <h1 className="text-2xl font-black uppercase tracking-tight text-white">Elenco</h1>
         </div>
         <div className="flex flex-wrap gap-2">
           {isAdmin && (
             <>
               <Link
-                href="/squad/mensalidade"
-                className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                href="/dashboard/squad/mensalidade"
+                className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-white/10"
               >
                 💰 Mensalidade
               </Link>
-              <Button onClick={() => setShowAddModal(true)}>+ Adicionar Jogador</Button>
+              <Button onClick={() => setShowAddModal(true)} className="rounded-xl px-4 py-2.5 text-xs font-black uppercase tracking-wider text-[#010403] bg-[#10b981] hover:bg-[#34d399]">
+                + Adicionar Jogador
+              </Button>
             </>
           )}
         </div>

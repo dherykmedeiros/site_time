@@ -245,12 +245,12 @@ export default function TeamSettingsPage() {
   if (!isAdmin) {
     return (
       <div className="mx-auto max-w-3xl space-y-6">
-        <div className="rounded-[22px] border border-[#f0d3b0] bg-gradient-to-r from-[#fff4e7] via-[#fff8ef] to-[#fffdf8] p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.17em] text-[#9a5b1b]">
-            Acesso restrito
+        <div className="flex flex-col gap-4 rounded-[22px] border border-red-500/20 bg-red-500/5 p-6 backdrop-blur-md">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-400">
+            Acesso Restrito
           </p>
-          <h1 className="mt-1 text-2xl font-bold text-[var(--text)]">
-            Configuracoes do Time
+          <h1 className="text-2xl font-black uppercase tracking-tight text-white">
+            Configurações do Time
           </h1>
         </div>
 
@@ -267,13 +267,15 @@ export default function TeamSettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div className="rounded-[22px] border border-[#b7d8ce] bg-gradient-to-r from-[#e4f3ed] via-[#eff7ef] to-[#f7f1e7] p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.17em] text-[#2a6f60]">
-          Identidade do clube
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-[var(--text)]">
-          {hasTeam ? "Configuracoes do Time" : "Criar Time"}
-        </h1>
+      <div className="flex flex-col gap-4 rounded-[22px] border border-[rgba(16,185,129,0.18)] bg-[rgba(10,24,20,0.4)] p-6 sm:flex-row sm:items-center sm:justify-between backdrop-blur-md">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#34d399]">
+            Identidade do Clube
+          </p>
+          <h1 className="text-2xl font-black uppercase tracking-tight text-white">
+            {hasTeam ? "Configurações do Time" : "Criar Time"}
+          </h1>
+        </div>
       </div>
 
       {!hasTeam && (
