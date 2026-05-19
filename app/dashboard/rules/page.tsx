@@ -13,7 +13,8 @@ interface Rule {
   id: string;
   title: string;
   description: string;
-  fineAmount: number | null;
+  severity: "WARNING" | "SUSPENSION";
+  defaultMatches: number | null;
   createdAt: string;
 }
 
@@ -30,7 +31,8 @@ export default function RulesPage() {
   // Form states
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [fineAmount, setFineAmount] = useState("");
+  const [severity, setSeverity] = useState<"WARNING" | "SUSPENSION">("WARNING");
+  const [defaultMatches, setDefaultMatches] = useState("1");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -65,7 +67,8 @@ export default function RulesPage() {
     setEditingRule(null);
     setTitle("");
     setDescription("");
-    setFineAmount("");
+    setSeverity("WARNING");
+    setDefaultMatches("1");
     setFormError("");
     setShowModal(true);
   }
@@ -74,7 +77,8 @@ export default function RulesPage() {
     setEditingRule(rule);
     setTitle(rule.title);
     setDescription(rule.description);
-    setFineAmount(rule.fineAmount !== null ? String(rule.fineAmount) : "");
+    setSeverity(rule.severity);
+    setDefaultMatches(rule.defaultMatches !== null ? String(rule.defaultMatches) : "1");
     setFormError("");
     setShowModal(true);
   }
@@ -87,7 +91,8 @@ export default function RulesPage() {
     const body = {
       title,
       description,
-      fineAmount: fineAmount ? parseFloat(fineAmount) : null,
+      severity,
+      defaultMatches: severity === "SUSPENSION" ? parseInt(defaultMatches) : null,
     };
 
     try {
@@ -147,13 +152,6 @@ export default function RulesPage() {
     }
   }
 
-  function formatBRL(amount: number) {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(amount);
-  }
-
   return (
     <div className="space-y-7">
       {/* Header */}
@@ -161,7 +159,7 @@ export default function RulesPage() {
         <div>
           <h1 className="text-3xl font-bold text-[var(--text)]">Regras do Time</h1>
           <p className="mt-1 text-sm text-[var(--text-subtle)]">
-            Consulte as diretrizes e multas acordadas para a equipe
+            Consulte as diretrizes disciplinares acordadas para a equipe
           </p>
         </div>
         {isAdmin && (
@@ -208,13 +206,13 @@ export default function RulesPage() {
 
               <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between gap-3">
                 <div>
-                  {rule.fineAmount !== null ? (
-                    <Badge variant="warning" className="bg-amber-500/10 text-amber-400 border-amber-500/20 px-3 py-1 font-semibold text-xs rounded-full">
-                      Multa: {formatBRL(rule.fineAmount)}
+                  {rule.severity === "SUSPENSION" ? (
+                    <Badge variant="danger" className="bg-red-500/10 text-red-400 border-red-500/20 px-3 py-1 font-semibold text-xs rounded-full">
+                      Suspensão: {rule.defaultMatches} {rule.defaultMatches === 1 ? "jogo" : "jogos"}
                     </Badge>
                   ) : (
-                    <Badge variant="info" className="bg-blue-500/10 text-blue-400 border-blue-500/20 px-3 py-1 font-semibold text-xs rounded-full">
-                      Advertência / Sem Multa
+                    <Badge variant="warning" className="bg-amber-500/10 text-amber-400 border-amber-500/20 px-3 py-1 font-semibold text-xs rounded-full">
+                      Advertência
                     </Badge>
                   )}
                 </div>
@@ -272,15 +270,32 @@ export default function RulesPage() {
             rows={4}
           />
 
-          <Input
-            label="Valor da Punição (R$, opcional)"
-            placeholder="Ex: 15.00"
-            type="number"
-            step="0.01"
-            min="0"
-            value={fineAmount}
-            onChange={(e) => setFineAmount(e.target.value)}
-          />
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-subtle)]">
+              Gravidade / Tipo de Punição *
+            </label>
+            <select
+              value={severity}
+              onChange={(e) => setSeverity(e.target.value as "WARNING" | "SUSPENSION")}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
+            >
+              <option value="WARNING">Advertência</option>
+              <option value="SUSPENSION">Suspensão por jogos</option>
+            </select>
+          </div>
+
+          {severity === "SUSPENSION" && (
+            <Input
+              label="Quantidade de jogos de suspensão padrão *"
+              placeholder="Ex: 1"
+              type="number"
+              min="1"
+              max="100"
+              value={defaultMatches}
+              onChange={(e) => setDefaultMatches(e.target.value)}
+              required
+            />
+          )}
 
           <div className="mt-6 flex justify-end gap-3 pt-2">
             <Button

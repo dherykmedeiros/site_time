@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
 
 interface Player {
   id: string;
@@ -19,7 +18,8 @@ interface Rule {
   id: string;
   title: string;
   description: string;
-  fineAmount: number | null;
+  severity: "WARNING" | "SUSPENSION";
+  defaultMatches: number | null;
 }
 
 interface Fine {
@@ -36,10 +36,10 @@ interface Fine {
     title: string;
   } | null;
   description: string;
-  amount: number;
+  severity: "WARNING" | "SUSPENSION";
+  matchesSuspended: number | null;
+  status: "ACTIVE" | "SERVED" | "CANCELLED";
   date: string;
-  isPaid: boolean;
-  paidAt: string | null;
   createdAt: string;
 }
 
@@ -55,7 +55,8 @@ export default function FinesPage() {
 
   // Filters
   const [filterPlayer, setFilterPlayer] = useState("");
-  const [filterStatus, setFilterStatus] = useState("ALL"); // ALL, PAID, UNPAID
+  const [filterSeverity, setFilterSeverity] = useState("ALL"); // ALL, WARNING, SUSPENSION
+  const [filterStatus, setFilterStatus] = useState("ALL"); // ALL, ACTIVE, SERVED, CANCELLED
 
   // Modal Form States
   const [showModal, setShowModal] = useState(false);
@@ -66,15 +67,16 @@ export default function FinesPage() {
   const [playerId, setPlayerId] = useState("");
   const [ruleId, setRuleId] = useState("");
   const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
+  const [severity, setSeverity] = useState<"WARNING" | "SUSPENSION">("WARNING");
+  const [matchesSuspended, setMatchesSuspended] = useState("1");
+  const [status, setStatus] = useState<"ACTIVE" | "SERVED" | "CANCELLED">("ACTIVE");
   const [date, setDate] = useState(() => new Date().toISOString().substring(0, 10));
-  const [isPaid, setIsPaid] = useState(false);
 
-  // Delete & Pay confirmation Modals
+  // Delete & Serve confirmation Modals
   const [confirmModal, setConfirmModal] = useState<{
     open: boolean;
     fineId: string | null;
-    actionType: "DELETE" | "PAY" | null;
+    actionType: "DELETE" | "SERVE" | null;
     title: string;
     message: string;
   }>({ open: false, fineId: null, actionType: null, title: "", message: "" });
@@ -112,7 +114,7 @@ export default function FinesPage() {
     loadData();
   }, []);
 
-  // Handle auto-completion of fine description and amount based on rule template selection
+  // Handle auto-completion of fine description based on rule template selection
   function handleRuleChange(selectedRuleId: string) {
     setRuleId(selectedRuleId);
     if (!selectedRuleId) {
@@ -121,7 +123,8 @@ export default function FinesPage() {
     const selectedRule = rules.find((r) => r.id === selectedRuleId);
     if (selectedRule) {
       setDescription(selectedRule.title);
-      setAmount(selectedRule.fineAmount !== null ? String(selectedRule.fineAmount) : "");
+      setSeverity(selectedRule.severity);
+      setMatchesSuspended(selectedRule.defaultMatches !== null ? String(selectedRule.defaultMatches) : "1");
     }
   }
 
@@ -130,9 +133,10 @@ export default function FinesPage() {
     setPlayerId("");
     setRuleId("");
     setDescription("");
-    setAmount("");
+    setSeverity("WARNING");
+    setMatchesSuspended("1");
+    setStatus("ACTIVE");
     setDate(new Date().toISOString().substring(0, 10));
-    setIsPaid(false);
     setFormError("");
     setShowModal(true);
   }
@@ -142,9 +146,10 @@ export default function FinesPage() {
     setPlayerId(fine.playerId);
     setRuleId(fine.ruleId || "");
     setDescription(fine.description);
-    setAmount(String(fine.amount));
+    setSeverity(fine.severity);
+    setMatchesSuspended(fine.matchesSuspended !== null ? String(fine.matchesSuspended) : "1");
+    setStatus(fine.status);
     setDate(new Date(fine.date).toISOString().substring(0, 10));
-    setIsPaid(fine.isPaid);
     setFormError("");
     setShowModal(true);
   }
@@ -158,9 +163,10 @@ export default function FinesPage() {
       playerId,
       ruleId: ruleId || null,
       description,
-      amount: parseFloat(amount),
+      severity,
+      matchesSuspended: severity === "SUSPENSION" ? parseInt(matchesSuspended) : null,
+      status,
       date: new Date(date).toISOString(),
-      isPaid,
     };
 
     try {
@@ -175,13 +181,13 @@ export default function FinesPage() {
 
       if (!res.ok) {
         const err = await res.json();
-        setFormError(err.error || "Erro ao salvar multa");
+        setFormError(err.error || "Erro ao salvar punição");
         return;
       }
 
       setShowModal(false);
       await loadData();
-      toast(editingFine ? "Multa atualizada!" : "Multa aplicada com sucesso!");
+      toast(editingFine ? "Punição atualizada!" : "Punição aplicada com sucesso!");
     } catch {
       setFormError("Erro de conexão");
     } finally {
@@ -194,18 +200,18 @@ export default function FinesPage() {
       open: true,
       fineId: fine.id,
       actionType: "DELETE",
-      title: "Excluir Multa",
-      message: `Deseja realmente excluir a multa de ${fine.player.name}? O registro financeiro correspondente será removido caso a multa já tenha sido paga.`,
+      title: "Excluir Punição",
+      message: `Deseja realmente excluir o registro de punição de ${fine.player.name}? Esta ação é irreversível.`,
     });
   }
 
-  function handleOpenPay(fine: Fine) {
+  function handleOpenServe(fine: Fine) {
     setConfirmModal({
       open: true,
       fineId: fine.id,
-      actionType: "PAY",
-      title: "Confirmar Pagamento",
-      message: `Marcar a multa de ${fine.player.name} no valor de ${formatBRL(fine.amount)} como paga? Isso registrará automaticamente uma entrada no financeiro do time.`,
+      actionType: "SERVE",
+      title: "Marcar como Cumprido",
+      message: `Confirmar que o jogador ${fine.player.name} já cumpriu a punição/suspensão de ${fine.matchesSuspended} ${fine.matchesSuspended === 1 ? "jogo" : "jogos"}?`,
     });
   }
 
@@ -219,22 +225,22 @@ export default function FinesPage() {
           method: "DELETE",
         });
         if (res.ok) {
-          toast("Multa excluída com sucesso");
+          toast("Punição excluída com sucesso");
           await loadData();
         } else {
-          toast("Erro ao excluir multa");
+          toast("Erro ao excluir punição");
         }
-      } else if (confirmModal.actionType === "PAY") {
-        // Find existing fine to get all properties (PATCH endpoint validates full payload)
+      } else if (confirmModal.actionType === "SERVE") {
         const fine = fines.find((f) => f.id === confirmModal.fineId);
         if (fine) {
           const body = {
             playerId: fine.playerId,
             ruleId: fine.ruleId,
             description: fine.description,
-            amount: fine.amount,
+            severity: fine.severity,
+            matchesSuspended: fine.matchesSuspended,
+            status: "SERVED",
             date: fine.date,
-            isPaid: true,
           };
 
           const res = await fetch(`/api/fines/${fine.id}`, {
@@ -244,10 +250,10 @@ export default function FinesPage() {
           });
 
           if (res.ok) {
-            toast("Pagamento registrado com sucesso!");
+            toast("Punição marcada como cumprida!");
             await loadData();
           } else {
-            toast("Erro ao registrar pagamento");
+            toast("Erro ao atualizar punição");
           }
         }
       }
@@ -259,30 +265,19 @@ export default function FinesPage() {
     }
   }
 
-  // Financial calculations
-  const totalUnpaid = fines
-    .filter((f) => !f.isPaid)
-    .reduce((acc, f) => acc + f.amount, 0);
-
-  const totalPaid = fines
-    .filter((f) => f.isPaid)
-    .reduce((acc, f) => acc + f.amount, 0);
+  // Statistics
+  const activeSuspensions = fines.filter((f) => f.severity === "SUSPENSION" && f.status === "ACTIVE").length;
+  const totalWarnings = fines.filter((f) => f.severity === "WARNING").length;
+  const totalServed = fines.filter((f) => f.status === "SERVED").length;
 
   const filteredFines = fines.filter((fine) => {
     const matchesPlayer = !filterPlayer || fine.playerId === filterPlayer;
+    const matchesSeverity =
+      filterSeverity === "ALL" || fine.severity === filterSeverity;
     const matchesStatus =
-      filterStatus === "ALL" ||
-      (filterStatus === "PAID" && fine.isPaid) ||
-      (filterStatus === "UNPAID" && !fine.isPaid);
-    return matchesPlayer && matchesStatus;
+      filterStatus === "ALL" || fine.status === filterStatus;
+    return matchesPlayer && matchesSeverity && matchesStatus;
   });
-
-  function formatBRL(amount: number) {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(amount);
-  }
 
   function formatDate(isoString: string) {
     return new Intl.DateTimeFormat("pt-BR", {
@@ -290,14 +285,42 @@ export default function FinesPage() {
     }).format(new Date(isoString));
   }
 
+  function getSeverityLabel(sev: "WARNING" | "SUSPENSION", matches: number | null) {
+    if (sev === "WARNING") return "Advertência";
+    return `Suspensão: ${matches} ${matches === 1 ? "jogo" : "jogos"}`;
+  }
+
+  function getStatusBadge(status: "ACTIVE" | "SERVED" | "CANCELLED") {
+    switch (status) {
+      case "ACTIVE":
+        return (
+          <Badge variant="danger" className="bg-red-500/10 text-red-400 border-red-500/20 rounded-full px-2 py-0.5 text-[0.68rem] uppercase font-bold">
+            Ativa / Pendente
+          </Badge>
+        );
+      case "SERVED":
+        return (
+          <Badge variant="success" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 rounded-full px-2 py-0.5 text-[0.68rem] uppercase font-bold">
+            Cumprido
+          </Badge>
+        );
+      case "CANCELLED":
+        return (
+          <Badge variant="default" className="bg-white/5 text-[var(--text-muted)] border-white/10 rounded-full px-2 py-0.5 text-[0.68rem] uppercase font-bold">
+            Cancelado
+          </Badge>
+        );
+    }
+  }
+
   return (
     <div className="space-y-7">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[var(--text)]">Caixa de Punições</h1>
+          <h1 className="text-3xl font-bold text-[var(--text)]">Controle Disciplinar</h1>
           <p className="mt-1 text-sm text-[var(--text-subtle)]">
-            Aplicação e acompanhamento de multas administrativas do elenco
+            Aplicação e acompanhamento de advertências e suspensões do elenco
           </p>
         </div>
         {isAdmin && (
@@ -305,38 +328,38 @@ export default function FinesPage() {
             onClick={handleOpenCreate}
             className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[var(--brand)] px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:opacity-90 cursor-pointer"
           >
-            + Aplicar Multa
+            + Aplicar Punição
           </button>
         )}
       </div>
 
-      {/* KPI Financial Summaries */}
+      {/* KPI summaries */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
         <div className="rounded-2xl border border-[rgba(239,68,68,0.15)] bg-[rgba(15,8,8,0.4)] p-6 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wider text-[#f87171]">Total Pendente</p>
-          <p className="mt-2 text-3xl font-black text-white">{formatBRL(totalUnpaid)}</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-[#f87171]">Suspensões Ativas</p>
+          <p className="mt-2 text-3xl font-black text-white">{activeSuspensions} Jogadores</p>
           <p className="mt-1 text-xs text-[var(--text-subtle)]">
-            A receber de multas ativas
+            Atletas suspensos no momento
           </p>
         </div>
-        <div className="rounded-2xl border border-[rgba(16,185,129,0.15)] bg-[rgba(8,15,10,0.4)] p-6 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wider text-[#34d399]">Total Arrecadado</p>
-          <p className="mt-2 text-3xl font-black text-white">{formatBRL(totalPaid)}</p>
+        <div className="rounded-2xl border border-[rgba(245,158,11,0.15)] bg-[rgba(25,18,8,0.4)] p-6 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#fbbf24]">Advertências Históricas</p>
+          <p className="mt-2 text-3xl font-black text-white">{totalWarnings} Registros</p>
           <p className="mt-1 text-xs text-[var(--text-subtle)]">
-            Já inserido no livro caixa
+            Total de advertências formais
           </p>
         </div>
-        <div className="rounded-2xl border border-white/5 bg-[#090f0c] p-6 shadow-sm col-span-full md:col-span-1">
-          <p className="text-xs font-bold uppercase tracking-wider text-[var(--text-subtle)]">Histórico Geral</p>
-          <p className="mt-2 text-3xl font-black text-white">{fines.length} Multas</p>
+        <div className="rounded-2xl border border-[rgba(16,185,129,0.15)] bg-[rgba(8,15,10,0.4)] p-6 shadow-sm col-span-full md:col-span-1">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#34d399]">Cumpridas / Finalizadas</p>
+          <p className="mt-2 text-3xl font-black text-white">{totalServed} Punições</p>
           <p className="mt-1 text-xs text-[var(--text-subtle)]">
-            {fines.filter((f) => !f.isPaid).length} pendentes e {fines.filter((f) => f.isPaid).length} pagas
+            Histórico de punições cumpridas
           </p>
         </div>
       </div>
 
       {/* Filters Bar */}
-      <div className="app-surface rounded-2xl border border-[var(--border)] p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between shadow-sm">
+      <div className="app-surface rounded-2xl border border-[var(--border)] p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center w-full">
           <div className="w-full sm:max-w-xs">
             <select
@@ -354,13 +377,25 @@ export default function FinesPage() {
           </div>
           <div className="w-full sm:max-w-xs">
             <select
+              value={filterSeverity}
+              onChange={(e) => setFilterSeverity(e.target.value)}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
+            >
+              <option value="ALL">Todas as punições</option>
+              <option value="WARNING">Apenas Advertências</option>
+              <option value="SUSPENSION">Apenas Suspensões</option>
+            </select>
+          </div>
+          <div className="w-full sm:max-w-xs">
+            <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
             >
               <option value="ALL">Todos os status</option>
-              <option value="UNPAID">Pendente</option>
-              <option value="PAID">Paga</option>
+              <option value="ACTIVE">Ativo / Pendente</option>
+              <option value="SERVED">Cumprido</option>
+              <option value="CANCELLED">Cancelado</option>
             </select>
           </div>
         </div>
@@ -375,10 +410,10 @@ export default function FinesPage() {
         </div>
       ) : filteredFines.length === 0 ? (
         <div className="app-surface rounded-2xl border border-dashed border-[var(--border-strong)] p-14 text-center text-[var(--text-muted)]">
-          <p className="text-4xl">⚖️</p>
-          <p className="mt-3 text-base font-semibold text-white">Nenhuma multa localizada</p>
+          <p className="text-4xl">🛡️</p>
+          <p className="mt-3 text-base font-semibold text-white">Nenhuma punição localizada</p>
           <p className="mt-1 text-sm text-[var(--text-subtle)]">
-            Ajuste os filtros ou aplique uma nova multa se você for administrador.
+            Ajuste os filtros ou aplique uma nova advertência/suspensão.
           </p>
         </div>
       ) : (
@@ -390,7 +425,7 @@ export default function FinesPage() {
             >
               <div className="flex items-start gap-4">
                 <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--surface-soft)] text-xl">
-                  ⚖️
+                  {fine.severity === "SUSPENSION" ? "🟥" : "🟨"}
                 </div>
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -412,34 +447,28 @@ export default function FinesPage() {
                     {fine.description}
                   </p>
                   <p className="text-xs text-[var(--text-muted)]">
-                    Aplicada em: {formatDate(fine.date)} {fine.isPaid && fine.paidAt && ` · Paga em ${formatDate(fine.paidAt)}`}
+                    Aplicada em: {formatDate(fine.date)}
                   </p>
                 </div>
               </div>
 
               <div className="flex flex-wrap sm:flex-nowrap items-center gap-4 justify-between sm:justify-end">
-                <div className="text-right">
-                  <p className="text-lg font-black text-white">{formatBRL(fine.amount)}</p>
+                <div className="text-left sm:text-right">
+                  <p className="text-sm font-bold text-white">
+                    {getSeverityLabel(fine.severity, fine.matchesSuspended)}
+                  </p>
                   <div className="mt-1">
-                    {fine.isPaid ? (
-                      <Badge variant="success" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 rounded-full px-2 py-0.5 text-[0.68rem]">
-                        Paga
-                      </Badge>
-                    ) : (
-                      <Badge variant="danger" className="bg-red-500/10 text-red-400 border-red-500/20 rounded-full px-2 py-0.5 text-[0.68rem]">
-                        Pendente
-                      </Badge>
-                    )}
+                    {getStatusBadge(fine.status)}
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {isAdmin && !fine.isPaid && (
+                  {isAdmin && fine.status === "ACTIVE" && (
                     <button
-                      onClick={() => handleOpenPay(fine)}
+                      onClick={() => handleOpenServe(fine)}
                       className="rounded-full border border-emerald-500/40 bg-emerald-500/15 px-3.5 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-500/25 transition-all cursor-pointer shadow-sm"
                     >
-                      Pagar
+                      Marcar Cumprido
                     </button>
                   )}
                   {isAdmin && (
@@ -453,7 +482,7 @@ export default function FinesPage() {
                       <button
                         onClick={() => handleOpenDelete(fine)}
                         className="rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
-                        aria-label="Excluir multa"
+                        aria-label="Excluir punição"
                       >
                         ✕
                       </button>
@@ -510,55 +539,69 @@ export default function FinesPage() {
               <option value="">— Nenhuma / Regra Personalizada —</option>
               {rules.map((r) => (
                 <option key={r.id} value={r.id}>
-                  {r.title} {r.fineAmount !== null ? `(${formatBRL(r.fineAmount)})` : ""}
+                  {r.title} ({r.severity === "SUSPENSION" ? `Suspensão: ${r.defaultMatches} j` : "Advertência"})
                 </option>
               ))}
             </select>
           </div>
 
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-subtle)]">
+              Gravidade / Tipo de Punição *
+            </label>
+            <select
+              value={severity}
+              onChange={(e) => setSeverity(e.target.value as "WARNING" | "SUSPENSION")}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
+            >
+              <option value="WARNING">Advertência</option>
+              <option value="SUSPENSION">Suspensão por jogos</option>
+            </select>
+          </div>
+
+          {severity === "SUSPENSION" && (
+            <Input
+              label="Quantidade de jogos de suspensão *"
+              placeholder="Ex: 1"
+              type="number"
+              min="1"
+              max="100"
+              value={matchesSuspended}
+              onChange={(e) => setMatchesSuspended(e.target.value)}
+              required
+            />
+          )}
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-subtle)]">
+              Status da Punição *
+            </label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as "ACTIVE" | "SERVED" | "CANCELLED")}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
+            >
+              <option value="ACTIVE">Ativo / Pendente</option>
+              <option value="SERVED">Cumprido / Cumprida</option>
+              <option value="CANCELLED">Cancelado</option>
+            </select>
+          </div>
+
           <Input
-            label="Descrição / Motivo da Multa *"
-            placeholder="Ex: Cartão amarelo por reclamação desnecessária"
+            label="Descrição / Motivo da Punição *"
+            placeholder="Ex: Cartão vermelho direto por reclamação desnecessária"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
           />
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Input
-              label="Valor da Multa (R$) *"
-              placeholder="Ex: 10.00"
-              type="number"
-              step="0.01"
-              min="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-            />
-
-            <Input
-              label="Data da Ocorrência *"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="pt-2">
-            <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-white">
-              <input
-                type="checkbox"
-                checked={isPaid}
-                onChange={(e) => setIsPaid(e.target.checked)}
-                className="rounded border-[var(--border)] bg-[var(--surface-soft)] text-[var(--brand)] focus:ring-[var(--brand)] h-4 w-4"
-              />
-              Esta multa já foi paga pelo jogador?
-            </label>
-            <p className="mt-1 text-xs text-[var(--text-subtle)]">
-              Se marcado, será gerado automaticamente um lançamento de Receita no caixa do time.
-            </p>
-          </div>
+          <Input
+            label="Data da Ocorrência *"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            required
+          />
 
           <div className="mt-6 flex justify-end gap-3 pt-2">
             <Button
@@ -574,7 +617,7 @@ export default function FinesPage() {
               loading={saving}
               disabled={saving}
             >
-              {saving ? "Salvando..." : editingFine ? "Salvar Alterações" : "Aplicar Multa"}
+              {saving ? "Salvando..." : editingFine ? "Salvar Alterações" : "Aplicar Punição"}
             </Button>
           </div>
         </form>
@@ -602,7 +645,7 @@ export default function FinesPage() {
             onClick={executeConfirm}
             loading={confirmLoading}
           >
-            {confirmModal.actionType === "DELETE" ? "Confirmar Exclusão" : "Confirmar Pagamento"}
+            {confirmModal.actionType === "DELETE" ? "Confirmar Exclusão" : "Confirmar"}
           </Button>
         </div>
       </Modal>

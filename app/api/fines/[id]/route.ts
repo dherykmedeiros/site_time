@@ -6,7 +6,7 @@ import { withErrorHandler } from "@/lib/api-handler";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-// PATCH /api/fines/[id] — update an existing fine (ADMIN only)
+// PATCH /api/fines/[id] — update an existing punishment (ADMIN only)
 export const PATCH = withErrorHandler(async (request: Request, context: RouteParams) => {
   const { id } = await context.params;
   const { session, error } = await requireAdmin();
@@ -19,13 +19,10 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
   // Find existing fine
   const existingFine = await prisma.fine.findFirst({
     where: { id, teamId: session.user.teamId },
-    include: {
-      player: { select: { name: true } },
-    },
   });
 
   if (!existingFine) {
-    return NextResponse.json({ error: "Multa não encontrada" }, { status: 404 });
+    return NextResponse.json({ error: "Punição não encontrada" }, { status: 404 });
   }
 
   const body = await request.json().catch(() => null);
@@ -38,7 +35,7 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
     );
   }
 
-  const { playerId, ruleId, description, amount, date, isPaid = false } = parsed.data;
+  const { playerId, ruleId, description, severity, matchesSuspended, status = "ACTIVE", date } = parsed.data;
 
   // Verify the player belongs to this team
   const playerExists = await prisma.player.findFirst({
@@ -59,81 +56,38 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
     }
   }
 
-  const teamId = session.user.teamId;
-
-  const updatedFine = await prisma.$transaction(async (tx) => {
-    let nextTransactionId = existingFine.transactionId;
-
-    if (!existingFine.isPaid && isPaid) {
-      // Transition from unpaid to paid: Create a financial transaction
-      const financeTransaction = await tx.transaction.create({
-        data: {
-          teamId,
-          type: "INCOME",
-          amount,
-          description: `Multa Paga: ${playerExists.name} - ${description}`,
-          date: new Date(),
-          category: "OTHER",
-        },
-      });
-      nextTransactionId = financeTransaction.id;
-    } else if (existingFine.isPaid && !isPaid) {
-      // Transition from paid to unpaid: Delete the financial transaction
-      if (existingFine.transactionId) {
-        await tx.transaction.delete({
-          where: { id: existingFine.transactionId },
-        });
-      }
-      nextTransactionId = null;
-    } else if (existingFine.isPaid && isPaid) {
-      // Was paid and stays paid: Update existing financial transaction if details changed
-      if (existingFine.transactionId) {
-        await tx.transaction.update({
-          where: { id: existingFine.transactionId },
-          data: {
-            amount,
-            description: `Multa Paga: ${playerExists.name} - ${description}`,
-          },
-        });
-      }
-    }
-
-    const fine = await tx.fine.update({
-      where: { id },
-      data: {
-        playerId,
-        ruleId: ruleId || null,
-        description,
-        amount,
-        date: new Date(date),
-        isPaid,
-        paidAt: isPaid ? (existingFine.paidAt || new Date()) : null,
-        transactionId: nextTransactionId,
-      },
-      include: {
-        player: {
-          select: {
-            id: true,
-            name: true,
-            shirtNumber: true,
-          },
-        },
-        rule: {
-          select: {
-            id: true,
-            title: true,
-          },
+  const fine = await prisma.fine.update({
+    where: { id },
+    data: {
+      playerId,
+      ruleId: ruleId || null,
+      description,
+      severity,
+      matchesSuspended: severity === "SUSPENSION" ? matchesSuspended : null,
+      status,
+      date: new Date(date),
+    },
+    include: {
+      player: {
+        select: {
+          id: true,
+          name: true,
+          shirtNumber: true,
         },
       },
-    });
-
-    return fine;
+      rule: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+    },
   });
 
-  return NextResponse.json({ fine: updatedFine });
+  return NextResponse.json({ fine });
 });
 
-// DELETE /api/fines/[id] — delete an existing fine (ADMIN only)
+// DELETE /api/fines/[id] — delete an existing punishment (ADMIN only)
 export const DELETE = withErrorHandler(async (request: Request, context: RouteParams) => {
   const { id } = await context.params;
   const { session, error } = await requireAdmin();
@@ -149,19 +103,11 @@ export const DELETE = withErrorHandler(async (request: Request, context: RoutePa
   });
 
   if (!existingFine) {
-    return NextResponse.json({ error: "Multa não encontrada" }, { status: 404 });
+    return NextResponse.json({ error: "Punição não encontrada" }, { status: 404 });
   }
 
-  // Use a transaction to clean up corresponding transaction if paid
-  await prisma.$transaction(async (tx) => {
-    if (existingFine.transactionId) {
-      await tx.transaction.delete({
-        where: { id: existingFine.transactionId },
-      });
-    }
-    await tx.fine.delete({
-      where: { id },
-    });
+  await prisma.fine.delete({
+    where: { id },
   });
 
   return NextResponse.json({ success: true });

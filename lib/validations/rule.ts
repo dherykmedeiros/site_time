@@ -11,9 +11,14 @@ export const ruleSchema = z.object({
     .trim()
     .min(2, "A descrição deve ter no mínimo 2 caracteres")
     .max(500, "A descrição deve ter no máximo 500 caracteres"),
-  fineAmount: z.coerce
+  severity: z.enum(["WARNING", "SUSPENSION"], {
+    message: "Gravidade inválida. Escolha Advertência ou Suspensão.",
+  }),
+  defaultMatches: z.coerce
     .number()
-    .min(0, "O valor deve ser maior ou igual a zero")
+    .int("Deve ser um número inteiro")
+    .min(1, "A suspensão deve ser de no mínimo 1 jogo")
+    .max(100, "A suspensão máxima permitida é de 100 jogos")
     .optional()
     .nullable(),
 });

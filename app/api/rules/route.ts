@@ -51,14 +51,15 @@ export const POST = withErrorHandler(async (request: Request) => {
     );
   }
 
-  const { title, description, fineAmount } = parsed.data;
+  const { title, description, severity, defaultMatches } = parsed.data;
 
   const rule = await prisma.rule.create({
     data: {
       teamId: session.user.teamId,
       title,
       description,
-      fineAmount: fineAmount !== undefined && fineAmount !== null ? fineAmount : null,
+      severity,
+      defaultMatches: severity === "SUSPENSION" && defaultMatches !== undefined && defaultMatches !== null ? defaultMatches : null,
     },
   });
 

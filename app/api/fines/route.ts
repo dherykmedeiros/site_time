@@ -6,7 +6,7 @@ import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
 import { withErrorHandler } from "@/lib/api-handler";
 
-// GET /api/fines — list all fines for the team (Anyone authenticated can see)
+// GET /api/fines — list all punishments (fines) for the team (Anyone authenticated can see)
 export const GET = withErrorHandler(async (request: Request) => {
   const { session, error } = await requireAuth();
   if (error) return error;
@@ -17,14 +17,13 @@ export const GET = withErrorHandler(async (request: Request) => {
 
   const { searchParams } = new URL(request.url);
   const playerId = searchParams.get("playerId") || undefined;
-  const isPaidParam = searchParams.get("isPaid");
-  const isPaid = isPaidParam === "true" ? true : isPaidParam === "false" ? false : undefined;
+  const status = searchParams.get("status") || undefined; // ACTIVE, SERVED, CANCELLED
 
   const fines = await prisma.fine.findMany({
     where: {
       teamId: session.user.teamId,
       ...(playerId && { playerId }),
-      ...(isPaid !== undefined && { isPaid }),
+      ...(status && { status }),
     },
     orderBy: { date: "desc" },
     include: {
@@ -47,7 +46,7 @@ export const GET = withErrorHandler(async (request: Request) => {
   return NextResponse.json({ fines });
 });
 
-// POST /api/fines — create a new fine for a player (ADMIN only)
+// POST /api/fines — apply a new punishment (fine) for a player (ADMIN only)
 export const POST = withErrorHandler(async (request: Request) => {
   const { session, error } = await requireAdmin();
   if (error) return error;
@@ -75,7 +74,7 @@ export const POST = withErrorHandler(async (request: Request) => {
     );
   }
 
-  const { playerId, ruleId, description, amount, date, isPaid = false } = parsed.data;
+  const { playerId, ruleId, description, severity, matchesSuspended, status = "ACTIVE", date } = parsed.data;
 
   // Verify the player belongs to this team
   const playerExists = await prisma.player.findFirst({
@@ -98,55 +97,32 @@ export const POST = withErrorHandler(async (request: Request) => {
 
   const teamId = session.user.teamId;
 
-  // Use a transaction so that if isPaid is true on creation, we create a corresponding transaction!
-  const fine = await prisma.$transaction(async (tx) => {
-    let transactionId: string | null = null;
-
-    if (isPaid) {
-      // Create a financial transaction
-      const financeTransaction = await tx.transaction.create({
-        data: {
-          teamId,
-          type: "INCOME",
-          amount,
-          description: `Multa Paga: ${playerExists.name} - ${description}`,
-          date: new Date(),
-          category: "OTHER",
-        },
-      });
-      transactionId = financeTransaction.id;
-    }
-
-    const newFine = await tx.fine.create({
-      data: {
-        teamId,
-        playerId,
-        ruleId: ruleId || null,
-        description,
-        amount,
-        date: new Date(date),
-        isPaid,
-        paidAt: isPaid ? new Date() : null,
-        ...(transactionId && { transactionId }),
-      },
-      include: {
-        player: {
-          select: {
-            id: true,
-            name: true,
-            shirtNumber: true,
-          },
-        },
-        rule: {
-          select: {
-            id: true,
-            title: true,
-          },
+  const fine = await prisma.fine.create({
+    data: {
+      teamId,
+      playerId,
+      ruleId: ruleId || null,
+      description,
+      severity,
+      matchesSuspended: severity === "SUSPENSION" ? matchesSuspended : null,
+      status,
+      date: new Date(date),
+    },
+    include: {
+      player: {
+        select: {
+          id: true,
+          name: true,
+          shirtNumber: true,
         },
       },
-    });
-
-    return newFine;
+      rule: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+    },
   });
 
   return NextResponse.json({ fine }, { status: 201 });
