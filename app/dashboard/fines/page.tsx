@@ -597,7 +597,7 @@ export default function FinesPage() {
             Cancelar
           </Button>
           <Button
-            variant={confirmModal.actionType === "DELETE" ? "danger" : "default"}
+            variant={confirmModal.actionType === "DELETE" ? "danger" : "primary"}
             size="sm"
             onClick={executeConfirm}
             loading={confirmLoading}

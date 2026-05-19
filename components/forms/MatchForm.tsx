@@ -123,7 +123,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
     setValue,
     formState: { errors },
   } = useForm<CreateMatchInput>({
-    resolver: zodResolver(createMatchSchema),
+    resolver: zodResolver(createMatchSchema) as any,
     defaultValues: {
       date: formatDateForInput(defaultValues?.date) || "",
       venue: defaultValues?.venue || "",
@@ -232,7 +232,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
 
   const criticalPositions = availabilitySnapshot?.positions.filter((position) => position.risk !== "LOW").slice(0, 3);
 
-  async function onSubmit(data: CreateMatchInput) {
+  async function onSubmit(data: any) {
     setLoading(true);
     setErrorMsg("");
 
