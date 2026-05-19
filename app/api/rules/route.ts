@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, requireAuth } from "@/lib/auth";
+import { requireAdmin, requireCoachOrAdmin, requireAuth } from "@/lib/auth";
 import { ruleSchema } from "@/lib/validations/rule";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
@@ -23,9 +23,9 @@ export const GET = withErrorHandler(async () => {
   return NextResponse.json({ rules });
 });
 
-// POST /api/rules — create a new rule (ADMIN only)
+// POST /api/rules — create a new rule (ADMIN/COACH)
 export const POST = withErrorHandler(async (request: Request) => {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireCoachOrAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {

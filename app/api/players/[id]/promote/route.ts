@@ -41,10 +41,11 @@ export async function PATCH(request: Request, context: RouteContext) {
     );
   }
 
-  // Validate that role is "ADMIN"
-  if (!body || typeof body !== "object" || (body as { role?: string }).role !== "ADMIN") {
+  // Validate that role is valid
+  const role = (body as { role?: string }).role;
+  if (!role || !["ADMIN", "COACH", "MATERIAL_DIRECTOR", "PLAYER"].includes(role)) {
     return NextResponse.json(
-      { error: "Valor de role inválido. Apenas 'ADMIN' é aceito.", code: "VALIDATION_ERROR" },
+      { error: "Valor de role inválido. Roles válidos: 'ADMIN', 'COACH', 'MATERIAL_DIRECTOR', 'PLAYER'.", code: "VALIDATION_ERROR" },
       { status: 400 }
     );
   }
@@ -73,7 +74,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   // Update the user's role to ADMIN
   const updatedUser = await prisma.user.update({
     where: { id: player.user.id },
-    data: { role: "ADMIN" },
+    data: { role: role as any },
   });
 
   return NextResponse.json({

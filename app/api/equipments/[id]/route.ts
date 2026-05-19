@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireMaterialDirectorOrAdmin } from "@/lib/auth";
 import { equipmentSchema } from "@/lib/validations/equipment";
 import { withErrorHandler } from "@/lib/api-handler";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-// PATCH /api/equipments/[id] — Update an existing equipment (ADMIN only)
+// PATCH /api/equipments/[id] — Update an existing equipment (ADMIN/MATERIAL_DIRECTOR only)
 export const PATCH = withErrorHandler(async (request: Request, context: RouteParams) => {
   const { id } = await context.params;
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireMaterialDirectorOrAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {
@@ -69,10 +69,10 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
   return NextResponse.json({ equipment });
 });
 
-// DELETE /api/equipments/[id] — Delete an existing equipment (ADMIN only)
+// DELETE /api/equipments/[id] — Delete an existing equipment (ADMIN/MATERIAL_DIRECTOR only)
 export const DELETE = withErrorHandler(async (request: Request, context: RouteParams) => {
   const { id } = await context.params;
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireMaterialDirectorOrAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {

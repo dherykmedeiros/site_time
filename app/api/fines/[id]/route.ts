@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireCoachOrAdmin } from "@/lib/auth";
 import { fineSchema } from "@/lib/validations/fine";
 import { withErrorHandler } from "@/lib/api-handler";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-// PATCH /api/fines/[id] — update an existing punishment (ADMIN only)
+// PATCH /api/fines/[id] — update an existing punishment (ADMIN/COACH only)
 export const PATCH = withErrorHandler(async (request: Request, context: RouteParams) => {
   const { id } = await context.params;
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireCoachOrAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {
@@ -87,10 +87,10 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
   return NextResponse.json({ fine });
 });
 
-// DELETE /api/fines/[id] — delete an existing punishment (ADMIN only)
+// DELETE /api/fines/[id] — delete an existing punishment (ADMIN/COACH only)
 export const DELETE = withErrorHandler(async (request: Request, context: RouteParams) => {
   const { id } = await context.params;
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireCoachOrAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {

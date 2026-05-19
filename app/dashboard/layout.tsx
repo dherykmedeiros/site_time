@@ -37,7 +37,8 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { data: session } = useSession();
-  const isAdmin = session?.user?.role === "ADMIN";
+  const role = session?.user?.role;
+  const isAdmin = role === "ADMIN";
 
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -86,7 +87,13 @@ export default function DashboardLayout({
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  const visibleNavItems = navItems.filter((item) => !item.adminOnly || isAdmin);
+  const visibleNavItems = navItems.filter((item) => {
+    if (!item.adminOnly) return true;
+    if (item.href === "/dashboard/team/settings") {
+      return role === "ADMIN";
+    }
+    return role === "ADMIN" || role === "COACH";
+  });
 
   const activeItem =
     visibleNavItems.find(

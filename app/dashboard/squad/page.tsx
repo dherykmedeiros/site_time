@@ -24,6 +24,7 @@ interface Player {
   photoUrl: string | null;
   status: "ACTIVE" | "INACTIVE";
   hasAccount: boolean;
+  role?: "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR";
   createdAt: string;
 }
 
@@ -46,7 +47,9 @@ const positionLabels: Record<string, string> = {
 
 export default function SquadPage() {
   const { data: session } = useSession();
-  const isAdmin = session?.user?.role === "ADMIN";
+  const role = session?.user?.role;
+  const isAdmin = role === "ADMIN";
+  const isCoachOrAdmin = role === "ADMIN" || role === "COACH";
 
   const [players, setPlayers] = useState<Player[]>([]);
   const [selfPlayerId, setSelfPlayerId] = useState<string | null>(null);
@@ -65,6 +68,13 @@ export default function SquadPage() {
   const [confirmAction, setConfirmAction] = useState<"delete" | "promote" | null>(null);
   const [actionPlayer, setActionPlayer] = useState<Player | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<"ADMIN" | "COACH" | "MATERIAL_DIRECTOR" | "PLAYER">("PLAYER");
+
+  const roleLabels: Record<string, { label: string; variant: "success" | "warning" | "danger" | "info" | "default" }> = {
+    ADMIN: { label: "Admin", variant: "danger" },
+    COACH: { label: "Técnico", variant: "warning" },
+    MATERIAL_DIRECTOR: { label: "Dir. Material", variant: "info" },
+  };
 
   const fetchPlayers = useCallback(async () => {
     setLoading(true);
@@ -120,19 +130,19 @@ export default function SquadPage() {
     }
   }
 
-  async function handlePromote(player: Player) {
+  async function handlePromote(player: Player, role: string) {
     const res = await fetch(`/api/players/${player.id}/promote`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role: "ADMIN" }),
+      body: JSON.stringify({ role }),
     });
 
     if (res.ok) {
       await fetchPlayers();
-      setFeedback(`${player.name} foi promovido para Admin.`);
+      setFeedback(`Nível de autorização de ${player.name} atualizado com sucesso.`);
     } else {
       const data = await res.json().catch(() => ({}));
-      setActionError(data.error || "Erro ao promover jogador");
+      setActionError(data.error || "Erro ao atualizar permissão");
     }
   }
 
@@ -145,7 +155,7 @@ export default function SquadPage() {
     if (confirmAction === "delete") {
       await handleDelete(actionPlayer);
     } else {
-      await handlePromote(actionPlayer);
+      await handlePromote(actionPlayer, selectedRole);
     }
 
     setActionLoading(false);
@@ -201,7 +211,7 @@ export default function SquadPage() {
           <h1 className="text-2xl font-black uppercase tracking-tight text-white">Elenco</h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          {isAdmin && (
+          {isCoachOrAdmin && (
             <>
               <Link
                 href="/dashboard/squad/mensalidade"
@@ -312,6 +322,11 @@ export default function SquadPage() {
                       {player.hasAccount && (
                         <Badge variant="info">Conta vinculada</Badge>
                       )}
+                      {player.role && roleLabels[player.role] && (
+                        <Badge variant={roleLabels[player.role].variant}>
+                          {roleLabels[player.role].label}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <div className="hidden gap-2 sm:flex">
@@ -320,6 +335,11 @@ export default function SquadPage() {
                     </Badge>
                     {player.hasAccount && (
                       <Badge variant="info">Conta vinculada</Badge>
+                    )}
+                    {player.role && roleLabels[player.role] && (
+                      <Badge variant={roleLabels[player.role].variant}>
+                        {roleLabels[player.role].label}
+                      </Badge>
                     )}
                   </div>
                 </div>
@@ -334,7 +354,7 @@ export default function SquadPage() {
                       Meu perfil
                     </Button>
                   )}
-                  {isAdmin && player.id !== selfPlayerId && (
+                  {isCoachOrAdmin && player.id !== selfPlayerId && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -343,7 +363,7 @@ export default function SquadPage() {
                       Perfil
                     </Button>
                   )}
-                  {isAdmin && !player.hasAccount && (
+                  {isCoachOrAdmin && !player.hasAccount && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -363,13 +383,14 @@ export default function SquadPage() {
                       onClick={() => {
                         setActionPlayer(player);
                         setConfirmAction("promote");
+                        setSelectedRole(player.role || "PLAYER");
                         setActionError(null);
                       }}
                     >
-                      Promover
+                      Permissão
                     </Button>
                   )}
-                  {isAdmin && (
+                  {isCoachOrAdmin && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -378,7 +399,7 @@ export default function SquadPage() {
                       Editar
                     </Button>
                   )}
-                  {isAdmin && player.status === "ACTIVE" && (
+                  {isCoachOrAdmin && player.status === "ACTIVE" && (
                     <Button
                       variant="danger"
                       size="sm"
@@ -400,7 +421,7 @@ export default function SquadPage() {
 
       {/* Add Player Modal */}
       <Modal
-        open={isAdmin && showAddModal}
+        open={isCoachOrAdmin && showAddModal}
         onClose={() => setShowAddModal(false)}
         title="Adicionar Jogador"
       >
@@ -415,7 +436,7 @@ export default function SquadPage() {
 
       {/* Edit Player Modal */}
       <Modal
-        open={isAdmin && !!editingPlayer}
+        open={isCoachOrAdmin && !!editingPlayer}
         onClose={() => setEditingPlayer(null)}
         title="Editar Jogador"
       >
@@ -439,7 +460,7 @@ export default function SquadPage() {
 
       {/* Invite Modal */}
       <Modal
-        open={isAdmin && !!inviteModal}
+        open={isCoachOrAdmin && !!inviteModal}
         onClose={() => setInviteModal(null)}
         title={`Convidar ${inviteModal?.name ?? "Jogador"}`}
       >
@@ -493,20 +514,38 @@ export default function SquadPage() {
       </Modal>
 
       <Modal
-        open={isAdmin && !!confirmAction && !!actionPlayer}
+        open={((confirmAction === "promote" ? isAdmin : isCoachOrAdmin)) && !!confirmAction && !!actionPlayer}
         onClose={() => {
           if (actionLoading) return;
           setConfirmAction(null);
           setActionPlayer(null);
         }}
-        title={confirmAction === "delete" ? "Remover jogador" : "Promover jogador"}
+        title={confirmAction === "delete" ? "Remover jogador" : "Alterar Nível de Autoridade"}
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-600">
-            {confirmAction === "delete"
-              ? `Remover ${actionPlayer?.name} do elenco? O jogador será marcado como inativo.`
-              : `Promover ${actionPlayer?.name} para Admin (Diretoria)?`}
-          </p>
+          {confirmAction === "delete" ? (
+            <p className="text-sm text-gray-400">
+              Remover {actionPlayer?.name} do elenco? O jogador será marcado como inativo.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-300">
+                Selecione o nível de autoridade de <strong>{actionPlayer?.name}</strong> na plataforma:
+              </p>
+              <div className="flex flex-col gap-2">
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value as any)}
+                  className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#10b981]"
+                >
+                  <option value="PLAYER" className="bg-neutral-900 text-white">Atleta (Comum)</option>
+                  <option value="COACH" className="bg-neutral-900 text-white">Técnico (Jogadores & Avaliações)</option>
+                  <option value="MATERIAL_DIRECTOR" className="bg-neutral-900 text-white">Diretor de Material (Equipamentos)</option>
+                  <option value="ADMIN" className="bg-neutral-900 text-white">Administrador (Controle Total)</option>
+                </select>
+              </div>
+            </div>
+          )}
           <div className="flex gap-3">
             <Button
               variant={confirmAction === "delete" ? "danger" : "primary"}

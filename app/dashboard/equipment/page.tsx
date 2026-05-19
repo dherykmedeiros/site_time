@@ -25,7 +25,8 @@ interface Equipment {
 
 export default function EquipmentPage() {
   const { data: session } = useSession();
-  const isAdmin = session?.user?.role === "ADMIN";
+  const role = session?.user?.role;
+  const isAllowedToEdit = role === "ADMIN" || role === "MATERIAL_DIRECTOR";
   const { toast } = useToast();
 
   const [equipments, setEquipments] = useState<Equipment[]>([]);
@@ -259,7 +260,7 @@ export default function EquipmentPage() {
             Controle de inventário de uniformes, meiões, bolas de jogo e materiais desportivos
           </p>
         </div>
-        {isAdmin && (
+        {isAllowedToEdit && (
           <Button onClick={handleOpenAdd} className="sm:self-center">
             + Adicionar Equipamento
           </Button>
@@ -432,7 +433,7 @@ export default function EquipmentPage() {
                 </div>
 
                 {/* Admin Actions Footer */}
-                {isAdmin && (
+                {isAllowedToEdit && (
                   <div className="mt-5 pt-3 border-t border-white/5 flex justify-end gap-2">
                     <button
                       onClick={() => handleOpenEdit(eq)}

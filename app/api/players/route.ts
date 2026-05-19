@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, requireAuth } from "@/lib/auth";
+import { requireAdmin, requireCoachOrAdmin, requireAuth } from "@/lib/auth";
 import { createPlayerSchema } from "@/lib/validations/player";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     where,
     orderBy: { shirtNumber: "asc" },
     include: {
-      user: { select: { id: true } },
+      user: { select: { id: true, role: true } },
     },
   });
 
@@ -45,14 +45,15 @@ export async function GET(request: Request) {
       photoUrl: p.photoUrl,
       status: p.status,
       hasAccount: !!p.user,
+      role: p.user?.role || "PLAYER",
       createdAt: p.createdAt.toISOString(),
     })),
   });
 }
 
-// POST /api/players — Create a new player
+// POST /api/players — Create a new player (ADMIN/COACH)
 export async function POST(request: Request) {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireCoachOrAdmin();
   if (error) return error;
 
   const ip = extractClientIp(request);

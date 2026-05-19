@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireCoachOrAdmin, requireAuth } from "@/lib/auth";
 import { updatePlayerSchema } from "@/lib/validations/player";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
@@ -11,7 +11,7 @@ interface RouteContext {
 
 // GET /api/players/:id — Player detail with aggregated stats
 export async function GET(request: Request, context: RouteContext) {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireAuth();
   if (error) return error;
 
   if (!session.user.teamId) {
@@ -74,7 +74,7 @@ export async function GET(request: Request, context: RouteContext) {
 
 // PATCH /api/players/:id — Update player
 export async function PATCH(request: Request, context: RouteContext) {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireCoachOrAdmin();
   if (error) return error;
 
   const ip = extractClientIp(request);
@@ -194,7 +194,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
 // DELETE /api/players/:id — Soft-delete (set status to INACTIVE)
 export async function DELETE(request: Request, context: RouteContext) {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireCoachOrAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {

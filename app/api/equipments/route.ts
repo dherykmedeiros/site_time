@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, getSession } from "@/lib/auth";
+import { requireMaterialDirectorOrAdmin, getSession } from "@/lib/auth";
 import { equipmentSchema } from "@/lib/validations/equipment";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
@@ -26,9 +26,9 @@ export const GET = withErrorHandler(async (request: Request) => {
   return NextResponse.json({ equipments });
 });
 
-// POST /api/equipments — Add a new equipment (ADMIN only)
+// POST /api/equipments — Add a new equipment (ADMIN/MATERIAL_DIRECTOR only)
 export const POST = withErrorHandler(async (request: Request) => {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireMaterialDirectorOrAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {

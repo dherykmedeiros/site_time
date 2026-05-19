@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, requireAuth } from "@/lib/auth";
+import { requireAdmin, requireCoachOrAdmin, requireAuth } from "@/lib/auth";
 import { fineSchema } from "@/lib/validations/fine";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
@@ -46,9 +46,9 @@ export const GET = withErrorHandler(async (request: Request) => {
   return NextResponse.json({ fines });
 });
 
-// POST /api/fines — apply a new punishment (fine) for a player (ADMIN only)
+// POST /api/fines — apply a new punishment (fine) for a player (ADMIN/COACH only)
 export const POST = withErrorHandler(async (request: Request) => {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireCoachOrAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {

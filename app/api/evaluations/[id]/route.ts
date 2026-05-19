@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireCoachOrAdmin } from "@/lib/auth";
 import { evaluationSchema } from "@/lib/validations/evaluation";
 import { withErrorHandler } from "@/lib/api-handler";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-// PATCH /api/evaluations/[id] — Update an existing player evaluation (ADMIN only)
+// PATCH /api/evaluations/[id] — Update an existing player evaluation (ADMIN/COACH only)
 export const PATCH = withErrorHandler(async (request: Request, context: RouteParams) => {
   const { id } = await context.params;
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireCoachOrAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {
@@ -79,10 +79,10 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
   return NextResponse.json({ evaluation });
 });
 
-// DELETE /api/evaluations/[id] — Delete an existing player evaluation (ADMIN only)
+// DELETE /api/evaluations/[id] — Delete an existing player evaluation (ADMIN/COACH only)
 export const DELETE = withErrorHandler(async (request: Request, context: RouteParams) => {
   const { id } = await context.params;
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireCoachOrAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireCoachOrAdmin } from "@/lib/auth";
 import { invitePlayerSchema } from "@/lib/validations/player";
 import { sendInviteEmail } from "@/lib/email";
 import { rateLimitInvite } from "@/lib/rate-limit";
@@ -8,7 +8,7 @@ import { extractClientIp } from "@/lib/request-ip";
 
 // POST /api/players/invite — Generate invite token and send email
 export async function POST(request: Request) {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireCoachOrAdmin();
   if (error) return error;
 
   const ip = extractClientIp(request);

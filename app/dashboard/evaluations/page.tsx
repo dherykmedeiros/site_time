@@ -42,7 +42,8 @@ interface Evaluation {
 
 export default function EvaluationsPage() {
   const { data: session, status: authStatus } = useSession();
-  const isAdmin = session?.user?.role === "ADMIN";
+  const role = session?.user?.role;
+  const isCoachOrAdmin = role === "ADMIN" || role === "COACH";
   const { toast } = useToast();
 
   const [players, setPlayers] = useState<Player[]>([]);
@@ -100,10 +101,10 @@ export default function EvaluationsPage() {
   }
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isCoachOrAdmin) {
       loadData();
     }
-  }, [isAdmin]);
+  }, [isCoachOrAdmin]);
 
   if (authStatus === "loading") {
     return (
@@ -113,8 +114,8 @@ export default function EvaluationsPage() {
     );
   }
 
-  // Strictly check admin role on frontend
-  if (!isAdmin) {
+  // Strictly check coach or admin role on frontend
+  if (!isCoachOrAdmin) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center h-[70vh]">
         <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10 text-4xl border border-red-500/20 shadow-md">

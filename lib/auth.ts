@@ -11,7 +11,7 @@ declare module "next-auth" {
       id: string;
       email: string;
       name: string;
-      role: "ADMIN" | "PLAYER";
+      role: "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR";
       teamId: string | null;
     };
   }
@@ -20,7 +20,7 @@ declare module "next-auth" {
     id: string;
     email: string;
     name: string;
-    role: "ADMIN" | "PLAYER";
+    role: "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR";
     teamId: string | null;
   }
 }
@@ -30,7 +30,7 @@ declare module "next-auth/jwt" {
     id: string;
     email: string;
     name: string;
-    role: "ADMIN" | "PLAYER";
+    role: "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR";
     teamId: string | null;
   }
 }
@@ -70,7 +70,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role as "ADMIN" | "PLAYER",
+          role: user.role as "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR",
           teamId: user.teamId,
         };
       },
@@ -166,6 +166,46 @@ export async function requireAdmin() {
     return {
       error: NextResponse.json(
         { error: "Acesso restrito a administradores" },
+        { status: 403 }
+      ),
+      session: null,
+    };
+  }
+
+  return { session: session!, error: null };
+}
+
+export async function requireCoachOrAdmin() {
+  const { session, error } = await requireAuth();
+
+  if (error) {
+    return { error, session: null };
+  }
+
+  if (session!.user.role !== "ADMIN" && session!.user.role !== "COACH") {
+    return {
+      error: NextResponse.json(
+        { error: "Acesso restrito a administradores ou comissão técnica" },
+        { status: 403 }
+      ),
+      session: null,
+    };
+  }
+
+  return { session: session!, error: null };
+}
+
+export async function requireMaterialDirectorOrAdmin() {
+  const { session, error } = await requireAuth();
+
+  if (error) {
+    return { error, session: null };
+  }
+
+  if (session!.user.role !== "ADMIN" && session!.user.role !== "MATERIAL_DIRECTOR") {
+    return {
+      error: NextResponse.json(
+        { error: "Acesso restrito a administradores ou diretores de material" },
         { status: 403 }
       ),
       session: null,

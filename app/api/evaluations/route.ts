@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireCoachOrAdmin } from "@/lib/auth";
 import { evaluationSchema } from "@/lib/validations/evaluation";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
 import { withErrorHandler } from "@/lib/api-handler";
 
-// GET /api/evaluations — List evaluations for the team (ADMIN only)
+// GET /api/evaluations — List evaluations for the team (ADMIN/COACH only)
 export const GET = withErrorHandler(async (request: Request) => {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireCoachOrAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {
@@ -46,9 +46,9 @@ export const GET = withErrorHandler(async (request: Request) => {
   return NextResponse.json({ evaluations });
 });
 
-// POST /api/evaluations — Create a new evaluation for a player (ADMIN only)
+// POST /api/evaluations — Create a new evaluation for a player (ADMIN/COACH only)
 export const POST = withErrorHandler(async (request: Request) => {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireCoachOrAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {
