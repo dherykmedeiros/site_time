@@ -188,6 +188,7 @@ model Team {
   rules            Rule[]
   fines            Fine[]
   evaluations      PlayerEvaluation[]
+  equipments       Equipment[]
 
   @@map("teams")
 }
@@ -582,4 +583,25 @@ model PlayerEvaluation {
   @@index([evaluatorId])
   @@index([teamId])
   @@map("player_evaluations")
+}
+
+model Equipment {
+  id           String   @id @default(cuid())
+  name         String
+  category     String   // UNIFORM, SOCKS, BALL, OTHER
+  totalQty     Int      @default(0)
+  availableQty Int      @default(0)
+  damagedQty   Int      @default(0)
+  lostQty      Int      @default(0)
+  status       String   @default("GOOD") // NEW, GOOD, USED, POOR
+  location     String?  
+  notes        String?  @db.Text
+  teamId       String
+  team         Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([teamId])
+  @@index([category])
+  @@map("equipments")
 }

@@ -15,6 +15,7 @@ const navItems = [
   { href: "/dashboard/fines", label: "Punições", icon: "⚖️" },
   { href: "/dashboard/rules", label: "Regras", icon: "📋" },
   { href: "/dashboard/evaluations", label: "Avaliações", icon: "📈", adminOnly: true },
+  { href: "/dashboard/equipment", label: "Equipamentos", icon: "👕" },
   {
     href: "/dashboard/friendly-requests",
     label: "Amistosos",
