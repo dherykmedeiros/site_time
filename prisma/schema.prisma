@@ -152,6 +152,7 @@ model User {
   playerId     String?  @unique
   player       Player?  @relation(fields: [playerId], references: [id])
   pushSubscriptions PushSubscription[]
+  writtenEvaluations PlayerEvaluation[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -186,6 +187,7 @@ model Team {
   openMatchSlots   OpenMatchSlot[]
   rules            Rule[]
   fines            Fine[]
+  evaluations      PlayerEvaluation[]
 
   @@map("teams")
 }
@@ -213,6 +215,7 @@ model Player {
   membershipPayments MembershipPayment[]
   achievements Achievement[]
   fines        Fine[]
+  evaluations  PlayerEvaluation[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -553,4 +556,30 @@ model Fine {
   @@index([playerId])
   @@index([ruleId])
   @@map("fines")
+}
+
+model PlayerEvaluation {
+  id             String   @id @default(cuid())
+  playerId       String
+  player         Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  evaluatorId    String
+  evaluator      User     @relation(fields: [evaluatorId], references: [id], onDelete: Cascade)
+  content        String   @db.Text
+  
+  // Notas quantitativas (1 a 5)
+  technical      Int      @default(3)
+  tactical       Int      @default(3)
+  physical       Int      @default(3)
+  discipline     Int      @default(3)
+  
+  date           DateTime @default(now())
+  teamId         String
+  team           Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([playerId])
+  @@index([evaluatorId])
+  @@index([teamId])
+  @@map("player_evaluations")
 }
