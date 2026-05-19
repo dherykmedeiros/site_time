@@ -184,6 +184,8 @@ model Team {
   membershipPayments MembershipPayment[]
   seasons          Season[]
   openMatchSlots   OpenMatchSlot[]
+  rules            Rule[]
+  fines            Fine[]
 
   @@map("teams")
 }
@@ -210,6 +212,7 @@ model Player {
   inviteTokens InviteToken[]
   membershipPayments MembershipPayment[]
   achievements Achievement[]
+  fines        Fine[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -389,6 +392,7 @@ model Transaction {
   team        Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
   match       Match?              @relation(fields: [matchId], references: [id], onDelete: SetNull)
   membershipPayment MembershipPayment?
+  fine        Fine?
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
@@ -512,4 +516,43 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+model Rule {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  fineAmount  Decimal? @db.Decimal(10, 2)
+  teamId      String
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  fines       Fine[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([teamId])
+  @@map("rules")
+}
+
+model Fine {
+  id            String       @id @default(cuid())
+  playerId      String
+  player        Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  ruleId        String?
+  rule          Rule?        @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  description   String
+  amount        Decimal      @db.Decimal(10, 2)
+  date          DateTime
+  isPaid        Boolean      @default(false)
+  paidAt        DateTime?
+  teamId        String
+  team          Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  transactionId String?      @unique
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([teamId])
+  @@index([playerId])
+  @@index([ruleId])
+  @@map("fines")
 }

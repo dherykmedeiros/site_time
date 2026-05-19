@@ -12,6 +12,8 @@ const navItems = [
   { href: "/dashboard/matches", label: "Jogos", icon: "⚽", badgeKey: "upcomingMatches" as const },
   { href: "/dashboard/seasons", label: "Temporadas", icon: "🏆", adminOnly: true },
   { href: "/dashboard/finances", label: "Finanças", icon: "💳" },
+  { href: "/dashboard/fines", label: "Punições", icon: "⚖️" },
+  { href: "/dashboard/rules", label: "Regras", icon: "📋" },
   {
     href: "/dashboard/friendly-requests",
     label: "Amistosos",

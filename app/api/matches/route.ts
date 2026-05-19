@@ -141,7 +141,19 @@ export const POST = withErrorHandler(async (request: Request) => {
     );
   }
 
-  const { date, venue, opponent, isHome, opponentBadgeUrl, type, seasonId, positionLimits = [] } = parsed.data;
+  const {
+    date,
+    venue,
+    opponent,
+    isHome,
+    opponentBadgeUrl,
+    type,
+    seasonId,
+    positionLimits = [],
+    status,
+    homeScore,
+    awayScore,
+  } = parsed.data;
   const matchDate = new Date(date);
 
   const uniquePositions = new Set(positionLimits.map((l) => l.position));
@@ -181,6 +193,7 @@ export const POST = withErrorHandler(async (request: Request) => {
 
   // Create match and auto-create PENDING RSVPs for all ACTIVE players
   const match = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const calculatedStatus = status ?? (matchDate < new Date() && homeScore !== undefined && awayScore !== undefined ? "COMPLETED" : "SCHEDULED");
     const newMatch = await tx.match.create({
       data: {
         date: matchDate,
@@ -191,6 +204,9 @@ export const POST = withErrorHandler(async (request: Request) => {
         type,
         shareToken,
         teamId,
+        status: calculatedStatus,
+        homeScore: homeScore !== undefined ? homeScore : null,
+        awayScore: awayScore !== undefined ? awayScore : null,
         ...(seasonId && { seasonId }),
       },
     });

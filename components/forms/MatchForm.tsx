@@ -53,6 +53,8 @@ interface MatchFormProps {
     type?: string;
     seasonId?: string;
     positionLimits?: Array<{ position: string; maxPlayers: number }>;
+    homeScore?: number | null;
+    awayScore?: number | null;
   };
   onSuccess?: () => void;
   onCancel?: () => void;
@@ -129,11 +131,14 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
       isHome: defaultValues?.isHome ?? true,
       opponentBadgeUrl: defaultValues?.opponentBadgeUrl || "",
       type: (defaultValues?.type as "FRIENDLY" | "CHAMPIONSHIP") || undefined,
+      homeScore: defaultValues?.homeScore !== null ? defaultValues?.homeScore : undefined,
+      awayScore: defaultValues?.awayScore !== null ? defaultValues?.awayScore : undefined,
     },
   });
 
   const watchedDate = watch("date");
   const watchedOpponentBadgeUrl = watch("opponentBadgeUrl");
+  const isPastDate = watchedDate ? new Date(watchedDate) < new Date() : false;
 
   useEffect(() => {
     register("isHome");
@@ -469,6 +474,35 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
               </option>
             ))}
           </select>
+        </div>
+      )}
+
+      {isPastDate && (
+        <div className="rounded-xl border border-[rgba(16,185,129,0.15)] bg-[rgba(10,24,20,0.3)] p-4 space-y-3">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-[#34d399]">
+            Esta partida já ocorreu?
+          </p>
+          <p className="text-xs text-[#8fa39b]">
+            Insira o placar para registrar o jogo como finalizado. Deixe em branco se a partida ainda não ocorreu.
+          </p>
+          <div className="grid gap-4 grid-cols-2">
+            <Input
+              label="Gols do Time"
+              type="number"
+              min={0}
+              placeholder="Ex: 3"
+              error={errors.homeScore?.message}
+              {...register("homeScore")}
+            />
+            <Input
+              label="Gols do Adversário"
+              type="number"
+              min={0}
+              placeholder="Ex: 1"
+              error={errors.awayScore?.message}
+              {...register("awayScore")}
+            />
+          </div>
         </div>
       )}
 

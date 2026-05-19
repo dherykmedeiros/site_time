@@ -47,6 +47,17 @@ export const createMatchSchema = z.object({
   }),
   seasonId: z.string().min(1, "Temporada inválida").optional().nullable(),
   positionLimits: z.array(positionLimitSchema).max(20).optional(),
+  status: z.enum(["SCHEDULED", "COMPLETED"]).optional(),
+  homeScore: z.coerce
+    .number()
+    .int("Placar deve ser inteiro")
+    .min(0, "Placar deve ser >= 0")
+    .optional(),
+  awayScore: z.coerce
+    .number()
+    .int("Placar deve ser inteiro")
+    .min(0, "Placar deve ser >= 0")
+    .optional(),
 });
 
 export const updateMatchSchema = z.object({
