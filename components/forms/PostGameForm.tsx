@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
@@ -18,6 +18,13 @@ interface PlayerStatInput {
   assists: number;
   yellowCards: number;
   redCards: number;
+}
+
+interface SquadPlayer {
+  id: string;
+  name: string;
+  position: string;
+  shirtNumber: number;
 }
 
 interface PostGameFormProps {
@@ -62,6 +69,22 @@ export function PostGameForm({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [step, setStep] = useState<"score" | "stats">(mode === "edit" ? "stats" : "score");
+
+  const [squadPlayers, setSquadPlayers] = useState<SquadPlayer[]>([]);
+  const [selectedPlayerToAdd, setSelectedPlayerToAdd] = useState("");
+
+  useEffect(() => {
+    fetch("/api/players?status=ACTIVE")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.players) setSquadPlayers(d.players);
+      })
+      .catch(() => {});
+  }, []);
+
+  const eligiblePlayers = squadPlayers.filter(
+    (sp) => !playerStats.some((ps) => ps.playerId === sp.id)
+  );
 
   // Initialize stats for confirmed players
   const confirmedPlayers = rsvps.filter((r) => r.status === "CONFIRMED");
@@ -371,15 +394,59 @@ export function PostGameForm({
             </div>
           )}
 
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 mb-4">
             {mode === "edit"
               ? "Atualize as estatísticas individuais da partida finalizada."
               : "Registre as estatísticas individuais dos jogadores confirmados."}
           </p>
 
+          {/* Adicionar jogador manualmente */}
+          {eligiblePlayers.length > 0 && (
+            <div className="flex flex-col gap-2 rounded-xl border border-white/10 bg-white/5 p-4 mb-4 sm:flex-row sm:items-end sm:gap-3">
+              <div className="flex-1">
+                <Select
+                  label="Adicionar jogador manualmente"
+                  options={[
+                    { value: "", label: "Selecione um jogador..." },
+                    ...eligiblePlayers.map((p) => ({
+                      value: p.id,
+                      label: `${p.name} (#${p.shirtNumber || "-"} - ${p.position || "-"})`,
+                    })),
+                  ]}
+                  value={selectedPlayerToAdd}
+                  onChange={(e) => setSelectedPlayerToAdd(e.target.value)}
+                />
+              </div>
+              <Button
+                type="button"
+                className="w-full sm:w-auto h-[42px] mt-2 sm:mt-0"
+                onClick={() => {
+                  if (!selectedPlayerToAdd) return;
+                  const player = squadPlayers.find((p) => p.id === selectedPlayerToAdd);
+                  if (player) {
+                    setPlayerStats((prev) => [
+                      ...prev,
+                      {
+                        playerId: player.id,
+                        playerName: player.name,
+                        goals: 0,
+                        assists: 0,
+                        yellowCards: 0,
+                        redCards: 0,
+                      },
+                    ]);
+                    setSelectedPlayerToAdd("");
+                  }
+                }}
+              >
+                Adicionar
+              </Button>
+            </div>
+          )}
+
           {playerStats.length === 0 ? (
-            <div className="rounded-xl border border-[rgba(251,191,36,0.2)] bg-[rgba(251,191,36,0.1)] p-3 text-sm text-[#fbbf24]">
-              Nenhum jogador confirmou presença. Pule esta etapa.
+            <div className="rounded-xl border border-[rgba(251,191,36,0.2)] bg-[rgba(251,191,36,0.1)] p-3 text-sm text-[#fbbf24] mb-4">
+              Nenhum jogador confirmou presença. Utilize a seção acima para adicionar jogadores manualmente ou pule esta etapa.
             </div>
           ) : (
             <div className="space-y-4">
