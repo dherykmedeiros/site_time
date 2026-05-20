@@ -256,7 +256,7 @@ export default function SeasonDetailPage() {
                 return (
                   <Link
                     key={m.id}
-                    href={`/matches/${m.id}`}
+                    href={`/dashboard/matches/${m.id}`}
                     className="app-surface flex items-center justify-between rounded-xl border border-[var(--border)] px-5 py-3 shadow-[var(--shadow-sm)] transition hover:border-[var(--border-strong)] hover:bg-[var(--surface-soft)]"
                   >
                     <div>

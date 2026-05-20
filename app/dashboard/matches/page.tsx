@@ -203,7 +203,7 @@ export default function MatchesPage() {
       ) : (
         <div className="space-y-4">
           {filteredMatches.map((match) => (
-            <Link key={match.id} href={`/matches/${match.id}`}>
+            <Link key={match.id} href={`/dashboard/matches/${match.id}`}>
               <Card className="rounded-[18px] p-4 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex-1">
