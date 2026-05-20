@@ -1008,14 +1008,18 @@ export default function MatchDetailPage() {
                   <span className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     {match.isHome ? "Nosso Time (Casa)" : `${match.opponent} (Casa)`}
                   </span>
-                  <span className="text-blue-600 text-4xl block font-black">{match.homeScore}</span>
+                  <span className={`${match.isHome ? "text-blue-600" : "text-red-600"} text-4xl block font-black`}>
+                    {match.homeScore}
+                  </span>
                 </div>
                 <span className="text-gray-400 self-end pb-1">x</span>
                 <div className="space-y-1">
                   <span className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     {match.isHome ? `${match.opponent} (Visitante)` : "Nosso Time (Visitante)"}
                   </span>
-                  <span className="text-red-600 text-4xl block font-black">{match.awayScore}</span>
+                  <span className={`${match.isHome ? "text-red-600" : "text-blue-600"} text-4xl block font-black`}>
+                    {match.awayScore}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -1415,6 +1419,10 @@ export default function MatchDetailPage() {
             isHome: match.isHome,
             opponentBadgeUrl: match.opponentBadgeUrl,
             type: match.type,
+            seasonId: match.season?.id,
+            positionLimits: match.positionLimits,
+            homeScore: match.homeScore,
+            awayScore: match.awayScore,
           }}
           onSuccess={async () => {
             setShowEditMatch(false);

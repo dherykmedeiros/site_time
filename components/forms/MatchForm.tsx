@@ -407,7 +407,17 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
           { value: "away", label: "Visitante" },
         ]}
         value={watch("isHome") === false ? "away" : "home"}
-        onChange={(e) => setValue("isHome", e.target.value === "home", { shouldValidate: true })}
+        onChange={(e) => {
+          const newIsHome = e.target.value === "home";
+          const currentIsHome = watch("isHome") ?? true;
+          if (newIsHome !== currentIsHome) {
+            const currentHomeScore = watch("homeScore");
+            const currentAwayScore = watch("awayScore");
+            setValue("isHome", newIsHome, { shouldValidate: true });
+            setValue("homeScore", currentAwayScore, { shouldValidate: true });
+            setValue("awayScore", currentHomeScore, { shouldValidate: true });
+          }
+        }}
       />
 
       <div className="space-y-2">
