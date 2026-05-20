@@ -82,10 +82,6 @@ export function PostGameForm({
       .catch(() => {});
   }, []);
 
-  const eligiblePlayers = squadPlayers.filter(
-    (sp) => !playerStats.some((ps) => ps.playerId === sp.id)
-  );
-
   // Initialize stats for confirmed players
   const confirmedPlayers = rsvps.filter((r) => r.status === "CONFIRMED");
   const initialStatsByPlayer = new Map((initialStats || []).map((item) => [item.playerId, item]));
@@ -110,6 +106,10 @@ export function PostGameForm({
       yellowCards: initialStatsByPlayer.get(r.playerId)?.yellowCards ?? 0,
       redCards: initialStatsByPlayer.get(r.playerId)?.redCards ?? 0,
     }))
+  );
+
+  const eligiblePlayers = squadPlayers.filter(
+    (sp) => !playerStats.some((ps) => ps.playerId === sp.id)
   );
 
   function updatePlayerStat(
