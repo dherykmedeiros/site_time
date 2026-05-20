@@ -61,6 +61,8 @@ interface MatchDetail {
   rsvps: RSVP[];
   stats: PlayerStat[];
   canSubmitPostGame: boolean;
+  season?: { id: string; name: string; type: string; status: string } | null;
+  positionLimits?: Array<{ position: string; maxPlayers: number }>;
   createdAt: string;
   updatedAt: string;
 }
