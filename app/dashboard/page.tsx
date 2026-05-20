@@ -124,6 +124,12 @@ export default function DashboardHomePage() {
   }
 
   const record = rankings?.teamRecord;
+  const playersCount = team?._count?.players ?? 0;
+  const matchesCount = team?._count?.matches ?? 0;
+  const topScorers = rankings?.rankings?.topScorers || [];
+  const topAssisters = rankings?.rankings?.topAssisters || [];
+  const mostCards = rankings?.rankings?.mostCards || [];
+
   const quickActions = [
     {
       href: "/dashboard/squad",
@@ -216,11 +222,11 @@ export default function DashboardHomePage() {
             <dl className="space-y-3.5 text-xs font-semibold">
               <div className="flex items-center justify-between">
                 <dt className="text-[#8fa39b]">Jogadores no Elenco</dt>
-                <dd className="text-white font-extrabold">{team._count.players}</dd>
+                <dd className="text-white font-extrabold">{playersCount}</dd>
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-[#8fa39b]">Total de Partidas</dt>
-                <dd className="text-white font-extrabold">{team._count.matches}</dd>
+                <dd className="text-white font-extrabold">{matchesCount}</dd>
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-[#8fa39b]">Caixa do Time</dt>
@@ -241,13 +247,13 @@ export default function DashboardHomePage() {
       <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           label="Atletas Oficiais"
-          value={team._count.players}
+          value={playersCount}
           icon="👥"
           color="blue"
         />
         <StatsCard
           label="Partidas Disputadas"
-          value={team._count.matches}
+          value={matchesCount}
           icon="⚽"
           color="green"
         />
@@ -361,8 +367,8 @@ export default function DashboardHomePage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {rankings.rankings.topScorers && rankings.rankings.topScorers.length > 0 ? (
-                      rankings.rankings.topScorers.map((entry, idx) => (
+                    {topScorers.length > 0 ? (
+                      topScorers.map((entry, idx) => (
                         <tr key={entry.playerId} className="hover:bg-white/[0.01]">
                           <td className="px-5 py-3.5 font-black text-[#8fa39b]">{idx + 1}</td>
                           <td className="px-5 py-3.5 font-extrabold text-white">{entry.playerName}</td>
@@ -390,8 +396,8 @@ export default function DashboardHomePage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {rankings.rankings.topAssisters && rankings.rankings.topAssisters.length > 0 ? (
-                      rankings.rankings.topAssisters.map((entry, idx) => (
+                    {topAssisters.length > 0 ? (
+                      topAssisters.map((entry, idx) => (
                         <tr key={entry.playerId} className="hover:bg-white/[0.01]">
                           <td className="px-5 py-3.5 font-black text-[#8fa39b]">{idx + 1}</td>
                           <td className="px-5 py-3.5 font-extrabold text-white">{entry.playerName}</td>
@@ -420,8 +426,8 @@ export default function DashboardHomePage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5 text-center">
-                    {rankings.rankings.mostCards && rankings.rankings.mostCards.length > 0 ? (
-                      rankings.rankings.mostCards.map((entry, idx) => (
+                    {mostCards.length > 0 ? (
+                      mostCards.map((entry, idx) => (
                         <tr key={entry.playerId} className="hover:bg-white/[0.01] text-left">
                           <td className="px-5 py-3.5 font-black text-[#8fa39b]">{idx + 1}</td>
                           <td className="px-5 py-3.5 font-extrabold text-white">{entry.playerName}</td>
