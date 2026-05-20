@@ -115,6 +115,7 @@ export default function MatchDetailPage() {
   const [match, setMatch] = useState<MatchDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [detailedError, setDetailedError] = useState<{ message: string; name?: string; stack?: string; status?: number } | null>(null);
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [showPostGame, setShowPostGame] = useState(false);
   const [showEditMatch, setShowEditMatch] = useState(false);
@@ -144,6 +145,7 @@ export default function MatchDetailPage() {
   const fetchMatch = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
+    setDetailedError(null);
     try {
       const res = await fetch(`/api/matches/${id}`);
       if (res.ok) {
@@ -152,13 +154,44 @@ export default function MatchDetailPage() {
       } else if (res.status === 404) {
         setMatch(null);
         setLoadError("Partida nao encontrada.");
+        try {
+          const errData = await res.json();
+          setDetailedError({
+            message: errData.error || "Partida não encontrada no banco de dados.",
+            status: res.status,
+          });
+        } catch {
+          setDetailedError({
+            message: "Partida não encontrada (404).",
+            status: 404,
+          });
+        }
       } else {
         setMatch(null);
         setLoadError("Nao foi possivel carregar os dados da partida.");
+        try {
+          const errData = await res.json();
+          setDetailedError({
+            message: errData.details || errData.error || "Erro interno do servidor.",
+            name: errData.name || "ServerError",
+            stack: errData.stack,
+            status: res.status,
+          });
+        } catch {
+          setDetailedError({
+            message: `Erro na resposta do servidor (Código HTTP: ${res.status}).`,
+            status: res.status,
+          });
+        }
       }
-    } catch {
+    } catch (err: any) {
       setMatch(null);
       setLoadError("Erro de conexao ao carregar a partida.");
+      setDetailedError({
+        message: err.message || String(err),
+        name: err.name || "FetchError",
+        stack: err.stack,
+      });
     } finally {
       setLoading(false);
     }
@@ -616,13 +649,56 @@ export default function MatchDetailPage() {
 
   if (!match) {
     return (
-      <div className="space-y-4 rounded-[16px] border border-[#efc1b7] bg-[#fff1ee] p-5">
-        <p className="text-sm text-[var(--danger)]">
-          {loadError ?? "Partida nao encontrada."}
-        </p>
-        <Button type="button" variant="secondary" onClick={fetchMatch}>
-          Tentar novamente
-        </Button>
+      <div className="space-y-4 rounded-[16px] border border-[#efc1b7] bg-[#fff1ee] p-6 max-w-2xl mx-auto my-8">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">⚠️</span>
+          <div>
+            <h3 className="text-base font-bold text-red-900">Erro ao carregar partida</h3>
+            <p className="text-sm text-red-700 mt-0.5">
+              {loadError ?? "Partida não encontrada no sistema."}
+            </p>
+          </div>
+        </div>
+
+        {detailedError && (
+          <div className="mt-4 text-left bg-red-100/40 border border-red-200/50 rounded-xl p-4">
+            <details className="cursor-pointer group">
+              <summary className="text-xs font-semibold text-red-800 hover:text-red-900 focus:outline-none flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <span>Visualizar logs e detalhes técnicos</span>
+                </span>
+                <span className="text-[10px] font-normal text-red-500 bg-red-100 px-2 py-0.5 rounded-full group-open:hidden">
+                  clique para ver logs
+                </span>
+              </summary>
+              <div className="mt-3 overflow-x-auto rounded-lg bg-red-950 p-4 font-mono text-[10px] text-red-200 border border-red-900/50 max-h-60 whitespace-pre-wrap leading-relaxed">
+                <p className="font-bold text-red-400 mb-1">
+                  [{detailedError.name || "API_ERROR"}] {detailedError.message}
+                </p>
+                {detailedError.status && (
+                  <p className="text-red-300 font-semibold mb-1">Status Code: {detailedError.status}</p>
+                )}
+                {detailedError.stack && (
+                  <p className="opacity-80 mt-2 text-[9px] border-t border-red-900/50 pt-2 leading-normal">
+                    {detailedError.stack}
+                  </p>
+                )}
+              </div>
+            </details>
+          </div>
+        )}
+
+        <div className="flex gap-3 pt-2">
+          <Button type="button" variant="secondary" onClick={fetchMatch} className="bg-white hover:bg-gray-50 border-gray-200">
+            Tentar novamente
+          </Button>
+          <a
+            href="/dashboard/matches"
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-gray-200 bg-white shadow-sm hover:bg-gray-100 hover:text-accent-foreground h-9 px-4 py-2"
+          >
+            Voltar para Partidas
+          </a>
+        </div>
       </div>
     );
   }
