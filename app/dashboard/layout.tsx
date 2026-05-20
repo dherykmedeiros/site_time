@@ -4,13 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import NotificationCenter from "@/components/dashboard/NotificationCenter";
 
 const navItems = [
   { href: "/dashboard", label: "Painel", icon: "⌂" },
+  { href: "/dashboard/messages", label: "Avisos", icon: "📢" },
   { href: "/dashboard/squad", label: "Elenco", icon: "👥" },
   { href: "/dashboard/squad/mensalidade", label: "Mensalidade", icon: "💰", adminOnly: true },
   { href: "/dashboard/matches", label: "Jogos", icon: "⚽", badgeKey: "upcomingMatches" as const },
+  { href: "/dashboard/gallery", label: "Galeria", icon: "📸" },
+  { href: "/dashboard/polls", label: "Enquetes", icon: "📊" },
   { href: "/dashboard/seasons", label: "Temporadas", icon: "🏆", adminOnly: true },
+  { href: "/dashboard/ranking", label: "Ranking", icon: "🏅" },
   { href: "/dashboard/finances", label: "Finanças", icon: "💳" },
   { href: "/dashboard/fines", label: "Punições", icon: "⚖️" },
   { href: "/dashboard/rules", label: "Regras", icon: "📋" },
@@ -280,7 +285,7 @@ export default function DashboardLayout({
               </svg>
             </button>
             <span className="text-base font-black uppercase tracking-widest text-[#10b981]">VARzea</span>
-            <div className="w-6" />
+            <NotificationCenter />
           </header>
 
           {/* Desktop page header */}
@@ -292,8 +297,11 @@ export default function DashboardLayout({
                 </p>
                 <h1 className="mt-1 text-2xl font-black uppercase tracking-tight text-white">{activeItem.label}</h1>
               </div>
-              <div className="rounded-xl border border-[rgba(16,185,129,0.2)] bg-[rgba(16,185,129,0.06)] px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.2em] text-[#34d399]">
-                Operação de Elite VARzea
+              <div className="flex items-center gap-4">
+                <NotificationCenter />
+                <div className="rounded-xl border border-[rgba(16,185,129,0.2)] bg-[rgba(16,185,129,0.06)] px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.2em] text-[#34d399]">
+                  Operação de Elite VARzea
+                </div>
               </div>
             </div>
           </header>

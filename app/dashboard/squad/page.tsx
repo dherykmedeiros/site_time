@@ -354,6 +354,13 @@ export default function SquadPage() {
                       Meu perfil
                     </Button>
                   )}
+                  {/* Link to full individual profile page */}
+                  <Link
+                    href={`/dashboard/squad/${player.id}`}
+                    className="inline-flex items-center justify-center rounded-lg border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] px-3 py-1.5 text-xs font-bold text-[#34d399] transition hover:bg-[rgba(16,185,129,0.15)] hover:border-[rgba(16,185,129,0.5)]"
+                  >
+                    🏅 Ver Perfil
+                  </Link>
                   {isCoachOrAdmin && player.id !== selfPlayerId && (
                     <Button
                       variant="ghost"

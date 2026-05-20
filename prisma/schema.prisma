@@ -155,6 +155,10 @@ model User {
   player       Player?  @relation(fields: [playerId], references: [id])
   pushSubscriptions PushSubscription[]
   writtenEvaluations PlayerEvaluation[]
+  messages         TeamMessage[]
+  messageReactions TeamMessageReaction[]
+  notifications    Notification[]
+  photos           MatchPhoto[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -191,6 +195,10 @@ model Team {
   fines            Fine[]
   evaluations      PlayerEvaluation[]
   equipments       Equipment[]
+  messages         TeamMessage[]
+  datePolls        DatePoll[]
+  photos           MatchPhoto[]
+  recruitmentRequests RecruitmentRequest[]
 
   @@map("teams")
 }
@@ -219,6 +227,7 @@ model Player {
   achievements Achievement[]
   fines        Fine[]
   evaluations  PlayerEvaluation[]
+  pollVotes    DatePollVote[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -271,6 +280,8 @@ model Match {
   seasonId   String?
   season     Season?     @relation(fields: [seasonId], references: [id])
   achievements Achievement[]
+  datePoll     DatePoll?
+  photos       MatchPhoto[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
@@ -606,4 +617,125 @@ model Equipment {
   @@index([teamId])
   @@index([category])
   @@map("equipments")
+}
+
+model TeamMessage {
+  id        String   @id @default(cuid())
+  teamId    String
+  authorId  String
+  content   String   @db.Text
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reactions TeamMessageReaction[]
+
+  @@index([teamId])
+  @@index([teamId, pinned])
+  @@map("team_messages")
+}
+
+model TeamMessageReaction {
+  id        String      @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime    @default(now())
+  message   TeamMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@map("team_message_reactions")
+}
+
+model DatePoll {
+  id        String           @id @default(cuid())
+  teamId    String
+  matchId   String?          @unique
+  title     String
+  closedAt  DateTime?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  team      Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  match     Match?           @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  options   DatePollOption[]
+
+  @@index([teamId])
+  @@map("date_polls")
+}
+
+model DatePollOption {
+  id        String          @id @default(cuid())
+  pollId    String
+  date      DateTime
+  label     String?
+  createdAt DateTime        @default(now())
+  poll      DatePoll        @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes     DatePollVote[]
+
+  @@index([pollId])
+  @@map("date_poll_options")
+}
+
+model DatePollVote {
+  id       String         @id @default(cuid())
+  optionId String
+  playerId String
+  createdAt DateTime      @default(now())
+  option   DatePollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  player   Player         @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([optionId, playerId])
+  @@index([optionId])
+  @@map("date_poll_votes")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // MATCH_CREATED, FINE_APPLIED, PAYMENT_DUE, MESSAGE_PINNED, RSVP_REMINDER, RECAP_READY
+  title     String
+  body      String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+model MatchPhoto {
+  id           String   @id @default(cuid())
+  matchId      String?
+  teamId       String
+  url          String
+  caption      String?
+  uploadedById String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  match        Match?   @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  team         Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([matchId])
+  @@map("match_photos")
+}
+
+model RecruitmentRequest {
+  id        String   @id @default(cuid())
+  teamId    String
+  name      String
+  contact   String
+  position  String?
+  message   String?  @db.Text
+  createdAt DateTime @default(now())
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@map("recruitment_requests")
 }

@@ -11,6 +11,7 @@ import { Modal } from "@/components/ui/Modal";
 import { BordereauCard } from "@/components/dashboard/BordereauCard";
 import { SuggestedLineupCard } from "@/components/dashboard/SuggestedLineupCard";
 import { TeamRecapWidget } from "@/components/dashboard/TeamRecapWidget";
+import { MatchPhotosGallery } from "@/components/dashboard/MatchPhotosGallery";
 import type { BordereauResponse, SuggestedLineupResponse } from "@/lib/validations/match";
 
 const PostGameForm = dynamic(
@@ -71,7 +72,7 @@ interface MatchLineupResponse {
   lineup: SuggestedLineupResponse;
 }
 
-type ScheduledWorkspaceSection = "overview" | "presence" | "lineup" | "operations" | "postgame";
+type ScheduledWorkspaceSection = "overview" | "presence" | "lineup" | "operations" | "postgame" | "gallery";
 
 const statusLabels: Record<string, string> = {
   SCHEDULED: "Agendada",
@@ -240,7 +241,7 @@ export default function MatchDetailPage() {
   }, [match, fetchBordereau]);
 
   useEffect(() => {
-    const allowedSections: ScheduledWorkspaceSection[] = ["overview", "presence"];
+    const allowedSections: ScheduledWorkspaceSection[] = ["overview", "presence", "gallery"];
 
     if (isAdmin && match?.status === "SCHEDULED") {
       allowedSections.push("lineup", "operations");
@@ -638,6 +639,7 @@ export default function MatchDetailPage() {
   }> = [
     { id: "overview", label: "Resumo", helper: "Visao rapida da partida" },
     { id: "presence", label: "Presenca", helper: "RSVP e lista de respostas" },
+    { id: "gallery", label: "Galeria", helper: "Fotos da partida" },
     ...(canSeeLineup
       ? [{ id: "lineup" as const, label: "Escalacao", helper: "Sugestao inicial do jogo" }]
       : []),
@@ -937,6 +939,20 @@ export default function MatchDetailPage() {
                   </p>
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={() => setActiveSection("gallery")}
+                className={`rounded-[14px] border p-4 text-left transition-colors ${
+                  activeSection === "gallery"
+                    ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                    : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white"
+                }`}
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Galeria</p>
+                <p className="mt-2 text-lg font-semibold text-[var(--text)]">Fotos do jogo</p>
+                <p className="mt-1 text-sm text-[var(--text-subtle)]">Resenha e fotos da partida.</p>
+              </button>
             </div>
 
             <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
@@ -1145,6 +1161,10 @@ export default function MatchDetailPage() {
           saveLoading={lineupSaving}
           imageUrl={lineupData?.imageUrl ?? null}
         />
+      )}
+
+      {activeSection === "gallery" && (
+        <MatchPhotosGallery matchId={match.id} opponent={match.opponent} />
       )}
 
       {canSeeOperations && activeSection === "operations" && (
