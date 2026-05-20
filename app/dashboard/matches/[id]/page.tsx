@@ -587,9 +587,9 @@ export default function MatchDetailPage() {
   function buildResultText() {
     if (!match || match.homeScore === null || match.awayScore === null) return "";
 
-    const home = match.homeScore;
-    const away = match.awayScore;
-    const result = home > away ? "✅ Vitória" : home < away ? "❌ Derrota" : "🟡 Empate";
+    const our = match.isHome ? match.homeScore : match.awayScore;
+    const opp = match.isHome ? match.awayScore : match.homeScore;
+    const result = our > opp ? "✅ Vitória" : our < opp ? "❌ Derrota" : "🟡 Empate";
     const scorers = match.stats
       .filter((s) => s.goals > 0)
       .map((s) => `${s.playerName} (${s.goals})`)
@@ -598,7 +598,7 @@ export default function MatchDetailPage() {
     const lines = [
       `⚽ RESULTADO`,
       ``,
-      `${result}: ${home} × ${away}`,
+      `${result}: ${our} × ${opp}`,
       `🏆 vs ${match.opponent}`,
       ...(scorers ? [`⚽ Gols: ${scorers}`] : []),
       ``,
@@ -1003,10 +1003,20 @@ export default function MatchDetailPage() {
               <h2 className="text-lg font-semibold">Placar</h2>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center gap-6 text-3xl font-bold">
-                <span className="text-blue-600">{match.homeScore}</span>
-                <span className="text-gray-400">x</span>
-                <span className="text-red-600">{match.awayScore}</span>
+              <div className="flex items-center justify-center gap-10 text-3xl font-bold text-center">
+                <div className="space-y-1">
+                  <span className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    {match.isHome ? "Nosso Time (Casa)" : `${match.opponent} (Casa)`}
+                  </span>
+                  <span className="text-blue-600 text-4xl block font-black">{match.homeScore}</span>
+                </div>
+                <span className="text-gray-400 self-end pb-1">x</span>
+                <div className="space-y-1">
+                  <span className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    {match.isHome ? `${match.opponent} (Visitante)` : "Nosso Time (Visitante)"}
+                  </span>
+                  <span className="text-red-600 text-4xl block font-black">{match.awayScore}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1211,6 +1221,7 @@ export default function MatchDetailPage() {
             <PostGameForm
               matchId={match.id}
               rsvps={match.rsvps}
+              initialIsHome={match.isHome}
               onSuccess={() => {
                 setShowPostGame(false);
                 fetchMatch();
@@ -1289,7 +1300,7 @@ export default function MatchDetailPage() {
                 <div>
                   <p className="font-semibold text-blue-800">Compartilhar resultado</p>
                   <p className="text-sm text-blue-600">
-                    {match.homeScore} × {match.awayScore} vs {match.opponent} — divulgue o card de resultado!
+                    {match.isHome ? match.homeScore : match.awayScore} × {match.isHome ? match.awayScore : match.homeScore} vs {match.opponent} — divulgue o card de resultado!
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">

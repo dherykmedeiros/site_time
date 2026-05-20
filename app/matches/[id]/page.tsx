@@ -221,7 +221,7 @@ export default async function PublicMatchPage({
                     {team.name}
                   </p>
                   <p className="text-5xl font-black text-[var(--brand)] sm:text-6.5xl">
-                    {match.homeScore}
+                    {match.isHome ? match.homeScore : match.awayScore}
                   </p>
                 </div>
                 <span className="text-3xl font-black text-[var(--text-muted)]">x</span>
@@ -230,7 +230,7 @@ export default async function PublicMatchPage({
                     {match.opponent}
                   </p>
                   <p className="text-5xl font-black text-rose-500 sm:text-6.5xl">
-                    {match.awayScore}
+                    {match.isHome ? match.awayScore : match.homeScore}
                   </p>
                 </div>
               </div>

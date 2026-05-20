@@ -487,7 +487,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
           </p>
           <div className="grid gap-4 grid-cols-2">
             <Input
-              label="Gols do Time"
+              label={watch("isHome") === false ? "Gols do Adversário (Casa)" : "Gols do Time (Casa)"}
               type="number"
               min={0}
               placeholder="Ex: 3"
@@ -495,7 +495,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
               {...register("homeScore")}
             />
             <Input
-              label="Gols do Adversário"
+              label={watch("isHome") === false ? "Gols do Time (Visitante)" : "Gols do Adversário (Visitante)"}
               type="number"
               min={0}
               placeholder="Ex: 1"

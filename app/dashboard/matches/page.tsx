@@ -224,7 +224,7 @@ export default function MatchesPage() {
                       match.homeScore !== null &&
                       match.awayScore !== null && (
                         <div className="mt-1 text-sm font-semibold text-[var(--text)]">
-                          Placar: {match.homeScore} x {match.awayScore}
+                          Placar: {match.isHome ? match.homeScore : match.awayScore} x {match.isHome ? match.awayScore : match.homeScore}
                         </div>
                       )}
                   </div>

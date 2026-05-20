@@ -49,10 +49,15 @@ export function PostGameForm({
   onSuccess,
   onCancel,
 }: PostGameFormProps) {
-  const [homeScore, setHomeScore] = useState<number>(initialHomeScore ?? 0);
-  const [awayScore, setAwayScore] = useState<number>(initialAwayScore ?? 0);
+  const isHomeActual = initialIsHome ?? true;
+  const [isHome, setIsHome] = useState(isHomeActual);
+  const [ourScore, setOurScore] = useState<number>(
+    isHomeActual ? (initialHomeScore ?? 0) : (initialAwayScore ?? 0)
+  );
+  const [opponentScore, setOpponentScore] = useState<number>(
+    isHomeActual ? (initialAwayScore ?? 0) : (initialHomeScore ?? 0)
+  );
   const [opponentBadgeInput, setOpponentBadgeInput] = useState(opponentBadgeUrl ?? "");
-  const [isHome, setIsHome] = useState(initialIsHome ?? true);
   const [uploadingBadge, setUploadingBadge] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -100,12 +105,16 @@ export function PostGameForm({
     setLoading(true);
     setErrorMsg("");
 
+    const payload = isHome
+      ? { homeScore: ourScore, awayScore: opponentScore }
+      : { homeScore: opponentScore, awayScore: ourScore };
+
     try {
       // Step 1: Submit score (triggers COMPLETED)
       const scoreRes = await fetch(`/api/matches/${matchId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ homeScore, awayScore }),
+        body: JSON.stringify(payload),
       });
 
       if (!scoreRes.ok) {
@@ -135,8 +144,13 @@ export function PostGameForm({
       }
 
       if (mode === "edit") {
-        metadataPayload.homeScore = homeScore;
-        metadataPayload.awayScore = awayScore;
+        if (isHome) {
+          metadataPayload.homeScore = ourScore;
+          metadataPayload.awayScore = opponentScore;
+        } else {
+          metadataPayload.homeScore = opponentScore;
+          metadataPayload.awayScore = ourScore;
+        }
       }
 
       if (allowOpponentBadgeEdit && opponentBadgeInput.trim()) {
@@ -249,21 +263,21 @@ export function PostGameForm({
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <Input
-                label="Nosso Time"
+                label={isHome ? "Nosso Time (Casa)" : "Nosso Time (Visitante)"}
                 type="number"
                 min={0}
-                value={homeScore}
-                onChange={(e) => setHomeScore(parseInt(e.target.value) || 0)}
+                value={ourScore}
+                onChange={(e) => setOurScore(parseInt(e.target.value) || 0)}
               />
             </div>
             <span className="pt-6 text-2xl font-bold text-gray-400">x</span>
             <div className="flex-1">
               <Input
-                label="Adversário"
+                label={isHome ? "Adversário (Visitante)" : "Adversário (Casa)"}
                 type="number"
                 min={0}
-                value={awayScore}
-                onChange={(e) => setAwayScore(parseInt(e.target.value) || 0)}
+                value={opponentScore}
+                onChange={(e) => setOpponentScore(parseInt(e.target.value) || 0)}
               />
             </div>
           </div>
@@ -291,18 +305,18 @@ export function PostGameForm({
           {mode === "edit" && (
             <div className="grid grid-cols-2 gap-3">
               <Input
-                label="Placar nosso time"
+                label={isHome ? "Placar nosso time (Casa)" : "Placar nosso time (Visitante)"}
                 type="number"
                 min={0}
-                value={homeScore}
-                onChange={(e) => setHomeScore(parseInt(e.target.value) || 0)}
+                value={ourScore}
+                onChange={(e) => setOurScore(parseInt(e.target.value) || 0)}
               />
               <Input
-                label="Placar adversario"
+                label={isHome ? "Placar adversario (Visitante)" : "Placar adversario (Casa)"}
                 type="number"
                 min={0}
-                value={awayScore}
-                onChange={(e) => setAwayScore(parseInt(e.target.value) || 0)}
+                value={opponentScore}
+                onChange={(e) => setOpponentScore(parseInt(e.target.value) || 0)}
               />
             </div>
           )}

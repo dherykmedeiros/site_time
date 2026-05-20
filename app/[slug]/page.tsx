@@ -369,7 +369,10 @@ export default async function TeamPublicPage({ params }: PageProps) {
                           <span>{team.shortName || team.name}</span>
                           {!isCancelled && match.homeScore !== null && match.awayScore !== null ? (
                             <span className="font-mono text-white bg-black/60 px-2.5 py-0.5 rounded border border-white/5">
-                              {match.homeScore} - {match.awayScore}
+                              {match.isHome 
+                                ? `${match.homeScore} - ${match.awayScore}`
+                                : `${match.awayScore} - ${match.homeScore}`
+                              }
                             </span>
                           ) : (
                             <span className="text-gray-500">vs</span>

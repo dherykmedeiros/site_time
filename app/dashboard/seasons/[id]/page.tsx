@@ -31,6 +31,7 @@ interface MatchRow {
   homeScore: number | null;
   awayScore: number | null;
   status: MatchStatus;
+  isHome: boolean;
 }
 
 interface SeasonDetail {
@@ -250,7 +251,9 @@ export default function SeasonDetailPage() {
                 );
                 const resultText =
                   m.homeScore !== null && m.awayScore !== null
-                    ? `${m.homeScore} × ${m.awayScore}`
+                    ? m.isHome
+                      ? `${m.homeScore} × ${m.awayScore}`
+                      : `${m.awayScore} × ${m.homeScore}`
                     : "—";
 
                 return (

@@ -34,6 +34,7 @@ export const GET = withErrorHandler(async (_request: Request, context: RouteCont
           homeScore: true,
           awayScore: true,
           status: true,
+          isHome: true,
         },
       },
       _count: { select: { matches: true } },
