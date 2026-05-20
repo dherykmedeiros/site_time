@@ -892,7 +892,7 @@ export default function MatchDetailPage() {
                 >
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Escalacao</p>
                   <p className="mt-2 text-lg font-semibold text-[var(--text)]">
-                    {lineupLoading ? "Calculando..." : `${lineupData?.lineup.starters.length ?? 0} titulares`}
+                    {lineupLoading ? "Calculando..." : `${lineupData?.lineup?.starters?.length ?? 0} titulares`}
                   </p>
                   <p className="mt-1 text-sm text-[var(--text-subtle)]">
                     {lineupError ? "Revise o erro da leitura" : "Veja a sugestao sem inflar a pagina principal."}
@@ -912,7 +912,7 @@ export default function MatchDetailPage() {
                 >
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Operacao</p>
                   <p className="mt-2 text-lg font-semibold text-[var(--text)]">
-                    {bordereauLoading ? "Carregando..." : `${bordereauData?.costSummary.presentCount ?? 0} presentes`}
+                    {bordereauLoading ? "Carregando..." : `${bordereauData?.costSummary?.presentCount ?? 0} presentes`}
                   </p>
                   <p className="mt-1 text-sm text-[var(--text-subtle)]">
                     Bordero e despesas ficam isolados do RSVP.
@@ -957,10 +957,10 @@ export default function MatchDetailPage() {
 
             <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
               <p className="text-sm font-semibold text-[var(--text)]">
-                {sections.find((section) => section.id === activeSection)?.label}
+                {sections.find((section) => section.id === activeSection)?.label ?? ""}
               </p>
               <p className="mt-1 text-sm text-[var(--text-subtle)]">
-                {sections.find((section) => section.id === activeSection)?.helper}
+                {sections.find((section) => section.id === activeSection)?.helper ?? ""}
               </p>
             </div>
           </CardContent>
