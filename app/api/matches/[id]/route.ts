@@ -163,102 +163,7 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
     );
   }
 
-  if (match.status === "COMPLETED") {
-    const hasLockedFieldUpdate =
-      data.date !== undefined ||
-      data.venue !== undefined ||
-      data.opponent !== undefined ||
-      data.type !== undefined ||
-      data.seasonId !== undefined ||
-      data.positionLimits !== undefined ||
-      data.status !== undefined;
 
-    if (hasLockedFieldUpdate) {
-      return NextResponse.json(
-        {
-          error:
-            "No pos-jogo somente placar, mando casa/fora e escudo do adversario (se vazio) podem ser alterados por aqui",
-          code: "POSTGAME_RESTRICTED_EDIT",
-        },
-        { status: 400 }
-      );
-    }
-
-    const postgameUpdateData: Record<string, unknown> = {};
-
-    if (data.isHome !== undefined) {
-      postgameUpdateData.isHome = data.isHome;
-    }
-
-    if (data.homeScore !== undefined || data.awayScore !== undefined) {
-      if (data.homeScore === undefined || data.awayScore === undefined) {
-        return NextResponse.json(
-          {
-            error: "Informe os dois valores do placar para editar o resultado",
-            code: "SCORE_REQUIRES_BOTH_VALUES",
-          },
-          { status: 400 }
-        );
-      }
-
-      postgameUpdateData.homeScore = data.homeScore;
-      postgameUpdateData.awayScore = data.awayScore;
-    }
-
-    if (data.opponentBadgeUrl !== undefined) {
-      if (match.opponentBadgeUrl) {
-        return NextResponse.json(
-          {
-            error: "Escudo do adversario ja foi definido para esta partida",
-            code: "OPPONENT_BADGE_ALREADY_SET",
-          },
-          { status: 400 }
-        );
-      }
-
-      if (!data.opponentBadgeUrl) {
-        return NextResponse.json(
-          {
-            error: "Informe uma URL valida para o escudo do adversario",
-            code: "OPPONENT_BADGE_REQUIRED",
-          },
-          { status: 400 }
-        );
-      }
-
-      postgameUpdateData.opponentBadgeUrl = data.opponentBadgeUrl;
-    }
-
-    if (Object.keys(postgameUpdateData).length > 0) {
-      const updated = await prisma.match.update({
-        where: { id },
-        data: postgameUpdateData,
-        include: {
-          rsvps: {
-            include: { player: { select: { name: true } } },
-          },
-          matchStats: {
-            include: { player: { select: { name: true } } },
-          },
-          positionLimits: {
-            select: { position: true, maxPlayers: true },
-          },
-          team: { select: { slug: true } },
-          season: { select: { id: true, name: true, type: true, status: true } },
-        },
-      });
-
-      return buildMatchDetailResponse(updated);
-    }
-
-    return NextResponse.json(
-      {
-        error: "No pos-jogo, so placar, mando casa/fora e escudo do adversario (se vazio) podem ser alterados por aqui",
-        code: "NO_POSTGAME_CHANGES",
-      },
-      { status: 400 }
-    );
-  }
 
   if (data.positionLimits) {
     const uniquePositions = new Set(data.positionLimits.map((l) => l.position));
@@ -321,7 +226,7 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
   }
 
   // Handle score submission (triggers COMPLETED)
-  if (data.homeScore !== undefined && data.awayScore !== undefined) {
+  if (match.status !== "COMPLETED" && data.homeScore !== undefined && data.awayScore !== undefined) {
     if (match.date >= new Date()) {
       return NextResponse.json(
         {
@@ -366,6 +271,9 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
   if (data.opponentBadgeUrl !== undefined) updateData.opponentBadgeUrl = data.opponentBadgeUrl;
   if (data.type) updateData.type = data.type;
   if (data.seasonId !== undefined) updateData.seasonId = data.seasonId;
+  if (data.homeScore !== undefined) updateData.homeScore = data.homeScore;
+  if (data.awayScore !== undefined) updateData.awayScore = data.awayScore;
+  if (data.status) updateData.status = data.status;
 
   const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     if (data.positionLimits) {

@@ -678,7 +678,7 @@ export default function MatchDetailPage() {
           <Button variant="secondary" onClick={handleCopyLink}>
             🖗 Compartilhar
           </Button>
-          {isAdmin && match.status === "SCHEDULED" && (
+          {isAdmin && (
             <Button variant="secondary" onClick={() => setShowEditMatch(true)}>
               Editar partida
             </Button>
@@ -1402,7 +1402,7 @@ export default function MatchDetailPage() {
       </Modal>
 
       <Modal
-        open={isAdmin && showEditMatch && match.status === "SCHEDULED"}
+        open={isAdmin && showEditMatch}
         onClose={() => setShowEditMatch(false)}
         title="Editar partida"
       >
