@@ -107,11 +107,16 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d?.seasons) {
-          setSeasons(d.seasons.filter((s: Season & { status: string }) => s.status === "ACTIVE"));
+          setSeasons(
+            d.seasons.filter(
+              (s: Season & { status: string }) =>
+                s.status === "ACTIVE" || s.id === defaultValues?.seasonId
+            )
+          );
         }
       })
       .catch(() => {});
-  }, []);
+  }, [defaultValues?.seasonId]);
 
   // Format date for datetime-local input
   const formatDateForInput = (isoDate?: string) => {
@@ -280,7 +285,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         body.awayScore = null;
       }
 
-      if (seasonId) body.seasonId = seasonId;
+      body.seasonId = seasonId || null;
 
       if (recordType === "SCHEDULED" && positionLimitsEnabled) {
         body.positionLimits = playerPositions

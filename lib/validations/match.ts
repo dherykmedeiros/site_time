@@ -87,20 +87,22 @@ export const updateMatchSchema = z.object({
   seasonId: z.string().min(1, "Temporada inválida").optional().nullable(),
   positionLimits: z.array(positionLimitSchema).max(20).optional(),
   status: z
-    .enum(["CANCELLED"], {
-      message: "Apenas CANCELLED é aceito",
+    .enum(["SCHEDULED", "COMPLETED", "CANCELLED"], {
+      message: "Status inválido",
     })
     .optional(),
-  homeScore: z
+  homeScore: z.coerce
     .number()
     .int("Placar deve ser inteiro")
     .min(0, "Placar deve ser >= 0")
-    .optional(),
-  awayScore: z
+    .optional()
+    .nullable(),
+  awayScore: z.coerce
     .number()
     .int("Placar deve ser inteiro")
     .min(0, "Placar deve ser >= 0")
-    .optional(),
+    .optional()
+    .nullable(),
 });
 
 export const rsvpResponseSchema = z.object({
