@@ -19,12 +19,12 @@ const positionLimitSchema = z.object({
 const optionalBadgeUrlSchema = z
   .string()
   .max(2048, "URL do escudo do adversário muito longa")
-  .refine(
-    (value) => isSafeUrl(value),
-    "URL do escudo do adversário deve começar com /uploads/ ou ser https:// de domínio permitido"
-  )
   .optional()
-  .nullable();
+  .nullable()
+  .refine(
+    (value) => !value || isSafeUrl(value),
+    "URL do escudo do adversário deve começar com /uploads/ ou ser https:// de domínio permitido"
+  );
 
 export const createMatchSchema = z.object({
   date: z
@@ -52,12 +52,14 @@ export const createMatchSchema = z.object({
     .number()
     .int("Placar deve ser inteiro")
     .min(0, "Placar deve ser >= 0")
-    .optional(),
+    .optional()
+    .nullable(),
   awayScore: z.coerce
     .number()
     .int("Placar deve ser inteiro")
     .min(0, "Placar deve ser >= 0")
-    .optional(),
+    .optional()
+    .nullable(),
 });
 
 export const updateMatchSchema = z.object({
