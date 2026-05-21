@@ -162,7 +162,6 @@ export async function buildTeamPregameRecap(matchId: string) {
       rsvps: {
         select: {
           status: true,
-          playerName: true,
           player: {
             select: {
               name: true,
@@ -181,7 +180,7 @@ export async function buildTeamPregameRecap(matchId: string) {
   const confirmedPlayers = match.rsvps
     .filter((r) => r.status === "CONFIRMED")
     .map((r) => ({
-      name: r.playerName || r.player?.name || "Jogador",
+      name: r.player?.name || "Jogador",
       position: r.player?.position || "N/A",
     }));
 
