@@ -95,6 +95,12 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
   const [opponentBadgePreview, setOpponentBadgePreview] = useState<string | null>(
     defaultValues?.opponentBadgeUrl || null
   );
+  const [recordType, setRecordType] = useState<"SCHEDULED" | "COMPLETED">(() => {
+    if (defaultValues?.id) {
+      return defaultValues.homeScore !== undefined && defaultValues.homeScore !== null ? "COMPLETED" : "SCHEDULED";
+    }
+    return "SCHEDULED";
+  });
 
   useEffect(() => {
     fetch("/api/seasons")
@@ -181,7 +187,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
   }
 
   useEffect(() => {
-    if (!watchedDate || Number.isNaN(Date.parse(watchedDate))) {
+    if (recordType === "COMPLETED" || !watchedDate || Number.isNaN(Date.parse(watchedDate))) {
       setAvailabilitySnapshot(null);
       setAvailabilityError(null);
       setAvailabilityLoading(false);
@@ -236,6 +242,25 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
     setLoading(true);
     setErrorMsg("");
 
+    if (recordType === "COMPLETED") {
+      const hVal = data.homeScore;
+      const aVal = data.awayScore;
+      if (
+        hVal === undefined ||
+        hVal === null ||
+        hVal === "" ||
+        Number.isNaN(Number(hVal)) ||
+        aVal === undefined ||
+        aVal === null ||
+        aVal === "" ||
+        Number.isNaN(Number(aVal))
+      ) {
+        setErrorMsg("Por favor, preencha o placar de ambas as equipes para registrar um jogo passado.");
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       const url = isEditing
         ? `/api/matches/${defaultValues!.id}`
@@ -247,17 +272,25 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         ...data,
         date: new Date(data.date).toISOString(),
         opponentBadgeUrl: data.opponentBadgeUrl?.trim() ? data.opponentBadgeUrl.trim() : null,
+        status: recordType,
       };
+
+      if (recordType === "SCHEDULED") {
+        body.homeScore = null;
+        body.awayScore = null;
+      }
 
       if (seasonId) body.seasonId = seasonId;
 
-      if (positionLimitsEnabled) {
+      if (recordType === "SCHEDULED" && positionLimitsEnabled) {
         body.positionLimits = playerPositions
           .map((position) => ({
             position,
             maxPlayers: Number(positionLimits[position] || 0),
           }))
           .filter((limit) => Number.isFinite(limit.maxPlayers) && limit.maxPlayers > 0);
+      } else {
+        body.positionLimits = [];
       }
 
       const res = await fetch(url, {
@@ -288,10 +321,41 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {errorMsg && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-[12px] border border-[rgba(239,68,68,0.25)] bg-[rgba(239,68,68,0.08)] p-3 text-sm text-[#fca5a5]">
           {errorMsg}
         </div>
       )}
+
+      {/* Selector de Tipo de Registro (Pill Switcher) */}
+      <div className="mb-6 space-y-2">
+        <label className="block text-xs font-black uppercase tracking-[0.15em] text-[var(--text-muted)]">
+          Tipo de Registro
+        </label>
+        <div className="grid grid-cols-2 gap-2 rounded-xl bg-white/[0.03] border border-white/5 p-1">
+          <button
+            type="button"
+            onClick={() => setRecordType("SCHEDULED")}
+            className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-all ${
+              recordType === "SCHEDULED"
+                ? "bg-[rgba(16,185,129,0.12)] border border-[rgba(16,185,129,0.25)] text-[#34d399] shadow-sm"
+                : "border border-transparent text-[var(--text-muted)] hover:text-white hover:bg-white/[0.03]"
+            }`}
+          >
+            <span className="text-sm">📅</span> Agendar Jogo (Futuro)
+          </button>
+          <button
+            type="button"
+            onClick={() => setRecordType("COMPLETED")}
+            className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-all ${
+              recordType === "COMPLETED"
+                ? "bg-[rgba(16,185,129,0.12)] border border-[rgba(16,185,129,0.25)] text-[#34d399] shadow-sm"
+                : "border border-transparent text-[var(--text-muted)] hover:text-white hover:bg-white/[0.03]"
+            }`}
+          >
+            <span className="text-sm">🏆</span> Registrar Jogo Passado
+          </button>
+        </div>
+      </div>
 
       <Input
         label="Data e Horário"
@@ -300,7 +364,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         {...register("date")}
       />
 
-      {(availabilityLoading || availabilityError || availabilitySnapshot) && (
+      {recordType === "SCHEDULED" && (availabilityLoading || availabilityError || availabilitySnapshot) && (
         <div className="rounded-xl border border-[rgba(16,185,129,0.15)] bg-[rgba(10,24,20,0.3)] p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -487,13 +551,13 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         </div>
       )}
 
-      {isPastDate && (
-        <div className="rounded-xl border border-[rgba(16,185,129,0.15)] bg-[rgba(10,24,20,0.3)] p-4 space-y-3">
+      {recordType === "COMPLETED" && (
+        <div className="rounded-xl border border-[rgba(16,185,129,0.2)] bg-[rgba(10,24,20,0.3)] p-4 space-y-3 shadow-md backdrop-blur-sm">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-[#34d399]">
-            Esta partida já ocorreu?
+            Resultado da Partida
           </p>
           <p className="text-xs text-[#8fa39b]">
-            Insira o placar para registrar o jogo como finalizado. Deixe em branco se a partida ainda não ocorreu.
+            Insira o placar final para registrar esta partida diretamente como concluída no histórico.
           </p>
           <div className="grid gap-4 grid-cols-2">
             <Input
@@ -516,45 +580,55 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         </div>
       )}
 
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-        <label className="mb-2 flex cursor-pointer items-center gap-2 text-sm font-medium text-[var(--text)]">
-          <input
-            type="checkbox"
-            checked={positionLimitsEnabled}
-            onChange={(e) => setPositionLimitsEnabled(e.target.checked)}
-          />
-          Definir limite por posição para confirmações
-        </label>
-        <p className="text-xs text-[var(--text-subtle)]">
-          Ajuda a equilibrar o elenco para o jogo. Exemplo: 2 zagueiros, 1 lateral esquerdo, 1 lateral direito.
-        </p>
+      {recordType === "SCHEDULED" && (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+          <label className="mb-2 flex cursor-pointer items-center gap-2 text-sm font-medium text-[var(--text)]">
+            <input
+              type="checkbox"
+              checked={positionLimitsEnabled}
+              onChange={(e) => setPositionLimitsEnabled(e.target.checked)}
+            />
+            Definir limite por posição para confirmações
+          </label>
+          <p className="text-xs text-[var(--text-subtle)]">
+            Ajuda a equilibrar o elenco para o jogo. Exemplo: 2 zagueiros, 1 lateral esquerdo, 1 lateral direito.
+          </p>
 
-        {positionLimitsEnabled && (
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {playerPositions.map((position) => (
-              <div key={position} className="rounded-lg border border-white/10 bg-[#090f0c] p-3">
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--text-subtle)]">
-                  {playerPositionLabels[position]}
-                </label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={30}
-                  placeholder="Sem limite"
-                  value={positionLimits[position]}
-                  onChange={(e) =>
-                    setPositionLimits((prev) => ({ ...prev, [position]: e.target.value }))
-                  }
-                />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+          {positionLimitsEnabled && (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {playerPositions.map((position) => (
+                <div key={position} className="rounded-lg border border-white/10 bg-[#090f0c] p-3">
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[var(--text-subtle)]">
+                    {playerPositionLabels[position]}
+                  </label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={30}
+                    placeholder="Sem limite"
+                    value={positionLimits[position]}
+                    onChange={(e) =>
+                      setPositionLimits((prev) => ({ ...prev, [position]: e.target.value }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-3 pt-2">
         <Button type="submit" disabled={loading}>
-          {loading ? "Salvando..." : isEditing ? "Atualizar" : "Agendar"}
+          {loading
+            ? "Salvando..."
+            : isEditing
+            ? recordType === "COMPLETED"
+              ? "Salvar Resultado"
+              : "Atualizar"
+            : recordType === "COMPLETED"
+            ? "Registrar Jogo"
+            : "Agendar"}
         </Button>
         {onCancel && (
           <Button type="button" variant="secondary" onClick={onCancel}>
