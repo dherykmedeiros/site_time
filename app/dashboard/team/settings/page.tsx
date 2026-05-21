@@ -279,7 +279,7 @@ export default function TeamSettingsPage() {
       </div>
 
       {!hasTeam && (
-        <div className="rounded-[14px] border border-[#bde0d3] bg-[#e9f8f1] p-4 text-sm text-[#1d5f4f]">
+        <div className="rounded-[14px] border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] p-4 text-sm text-[#6ee7b7]">
           Voce ainda nao criou um time. Preencha as informacoes abaixo para comecar.
         </div>
       )}
@@ -434,7 +434,7 @@ export default function TeamSettingsPage() {
                 slots.map((slot) => (
                   <div
                     key={slot.id}
-                    className="flex flex-col gap-2 rounded-[12px] border border-[var(--border)] bg-white p-3 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-2 rounded-[12px] border border-white/5 bg-white/[0.04] p-3 sm:flex-row sm:items-center sm:justify-between hover:bg-white/[0.07] transition-colors"
                   >
                     <div>
                       <p className="text-sm font-semibold text-[var(--text)]">
@@ -487,8 +487,8 @@ export default function TeamSettingsPage() {
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] ${
                     settings.publicDirectoryOptIn
-                      ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                      : "border border-amber-200 bg-amber-50 text-amber-700"
+                      ? "border border-[rgba(16,185,129,0.4)] bg-[rgba(16,185,129,0.1)] text-[#6ee7b7]"
+                      : "border border-[rgba(245,158,11,0.4)] bg-[rgba(245,158,11,0.08)] text-[#fcd34d]"
                   }`}
                 >
                   {settings.publicDirectoryOptIn ? "Publicado" : "Rascunho"}
@@ -499,23 +499,23 @@ export default function TeamSettingsPage() {
                 {settings.city && <span className="rounded-full border border-[var(--border)] bg-white/75 px-2 py-1">Cidade: {settings.city}</span>}
                 {settings.region && <span className="rounded-full border border-[var(--border)] bg-white/75 px-2 py-1">Regiao: {settings.region}</span>}
                 {settings.fieldType && (
-                  <span className="rounded-full border border-[var(--border)] bg-white/75 px-2 py-1">
+                  <span className="rounded-full border border-[var(--border)] bg-white/[0.05] px-2 py-1">
                     Campo: {fieldTypeLabels[settings.fieldType]}
                   </span>
                 )}
                 {settings.competitiveLevel && (
-                  <span className="rounded-full border border-[var(--border)] bg-white/75 px-2 py-1">
+                  <span className="rounded-full border border-[var(--border)] bg-white/[0.05] px-2 py-1">
                     Nivel: {levelLabels[settings.competitiveLevel]}
                   </span>
                 )}
                 {!settings.city && !settings.region && !settings.fieldType && !settings.competitiveLevel && (
-                  <span className="rounded-full border border-[var(--border)] bg-white/75 px-2 py-1">
+                  <span className="rounded-full border border-[var(--border)] bg-white/[0.05] px-2 py-1">
                     Complete os dados para melhorar a descoberta
                   </span>
                 )}
               </div>
 
-              <div className="mt-4 rounded-[14px] border border-[var(--border)] bg-white/70 p-3">
+              <div className="mt-4 rounded-[14px] border border-white/5 bg-white/[0.03] p-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-subtle)]">
                   Agenda aberta
                 </p>
@@ -547,7 +547,7 @@ export default function TeamSettingsPage() {
       )}
 
       {feedback && (
-        <div className="rounded-[14px] border border-[#bde0d3] bg-[#e9f8f1] p-4 text-sm text-[#1d5f4f]">
+        <div className="rounded-[14px] border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] p-4 text-sm text-[#6ee7b7] font-semibold">
           {feedback}
         </div>
       )}

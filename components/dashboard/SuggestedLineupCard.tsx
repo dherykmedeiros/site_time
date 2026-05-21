@@ -368,7 +368,7 @@ export function SuggestedLineupCard({
         {loading && <p className="text-sm text-[var(--text-subtle)]">Carregando sugestao...</p>}
 
         {!loading && error && (
-          <div className="rounded-[12px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[var(--danger)]">
+          <div className="rounded-[12px] border border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.1)] p-3 text-sm text-[#fca5a5] font-semibold">
             {error}
           </div>
         )}
@@ -422,7 +422,7 @@ export function SuggestedLineupCard({
               </div>
               <div className="space-y-3">
                 {displayLineup.starters.map((entry) => (
-                  <div key={entry.playerId} className="rounded-[12px] bg-white p-3">
+                  <div key={entry.playerId} className="rounded-[12px] border border-white/5 bg-white/[0.04] p-3 hover:bg-white/[0.07] transition-colors">
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-semibold text-[var(--text)]">{entry.playerName}</p>
                       <div className="flex items-center gap-2">
@@ -457,7 +457,7 @@ export function SuggestedLineupCard({
                   <p className="text-sm text-[var(--text-subtle)]">Nenhum jogador excedente no banco inicial.</p>
                 )}
                 {displayLineup.bench.map((entry) => (
-                  <div key={entry.playerId} className="rounded-[12px] bg-white p-3">
+                  <div key={entry.playerId} className="rounded-[12px] border border-white/5 bg-white/[0.04] p-3 hover:bg-white/[0.07] transition-colors">
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-semibold text-[var(--text)]">{entry.playerName}</p>
                       <div className="flex items-center gap-2">
@@ -488,7 +488,7 @@ export function SuggestedLineupCard({
         {!loading && !error && displayLineup && displayLineup.alerts.length > 0 && (
           <div className="space-y-2">
             {displayLineup.alerts.map((alert) => (
-              <div key={alert} className="rounded-[12px] border border-[#f3ddab] bg-[#fff8e8] p-3 text-sm text-[#7b5a1c]">
+              <div key={alert} className="rounded-[12px] border border-[rgba(245,158,11,0.3)] bg-[rgba(245,158,11,0.08)] p-3 text-sm text-[#fcd34d]">
                 {alert}
               </div>
             ))}

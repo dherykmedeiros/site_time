@@ -23,16 +23,16 @@ export function Table<T>({
 }: TableProps<T>) {
   if (data.length === 0) {
     return (
-      <div className="rounded-[14px] border border-dashed border-[var(--border)] bg-[#fbfcfb] py-8 text-center text-sm text-[var(--text-muted)]">
+      <div className="rounded-[14px] border border-dashed border-[var(--border)] bg-white/[0.02] py-8 text-center text-sm text-[var(--text-muted)]">
         {emptyMessage}
       </div>
     );
   }
 
   return (
-    <div className={`overflow-x-auto rounded-[14px] border border-[var(--border)] bg-white ${className}`}>
-      <table className="min-w-full divide-y divide-[#e5ece5]">
-        <thead className="bg-[#f3f7f3]">
+    <div className={`overflow-x-auto rounded-[14px] border border-[var(--border)] bg-[var(--bg-elevated)] backdrop-blur-sm ${className}`}>
+      <table className="min-w-full divide-y divide-white/5">
+        <thead className="bg-white/[0.03]">
           <tr>
             {columns.map((col) => (
               <th
@@ -44,9 +44,9 @@ export function Table<T>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#eef2ee] bg-white">
+        <tbody className="divide-y divide-white/5 bg-transparent">
           {data.map((item) => (
-            <tr key={keyExtractor(item)} className="transition-colors hover:bg-[#f8fbf8]">
+            <tr key={keyExtractor(item)} className="transition-colors hover:bg-white/[0.03]">
               {columns.map((col) => (
                 <td key={col.key} className="whitespace-nowrap px-6 py-4 text-sm text-[var(--text)]">
                   {col.render

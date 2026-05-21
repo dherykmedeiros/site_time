@@ -66,7 +66,7 @@ export function BordereauCard({
         {loading && <p className="text-sm text-[var(--text-subtle)]">Carregando bordero...</p>}
 
         {!loading && error && (
-          <div className="rounded-[12px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[var(--danger)]">
+          <div className="rounded-[12px] border border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.1)] p-3 text-sm text-[#fca5a5] font-semibold">
             {error}
           </div>
         )}
@@ -78,7 +78,7 @@ export function BordereauCard({
                 <h3 className="mb-3 font-semibold text-[var(--text)]">Checklist pre-jogo</h3>
                 <div className="space-y-3">
                   {data.checklist.map((item, index) => (
-                    <label key={item.id} className="flex items-center gap-3 rounded-[12px] bg-white p-3 text-sm text-[var(--text)]">
+                    <label key={item.id} className="flex items-center gap-3 rounded-[12px] border border-white/5 bg-white/[0.04] p-3 text-sm text-[var(--text)] hover:bg-white/[0.07] transition-colors cursor-pointer">
                       <input
                         type="checkbox"
                         checked={item.isChecked}
@@ -97,7 +97,7 @@ export function BordereauCard({
                 </div>
                 <div className="space-y-3">
                   {data.attendance.map((item) => (
-                    <div key={item.playerId} className="rounded-[12px] bg-white p-3">
+                    <div key={item.playerId} className="rounded-[12px] border border-white/5 bg-white/[0.04] p-3 hover:bg-white/[0.07] transition-colors">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <p className="font-semibold text-[var(--text)]">{item.playerName}</p>
@@ -146,7 +146,7 @@ export function BordereauCard({
                   <p className="text-sm text-[var(--text-subtle)]">Nenhuma despesa registrada para este jogo.</p>
                 )}
                 {data.expenses.map((expense) => (
-                  <div key={expense.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] bg-white p-3">
+                  <div key={expense.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[12px] border border-white/5 bg-white/[0.04] p-3">
                     <div>
                       <p className="font-semibold text-[var(--text)]">{expense.description}</p>
                       <p className="text-sm text-[var(--text-subtle)]">

@@ -1,7 +1,7 @@
 export function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`animate-pulse rounded bg-gray-200 ${className}`}
+      className={`animate-pulse rounded bg-white/[0.07] ${className}`}
       aria-hidden="true"
     />
   );
@@ -9,7 +9,7 @@ export function Skeleton({ className = "" }: { className?: string }) {
 
 export function CardSkeleton() {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
+    <div className="rounded-[14px] border border-white/5 bg-[var(--bg-elevated)] p-6">
       <Skeleton className="mb-2 h-4 w-24" />
       <Skeleton className="h-8 w-16" />
     </div>
@@ -18,11 +18,11 @@ export function CardSkeleton() {
 
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-      <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
+    <div className="overflow-hidden rounded-[14px] border border-white/5 bg-[var(--bg-elevated)]">
+      <div className="border-b border-white/5 bg-white/[0.02] px-4 py-3">
         <Skeleton className="h-4 w-32" />
       </div>
-      <div className="divide-y divide-gray-100">
+      <div className="divide-y divide-white/5">
         {Array.from({ length: rows }).map((_, i) => (
           <div key={i} className="flex items-center gap-4 px-4 py-3">
             <Skeleton className="h-4 w-8" />
@@ -71,7 +71,7 @@ export function ListSkeleton({ rows = 8 }: { rows?: number }) {
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}
-          className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4"
+          className="flex items-center justify-between rounded-[14px] border border-white/5 bg-[var(--bg-elevated)] p-4"
         >
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-48" />

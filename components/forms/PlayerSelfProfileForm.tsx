@@ -302,7 +302,7 @@ export function PlayerSelfProfileForm({ playerId, canEdit = true }: PlayerSelfPr
   }
 
   return (
-    <Card className="rounded-[18px] border border-[#b7d8ce]">
+    <Card className="rounded-[18px] border border-[rgba(16,185,129,0.2)]">
       <CardHeader>
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Meu perfil</p>
@@ -313,13 +313,13 @@ export function PlayerSelfProfileForm({ playerId, canEdit = true }: PlayerSelfPr
       </CardHeader>
       <CardContent>
         {errorMsg && (
-          <div className="mb-4 rounded-[12px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[var(--danger)]">
+          <div className="mb-4 rounded-[12px] border border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.1)] p-3 text-sm text-[#fca5a5] font-semibold">
             {errorMsg}
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-4 rounded-[12px] border border-[#bde0d3] bg-[#e9f8f1] p-3 text-sm text-[#1d5f4f]">
+          <div className="mb-4 rounded-[12px] border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] p-3 text-sm text-[#6ee7b7] font-medium">
             {successMsg}
           </div>
         )}
@@ -399,7 +399,7 @@ export function PlayerSelfProfileForm({ playerId, canEdit = true }: PlayerSelfPr
 
               {canEdit && (
                 <label className="cursor-pointer">
-                  <span className="inline-flex items-center rounded-[10px] border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--text)] hover:bg-[var(--surface-soft)]">
+                  <span className="inline-flex items-center rounded-[10px] border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm font-semibold text-[var(--text)] hover:bg-white/[0.08] transition-colors">
                     {uploadingPhoto ? "Enviando..." : "Alterar foto"}
                   </span>
                   <input
@@ -439,13 +439,13 @@ export function PlayerSelfProfileForm({ playerId, canEdit = true }: PlayerSelfPr
             </div>
 
             {availabilityError && (
-              <div className="mb-4 rounded-[12px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[var(--danger)]">
+              <div className="mb-4 rounded-[12px] border border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.1)] p-3 text-sm text-[#fca5a5] font-semibold">
                 {availabilityError}
               </div>
             )}
 
             {availabilitySuccess && (
-              <div className="mb-4 rounded-[12px] border border-[#bde0d3] bg-[#e9f8f1] p-3 text-sm text-[#1d5f4f]">
+              <div className="mb-4 rounded-[12px] border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] p-3 text-sm text-[#6ee7b7] font-medium">
                 {availabilitySuccess}
               </div>
             )}
@@ -463,7 +463,7 @@ export function PlayerSelfProfileForm({ playerId, canEdit = true }: PlayerSelfPr
                     <label className="space-y-1 text-sm font-semibold text-[var(--text)]">
                       <span>Dia</span>
                       <select
-                        className="block w-full rounded-[12px] border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text)]"
+                        className="block w-full rounded-[12px] border border-[var(--border)] bg-[#090f0c] px-3 py-2 text-sm text-[var(--text)]"
                         value={rule.dayOfWeek}
                         disabled={!canEdit}
                         onChange={(event) => updateAvailabilityRule(index, { dayOfWeek: Number(event.target.value) })}
@@ -495,7 +495,7 @@ export function PlayerSelfProfileForm({ playerId, canEdit = true }: PlayerSelfPr
                     <label className="space-y-1 text-sm font-semibold text-[var(--text)]">
                       <span>Frequencia</span>
                       <select
-                        className="block w-full rounded-[12px] border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text)]"
+                        className="block w-full rounded-[12px] border border-[var(--border)] bg-[#090f0c] px-3 py-2 text-sm text-[var(--text)]"
                         value={rule.frequency}
                         disabled={!canEdit}
                         onChange={(event) =>
@@ -515,7 +515,7 @@ export function PlayerSelfProfileForm({ playerId, canEdit = true }: PlayerSelfPr
                     <label className="space-y-1 text-sm font-semibold text-[var(--text)]">
                       <span>Disponibilidade</span>
                       <select
-                        className="block w-full rounded-[12px] border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--text)]"
+                        className="block w-full rounded-[12px] border border-[var(--border)] bg-[#090f0c] px-3 py-2 text-sm text-[var(--text)]"
                         value={rule.availability}
                         disabled={!canEdit}
                         onChange={(event) =>
