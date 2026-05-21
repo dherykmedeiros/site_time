@@ -306,7 +306,7 @@ export default function SeasonsPage() {
 
                 <div className="flex items-center gap-2 self-end sm:self-auto">
                   <Link
-                    href={`/seasons/${s.id}`}
+                    href={`/dashboard/seasons/${s.id}`}
                     className="rounded-full border border-[var(--border)] px-4 py-1.5 text-xs font-semibold text-[var(--text)] transition hover:bg-[var(--surface-soft)]"
                   >
                     Ver detalhes

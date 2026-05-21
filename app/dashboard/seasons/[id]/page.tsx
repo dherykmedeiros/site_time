@@ -118,7 +118,7 @@ export default function SeasonDetailPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-[var(--text-subtle)] uppercase tracking-wide">
-            <Link href="/seasons" className="hover:text-[var(--text)] transition">← Temporadas</Link>
+            <Link href="/dashboard/seasons" className="hover:text-[var(--text)] transition">← Temporadas</Link>
             <span>·</span>
             <span>{typeLabels[season.type]}</span>
           </div>
@@ -129,7 +129,7 @@ export default function SeasonDetailPage() {
         </div>
         <div className="flex gap-2 self-start">
           <Link
-            href="/seasons"
+            href="/dashboard/seasons"
             className="rounded-full border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--text)] transition hover:bg-[var(--surface-soft)]"
           >
             Voltar
