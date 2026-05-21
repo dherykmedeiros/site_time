@@ -13,6 +13,7 @@ import { SuggestedLineupCard } from "@/components/dashboard/SuggestedLineupCard"
 import { TeamRecapWidget } from "@/components/dashboard/TeamRecapWidget";
 import { MatchPhotosGallery } from "@/components/dashboard/MatchPhotosGallery";
 import type { BordereauResponse, SuggestedLineupResponse } from "@/lib/validations/match";
+import { Star } from "lucide-react";
 
 const PostGameForm = dynamic(
   () => import("@/components/forms/PostGameForm").then((m) => ({ default: m.PostGameForm })),
@@ -28,6 +29,95 @@ const TransactionForm = dynamic(
   () => import("@/components/forms/TransactionForm").then((m) => ({ default: m.TransactionForm })),
   { loading: () => <div className="p-4 text-center text-gray-500">Carregando formulário...</div> }
 );
+
+function TeammateRatingRow({
+  player,
+  currentUserPlayerId,
+  userRating,
+  averageRating,
+  totalRatings,
+  canRate,
+  onRate,
+  isSubmitting,
+}: {
+  player: PlayerStat;
+  currentUserPlayerId: string | null;
+  userRating: number | null;
+  averageRating: number;
+  totalRatings: number;
+  canRate: boolean;
+  onRate: (stars: number) => void;
+  isSubmitting: boolean;
+}) {
+  const isSelf = currentUserPlayerId && currentUserPlayerId === player.playerId;
+  const [hoveredStars, setHoveredStars] = useState<number | null>(null);
+
+  const disabled = isSelf || !canRate || isSubmitting;
+
+  return (
+    <div
+      className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-xl border border-white/5 bg-white/[0.01] transition-all duration-300 ${
+        isSelf ? "opacity-60 bg-black/10" : "hover:bg-white/[0.03] hover:border-white/10"
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <div className="h-9 w-9 flex items-center justify-center rounded-full bg-white/10 text-white font-bold text-sm">
+          {player.playerName.charAt(0).toUpperCase()}
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-white text-sm">{player.playerName}</span>
+            {isSelf && (
+              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase text-white/70">
+                Você
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-0.5 text-xs text-[#8fa39b]">
+            <span>Média: <strong className="text-white">{averageRating.toFixed(1)}⭐</strong></span>
+            <span>·</span>
+            <span>{totalRatings} {totalRatings === 1 ? "avaliação" : "avaliações"}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 sm:mt-0 flex items-center gap-3">
+        <div className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((star) => {
+            const isFilled = hoveredStars !== null ? star <= hoveredStars : star <= (userRating || 0);
+            return (
+              <button
+                key={star}
+                type="button"
+                disabled={disabled}
+                onClick={() => onRate(star)}
+                onMouseEnter={() => !disabled && setHoveredStars(star)}
+                onMouseLeave={() => !disabled && setHoveredStars(null)}
+                className={`transition-all duration-150 focus:outline-none ${
+                  disabled ? "cursor-not-allowed" : "cursor-pointer hover:scale-125"
+                }`}
+              >
+                <Star
+                  className={`h-5 w-5 ${
+                    isFilled
+                      ? "fill-yellow-400 text-yellow-400 animate-none"
+                      : "text-white/20 fill-transparent"
+                  } ${isSubmitting ? "animate-pulse" : ""}`}
+                />
+              </button>
+            );
+          })}
+        </div>
+
+        {userRating && (
+          <span className="text-[10px] font-black uppercase text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded-md border border-yellow-400/20">
+            Sua Nota: {userRating}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface RSVP {
   playerId: string;
@@ -142,6 +232,12 @@ export default function MatchDetailPage() {
   const [bordereauError, setBordereauError] = useState<string | null>(null);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<ScheduledWorkspaceSection>("overview");
+
+  const [ratingsLoading, setRatingsLoading] = useState(false);
+  const [userRatings, setUserRatings] = useState<Array<{ playerId: string; stars: number }>>([]);
+  const [ratingsAverages, setRatingsAverages] = useState<Array<{ playerId: string; averageStars: number; totalRatings: number }>>([]);
+  const [canRate, setCanRate] = useState(false);
+  const [submittingRatingId, setSubmittingRatingId] = useState<string | null>(null);
 
   const fetchMatch = useCallback(async () => {
     setLoading(true);
@@ -275,6 +371,69 @@ export default function MatchDetailPage() {
 
     fetchBordereau();
   }, [match, fetchBordereau]);
+
+  const fetchRatings = useCallback(async () => {
+    if (!match || match.status !== "COMPLETED") return;
+    setRatingsLoading(true);
+    try {
+      const res = await fetch(`/api/matches/${id}/ratings`);
+      if (res.ok) {
+        const data = await res.json();
+        setUserRatings(data.userRatings || []);
+        setRatingsAverages(data.averages || []);
+        setCanRate(data.canRate || false);
+      }
+    } catch (err) {
+      console.error("Erro ao buscar avaliações:", err);
+    } finally {
+      setRatingsLoading(false);
+    }
+  }, [id, match]);
+
+  useEffect(() => {
+    if (activeSection === "postgame" && match?.status === "COMPLETED") {
+      fetchRatings();
+    }
+  }, [activeSection, match?.status, fetchRatings]);
+
+  async function handleRateTeammate(ratedId: string, stars: number) {
+    if (!canRate) return;
+    setSubmittingRatingId(ratedId);
+    try {
+      const res = await fetch(`/api/matches/${id}/ratings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ratedId, stars }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserRatings((prev) => {
+          const filtered = prev.filter((r) => r.playerId !== ratedId);
+          return [...filtered, { playerId: ratedId, stars }];
+        });
+        setRatingsAverages((prev) => {
+          const filtered = prev.filter((r) => r.playerId !== ratedId);
+          return [
+            ...filtered,
+            {
+              playerId: ratedId,
+              averageStars: data.averageStars,
+              totalRatings: data.totalRatings,
+            },
+          ];
+        });
+        setFeedback("Avaliação salva com sucesso!");
+        setTimeout(() => setFeedback(null), 2500);
+      } else {
+        const errData = await res.json();
+        setActionError(errData.error || "Erro ao salvar avaliação");
+      }
+    } catch (err) {
+      setActionError("Erro de conexão ao registrar avaliação");
+    } finally {
+      setSubmittingRatingId(null);
+    }
+  }
 
   useEffect(() => {
     const allowedSections: ScheduledWorkspaceSection[] = ["overview", "presence", "gallery"];
@@ -1454,6 +1613,70 @@ export default function MatchDetailPage() {
                 </tbody>
               </table>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Teammate Ratings Card */}
+      {activeSection === "postgame" && match.status === "COMPLETED" && match.stats.length > 0 && (
+        <Card className="rounded-[22px] border border-white/5 bg-white/[0.02] backdrop-blur-md overflow-hidden">
+          <CardHeader className="border-b border-white/5 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <h2 className="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
+                  <span className="text-[#34d399]">⭐</span> Avaliação dos Companheiros
+                </h2>
+                <p className="text-xs text-[#8fa39b] mt-1">
+                  Atribua notas de 1 a 5 estrelas para os atletas que participaram desta partida.
+                </p>
+              </div>
+              {!canRate && (
+                <span className="rounded-full bg-red-500/10 border border-red-500/20 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-400">
+                  Somente Participantes
+                </span>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            {!canRate && (
+              <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.01] p-4 text-center">
+                <p className="text-sm font-semibold text-white/80">Avaliação Restrita</p>
+                <p className="text-xs text-[#8fa39b] mt-1">
+                  Apenas os administradores, comissão técnica ou jogadores que participaram da partida (súmula ou presença confirmada) podem avaliar o time.
+                </p>
+              </div>
+            )}
+            
+            {ratingsLoading ? (
+              <div className="space-y-3 py-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-16 animate-pulse rounded-xl border border-white/5 bg-white/[0.01]" />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {match.stats.map((stat) => {
+                  const userRating = userRatings.find((r) => r.playerId === stat.playerId)?.stars ?? null;
+                  const avgData = ratingsAverages.find((r) => r.playerId === stat.playerId);
+                  const averageRating = avgData?.averageStars ?? 0;
+                  const totalRatings = avgData?.totalRatings ?? 0;
+
+                  return (
+                    <TeammateRatingRow
+                      key={stat.playerId}
+                      player={stat}
+                      currentUserPlayerId={session?.user?.playerId ?? null}
+                      userRating={userRating}
+                      averageRating={averageRating}
+                      totalRatings={totalRatings}
+                      canRate={canRate}
+                      onRate={(stars) => handleRateTeammate(stat.playerId, stars)}
+                      isSubmitting={submittingRatingId === stat.playerId}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

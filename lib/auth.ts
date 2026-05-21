@@ -13,6 +13,7 @@ declare module "next-auth" {
       name: string;
       role: "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR";
       teamId: string | null;
+      playerId: string | null;
     };
   }
 
@@ -22,6 +23,7 @@ declare module "next-auth" {
     name: string;
     role: "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR";
     teamId: string | null;
+    playerId: string | null;
   }
 }
 
@@ -32,6 +34,7 @@ declare module "next-auth/jwt" {
     name: string;
     role: "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR";
     teamId: string | null;
+    playerId: string | null;
   }
 }
 
@@ -72,6 +75,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           role: user.role as "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR",
           teamId: user.teamId,
+          playerId: user.playerId,
         };
       },
     }),
@@ -88,6 +92,7 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name;
         token.role = user.role;
         token.teamId = user.teamId;
+        token.playerId = user.playerId;
       }
 
       // Keep JWT claims fresh when user/team links change after login.
@@ -100,6 +105,7 @@ export const authOptions: NextAuthOptions = {
               name: true,
               role: true,
               teamId: true,
+              playerId: true,
             },
           });
 
@@ -108,6 +114,7 @@ export const authOptions: NextAuthOptions = {
             token.name = dbUser.name;
             token.role = dbUser.role;
             token.teamId = dbUser.teamId;
+            token.playerId = dbUser.playerId;
           }
         } catch (err) {
           console.error("[AUTH] JWT refresh failed:", err);
@@ -124,6 +131,7 @@ export const authOptions: NextAuthOptions = {
         name: token.name,
         role: token.role,
         teamId: token.teamId,
+        playerId: token.playerId,
       };
       return session;
     },

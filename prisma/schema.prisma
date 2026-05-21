@@ -155,6 +155,7 @@ model User {
   player       Player?  @relation(fields: [playerId], references: [id])
   pushSubscriptions PushSubscription[]
   writtenEvaluations PlayerEvaluation[]
+  givenRatings     MatchPlayerRating[]
   messages         TeamMessage[]
   messageReactions TeamMessageReaction[]
   notifications    Notification[]
@@ -227,6 +228,7 @@ model Player {
   achievements Achievement[]
   fines        Fine[]
   evaluations  PlayerEvaluation[]
+  receivedRatings MatchPlayerRating[]
   pollVotes    DatePollVote[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -282,6 +284,7 @@ model Match {
   achievements Achievement[]
   datePoll     DatePoll?
   photos       MatchPhoto[]
+  playerRatings MatchPlayerRating[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
@@ -597,6 +600,25 @@ model PlayerEvaluation {
   @@index([evaluatorId])
   @@index([teamId])
   @@map("player_evaluations")
+}
+
+model MatchPlayerRating {
+  id          String   @id @default(cuid())
+  matchId     String
+  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  raterId     String   // ID do User que avaliou
+  rater       User     @relation(fields: [raterId], references: [id], onDelete: Cascade)
+  ratedId     String   // ID do Player avaliado
+  rated       Player   @relation(fields: [ratedId], references: [id], onDelete: Cascade)
+  stars       Int      // 1 a 5 estrelas
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([matchId, raterId, ratedId])
+  @@index([matchId])
+  @@index([raterId])
+  @@index([ratedId])
+  @@map("match_player_ratings")
 }
 
 model Equipment {
