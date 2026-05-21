@@ -228,19 +228,41 @@ export default function MatchesPage() {
                         </div>
                       )}
                   </div>
-                  <div className="rounded-xl border border-[#e5ece5] bg-[#f8fbf8] px-3 py-2 text-sm">
-                    <div className="flex items-center gap-3">
-                    <span className="text-green-600">
-                      ✅ {match.rsvpSummary.confirmed}
-                    </span>
-                    <span className="text-red-600">
-                      ❌ {match.rsvpSummary.declined}
-                    </span>
-                    <span className="text-yellow-600">
-                      ⏳ {match.rsvpSummary.pending}
-                    </span>
+                  {match.status === "COMPLETED" && match.homeScore !== null && match.awayScore !== null ? (() => {
+                    const ourScore = match.isHome ? match.homeScore : match.awayScore;
+                    const opponentScore = match.isHome ? match.awayScore : match.homeScore;
+
+                    let badgeColor = "bg-gray-500/10 text-gray-400 border-gray-500/20";
+                    let resultLabel = "Empate";
+
+                    if (ourScore > opponentScore) {
+                      resultLabel = "Vitória";
+                      badgeColor = "bg-emerald-500/15 text-[#34d399] border-emerald-500/30";
+                    } else if (ourScore < opponentScore) {
+                      resultLabel = "Derrota";
+                      badgeColor = "bg-red-500/10 text-red-400 border-red-500/20";
+                    }
+
+                    return (
+                      <span className={`text-xs font-mono font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full border shrink-0 text-center ${badgeColor}`}>
+                        {resultLabel}
+                      </span>
+                    );
+                  })() : (
+                    <div className="rounded-xl border border-[#e5ece5] bg-[#f8fbf8] px-3 py-2 text-sm">
+                      <div className="flex items-center gap-3">
+                        <span className="text-green-600">
+                          ✅ {match.rsvpSummary.confirmed}
+                        </span>
+                        <span className="text-red-600">
+                          ❌ {match.rsvpSummary.declined}
+                        </span>
+                        <span className="text-yellow-600">
+                          ⏳ {match.rsvpSummary.pending}
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </Card>
             </Link>
