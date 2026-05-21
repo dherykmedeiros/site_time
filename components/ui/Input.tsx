@@ -22,9 +22,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           aria-invalid={error ? true : undefined}
           aria-describedby={errorId}
-          className={`block w-full rounded-[12px] border bg-[#090f0c] px-3 py-2 text-sm text-[var(--text)] shadow-sm transition-colors focus:outline-none ${
+          className={`block w-full rounded-[12px] border bg-[#090f0c] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-subtle)] shadow-sm transition-colors focus:outline-none ${
             error
-              ? "border-[#e2a79b] focus:border-[var(--danger)]"
+              ? "border-[rgba(239,68,68,0.55)] focus:border-[var(--danger)]"
               : "border-[var(--border)] focus:border-[var(--brand)]"
           } ${className}`}
           {...props}

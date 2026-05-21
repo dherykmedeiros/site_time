@@ -11,28 +11,28 @@ interface StatsCardProps {
 export function StatsCard({ label, value, icon, color = "blue", sublabel }: StatsCardProps) {
   const colorClasses: Record<string, { value: string; bubble: string }> = {
     blue: {
-      value: "text-cyan-700",
-      bubble: "bg-cyan-100 text-cyan-800",
+      value: "text-[#67e8f9]",
+      bubble: "bg-[rgba(6,182,212,0.15)] text-[#67e8f9]",
     },
     green: {
-      value: "text-emerald-700",
-      bubble: "bg-emerald-100 text-emerald-800",
+      value: "text-[#6ee7b7]",
+      bubble: "bg-[rgba(16,185,129,0.15)] text-[#6ee7b7]",
     },
     red: {
-      value: "text-rose-700",
-      bubble: "bg-rose-100 text-rose-800",
+      value: "text-[#fca5a5]",
+      bubble: "bg-[rgba(239,68,68,0.15)] text-[#fca5a5]",
     },
     yellow: {
-      value: "text-amber-700",
-      bubble: "bg-amber-100 text-amber-800",
+      value: "text-[#fcd34d]",
+      bubble: "bg-[rgba(245,158,11,0.15)] text-[#fcd34d]",
     },
     purple: {
-      value: "text-indigo-700",
-      bubble: "bg-indigo-100 text-indigo-800",
+      value: "text-[#c4b5fd]",
+      bubble: "bg-[rgba(139,92,246,0.15)] text-[#c4b5fd]",
     },
     gray: {
-      value: "text-slate-700",
-      bubble: "bg-slate-100 text-slate-800",
+      value: "text-[var(--text-muted)]",
+      bubble: "bg-white/[0.07] text-[var(--text-muted)]",
     },
   };
 

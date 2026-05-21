@@ -63,12 +63,12 @@ export function FriendlyRequestForm({
 
   if (success) {
     return (
-      <div className="rounded-[18px] border border-[#bde0d3] bg-[#e9f8f1] p-6 text-center">
-        <p className="text-lg font-semibold text-[#1c5a4b]">
-          Solicitacao enviada com sucesso!
+      <div className="rounded-[18px] border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] p-6 text-center">
+        <p className="text-lg font-semibold text-[#6ee7b7]">
+          ✓ Solicitação enviada com sucesso!
         </p>
-        <p className="mt-2 text-sm text-[#2f6f5f]">
-          Voce recebera uma resposta por e-mail.
+        <p className="mt-2 text-sm text-[var(--text-muted)]">
+          Você receberá uma resposta por e-mail.
         </p>
         <Button
           type="button"
@@ -93,14 +93,14 @@ export function FriendlyRequestForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="rounded-[14px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[#9a3422]">
-          {error}
+        <div className="rounded-[14px] border border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.1)] p-3 text-sm text-[#fca5a5] font-semibold">
+          ✕ {error}
         </div>
       )}
 
       {initialSuggestedDates && (
-        <div className="rounded-[14px] border border-[#bde0d3] bg-[#e9f8f1] p-3 text-sm text-[#1d5f4f]">
-          O formulario ja foi preenchido com uma data aberta selecionada. Ajuste os detalhes se precisar.
+        <div className="rounded-[14px] border border-[rgba(16,185,129,0.25)] bg-[rgba(16,185,129,0.07)] p-3 text-sm text-[#6ee7b7] font-medium">
+          🎯 O formulário já foi preenchido com uma data aberta selecionada. Ajuste os detalhes se precisar.
         </div>
       )}
 
@@ -164,7 +164,7 @@ export function FriendlyRequestForm({
       />
 
       <p className="text-xs text-[var(--text-subtle)]">
-        Campos com * sao obrigatorios. Quanto mais detalhes, mais rapida a resposta.
+        Campos com * são obrigatórios. Quanto mais detalhes, mais rápida a resposta.
       </p>
 
       <Button

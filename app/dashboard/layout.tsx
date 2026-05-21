@@ -129,12 +129,12 @@ export default function DashboardLayout({
               title={isCollapsed ? item.label : undefined}
               className={`group flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold transition-all duration-200 ${
                 isActive
-                  ? "bg-[rgba(16,185,129,0.14)] text-[#34d399] border-l-4 border-[#10b981]"
-                  : "text-[#8fa39b] hover:bg-white/[0.04] hover:text-white"
+                  ? "bg-[rgba(16,185,129,0.14)] text-[#6ee7b7] border-l-4 border-[#10b981]"
+                  : "text-[var(--text-muted)] hover:bg-white/[0.05] hover:text-white"
               } ${isCollapsed ? "justify-center px-2" : ""} ${mobile ? "text-base" : ""}`}
               onClick={mobile ? () => setMobileMenuOpen(false) : undefined}
             >
-              <span className={`inline-flex h-6 w-6 items-center justify-center rounded-md text-sm shrink-0 transition-transform group-hover:scale-110 duration-200 ${isActive ? "text-[#34d399]" : "text-[#8fa39b] group-hover:text-white"}`}>
+              <span className={`inline-flex h-6 w-6 items-center justify-center rounded-md text-sm shrink-0 transition-transform group-hover:scale-110 duration-200 ${isActive ? "text-[#6ee7b7]" : "text-[var(--text-muted)] group-hover:text-white"}`}>
                 {item.icon}
               </span>
               {!isCollapsed && <span className="flex-1 transition-opacity duration-300 tracking-tight">{item.label}</span>}
