@@ -123,6 +123,30 @@ export async function POST(request: Request) {
     },
   });
 
+  // Auto-create PENDING RSVPs for all future SCHEDULED matches
+  // so the new player appears without needing to recreate the game
+  if (status === "ACTIVE") {
+    const futureMatches = await prisma.match.findMany({
+      where: {
+        teamId: session.user.teamId,
+        status: "SCHEDULED",
+        date: { gte: new Date() },
+      },
+      select: { id: true },
+    });
+
+    if (futureMatches.length > 0) {
+      await prisma.rSVP.createMany({
+        data: futureMatches.map((match) => ({
+          playerId: player.id,
+          matchId: match.id,
+          status: "PENDING" as const,
+        })),
+        skipDuplicates: true,
+      });
+    }
+  }
+
   return NextResponse.json(
     {
       id: player.id,

@@ -157,6 +157,35 @@ export async function PATCH(request: Request, context: RouteContext) {
     },
   });
 
+  // If player became ACTIVE (was inactive before or status explicitly set to ACTIVE),
+  // auto-create PENDING RSVPs for all future SCHEDULED matches where they don't have one yet
+  const playerBecameActive =
+    data.status === "ACTIVE" && player.status !== "ACTIVE";
+
+  if (playerBecameActive) {
+    const futureMatches = await prisma.match.findMany({
+      where: {
+        teamId: session.user.teamId,
+        status: "SCHEDULED",
+        date: { gte: new Date() },
+        // Exclude matches where they already have an RSVP
+        rsvps: { none: { playerId: id } },
+      },
+      select: { id: true },
+    });
+
+    if (futureMatches.length > 0) {
+      await prisma.rSVP.createMany({
+        data: futureMatches.map((match) => ({
+          playerId: id,
+          matchId: match.id,
+          status: "PENDING" as const,
+        })),
+        skipDuplicates: true,
+      });
+    }
+  }
+
   const statsAggregate = await prisma.matchStats.aggregate({
     where: { playerId: id },
     _sum: {
