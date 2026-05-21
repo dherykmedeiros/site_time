@@ -136,3 +136,151 @@ export async function buildTeamRecap(matchId: string) {
     },
   };
 }
+
+export async function buildTeamPregameRecap(matchId: string) {
+  const match = await prisma.match.findUnique({
+    where: { id: matchId },
+    select: {
+      id: true,
+      date: true,
+      opponent: true,
+      isHome: true,
+      venue: true,
+      opponentBadgeUrl: true,
+      status: true,
+      type: true,
+      team: {
+        select: {
+          id: true,
+          name: true,
+          shortName: true,
+          primaryColor: true,
+          secondaryColor: true,
+          badgeUrl: true,
+        },
+      },
+      rsvps: {
+        select: {
+          status: true,
+          playerName: true,
+          player: {
+            select: {
+              name: true,
+              position: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!match || match.status !== "SCHEDULED") {
+    return null;
+  }
+
+  const confirmedPlayers = match.rsvps
+    .filter((r) => r.status === "CONFIRMED")
+    .map((r) => ({
+      name: r.playerName || r.player?.name || "Jogador",
+      position: r.player?.position || "N/A",
+    }));
+
+  const pendingPlayersCount = match.rsvps.filter((r) => r.status === "PENDING").length;
+  const declinedPlayersCount = match.rsvps.filter((r) => r.status === "DECLINED").length;
+
+  // Recent form of the team (last 5 matches before this one)
+  const recentMatches = await prisma.match.findMany({
+    where: {
+      teamId: match.team.id,
+      status: "COMPLETED",
+      homeScore: { not: null },
+      awayScore: { not: null },
+      date: { lt: match.date },
+    },
+    select: {
+      isHome: true,
+      homeScore: true,
+      awayScore: true,
+    },
+    orderBy: {
+      date: "desc",
+    },
+    take: 5,
+  });
+
+  const recentForm = recentMatches.reduce(
+    (acc, item) => {
+      const goalsFor = item.isHome ? item.homeScore ?? 0 : item.awayScore ?? 0;
+      const goalsAgainst = item.isHome ? item.awayScore ?? 0 : item.homeScore ?? 0;
+
+      if (goalsFor > goalsAgainst) acc.wins += 1;
+      else if (goalsFor < goalsAgainst) acc.losses += 1;
+      else acc.draws += 1;
+
+      acc.goalsFor += goalsFor;
+      acc.goalsAgainst += goalsAgainst;
+      acc.matches += 1;
+      return acc;
+    },
+    {
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      matches: 0,
+    }
+  );
+
+  // Top scorer of the team overall to display as featured
+  const statsGroup = await prisma.matchStats.groupBy({
+    by: ["playerId"],
+    where: {
+      player: { teamId: match.team.id },
+    },
+    _sum: {
+      goals: true,
+    },
+    orderBy: {
+      _sum: {
+        goals: "desc",
+      },
+    },
+    take: 1,
+  });
+
+  let topScorer = null;
+  if (statsGroup.length > 0 && statsGroup[0].playerId) {
+    const player = await prisma.player.findUnique({
+      where: { id: statsGroup[0].playerId },
+      select: { name: true },
+    });
+    if (player) {
+      topScorer = {
+        name: player.name,
+        goals: statsGroup[0]._sum.goals ?? 0,
+      };
+    }
+  }
+
+  return {
+    match: {
+      id: match.id,
+      date: match.date,
+      opponent: match.opponent,
+      isHome: match.isHome,
+      venue: match.venue,
+      opponentBadgeUrl: match.opponentBadgeUrl,
+      type: match.type,
+    },
+    team: match.team,
+    attendance: {
+      confirmed: confirmedPlayers,
+      confirmedCount: confirmedPlayers.length,
+      pendingCount: pendingPlayersCount,
+      declinedCount: declinedPlayersCount,
+    },
+    recentForm,
+    topScorer,
+  };
+}

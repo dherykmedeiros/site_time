@@ -553,6 +553,38 @@ export default function MatchDetailPage() {
     return `${window.location.origin}/api/og/team-recap/${match.id}`;
   }
 
+  function handleCopyPregameRecapLink() {
+    if (!match) return;
+    trackPregameCtaClick("copy_link");
+    const pregameRecapUrl = getPregameRecapCardUrl();
+    navigator.clipboard.writeText(pregameRecapUrl).then(() => {
+      setCopyMsg("Link do pré-jogo copiado!");
+      setTimeout(() => setCopyMsg(""), 2000);
+    });
+  }
+
+  function trackPregameCtaClick(ctaType: "open_card" | "copy_link" | "whatsapp_share") {
+    if (!match) return;
+
+    fetch("/api/telemetry/event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: "pregame_cta_clicked",
+        context: "dashboard_match_pregame",
+        ctaType,
+        entityType: "match",
+        entityId: match.id,
+      }),
+      keepalive: true,
+    }).catch(() => {});
+  }
+
+  function getPregameRecapCardUrl() {
+    if (!match) return "";
+    return `${window.location.origin}/api/og/pregame-recap/${match.id}`;
+  }
+
   function buildConvocacaoText() {
     if (!match) return "";
 
@@ -1046,30 +1078,80 @@ export default function MatchDetailPage() {
       )}
 
       {isScheduled && activeSection === "overview" && (
-        <Card>
-          <CardHeader>
-            <h2 className="text-lg font-semibold text-[var(--text)]">Visao geral do jogo</h2>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 lg:grid-cols-3">
-              <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Confirmacoes</p>
-                <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{confirmed}</p>
-                <p className="mt-1 text-sm text-[var(--text-subtle)]">Jogadores que ja confirmaram presenca.</p>
+        <>
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg font-semibold text-[var(--text)]">Visao geral do jogo</h2>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 lg:grid-cols-3">
+                <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Confirmacoes</p>
+                  <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{confirmed}</p>
+                  <p className="mt-1 text-sm text-[var(--text-subtle)]">Jogadores que ja confirmaram presenca.</p>
+                </div>
+                <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Pendencias</p>
+                  <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{pending}</p>
+                  <p className="mt-1 text-sm text-[var(--text-subtle)]">Ainda sem resposta no RSVP.</p>
+                </div>
+                <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Recusas</p>
+                  <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{declined}</p>
+                  <p className="mt-1 text-sm text-[var(--text-subtle)]">Atletas indisponiveis para esta partida.</p>
+                </div>
               </div>
-              <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Pendencias</p>
-                <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{pending}</p>
-                <p className="mt-1 text-sm text-[var(--text-subtle)]">Ainda sem resposta no RSVP.</p>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-4">
+            <CardHeader>
+              <h2 className="text-lg font-semibold text-[var(--text)]">Divulgar Pré-Jogo nas Redes Sociais</h2>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-4 py-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold text-[#6ee7b7]">Gerar Imagem de Pré-Jogo</p>
+                  <p className="text-sm text-[var(--text-subtle)]">
+                    Crie um card de preview personalizado com local, horário, convocados e retrospectiva do time para publicar no Instagram e WhatsApp!
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      const pregameUrl = getPregameRecapCardUrl();
+                      if (!pregameUrl) return;
+                      trackPregameCtaClick("open_card");
+                      window.open(
+                        pregameUrl,
+                        "_blank",
+                        "noopener,noreferrer"
+                      );
+                    }}
+                  >
+                    🖼️ Abrir card pré-jogo
+                  </Button>
+                  <Button variant="secondary" onClick={handleCopyPregameRecapLink}>
+                    📋 Copiar link do card
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      trackPregameCtaClick("whatsapp_share");
+                      window.open(
+                        `https://wa.me/?text=${encodeURIComponent(buildConvocacaoText())}`,
+                        "_blank",
+                        "noopener,noreferrer"
+                      );
+                    }}
+                  >
+                    📱 Compartilhar no WhatsApp
+                  </Button>
+                </div>
               </div>
-              <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Recusas</p>
-                <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{declined}</p>
-                <p className="mt-1 text-sm text-[var(--text-subtle)]">Atletas indisponiveis para esta partida.</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </>
       )}
 
       {/* Score (if completed) */}
