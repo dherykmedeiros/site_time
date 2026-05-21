@@ -440,6 +440,7 @@ model MatchAttendance {
   player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
   present      Boolean  @default(false)
   checkedInAt  DateTime?
+  shirtNumber  Int?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

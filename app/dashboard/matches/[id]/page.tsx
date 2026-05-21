@@ -336,6 +336,19 @@ export default function MatchDetailPage() {
     });
   }
 
+  function handleShirtNumberChange(playerId: string, shirtNumber: number | null) {
+    setBordereauData((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        attendance: current.attendance.map((item) =>
+          item.playerId === playerId ? { ...item, shirtNumber } : item
+        ),
+      };
+    });
+  }
+
   async function handleSaveBordereau() {
     if (!bordereauData) return;
 
@@ -355,6 +368,7 @@ export default function MatchDetailPage() {
           attendance: bordereauData.attendance.map((item) => ({
             playerId: item.playerId,
             present: item.present,
+            shirtNumber: item.shirtNumber,
           })),
         }),
       });
@@ -1349,6 +1363,7 @@ export default function MatchDetailPage() {
           data={bordereauData}
           onChecklistToggle={toggleChecklistItem}
           onAttendanceToggle={toggleAttendance}
+          onShirtNumberChange={handleShirtNumberChange}
           onSave={handleSaveBordereau}
           onOpenExpense={() => setExpenseModalOpen(true)}
         />

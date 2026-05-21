@@ -13,6 +13,7 @@ interface BordereauCardProps {
   data: BordereauResponse | null;
   onChecklistToggle: (index: number) => void;
   onAttendanceToggle: (playerId: string) => void;
+  onShirtNumberChange?: (playerId: string, shirtNumber: number | null) => void;
   onSave: () => void;
   onOpenExpense: () => void;
 }
@@ -36,6 +37,7 @@ export function BordereauCard({
   data,
   onChecklistToggle,
   onAttendanceToggle,
+  onShirtNumberChange,
   onSave,
   onOpenExpense,
 }: BordereauCardProps) {
@@ -115,14 +117,31 @@ export function BordereauCard({
                             )}
                           </div>
                         </div>
-                        <label className="flex items-center gap-2 text-sm text-[var(--text)]">
-                          <input
-                            type="checkbox"
-                            checked={item.present}
-                            onChange={() => onAttendanceToggle(item.playerId)}
-                          />
-                          Presente
-                        </label>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-[var(--text-subtle)] font-medium">Nº Camisa:</span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={99}
+                              value={item.shirtNumber ?? ""}
+                              onChange={(e) => {
+                                const val = e.target.value ? parseInt(e.target.value, 10) : null;
+                                onShirtNumberChange?.(item.playerId, val);
+                              }}
+                              className="w-14 rounded-[8px] border border-white/10 bg-white/[0.05] py-1 px-2 text-center text-sm font-semibold text-[var(--text)] focus:border-[#2a6f60] focus:ring-1 focus:ring-[#2a6f60] outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              placeholder="-"
+                            />
+                          </div>
+                          <label className="flex items-center gap-2 text-sm text-[var(--text)] cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={item.present}
+                              onChange={() => onAttendanceToggle(item.playerId)}
+                            />
+                            Presente
+                          </label>
+                        </div>
                       </div>
                     </div>
                   ))}

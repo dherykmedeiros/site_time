@@ -23,6 +23,7 @@ type AttendanceRow = {
   playerId: string;
   present: boolean;
   checkedInAt: Date | null;
+  shirtNumber: number | null;
 };
 
 type ExpenseRow = {
@@ -99,7 +100,7 @@ async function buildBordereauResponse(matchId: string, teamId: string) {
   const [checklistRows, attendanceRows, expenseRows, players] = await Promise.all([
     ensureDefaultChecklist(matchId),
     prisma.$queryRaw<AttendanceRow[]>(Prisma.sql`
-      SELECT "playerId", "present", "checkedInAt"
+      SELECT "playerId", "present", "checkedInAt", "shirtNumber"
       FROM "match_attendances"
       WHERE "matchId" = ${matchId}
     `),
@@ -111,7 +112,7 @@ async function buildBordereauResponse(matchId: string, teamId: string) {
     `),
     prisma.player.findMany({
       where: { teamId },
-      select: { id: true, name: true, status: true },
+      select: { id: true, name: true, status: true, shirtNumber: true },
       orderBy: [{ shirtNumber: "asc" }, { createdAt: "asc" }],
     }),
   ]);
@@ -137,6 +138,7 @@ async function buildBordereauResponse(matchId: string, teamId: string) {
         rsvpStatus: rsvpMap.get(player.id) ?? "PENDING",
         present: attendance?.present ?? false,
         checkedInAt: attendance?.checkedInAt?.toISOString() ?? null,
+        shirtNumber: attendance?.shirtNumber ?? player.shirtNumber ?? null,
       };
     }),
     expenses: expenseRows.map((expense) => ({
@@ -316,7 +318,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     if (parsed.data.attendance) {
       const existingAttendances = await tx.$queryRaw<AttendanceRow[]>(Prisma.sql`
-        SELECT "playerId", "present", "checkedInAt"
+        SELECT "playerId", "present", "checkedInAt", "shirtNumber"
         FROM "match_attendances"
         WHERE "matchId" = ${id}
       `);
@@ -340,6 +342,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             "playerId",
             "present",
             "checkedInAt",
+            "shirtNumber",
             "createdAt",
             "updatedAt"
           ) VALUES (
@@ -348,6 +351,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             ${item.playerId},
             ${item.present},
             ${checkedInAt},
+            ${item.shirtNumber ?? null},
             NOW(),
             NOW()
           )
