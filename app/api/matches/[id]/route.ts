@@ -226,7 +226,13 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
   }
 
   // Handle score submission (triggers COMPLETED)
-  if (match.status !== "COMPLETED" && data.homeScore !== undefined && data.awayScore !== undefined) {
+  if (
+    match.status !== "COMPLETED" &&
+    data.homeScore !== undefined &&
+    data.homeScore !== null &&
+    data.awayScore !== undefined &&
+    data.awayScore !== null
+  ) {
     if (match.date >= new Date()) {
       return NextResponse.json(
         {
