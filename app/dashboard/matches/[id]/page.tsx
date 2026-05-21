@@ -630,7 +630,7 @@ export default function MatchDetailPage() {
       lines.push(`⏳ Aguardando (${pendingNames.length}): ${pendingNames.join(", ")}`);
     }
 
-    lines.push(``, `👉 Confirme aqui: ${window.location.origin}/matches/${match.id}`);
+    lines.push(``, `👉 Confirme aqui: ${window.location.origin}/matches/${match.id}?t=${match.shareToken}`);
     return lines.join("\n");
   }
 
