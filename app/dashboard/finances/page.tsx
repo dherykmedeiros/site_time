@@ -75,8 +75,9 @@ const categoryFilterOptions = [
 ];
 
 export default function FinancesPage() {
-  const { data: session } = useSession();
-  const isAdmin = session?.user?.role === "ADMIN";
+  const { data: session, status: authStatus } = useSession();
+  const role = session?.user?.role;
+  const isAllowed = role === "ADMIN" || role === "MATERIAL_DIRECTOR";
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [balance, setBalance] = useState(0);
@@ -171,6 +172,28 @@ export default function FinancesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, summaryMonth, summaryYear]);
 
+  if (authStatus === "loading") {
+    return (
+      <div className="flex h-[70vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#10b981] border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!isAllowed) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center h-[70vh]">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10 text-4xl border border-red-500/20 shadow-md">
+          🔒
+        </div>
+        <h2 className="mt-6 text-2xl font-black text-white">Área Restrita</h2>
+        <p className="mt-2 text-sm text-[var(--text-subtle)] max-w-md leading-relaxed">
+          Esta área é de acesso exclusivo para diretores de material e administradores do time para controle financeiro.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 rounded-[22px] border border-[rgba(16,185,129,0.18)] bg-[rgba(10,24,20,0.4)] p-6 sm:flex-row sm:items-center sm:justify-between backdrop-blur-md">
@@ -180,7 +203,7 @@ export default function FinancesPage() {
           </p>
           <h1 className="text-2xl font-black uppercase tracking-tight text-white">Finanças</h1>
         </div>
-        {isAdmin ? (
+        {isAllowed ? (
           <Button onClick={() => setShowForm(true)} className="rounded-xl px-4 py-2.5 text-xs font-black uppercase tracking-wider text-[#010403] bg-[#10b981] hover:bg-[#34d399]">
             + Nova Transação
           </Button>
@@ -305,7 +328,7 @@ export default function FinancesPage() {
                         {t.type === "INCOME" ? "+" : "-"}{" "}
                         {formatCurrency(t.amount)}
                       </span>
-                      {isAdmin && (
+                      {isAllowed && (
                         <button
                           onClick={() => {
                             setDeleteTarget(t.id);
@@ -478,7 +501,7 @@ export default function FinancesPage() {
 
       {/* Add Transaction Modal */}
       <Modal
-        open={isAdmin && showForm}
+        open={isAllowed && showForm}
         onClose={() => setShowForm(false)}
         title="Nova Transação"
       >
@@ -492,7 +515,7 @@ export default function FinancesPage() {
       </Modal>
 
       <Modal
-        open={isAdmin && !!deleteTarget}
+        open={isAllowed && !!deleteTarget}
         onClose={() => {
           if (deleteLoading) return;
           setDeleteTarget(null);

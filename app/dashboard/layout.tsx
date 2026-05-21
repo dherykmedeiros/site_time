@@ -93,6 +93,9 @@ export default function DashboardLayout({
   }, [pathname]);
 
   const visibleNavItems = navItems.filter((item) => {
+    if (item.href === "/dashboard/finances") {
+      return role === "ADMIN" || role === "MATERIAL_DIRECTOR";
+    }
     if (!item.adminOnly) return true;
     if (item.href === "/dashboard/team/settings") {
       return role === "ADMIN";

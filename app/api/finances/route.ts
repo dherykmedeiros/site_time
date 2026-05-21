@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, requireAuth } from "@/lib/auth";
+import { requireMaterialDirectorOrAdmin } from "@/lib/auth";
 import { createTransactionSchema } from "@/lib/validations/finance";
 import { trackOperationalEvent } from "@/lib/telemetry";
 import { Prisma } from "@prisma/client";
@@ -22,7 +22,7 @@ type TransactionListRow = {
 
 // GET /api/finances — List transactions with filters + pagination + balance
 export async function GET(request: Request) {
-  const { session, error } = await requireAuth();
+  const { session, error } = await requireMaterialDirectorOrAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {
@@ -145,7 +145,7 @@ export async function GET(request: Request) {
 
 // POST /api/finances — Create transaction (ADMIN)
 export async function POST(request: Request) {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireMaterialDirectorOrAdmin();
   if (error) return error;
 
   const ip = extractClientIp(request);

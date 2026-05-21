@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { requireMaterialDirectorOrAdmin } from "@/lib/auth";
 import { summaryQuerySchema } from "@/lib/validations/finance";
 
 // GET /api/finances/summary — Monthly financial summary
 export async function GET(request: Request) {
-  const { session, error } = await requireAuth();
+  const { session, error } = await requireMaterialDirectorOrAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {

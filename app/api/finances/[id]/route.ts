@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireMaterialDirectorOrAdmin } from "@/lib/auth";
 import { updateTransactionSchema } from "@/lib/validations/finance";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
@@ -11,7 +11,7 @@ interface RouteParams {
 
 // PATCH /api/finances/:id — Update transaction (ADMIN)
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireMaterialDirectorOrAdmin();
   if (error) return error;
 
   const ip = extractClientIp(request);
@@ -90,7 +90,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
 // DELETE /api/finances/:id — Delete transaction (ADMIN)
 export async function DELETE(request: Request, { params }: RouteParams) {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireMaterialDirectorOrAdmin();
   if (error) return error;
 
   const ip = extractClientIp(request);
