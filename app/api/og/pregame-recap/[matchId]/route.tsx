@@ -121,32 +121,17 @@ export async function GET(request: Request, context: RouteContext) {
 
         <!-- Main Info Columns -->
         <div style="display:flex;gap:16px;margin-top:12px;flex:1">
-          <!-- Left Col: Details & Attendance stats -->
+          <!-- Left Col: Details -->
           <div style="flex:1.2;display:flex;flex-direction:column;gap:10px">
-            <div class="stat-tile" style="flex:1;padding:12px 16px;justify-content:center">
-              <div class="label" style="text-transform:uppercase;font-size:11px;letter-spacing:0.05em">Informações da Partiva</div>
-              <div class="font-bold" style="font-size:17px;margin-top:4px;color:white">📍 ${esc(cut(recap.match.venue, 32))}</div>
-              <div class="font-semibold" style="font-size:15px;margin-top:2px;color:var(--text-muted)">📅 ${esc(dateLabel)}</div>
-              <div class="font-semibold" style="font-size:14px;margin-top:2px;color:var(--text-muted)">🏆 ${recap.match.type === "FRIENDLY" ? "Jogo Amistoso" : "Jogo de Campeonato"}</div>
-            </div>
-
-            <div style="display:flex;gap:10px">
-              <div class="stat-tile" style="flex:1;padding:12px 14px;align-items:center;text-align:center">
-                <div class="label" style="font-size:10px">CONFIRMADOS</div>
-                <div class="font-extrabold mono" style="font-size:28px;color:#34d399">${recap.attendance.confirmedCount}</div>
-              </div>
-              <div class="stat-tile" style="flex:1;padding:12px 14px;align-items:center;text-align:center">
-                <div class="label" style="font-size:10px">AGUARDANDO</div>
-                <div class="font-extrabold mono" style="font-size:28px;color:#fbbf24">${recap.attendance.pendingCount}</div>
-              </div>
-              <div class="stat-tile" style="flex:1;padding:12px 14px;align-items:center;text-align:center">
-                <div class="label" style="font-size:10px">AUSENTES</div>
-                <div class="font-extrabold mono" style="font-size:28px;color:#f87171">${recap.attendance.declinedCount}</div>
-              </div>
+            <div class="stat-tile" style="flex:1;padding:16px 20px;justify-content:center">
+              <div class="label" style="text-transform:uppercase;font-size:11px;letter-spacing:0.05em">Informações da Partida</div>
+              <div class="font-bold" style="font-size:18px;margin-top:8px;color:white">📍 ${esc(cut(recap.match.venue, 32))}</div>
+              <div class="font-semibold" style="font-size:16px;margin-top:6px;color:var(--text-muted)">📅 ${esc(dateLabel)}</div>
+              <div class="font-semibold" style="font-size:15px;margin-top:6px;color:var(--text-muted)">🏆 ${recap.match.type === "FRIENDLY" ? "Jogo Amistoso" : "Jogo de Campeonato"}</div>
             </div>
           </div>
 
-          <!-- Right Col: Form & Top Scorer Hype -->
+          <!-- Right Col: Form & Team Highlight -->
           <div style="flex:1;display:flex;flex-direction:column;gap:10px">
             <div class="stat-tile" style="flex:1;padding:12px 16px">
               <div class="label" style="text-transform:uppercase;font-size:11px;letter-spacing:0.05em">Últimos Resultados</div>
@@ -155,22 +140,11 @@ export async function GET(request: Request, context: RouteContext) {
             </div>
 
             <div class="stat-tile" style="flex:1;padding:12px 16px">
-              <div class="label" style="text-transform:uppercase;font-size:11px;letter-spacing:0.05em">Artilheiro do Time</div>
+              <div class="label" style="text-transform:uppercase;font-size:11px;letter-spacing:0.05em">Destaque do Time</div>
               <div class="font-extrabold" style="font-size:18px;margin-top:4px;color:#fbbf24">⚽ ${esc(cut(topScorerText, 26))}</div>
             </div>
           </div>
         </div>
-
-        <!-- Confirmed list avatars/chips (Bottom row) -->
-        ${confirmedList.length > 0 ? `
-          <div style="display:flex;flex-direction:column;gap:4px;margin-top:14px">
-            <div class="label" style="font-size:11px;color:var(--text-muted);text-transform:uppercase;font-weight:600;letter-spacing:0.05em">Alguns convocados:</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              ${confirmedList}
-            </div>
-          </div>
-        ` : ""}
-
       </div>
     `;
 
