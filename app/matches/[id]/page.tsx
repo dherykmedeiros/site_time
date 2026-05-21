@@ -60,6 +60,7 @@ export async function generateMetadata({
   const dateStr = new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "short",
+    timeZone: "America/Sao_Paulo",
   }).format(data.match.date);
 
   const title = `${data.team.name} vs ${data.match.opponent} — ${dateStr}`;
@@ -127,6 +128,7 @@ export default async function PublicMatchPage({
   const formattedDate = new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "full",
     timeStyle: "short",
+    timeZone: "America/Sao_Paulo",
   }).format(match.date);
 
   const confirmed = match.rsvps.filter((r) => r.status === "CONFIRMED").length;

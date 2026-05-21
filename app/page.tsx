@@ -307,7 +307,7 @@ export default async function HomePage({
     ? team.openMatchSlots.find((slot) => slot.id === selectedSlotId) ?? null
     : null;
   const selectedSlotDateText = selectedSlot
-    ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short" }).format(selectedSlot.date)
+    ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(selectedSlot.date)
     : null;
   const selectedSlotTimeLabel = selectedSlot?.timeLabel || "";
   const suggestedDatesInitialValue = selectedSlotDateText
@@ -678,7 +678,7 @@ export default async function HomePage({
                   <article key={slot.id} className="rounded-2xl border border-white/5 bg-white/[0.01] p-6 flex flex-col justify-between shadow-lg card-hover">
                     <div className="space-y-2">
                       <p className="text-base font-black text-white">
-                        {new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short" }).format(slot.date)}
+                        {new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(slot.date)}
                       </p>
                       <p className="text-xs font-semibold text-[#8fa39b]">
                         {(slot.timeLabel || "Horário a definir") + " • " + (slot.venueLabel || "Local a definir")}
