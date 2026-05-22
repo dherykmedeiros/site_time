@@ -16,12 +16,17 @@ import { RecapShareButtonsClient } from "@/components/RecapShareButtonsClient";
 import type { Metadata } from "next";
 
 interface PageProps {
-  params: Promise<{ shareToken: string }>;
+  params: Promise<{ id: string }>;
 }
 
-async function getMatchByShareToken(shareToken: string) {
-  const match = await prisma.match.findUnique({
-    where: { shareToken },
+async function getMatchByIdOrToken(idOrToken: string) {
+  const match = await prisma.match.findFirst({
+    where: {
+      OR: [
+        { id: idOrToken },
+        { shareToken: idOrToken }
+      ]
+    },
     include: {
       team: {
         select: {
@@ -72,8 +77,8 @@ async function getMatchByShareToken(shareToken: string) {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { shareToken } = await params;
-  const match = await getMatchByShareToken(shareToken);
+  const { id } = await params;
+  const match = await getMatchByIdOrToken(id);
 
   if (!match) {
     return { title: "Recap Pós-Jogo — Partida não encontrada" };
@@ -113,8 +118,8 @@ const positionLabels: Record<string, string> = {
 };
 
 export default async function PublicRecapPage({ params }: PageProps) {
-  const { shareToken } = await params;
-  const match = await getMatchByShareToken(shareToken);
+  const { id } = await params;
+  const match = await getMatchByIdOrToken(id);
 
   if (!match) {
     notFound();
@@ -312,7 +317,7 @@ export default async function PublicRecapPage({ params }: PageProps) {
               homeScore={match.homeScore}
               awayScore={match.awayScore}
               isHome={match.isHome}
-              shareToken={shareToken}
+              shareToken={match.shareToken}
             />
           </div>
         </div>
