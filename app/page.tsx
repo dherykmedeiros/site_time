@@ -1772,8 +1772,5 @@ export default async function HomePage({
       </footer>
     </div>
   );
-}racking-widest font-black font-mono">Plataforma Esportiva Premium VARzea</p>
-      </footer>
-    </div>
-  );
 }
+

@@ -524,8 +524,5 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
       </footer>
     </div>
   );
-}ma Esportiva Premium VARzea</p>
-      </footer>
-    </div>
-  );
 }
+
