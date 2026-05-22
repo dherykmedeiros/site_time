@@ -960,7 +960,7 @@ export default async function HomePage({
         {/* Challenging & Recruitment Form Split Section */}
         <section id="amistoso" className="scroll-mt-24 grid gap-8 lg:grid-cols-2">
           {/* Column 1: Desafiar Amistoso */}
-          <div className="app-surface p-6 sm:p-8 flex flex-col justify-between bg-black/40 space-y-6">
+          <div className="app-surface p-6 sm:p-8 flex flex-col bg-black/40 space-y-6">
             <div className="space-y-4">
               <span className="text-xs font-black font-mono tracking-widest text-[#10b981] bg-[#10b981]/10 px-3 py-1 rounded-full border border-[#10b981]/20">AMISTOSO</span>
               <h2 className="text-balance text-3xl font-black uppercase text-white tracking-tight mt-2">
@@ -988,7 +988,7 @@ export default async function HomePage({
           </div>
 
           {/* Column 2: Faça parte do Time (Recrutamento) */}
-          <div className="app-surface p-6 sm:p-8 flex flex-col justify-between bg-black/40 space-y-6">
+          <div className="app-surface p-6 sm:p-8 flex flex-col bg-black/40 space-y-6">
             <div className="space-y-4">
               <span className="text-xs font-black font-mono tracking-widest text-[#06b6d4] bg-[#06b6d4]/10 px-3 py-1 rounded-full border border-[#06b6d4]/20">RECRUTAMENTO</span>
               <h2 className="text-balance text-3xl font-black uppercase text-white tracking-tight mt-2">

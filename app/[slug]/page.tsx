@@ -812,7 +812,7 @@ export default async function TeamPublicPage({ params }: PageProps) {
           
           {/* Friendly Request Form Card */}
           <div 
-            className="app-surface p-6 md:p-8 bg-black/50 space-y-6 flex flex-col justify-between"
+            className="app-surface p-6 md:p-8 bg-black/50 space-y-6 flex flex-col"
             style={{ 
               borderColor: `rgba(var(--team-primary-rgb), 0.2)`,
               boxShadow: `0 10px 40px rgba(var(--team-primary-rgb), 0.05)` 
@@ -831,7 +831,7 @@ export default async function TeamPublicPage({ params }: PageProps) {
 
           {/* Recruitment Form Card */}
           <div 
-            className="app-surface p-6 md:p-8 bg-black/50 space-y-6 flex flex-col justify-between"
+            className="app-surface p-6 md:p-8 bg-black/50 space-y-6 flex flex-col"
             style={{ 
               borderColor: `rgba(var(--team-primary-rgb), 0.2)`,
               boxShadow: `0 10px 40px rgba(var(--team-primary-rgb), 0.05)` 
