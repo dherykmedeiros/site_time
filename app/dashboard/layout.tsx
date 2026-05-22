@@ -53,11 +53,39 @@ export default function DashboardLayout({
     upcomingMatches: 0,
   });
 
+  const [transitioning, setTransitioning] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  // Smooth micro-animated page transition bar
   useEffect(() => {
+    setTransitioning(true);
+    setProgress(15);
+
+    const t1 = setTimeout(() => setProgress(45), 60);
+    const t2 = setTimeout(() => setProgress(80), 150);
+    const t3 = setTimeout(() => {
+      setProgress(100);
+      const t4 = setTimeout(() => {
+        setTransitioning(false);
+        setProgress(0);
+      }, 150);
+    }, 280);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!session) return;
+
     async function loadBadges() {
       try {
+        const isAdmin = session?.user?.role === "ADMIN";
         const [frRes, matchRes] = await Promise.all([
-          fetch("/api/friendly-requests?status=PENDING").catch(() => null),
+          isAdmin ? fetch("/api/friendly-requests?status=PENDING").catch(() => null) : null,
           fetch("/api/matches?status=SCHEDULED").catch(() => null),
         ]);
 
@@ -86,7 +114,11 @@ export default function DashboardLayout({
       }
     }
     loadBadges();
-  }, [pathname]);
+
+    // Poll every 60 seconds
+    const interval = setInterval(loadBadges, 60000);
+    return () => clearInterval(interval);
+  }, [session]);
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -141,6 +173,7 @@ export default function DashboardLayout({
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               aria-current={isActive ? "page" : undefined}
               title={isCollapsed ? item.label : undefined}
               className={`group flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold transition-all duration-200 ${
@@ -171,6 +204,13 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-[#030708] text-[#f0f7f4]">
+      {/* Premium Top-Loading Progress Bar */}
+      {transitioning && (
+        <div
+          className="fixed top-0 left-0 z-[9999] h-[3.5px] bg-gradient-to-r from-[#10b981] via-[#34d399] to-[#fbbf24] transition-all duration-200 ease-out pointer-events-none shadow-[0_1px_10px_rgba(52,211,153,0.5)]"
+          style={{ width: `${progress}%` }}
+        />
+      )}
       <a
         href="#dashboard-main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-[#10b981] focus:px-3 focus:py-2 focus:text-xs focus:font-black focus:text-[#010403]"
@@ -189,7 +229,7 @@ export default function DashboardLayout({
           }`}
         >
           <div className="border-b border-white/5 px-5 py-6 flex items-center justify-between">
-            <Link href="/dashboard" className="inline-flex items-center gap-3 text-white overflow-hidden">
+            <Link href="/dashboard" prefetch={false} className="inline-flex items-center gap-3 text-white overflow-hidden">
               <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-[rgba(16,185,129,0.25)] bg-[rgba(16,185,129,0.08)] text-xl shrink-0 animate-pulse">
                 ⚽
               </span>
