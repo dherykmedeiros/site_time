@@ -357,7 +357,7 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
         {/* Back to team */}
         <div className="text-center pt-4">
           <Link
-            href="/"
+            href={player.team.slug ? `/${player.team.slug}` : "/"}
             className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--brand)] bg-[var(--bg-elevated)] px-8 text-xs font-bold uppercase tracking-wider text-[var(--brand)] transition-all hover:bg-[var(--brand)] hover:text-white hover:scale-105 active:scale-95 transform shadow-sm"
           >
             Ver Portal do {player.team.name}

@@ -6,15 +6,17 @@ import { useSession } from "next-auth/react";
 interface PublicNavbarProps {
   teamName: string;
   badgeUrl: string | null;
+  slug?: string;
 }
 
-export function PublicNavbar({ teamName, badgeUrl }: PublicNavbarProps) {
+export function PublicNavbar({ teamName, badgeUrl, slug }: PublicNavbarProps) {
   const { data: session } = useSession();
+  const prefix = slug ? `/${slug}` : "";
 
   return (
     <header className="sticky top-0 z-50 w-full glassmorphism border-b border-[var(--border)] shadow-[var(--shadow-sm)]">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+        <Link href={prefix || "/"} className="flex items-center gap-3 hover:opacity-90 transition-opacity">
           {badgeUrl ? (
             <img src={badgeUrl} alt="Escudo" className="h-10 w-10 rounded-xl object-cover border border-[var(--border)]" />
           ) : (
@@ -23,13 +25,13 @@ export function PublicNavbar({ teamName, badgeUrl }: PublicNavbarProps) {
           <span className="font-display text-xl font-bold tracking-tight text-[var(--text)]">{teamName}</span>
         </Link>
         <div className="flex items-center gap-6">
-          <a href="/#elenco" className="hidden text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--brand)] sm:block transition-colors">
+          <a href={`${prefix}#elenco`} className="hidden text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--brand)] sm:block transition-colors">
             Elenco
           </a>
-          <a href="/#retrospecto" className="hidden text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--brand)] sm:block transition-colors">
+          <a href={`${prefix}#retrospecto`} className="hidden text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--brand)] sm:block transition-colors">
             Desempenho
           </a>
-          <a href="/#amistoso" className="hidden text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--brand)] sm:block transition-colors">
+          <a href={`${prefix}#amistoso`} className="hidden text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--brand)] sm:block transition-colors">
             Solicitar Amistoso
           </a>
           <Link

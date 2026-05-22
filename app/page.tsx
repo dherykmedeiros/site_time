@@ -3,44 +3,87 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { FriendlyRequestForm } from "./FriendlyRequestForm";
+import { RecruitmentForm } from "./RecruitmentForm";
 import { PublicNavbar } from "@/components/PublicNavbar";
 
 const fieldTypeLabels: Record<string, string> = {
-  GRASS: "Grama",
-  SYNTHETIC: "Sintético",
+  GRASS: "Grama Natural",
+  SYNTHETIC: "Grama Sintética",
   FUTSAL: "Futsal",
   SOCIETY: "Society",
   OTHER: "Outro",
 };
 
 const competitiveLevelLabels: Record<string, string> = {
-  CASUAL: "Casual",
+  CASUAL: "Casual / Amador",
   INTERMEDIATE: "Intermediário",
-  COMPETITIVE: "Competitivo",
+  COMPETITIVE: "Competitivo / Várzea Forte",
 };
 
-const positionLabels: Record<string, string> = {
-  GOALKEEPER: "Goleiro",
-  DEFENDER: "Zagueiro",
-  LEFT_BACK: "Lateral Esquerdo",
-  RIGHT_BACK: "Lateral Direito",
-  MIDFIELDER: "Meio-campista",
-  DEFENSIVE_MIDFIELDER: "Volante",
-  FORWARD: "Atacante",
-  LEFT_WINGER: "Ponta Esquerda",
-  RIGHT_WINGER: "Ponta Direita",
-};
-
-const positionStyles: Record<string, string> = {
-  GOALKEEPER: "border-amber-500/30 bg-amber-500/10 text-amber-400",
-  DEFENDER: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-  LEFT_BACK: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-  RIGHT_BACK: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-  MIDFIELDER: "border-cyan-500/30 bg-cyan-500/10 text-cyan-400",
-  DEFENSIVE_MIDFIELDER: "border-cyan-500/30 bg-cyan-500/10 text-cyan-400",
-  FORWARD: "border-rose-500/30 bg-rose-500/10 text-rose-400",
-  LEFT_WINGER: "border-rose-500/30 bg-rose-500/10 text-rose-400",
-  RIGHT_WINGER: "border-rose-500/30 bg-rose-500/10 text-rose-400",
+const positionThemes: Record<string, { border: string; text: string; glow: string; label: string; badge: string }> = {
+  GOALKEEPER: {
+    border: "border-amber-500/20 hover:border-amber-400/50",
+    text: "text-amber-400",
+    glow: "rgba(245, 158, 11, 0.12)",
+    label: "Goleiro",
+    badge: "bg-amber-500/10 text-amber-400 border-amber-500/30",
+  },
+  DEFENDER: {
+    border: "border-emerald-500/20 hover:border-emerald-400/50",
+    text: "text-emerald-400",
+    glow: "rgba(16, 185, 129, 0.12)",
+    label: "Zagueiro",
+    badge: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+  },
+  LEFT_BACK: {
+    border: "border-emerald-500/20 hover:border-emerald-400/50",
+    text: "text-emerald-400",
+    glow: "rgba(16, 185, 129, 0.12)",
+    label: "Lateral Esquerdo",
+    badge: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+  },
+  RIGHT_BACK: {
+    border: "border-emerald-500/20 hover:border-emerald-400/50",
+    text: "text-emerald-400",
+    glow: "rgba(16, 185, 129, 0.12)",
+    label: "Lateral Direito",
+    badge: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+  },
+  MIDFIELDER: {
+    border: "border-cyan-500/20 hover:border-cyan-400/50",
+    text: "text-cyan-400",
+    glow: "rgba(6, 182, 212, 0.12)",
+    label: "Meio-campista",
+    badge: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30",
+  },
+  DEFENSIVE_MIDFIELDER: {
+    border: "border-cyan-500/20 hover:border-cyan-400/50",
+    text: "text-cyan-400",
+    glow: "rgba(6, 182, 212, 0.12)",
+    label: "Volante",
+    badge: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30",
+  },
+  FORWARD: {
+    border: "border-rose-500/20 hover:border-rose-400/50",
+    text: "text-rose-400",
+    glow: "rgba(244, 63, 94, 0.12)",
+    label: "Atacante",
+    badge: "bg-rose-500/10 text-rose-400 border-rose-500/30",
+  },
+  LEFT_WINGER: {
+    border: "border-rose-500/20 hover:border-rose-400/50",
+    text: "text-rose-400",
+    glow: "rgba(244, 63, 94, 0.12)",
+    label: "Ponta Esquerda",
+    badge: "bg-rose-500/10 text-rose-400 border-rose-500/30",
+  },
+  RIGHT_WINGER: {
+    border: "border-rose-500/20 hover:border-rose-400/50",
+    text: "text-rose-400",
+    glow: "rgba(244, 63, 94, 0.12)",
+    label: "Ponta Direita",
+    badge: "bg-rose-500/10 text-rose-400 border-rose-500/30",
+  },
 };
 
 async function getTeamData() {
@@ -103,28 +146,105 @@ async function getTeamStats(teamId: string) {
   const totalMatches = completedMatches.length;
   const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
 
-  // Top scorers (top 5)
-  const topScorers = await prisma.matchStats.groupBy({
-    by: ["playerId"],
-    where: { match: { teamId } },
-    _sum: { goals: true },
-    orderBy: { _sum: { goals: "desc" } },
-    take: 5,
-  });
-
-  const scorerPlayerIds = topScorers.map((s) => s.playerId);
-  const scorerPlayers = await prisma.player.findMany({
-    where: { id: { in: scorerPlayerIds } },
-    select: { id: true, name: true },
-  });
-  const scorerMap = new Map(scorerPlayers.map((p) => [p.id, p.name]));
-
   const activeSeason = await prisma.season.findFirst({
     where: { teamId, status: "ACTIVE" },
     orderBy: { startDate: "desc" },
     select: { id: true, name: true },
   });
 
+  // Query players (both ACTIVE and INACTIVE) for stat mapping
+  const players = await prisma.player.findMany({
+    where: { teamId },
+    select: {
+      id: true,
+      name: true,
+      shirtNumber: true,
+      position: true,
+      photoUrl: true,
+      status: true,
+    },
+  });
+  const playerMap = new Map(players.map((p) => [p.id, p]));
+
+  // Query and aggregate match stats for all players
+  const playerStats = await prisma.matchStats.groupBy({
+    by: ["playerId"],
+    where: { match: { teamId } },
+    _sum: {
+      goals: true,
+      assists: true,
+      yellowCards: true,
+      redCards: true,
+    },
+    _count: {
+      matchId: true,
+    },
+  });
+
+  // Query and aggregate ratings for all players
+  const ratingsAgg = await prisma.matchPlayerRating.groupBy({
+    by: ["ratedId"],
+    where: { match: { teamId } },
+    _avg: { stars: true },
+    _count: { stars: true },
+  });
+  const ratingsMap = new Map(
+    ratingsAgg.map((r) => [r.ratedId, { avg: r._avg.stars ?? 0, count: r._count.stars }])
+  );
+
+  // Compile full ranking list
+  const ranking = playerStats.map((s) => {
+    const player = playerMap.get(s.playerId);
+    const ratingInfo = ratingsMap.get(s.playerId);
+    return {
+      playerId: s.playerId,
+      playerName: player?.name ?? "Desconhecido",
+      photoUrl: player?.photoUrl ?? null,
+      shirtNumber: player?.shirtNumber ?? 0,
+      position: player?.position ?? "FORWARD",
+      status: player?.status ?? "ACTIVE",
+      goals: s._sum.goals ?? 0,
+      assists: s._sum.assists ?? 0,
+      yellowCards: s._sum.yellowCards ?? 0,
+      redCards: s._sum.redCards ?? 0,
+      matches: s._count.matchId,
+      averageStars: ratingInfo ? Number(ratingInfo.avg.toFixed(1)) : null,
+      totalRatings: ratingInfo?.count ?? 0,
+    };
+  });
+
+  // Sort and extract the 4 highlights:
+  // 1. Artilheiro (goals > 0)
+  const topScorersList = [...ranking]
+    .filter((p) => p.goals > 0)
+    .sort((a, b) => b.goals - a.goals || a.matches - b.matches);
+  const bestScorer = topScorersList[0] || null;
+
+  // 2. Garçom (assists > 0)
+  const topAssistsList = [...ranking]
+    .filter((p) => p.assists > 0)
+    .sort((a, b) => b.assists - a.assists || a.matches - b.matches);
+  const bestAssist = topAssistsList[0] || null;
+
+  // 3. Mais Presente (matches > 0)
+  const topPresenceList = [...ranking]
+    .filter((p) => p.matches > 0)
+    .sort((a, b) => b.matches - a.matches);
+  const bestPresence = topPresenceList[0] || null;
+
+  // 4. Melhor Avaliado (totalRatings > 0, averageStars !== null)
+  const topRatedList = [...ranking]
+    .filter((p) => p.totalRatings > 0 && p.averageStars !== null)
+    .sort((a, b) => (b.averageStars ?? 0) - (a.averageStars ?? 0) || b.totalRatings - a.totalRatings);
+  const bestRated = topRatedList[0] || null;
+
+  // Generate topScorers for the display table/gallery
+  const topScorers = topScorersList.slice(0, 5).map((s) => ({
+    playerName: s.playerName,
+    total: s.goals,
+  }));
+
+  // Season standings calculations
   let activeSeasonStandings: Array<{
     playerId: string;
     playerName: string;
@@ -231,32 +351,33 @@ async function getTeamStats(teamId: string) {
     winRate,
     goalsScored,
     goalsConceded,
-    topScorers: topScorers
-      .filter((s) => (s._sum.goals ?? 0) > 0)
-      .map((s) => ({
-        playerName: scorerMap.get(s.playerId) || "Desconhecido",
-        total: s._sum.goals ?? 0,
-      })),
+    topScorers,
     activeSeason,
     activeSeasonStandings,
+    highlights: {
+      bestScorer,
+      bestAssist,
+      bestPresence,
+      bestRated,
+    },
   };
 }
 
 export async function generateMetadata(): Promise<Metadata> {
   const team = await prisma.team.findFirst();
   if (!team) {
-    return { title: "Portal Esportivo" };
+    return { title: "Portal Esportivo | VARzea" };
   }
-  const description = team.description || `Site oficial do ${team.name}. Acompanhe elenco, partidas e resultados.`;
+  const description = team.description || `Portal oficial do ${team.name}. Confira elenco, estatísticas e envie convites de amistosos.`;
   return {
-    title: `${team.name} — Arena Oficial`,
+    title: `${team.name} — Arena Oficial | VARzea`,
     description,
     openGraph: {
       title: team.name,
       description,
       type: "website",
       url: `/`,
-      siteName: "Portal Oficial",
+      siteName: "VARzea",
       locale: "pt_BR",
       ...(team.badgeUrl && { images: [{ url: team.badgeUrl, width: 200, height: 200, alt: `Escudo ${team.name}` }] }),
     },
@@ -274,7 +395,6 @@ export default async function HomePage({
   if (!team) {
     return (
       <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#030708] px-6 py-20 text-center">
-        {/* Glow Spheres */}
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[350px] h-[350px] bg-[#10b981] opacity-10 rounded-full blur-[110px]" />
         
         <div className="relative mx-auto max-w-xl rounded-3xl border border-[rgba(16,185,129,0.18)] bg-[rgba(10,20,18,0.6)] p-10 shadow-2xl backdrop-blur-xl">
@@ -323,7 +443,7 @@ export default async function HomePage({
 
       {/* Admin Quick Link Banner */}
       {session && (
-        <div className="relative z-50 bg-gradient-to-r from-[#0f9e77] to-[#046f5b] px-4 py-2 text-center text-[11px] font-extrabold uppercase tracking-[0.16em] text-white shadow-md">
+        <div className="relative z-50 bg-gradient-to-r from-[#0f9e77] to-[#046f5b] px-4 py-2.5 text-center text-[11px] font-extrabold uppercase tracking-[0.16em] text-white shadow-md">
           Acesso Administrativo Habilitado —{" "}
           <Link href="/dashboard" className="underline hover:text-emerald-200 transition-colors">
             Ir para Painel de Controle &rarr;
@@ -335,7 +455,7 @@ export default async function HomePage({
       <PublicNavbar teamName={team.name} badgeUrl={team.badgeUrl} />
 
       {/* Premium Cyber-Athletic Hero */}
-      <header className="relative overflow-hidden px-4 pb-28 pt-20 lg:pb-36 lg:pt-28">
+      <header className="relative overflow-hidden px-4 pb-24 pt-16 lg:pb-32 lg:pt-24">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_35%,rgba(16,185,129,0.12),transparent_45%),radial-gradient(circle_at_80%_65%,rgba(6,182,212,0.08),transparent_45%)]" />
         
         <div className="relative mx-auto mt-4 grid max-w-6xl gap-12 lg:grid-cols-[1.25fr_0.75fr] lg:items-center">
@@ -345,14 +465,14 @@ export default async function HomePage({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34d399] opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-[#10b981]"></span>
               </span>
-              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#34d399]">Liga Oficial VARzea</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#34d399]">Arena Oficial VARzea</span>
             </div>
 
             <h1 className="text-balance text-5xl font-black leading-[1.05] sm:text-6xl lg:text-7xl uppercase tracking-tight">
-              <span className="block text-white">ARENA OFICIAL</span>
+              <span className="block text-white">PORTAL OFICIAL</span>
               <span className="block text-neon-gradient">{team.name}</span>
             </h1>
-            <p className="max-w-2xl text-sm sm:text-base leading-relaxed text-[#8fa39b] font-semibold">
+            <p className="max-w-2xl text-sm sm:text-base leading-relaxed text-[#8fa39b] font-medium">
               {team.description || `Seja bem-vindo ao portal oficial do ${team.name}. Acompanhe nossos resultados, estatísticas, elenco de atletas e envie propostas para amistosos.`}
             </p>
 
@@ -379,11 +499,11 @@ export default async function HomePage({
               <p className="mt-2.5 text-2xl font-black tracking-wide text-white">{summaryLine}</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-              <div className="rounded-2xl border border-white/5 bg-white/[0.03] px-5 py-4.5">
+              <div className="rounded-2xl border border-white/5 bg-white/[0.03] px-5 py-4">
                 <p className="text-[11px] text-[#8fa39b] font-bold uppercase tracking-wider">Aproveitamento Geral</p>
                 <p className="text-4xl font-black text-[#10b981] mt-1 tracking-tight">{stats.winRate}%</p>
               </div>
-              <div className="rounded-2xl border border-white/5 bg-white/[0.03] px-5 py-4.5">
+              <div className="rounded-2xl border border-white/5 bg-white/[0.03] px-5 py-4">
                 <p className="text-[11px] text-[#8fa39b] font-bold uppercase tracking-wider">Ataque Produtivo</p>
                 <p className="text-4xl font-black text-white mt-1 tracking-tight">{avgGoalsScored} <span className="text-xs font-semibold text-[#8fa39b]">/ jogo</span></p>
               </div>
@@ -394,46 +514,166 @@ export default async function HomePage({
 
       {/* Main Content Area */}
       <main className="mx-auto mt-8 max-w-6xl px-4 sm:px-6 lg:px-8 space-y-24">
+        
         {/* Core Stats Bar */}
         <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 -mt-24 relative z-10">
           <div className="app-surface p-6 hover:border-[#10b981] shadow-lg card-hover">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8fa39b]">Atletas Ativos</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8fa39b]">Atletas Integrados</p>
             <p className="mt-2 text-4xl font-black tracking-tight text-white">{team._count.players}</p>
-            <p className="mt-1 text-xs text-[#8fa39b] font-semibold">Integrados ao elenco principal</p>
+            <p className="mt-1 text-xs text-[#8fa39b] font-medium">Integrados ao elenco principal</p>
           </div>
 
           <div className="app-surface p-6 hover:border-[#10b981] shadow-lg card-hover">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8fa39b]">Jogos Efetuados</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8fa39b]">Jogos Realizados</p>
             <p className="mt-2 text-4xl font-black tracking-tight text-white">{stats.totalMatches}</p>
-            <p className="mt-1 text-xs text-[#8fa39b] font-semibold">Partidas oficiais computadas</p>
+            <p className="mt-1 text-xs text-[#8fa39b] font-medium">Partidas computadas na temporada</p>
           </div>
 
           <div className="app-surface p-6 hover:border-[#10b981] shadow-lg card-hover">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8fa39b]">Saldo de Gols</p>
             <p className="mt-2 text-4xl font-black tracking-tight text-white">{goalBalance >= 0 ? `+${goalBalance}` : goalBalance}</p>
-            <p className="mt-1 text-xs text-[#8fa39b] font-semibold">
+            <p className="mt-1 text-xs text-[#8fa39b] font-medium">
               {stats.goalsScored} pró · {stats.goalsConceded} contra
             </p>
           </div>
 
           <div className="app-surface p-6 hover:border-[#10b981] shadow-lg card-hover">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8fa39b]">Principal Artilheiro</p>
-            <p className="mt-2 line-clamp-1 text-lg font-black text-[#10b981] tracking-tight uppercase">
-              {topScorer?.playerName || "Aguardando gols"}
-            </p>
-            <p className="mt-1 text-xs text-[#8fa39b] font-semibold">
-              {topScorer ? `${topScorer.total} gols marcados` : "Sem registro de artilharia"}
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8fa39b]">Gols na Temporada</p>
+            <p className="mt-2 text-4xl font-black tracking-tight text-[#10b981]">{stats.goalsScored}</p>
+            <p className="mt-1 text-xs text-[#8fa39b] font-medium">
+              Marcados em confrontos oficiais
             </p>
           </div>
         </section>
 
-        {/* Retrospect Section */}
+        {/* Dynamic Season Highlights (Hall of Fame) */}
+        <section id="destaques" className="scroll-mt-24 space-y-6">
+          <div className="mb-6 flex items-end justify-between gap-3 border-b border-white/10 pb-4">
+            <div>
+              <h2 className="text-2xl font-black uppercase text-white tracking-tight">Estrelas da Temporada</h2>
+              <p className="text-xs text-[#8fa39b] font-medium">Os destaques estatísticos e atletas em evidência na arena</p>
+            </div>
+            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#10b981]">Hall da Fama</p>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Highlight 1: Artilheiro */}
+            <div className="app-surface relative overflow-hidden p-6 flex flex-col justify-between min-h-[220px] border-[#10b981]/20 hover:border-[#10b981]/60 card-hover bg-gradient-to-br from-[rgba(10,20,24,0.7)] to-[rgba(16,185,129,0.03)]">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#8fa39b]">⚽ Artilheiro</span>
+                  <span className="text-xs font-mono font-bold text-[#10b981] bg-[#10b981]/10 px-2 py-0.5 rounded-md border border-[#10b981]/20">GOLS</span>
+                </div>
+                <p className="mt-4 text-5xl font-black tracking-tight text-white">{stats.highlights.bestScorer?.goals || 0}</p>
+                <p className="mt-0.5 text-[10px] font-bold text-[#8fa39b] uppercase tracking-wider">Gols marcados</p>
+              </div>
+              <div className="mt-6 flex items-center gap-3 pt-4 border-t border-white/5">
+                {stats.highlights.bestScorer?.photoUrl ? (
+                  <img src={stats.highlights.bestScorer.photoUrl} alt="Foto" className="h-10 w-10 rounded-xl object-cover border border-white/10 shadow" />
+                ) : (
+                  <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center font-bold text-white text-xs">
+                    #{stats.highlights.bestScorer?.shirtNumber ?? "—"}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="font-extrabold text-sm text-white uppercase truncate tracking-tight">{stats.highlights.bestScorer?.playerName || "Sem registro"}</p>
+                  <p className="text-[10px] text-[#8fa39b] font-medium truncate mt-0.5">
+                    {stats.highlights.bestScorer ? `Camisa #${stats.highlights.bestScorer.shirtNumber}` : "Aguardando gols"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Highlight 2: Assistência */}
+            <div className="app-surface relative overflow-hidden p-6 flex flex-col justify-between min-h-[220px] border-[#06b6d4]/20 hover:border-[#06b6d4]/60 card-hover bg-gradient-to-br from-[rgba(10,20,24,0.7)] to-[rgba(6,182,212,0.03)]">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#8fa39b]">🎯 Garçom</span>
+                  <span className="text-xs font-mono font-bold text-[#06b6d4] bg-[#06b6d4]/10 px-2 py-0.5 rounded-md border border-[#06b6d4]/20">PASSE</span>
+                </div>
+                <p className="mt-4 text-5xl font-black tracking-tight text-white">{stats.highlights.bestAssist?.assists || 0}</p>
+                <p className="mt-0.5 text-[10px] font-bold text-[#8fa39b] uppercase tracking-wider">Assistências</p>
+              </div>
+              <div className="mt-6 flex items-center gap-3 pt-4 border-t border-white/5">
+                {stats.highlights.bestAssist?.photoUrl ? (
+                  <img src={stats.highlights.bestAssist.photoUrl} alt="Foto" className="h-10 w-10 rounded-xl object-cover border border-white/10 shadow" />
+                ) : (
+                  <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center font-bold text-white text-xs">
+                    #{stats.highlights.bestAssist?.shirtNumber ?? "—"}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="font-extrabold text-sm text-white uppercase truncate tracking-tight">{stats.highlights.bestAssist?.playerName || "Sem registro"}</p>
+                  <p className="text-[10px] text-[#8fa39b] font-medium truncate mt-0.5">
+                    {stats.highlights.bestAssist ? `Camisa #${stats.highlights.bestAssist.shirtNumber}` : "Aguardando passes"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Highlight 3: Presença */}
+            <div className="app-surface relative overflow-hidden p-6 flex flex-col justify-between min-h-[220px] border-amber-500/20 hover:border-amber-500/60 card-hover bg-gradient-to-br from-[rgba(10,20,24,0.7)] to-[rgba(245,158,11,0.03)]">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#8fa39b]">📅 Mais Presente</span>
+                  <span className="text-xs font-mono font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">JOGOS</span>
+                </div>
+                <p className="mt-4 text-5xl font-black tracking-tight text-white">{stats.highlights.bestPresence?.matches || 0}</p>
+                <p className="mt-0.5 text-[10px] font-bold text-[#8fa39b] uppercase tracking-wider">Presenças em campo</p>
+              </div>
+              <div className="mt-6 flex items-center gap-3 pt-4 border-t border-white/5">
+                {stats.highlights.bestPresence?.photoUrl ? (
+                  <img src={stats.highlights.bestPresence.photoUrl} alt="Foto" className="h-10 w-10 rounded-xl object-cover border border-white/10 shadow" />
+                ) : (
+                  <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center font-bold text-white text-xs">
+                    #{stats.highlights.bestPresence?.shirtNumber ?? "—"}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="font-extrabold text-sm text-white uppercase truncate tracking-tight">{stats.highlights.bestPresence?.playerName || "Sem registro"}</p>
+                  <p className="text-[10px] text-[#8fa39b] font-medium truncate mt-0.5">
+                    {stats.highlights.bestPresence ? `Camisa #${stats.highlights.bestPresence.shirtNumber}` : "Aguardando partidas"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Highlight 4: Melhor Avaliado */}
+            <div className="app-surface relative overflow-hidden p-6 flex flex-col justify-between min-h-[220px] border-violet-500/20 hover:border-violet-500/60 card-hover bg-gradient-to-br from-[rgba(10,20,24,0.7)] to-[rgba(139,92,246,0.03)]">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#8fa39b]">⭐ Melhor Nota</span>
+                  <span className="text-xs font-mono font-bold text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded-md border border-violet-500/20">AVALIAÇÃO</span>
+                </div>
+                <p className="mt-4 text-5xl font-black tracking-tight text-white">{stats.highlights.bestRated?.averageStars?.toFixed(1) || "0.0"}</p>
+                <p className="mt-0.5 text-[10px] font-bold text-[#8fa39b] uppercase tracking-wider">Média de estrelas</p>
+              </div>
+              <div className="mt-6 flex items-center gap-3 pt-4 border-t border-white/5">
+                {stats.highlights.bestRated?.photoUrl ? (
+                  <img src={stats.highlights.bestRated.photoUrl} alt="Foto" className="h-10 w-10 rounded-xl object-cover border border-white/10 shadow" />
+                ) : (
+                  <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center font-bold text-white text-xs">
+                    #{stats.highlights.bestRated?.shirtNumber ?? "—"}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="font-extrabold text-sm text-white uppercase truncate tracking-tight">{stats.highlights.bestRated?.playerName || "Sem registro"}</p>
+                  <p className="text-[10px] text-[#8fa39b] font-medium truncate mt-0.5">
+                    {stats.highlights.bestRated ? `${stats.highlights.bestRated.totalRatings} avaliações` : "Aguardando votos"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Retrospect & Performance Section */}
         {stats.totalMatches > 0 && (
           <section id="retrospecto" className="scroll-mt-24 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="app-surface p-6 sm:p-8 space-y-6">
               <div>
                 <h2 className="text-2xl font-black uppercase text-white tracking-tight">Retrospecto Geral</h2>
-                <p className="mt-1.5 text-xs text-[#8fa39b] font-semibold">
+                <p className="mt-1.5 text-xs text-[#8fa39b] font-medium">
                   Histórico geral acumulado de resultados em confrontos oficiais.
                 </p>
               </div>
@@ -453,10 +693,10 @@ export default async function HomePage({
               </div>
               <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
                 <div className="mb-2.5 flex items-center justify-between text-xs font-black uppercase text-white">
-                  <span>Aproveitamento da Equipe</span>
+                  <span>Aproveitamento Geral</span>
                   <span className="text-[#10b981]">{stats.winRate}%</span>
                 </div>
-                <div className="h-3 overflow-hidden rounded-full bg-white/10 p-0.5 border border-white/5">
+                <div className="h-3.5 overflow-hidden rounded-full bg-white/10 p-0.5 border border-white/5">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-[#10b981] to-[#34d399] transition-all duration-700"
                     style={{ width: `${stats.winRate}%` }}
@@ -467,8 +707,8 @@ export default async function HomePage({
 
             <div className="app-surface p-6 sm:p-8 flex flex-col justify-between space-y-6">
               <div>
-                <h3 className="text-xl font-black uppercase text-white tracking-tight">Produtividade de Jogo</h3>
-                <p className="mt-1 text-xs text-[#8fa39b] font-semibold">
+                <h3 className="text-xl font-black uppercase text-white tracking-tight">Médias Ofensivas e Defensivas</h3>
+                <p className="mt-1 text-xs text-[#8fa39b] font-medium">
                   Médias estatísticas ofensivas e defensivas por partida.
                 </p>
               </div>
@@ -498,11 +738,11 @@ export default async function HomePage({
             <div className="mb-6 flex items-end justify-between gap-3 border-b border-white/10 pb-4">
               <div>
                 <h2 className="text-2xl font-black uppercase text-white tracking-tight">Artilharia em Destaque</h2>
-                <p className="text-xs text-[#8fa39b] font-semibold">Os maiores artilheiros da VARzea na temporada</p>
+                <p className="text-xs text-[#8fa39b] font-medium">Os maiores goleadores do elenco na temporada</p>
               </div>
               <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#10b981]">Ranking Oficial</p>
             </div>
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
               {stats.topScorers.map((scorer, i) => (
                 <article
                   key={`${scorer.playerName}-${i}`}
@@ -526,7 +766,7 @@ export default async function HomePage({
             <div className="mb-6 flex items-end justify-between gap-3 border-b border-white/10 pb-4">
               <div>
                 <h2 className="text-2xl font-black uppercase text-white tracking-tight">Tabela Individual da Temporada</h2>
-                <p className="text-xs text-[#8fa39b] font-semibold mt-1">Campeonato ativo: {stats.activeSeason.name}</p>
+                <p className="text-xs text-[#8fa39b] font-medium mt-1">Campeonato ativo: {stats.activeSeason.name}</p>
               </div>
               <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#10b981]">Classificação</p>
             </div>
@@ -585,7 +825,7 @@ export default async function HomePage({
           <div className="mb-6 flex items-end justify-between gap-3 border-b border-white/10 pb-4">
             <div>
               <h2 className="text-2xl font-black uppercase text-white tracking-tight">Guerreiros do Elenco</h2>
-              <p className="text-xs text-[#8fa39b] font-semibold mt-1">Conheça os titulares e reservas da nossa equipe oficial</p>
+              <p className="text-xs text-[#8fa39b] font-medium mt-1">Conheça os titulares e reservas da nossa equipe oficial</p>
             </div>
             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8fa39b]">
               {team.players.length} Atletas Inscritos
@@ -594,50 +834,65 @@ export default async function HomePage({
 
           {team.players.length > 0 ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {team.players.map((player) => (
-                <Link
-                  key={player.id}
-                  href={`/jogadores/${player.id}`}
-                  className="group block"
-                  aria-label={`Ver perfil de ${player.name}`}
-                >
-                  <article className="trading-card p-6 flex flex-col justify-between min-h-[170px]">
-                    {/* Golden Camiseta Background styling */}
-                    <span className="absolute bottom-2 right-2 text-8xl font-black text-white/[0.02] pointer-events-none group-hover:text-white/[0.04] transition-all">
-                      #{player.shirtNumber}
-                    </span>
+              {team.players.map((player) => {
+                const theme = positionThemes[player.position] || {
+                  border: "border-white/10 hover:border-white/30",
+                  text: "text-[#8fa39b]",
+                  glow: "rgba(255, 255, 255, 0.05)",
+                  label: player.position,
+                  badge: "bg-white/5 text-[#8fa39b] border-white/10",
+                };
 
-                    <div className="relative z-10 flex items-center gap-4">
-                      {player.photoUrl ? (
-                        <img
-                          src={player.photoUrl}
-                          alt={player.name}
-                          className="h-16 w-16 rounded-2xl border border-[rgba(16,185,129,0.25)] object-cover shadow-md transition group-hover:scale-105 duration-200"
-                        />
-                      ) : (
-                        <div
-                          className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[rgba(16,185,129,0.25)] text-xl font-black text-[#10b981] bg-[rgba(16,185,129,0.06)] shadow-inner transition group-hover:scale-105 duration-200"
-                        >
-                          {player.shirtNumber}
+                return (
+                  <Link
+                    key={player.id}
+                    href={`/jogadores/${player.id}`}
+                    className="group block"
+                    aria-label={`Ver perfil de ${player.name}`}
+                  >
+                    <article 
+                      className={`trading-card p-6 flex flex-col justify-between min-h-[180px] ${theme.border}`}
+                      style={{
+                        boxShadow: `0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px ${theme.glow}`,
+                      }}
+                    >
+                      {/* Shirt Number Background silhouette */}
+                      <span className="absolute bottom-2 right-2 text-8xl font-black text-white/[0.02] pointer-events-none group-hover:text-white/[0.04] transition-all">
+                        #{player.shirtNumber}
+                      </span>
+
+                      <div className="relative z-10 flex items-center gap-4">
+                        {player.photoUrl ? (
+                          <img
+                            src={player.photoUrl}
+                            alt={player.name}
+                            className="h-16 w-16 rounded-2xl border border-white/10 object-cover shadow-md transition group-hover:scale-105 duration-200"
+                          />
+                        ) : (
+                          <div
+                            className={`flex h-16 w-16 items-center justify-center rounded-2xl border text-xl font-black shadow-inner transition group-hover:scale-105 duration-200 ${theme.badge}`}
+                          >
+                            {player.shirtNumber}
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-lg font-black text-white group-hover:text-[#10b981] transition-colors duration-150 uppercase tracking-tight truncate max-w-[170px]">{player.name}</p>
+                          <p className="text-xs text-[#8fa39b] font-medium mt-0.5">Camisa #{player.shirtNumber}</p>
                         </div>
-                      )}
-                      <div>
-                        <p className="text-lg font-black text-white group-hover:text-[#10b981] transition-colors duration-150 uppercase tracking-tight">{player.name}</p>
-                        <p className="text-xs text-[#8fa39b] font-semibold mt-0.5">Camisa #{player.shirtNumber}</p>
                       </div>
-                    </div>
 
-                    <div className="relative z-10 mt-6 flex items-center justify-between">
-                      <span className={`inline-flex rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.08em] ${positionStyles[player.position] || "border-white/10 bg-white/5 text-[#8fa39b]"}`}>
-                        {positionLabels[player.position] || player.position}
-                      </span>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-[#10b981] opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-                        Ver Perfil &rarr;
-                      </span>
-                    </div>
-                  </article>
-                </Link>
-              ))}
+                      <div className="relative z-10 mt-6 flex items-center justify-between">
+                        <span className={`inline-flex rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.08em] ${theme.badge}`}>
+                          {theme.label}
+                        </span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-[#10b981] opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
+                          Ver Perfil &rarr;
+                        </span>
+                      </div>
+                    </article>
+                  </Link>
+                );
+              })}
             </div>
           ) : (
             <div className="app-surface p-12 text-center text-[#8fa39b] text-sm border-dashed">
@@ -662,7 +917,7 @@ export default async function HomePage({
             </div>
 
             {hasDiscoveryInfo && (
-              <div className="flex flex-wrap gap-2 text-xs font-semibold text-[#8fa39b]">
+              <div className="flex flex-wrap gap-2 text-xs font-medium text-[#8fa39b]">
                 {team.city && <span className="rounded-full border border-white/5 bg-white/[0.02] px-3.5 py-2">Cidade: {team.city}</span>}
                 {team.region && <span className="rounded-full border border-white/5 bg-white/[0.02] px-3.5 py-2">Região: {team.region}</span>}
                 {team.fieldType && <span className="rounded-full border border-white/5 bg-white/[0.02] px-3.5 py-2">Campo: {fieldTypeLabels[team.fieldType]}</span>}
@@ -680,7 +935,7 @@ export default async function HomePage({
                       <p className="text-base font-black text-white">
                         {new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(slot.date)}
                       </p>
-                      <p className="text-xs font-semibold text-[#8fa39b]">
+                      <p className="text-xs font-medium text-[#8fa39b]">
                         {(slot.timeLabel || "Horário a definir") + " • " + (slot.venueLabel || "Local a definir")}
                       </p>
                       {slot.notes && <p className="text-[11px] text-[#8fa39b] italic pt-1">Nota: {slot.notes}</p>}
@@ -702,44 +957,66 @@ export default async function HomePage({
           </section>
         )}
 
-        {/* Challenging Form Section */}
-        <section id="amistoso" className="scroll-mt-24 grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="app-surface p-6 sm:p-8 flex flex-col justify-between space-y-6 border-white/5">
+        {/* Challenging & Recruitment Form Split Section */}
+        <section id="amistoso" className="scroll-mt-24 grid gap-8 lg:grid-cols-2">
+          {/* Column 1: Desafiar Amistoso */}
+          <div className="app-surface p-6 sm:p-8 flex flex-col justify-between bg-black/40 space-y-6">
             <div className="space-y-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#8fa39b]">Agendamento de Amistoso</p>
-              <h2 className="text-balance text-3xl font-black uppercase text-white tracking-tight">
+              <span className="text-xs font-black font-mono tracking-widest text-[#10b981] bg-[#10b981]/10 px-3 py-1 rounded-full border border-[#10b981]/20">AMISTOSO</span>
+              <h2 className="text-balance text-3xl font-black uppercase text-white tracking-tight mt-2">
                 Desafie o {team.name}
               </h2>
-              <p className="text-xs sm:text-sm leading-relaxed text-[#8fa39b] font-medium">
-                Sua equipe tem o que é preciso para encarar o nosso esquadrão? Preencha as informações ao lado propondo a data, localidade e cota de arbitragem se aplicável.
+              <p className="text-sm leading-relaxed text-[#8fa39b] font-medium">
+                Sua equipe tem o que é preciso para encarar o nosso esquadrão? Preencha as informações propondo a data, localidade e cota de arbitragem se aplicável.
               </p>
-              <p className="text-xs sm:text-sm leading-relaxed text-[#8fa39b] font-medium">
+              <p className="text-sm leading-relaxed text-[#8fa39b] font-medium">
                 A comissão administradora receberá sua solicitação em tempo real no painel de controle e responderá diretamente via e-mail!
               </p>
             </div>
-            <div className="rounded-2xl border border-[#10b981]/10 bg-[#10b981]/5 p-5 text-xs text-[#34d399] leading-relaxed font-semibold">
-              💡 <strong>Dica de Sucesso:</strong> Informar se o campo sugerido possui vestiário e arbitragem paga agiliza bastante o aceite da comissão!
-            </div>
-          </div>
-
-          <div className="app-surface p-6 sm:p-8 shadow-xl border-white/5">
+            
             {selectedSlot && (
-              <div className="mb-5 rounded-xl border border-[#10b981]/20 bg-[#10b981]/5 px-4 py-3 text-xs text-[#34d399] font-bold animate-fade-in uppercase tracking-wider">
+              <div className="rounded-xl border border-[#10b981]/20 bg-[#10b981]/5 px-4 py-3 text-xs text-[#34d399] font-bold animate-fade-in uppercase tracking-wider">
                 🎯 Agendando proposta com base no horário aberto de {selectedSlotDateText}.
               </div>
             )}
+            
             <FriendlyRequestForm
               teamSlug={team.slug}
               initialSuggestedDates={suggestedDatesInitialValue}
               initialSuggestedVenue={suggestedVenueInitialValue}
             />
           </div>
+
+          {/* Column 2: Faça parte do Time (Recrutamento) */}
+          <div className="app-surface p-6 sm:p-8 flex flex-col justify-between bg-black/40 space-y-6">
+            <div className="space-y-4">
+              <span className="text-xs font-black font-mono tracking-widest text-[#06b6d4] bg-[#06b6d4]/10 px-3 py-1 rounded-full border border-[#06b6d4]/20">RECRUTAMENTO</span>
+              <h2 className="text-balance text-3xl font-black uppercase text-white tracking-tight mt-2">
+                Faça Parte do Elenco
+              </h2>
+              <p className="text-sm leading-relaxed text-[#8fa39b] font-medium">
+                Quer vestir a camisa do {team.name} e mostrar seu futebol? Se você é comprometido com o esporte, deixe seus dados e mensagem para a comissão técnica avaliar!
+              </p>
+            </div>
+
+            {team.publicDirectoryOptIn ? (
+              <RecruitmentForm teamSlug={team.slug} />
+            ) : (
+              <div className="rounded-2xl border border-white/5 bg-white/5 p-8 text-center text-[#8fa39b] flex flex-col justify-center items-center min-h-[250px]">
+                <span className="text-3xl mb-3">🔒</span>
+                <p className="text-sm font-bold text-white uppercase">Recrutamento Suspenso</p>
+                <p className="text-xs text-[#8fa39b] mt-2 max-w-xs mx-auto">
+                  Esta equipe optou por não aceitar novas candidaturas de recrutamento público no momento.
+                </p>
+              </div>
+            )}
+          </div>
         </section>
 
         {/* Identity Details */}
         {(team.primaryColor || team.secondaryColor) && (
           <section className="text-center pt-4 space-y-6">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8fa39b]">Cores e Manto Oficial</h2>
+            <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-[#8fa39b]">Manto e Cores Oficiais</h2>
             <div className="flex justify-center gap-6">
               {team.primaryColor && (
                 <div className="flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-full px-5 py-2.5 shadow-md">
