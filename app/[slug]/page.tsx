@@ -773,8 +773,8 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
             )}
           </div>
           <div className="right font-mono">
-            <a href="#solicitar-amistoso">Solicitar amistoso</a>
-            <a href="#recrutamento">Quero jogar</a>
+            <a href="?tab=secretaria#amistoso">Solicitar amistoso</a>
+            <a href="?tab=secretaria#recrutamento">Quero jogar</a>
             <Link href="/dashboard">Acesso restrito ↗</Link>
           </div>
         </div>
@@ -791,17 +791,17 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
             </div>
           </Link>
           <nav className="primary font-sans">
-            <a href="#elenco">Elenco</a>
-            <a href="#desempenho">Desempenho</a>
-            <a href="#calendario">Calendário</a>
-            <a href="#tatica">Tática</a>
-            <a href="#solicitar-amistoso">Amistosos</a>
-            <a href="#identidade">Identidade</a>
+            <a href="?tab=album#elenco">Elenco</a>
+            <a href="?tab=esportes#desempenho">Desempenho</a>
+            <a href="?tab=esportes#calendario">Calendário</a>
+            <a href="?tab=esportes#tatica">Tática</a>
+            <a href="?tab=secretaria#amistoso">Amistosos</a>
+            <a href="?tab=album#identidade">Identidade</a>
           </nav>
           <div className="actions">
             <ThemeToggle />
-            <a href="#solicitar-amistoso" className="btn secondary hidden md:inline-flex">Desafiar equipe</a>
-            <a href="#elenco" className="btn green hidden md:inline-flex">Conhecer elenco <span className="btn-arr">→</span></a>
+            <a href="?tab=secretaria#amistoso" className="btn secondary hidden md:inline-flex">Desafiar equipe</a>
+            <a href="?tab=album#elenco" className="btn green hidden md:inline-flex">Conhecer elenco <span className="btn-arr">→</span></a>
           </div>
         </div>
       </header>
@@ -869,8 +869,8 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
               </div>
 
               <div className="hero-ctas flex gap-4 mt-8">
-                <a href="#elenco" className="btn primary">Conhecer o elenco <span className="btn-arr">→</span></a>
-                <a href="#solicitar-amistoso" className="btn secondary">Desafiar o time</a>
+                <a href="?tab=album#elenco" className="btn primary">Conhecer o elenco <span className="btn-arr">→</span></a>
+                <a href="?tab=secretaria#amistoso" className="btn secondary">Desafiar o time</a>
               </div>
             </div>
 
@@ -1016,7 +1016,7 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
         <div id="content-esportes" className="space-y-16 animate-fade-in px-4">
           
           {/* Estrelas da Temporada */}
-          <section className="scroll-mt-24 space-y-6">
+          <section id="desempenho" className="scroll-mt-24 space-y-6">
             <div className="sec-head flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[var(--border)] pb-4">
               <div className="left">
                 <span className="eyebrow">Destaques individuais</span>
@@ -1121,7 +1121,7 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
           </section>
 
           {/* Calendário: Linha do tempo de partidas */}
-          <section className="scroll-mt-24 space-y-6">
+          <section id="calendario" className="scroll-mt-24 space-y-6">
             <div className="sec-head flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[var(--border)] pb-4">
               <div className="left">
                 <span className="eyebrow">Linha do tempo</span>
@@ -1370,7 +1370,7 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
           )}
 
           {/* Elenco */}
-          <section className="scroll-mt-24 space-y-6">
+          <section id="elenco" className="scroll-mt-24 space-y-6">
             <div className="sec-head flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[var(--border)] pb-4">
               <div className="left">
                 <span className="eyebrow">Atletas oficiais</span>
@@ -1692,25 +1692,25 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
             <div>
               <h4>Clube</h4>
               <ul>
-                <li><a href="#elenco">Elenco</a></li>
-                <li><a href="#desempenho">Desempenho</a></li>
-                <li><a href="#tatica">Tática</a></li>
-                <li><a href="#identidade">Identidade</a></li>
+                <li><a href="?tab=album#elenco">Elenco</a></li>
+                <li><a href="?tab=esportes#desempenho">Desempenho</a></li>
+                <li><a href="?tab=esportes#tatica">Tática</a></li>
+                <li><a href="?tab=album#identidade">Identidade</a></li>
               </ul>
             </div>
             <div>
               <h4>Calendário</h4>
               <ul>
-                <li><a href="#calendario">Histórico</a></li>
-                <li><a href="#calendario">Agenda</a></li>
-                <li><a href="#ranking">Classificação</a></li>
+                <li><a href="?tab=esportes#calendario">Histórico</a></li>
+                <li><a href="?tab=esportes#calendario">Agenda</a></li>
+                <li><a href="?tab=album#ranking">Classificação</a></li>
               </ul>
             </div>
             <div>
               <h4>Atendimento</h4>
               <ul>
-                <li><a href="#solicitar-amistoso">Solicitar Amistoso</a></li>
-                <li><a href="#recrutamento">Quero jogar</a></li>
+                <li><a href="?tab=secretaria#amistoso">Solicitar Amistoso</a></li>
+                <li><a href="?tab=secretaria#recrutamento">Quero jogar</a></li>
                 <li><Link href="/dashboard">Console Restrito ↗</Link></li>
               </ul>
             </div>

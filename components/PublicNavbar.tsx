@@ -12,6 +12,7 @@ interface PublicNavbarProps {
 export function PublicNavbar({ teamName, badgeUrl, slug }: PublicNavbarProps) {
   const { data: session } = useSession();
   const prefix = slug ? `/${slug}` : "";
+  const portalHref = (path: string) => `${prefix || "/"}${path}`;
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[#090d0f] border-b-2 border-slate-800 shadow-none">
@@ -29,13 +30,13 @@ export function PublicNavbar({ teamName, badgeUrl, slug }: PublicNavbarProps) {
           <span className="font-mono text-lg font-black tracking-tighter text-white uppercase">{teamName}</span>
         </Link>
         <div className="flex items-center gap-6">
-          <a href={`${prefix}#elenco`} className="hidden text-[10px] font-mono font-black uppercase tracking-widest text-slate-400 hover:text-[var(--brand)] sm:block transition-colors">
+          <a href={portalHref("?tab=album#elenco")} className="hidden text-[10px] font-mono font-black uppercase tracking-widest text-slate-400 hover:text-[var(--brand)] sm:block transition-colors">
             Elenco
           </a>
-          <a href={`${prefix}#retrospecto`} className="hidden text-[10px] font-mono font-black uppercase tracking-widest text-slate-400 hover:text-[var(--brand)] sm:block transition-colors">
+          <a href={portalHref("?tab=esportes#desempenho")} className="hidden text-[10px] font-mono font-black uppercase tracking-widest text-slate-400 hover:text-[var(--brand)] sm:block transition-colors">
             Desempenho
           </a>
-          <a href={`${prefix}#amistoso`} className="hidden text-[10px] font-mono font-black uppercase tracking-widest text-slate-400 hover:text-[var(--brand)] sm:block transition-colors">
+          <a href={portalHref("?tab=secretaria#amistoso")} className="hidden text-[10px] font-mono font-black uppercase tracking-widest text-slate-400 hover:text-[var(--brand)] sm:block transition-colors">
             Solicitar Amistoso
           </a>
           <Link
