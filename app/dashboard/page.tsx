@@ -253,7 +253,7 @@ export default function DashboardHomePage() {
         />
         <StatsCard
           label="Partidas Disputadas"
-          value={matchesCount}
+          value={record?.totalMatches ?? 0}
           icon="⚽"
           color="green"
         />
