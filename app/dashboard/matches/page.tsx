@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
@@ -118,6 +118,42 @@ export default function MatchesPage() {
     m.venue.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Identify the single closest upcoming match across all matches loaded
+  const nextMatchId = useMemo(() => {
+    const scheduled = matches.filter((m) => m.status === "SCHEDULED");
+    const sortedScheduled = [...scheduled].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    return sortedScheduled[0]?.id || null;
+  }, [matches]);
+
+  // Apply custom sorting to filtered list
+  const sortedMatches = useMemo(() => {
+    const scheduled = filteredMatches.filter((m) => m.status === "SCHEDULED");
+    const past = filteredMatches.filter((m) => m.status !== "SCHEDULED");
+
+    const sortedScheduled = [...scheduled].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    // Next match is the overall next scheduled match (if it survives search filtering)
+    const nextMatch = sortedScheduled.find((m) => m.id === nextMatchId);
+    const remainingScheduled = sortedScheduled.filter((m) => m.id !== nextMatchId);
+
+    const sortedPast = [...past].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    const result: MatchSummary[] = [];
+    if (nextMatch) {
+      result.push(nextMatch);
+    }
+    result.push(...sortedPast);
+    result.push(...remainingScheduled);
+
+    return result;
+  }, [filteredMatches, nextMatchId]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 rounded-[22px] border border-[rgba(16,185,129,0.18)] bg-[rgba(10,24,20,0.4)] p-6 sm:flex-row sm:items-center sm:justify-between backdrop-blur-md">
@@ -194,7 +230,7 @@ export default function MatchesPage() {
             </div>
           ))}
         </div>
-      ) : filteredMatches.length === 0 ? (
+      ) : sortedMatches.length === 0 ? (
         <Card className="rounded-[18px] p-8 text-center shadow-sm">
           <p className="text-sm font-bold text-[var(--text-muted)]">Nenhuma partida encontrada.</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]/80">
@@ -203,71 +239,81 @@ export default function MatchesPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {filteredMatches.map((match) => (
-            <Link key={match.id} href={`/dashboard/matches/${match.id}`}>
-              <Card className="rounded-[18px] p-4 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-[var(--text)]">
-                        vs {match.opponent}
-                      </span>
-                      <Badge variant={statusVariants[match.status]}>
-                        {statusLabels[match.status]}
-                      </Badge>
-                      <Badge variant="default">{typeLabels[match.type]}</Badge>
-                    </div>
-                    <div className="mt-1 flex flex-wrap gap-4 text-sm text-[var(--text-muted)]">
-                      <span>📅 {formatMatchDate(match.date)}</span>
-                      <span>📍 {match.venue}</span>
-                    </div>
-                    {match.status === "COMPLETED" &&
-                      match.homeScore !== null &&
-                      match.awayScore !== null && (
-                        <div className="mt-1 text-sm font-semibold text-[var(--text)]">
-                          Placar: {match.isHome ? match.homeScore : match.awayScore} x {match.isHome ? match.awayScore : match.homeScore}
-                        </div>
-                      )}
-                  </div>
-                  {match.status === "COMPLETED" && match.homeScore !== null && match.awayScore !== null ? (() => {
-                    const ourScore = match.isHome ? match.homeScore : match.awayScore;
-                    const opponentScore = match.isHome ? match.awayScore : match.homeScore;
-
-                    let badgeColor = "bg-gray-500/10 text-gray-400 border-gray-500/20";
-                    let resultLabel = "Empate";
-
-                    if (ourScore > opponentScore) {
-                      resultLabel = "Vitória";
-                      badgeColor = "bg-emerald-500/15 text-[#34d399] border-emerald-500/30";
-                    } else if (ourScore < opponentScore) {
-                      resultLabel = "Derrota";
-                      badgeColor = "bg-red-500/10 text-red-400 border-red-500/20";
-                    }
-
-                    return (
-                      <span className={`text-xs font-mono font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full border shrink-0 text-center ${badgeColor}`}>
-                        {resultLabel}
-                      </span>
-                    );
-                  })() : (
-                    <div className="rounded-xl border border-[#e5ece5] bg-[#f8fbf8] px-3 py-2 text-sm">
-                      <div className="flex items-center gap-3">
-                        <span className="text-green-600">
-                          ✅ {match.rsvpSummary.confirmed}
+          {sortedMatches.map((match) => {
+            const isNextMatch = match.id === nextMatchId;
+            return (
+              <Link key={match.id} href={`/dashboard/matches/${match.id}`}>
+                <Card className={`rounded-[18px] p-4 transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)] ${
+                  isNextMatch
+                    ? "border-[#fbbf24]/50 bg-[#fbbf24]/[0.02] shadow-[0_0_20px_rgba(251,191,36,0.08)]"
+                    : ""
+                }`}>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-[var(--text)]">
+                          vs {match.opponent}
                         </span>
-                        <span className="text-red-600">
-                          ❌ {match.rsvpSummary.declined}
-                        </span>
-                        <span className="text-yellow-600">
-                          ⏳ {match.rsvpSummary.pending}
-                        </span>
+                        {isNextMatch && (
+                          <Badge variant="warning">🔥 Próximo Jogo</Badge>
+                        )}
+                        <Badge variant={statusVariants[match.status]}>
+                          {statusLabels[match.status]}
+                        </Badge>
+                        <Badge variant="default">{typeLabels[match.type]}</Badge>
                       </div>
+                      <div className="mt-1 flex flex-wrap gap-4 text-sm text-[var(--text-muted)]">
+                        <span>📅 {formatMatchDate(match.date)}</span>
+                        <span>📍 {match.venue}</span>
+                      </div>
+                      {match.status === "COMPLETED" &&
+                        match.homeScore !== null &&
+                        match.awayScore !== null && (
+                          <div className="mt-1 text-sm font-semibold text-[var(--text)]">
+                            Placar: {match.isHome ? match.homeScore : match.awayScore} x {match.isHome ? match.awayScore : match.homeScore}
+                          </div>
+                        )}
                     </div>
-                  )}
-                </div>
-              </Card>
-            </Link>
-          ))}
+                    {match.status === "COMPLETED" && match.homeScore !== null && match.awayScore !== null ? (() => {
+                      const ourScore = match.isHome ? match.homeScore : match.awayScore;
+                      const opponentScore = match.isHome ? match.awayScore : match.homeScore;
+
+                      let badgeColor = "bg-gray-500/10 text-gray-400 border-gray-500/20";
+                      let resultLabel = "Empate";
+
+                      if (ourScore > opponentScore) {
+                        resultLabel = "Vitória";
+                        badgeColor = "bg-emerald-500/15 text-[#34d399] border-emerald-500/30";
+                      } else if (ourScore < opponentScore) {
+                        resultLabel = "Derrota";
+                        badgeColor = "bg-red-500/10 text-red-400 border-red-500/20";
+                      }
+
+                      return (
+                        <span className={`text-xs font-mono font-black uppercase tracking-wider px-3.5 py-1.5 rounded-full border shrink-0 text-center ${badgeColor}`}>
+                          {resultLabel}
+                        </span>
+                      );
+                    })() : (
+                      <div className="rounded-xl border border-[#e5ece5] bg-[#f8fbf8] px-3 py-2 text-sm">
+                        <div className="flex items-center gap-3">
+                          <span className="text-green-600">
+                            ✅ {match.rsvpSummary.confirmed}
+                          </span>
+                          <span className="text-red-600">
+                            ❌ {match.rsvpSummary.declined}
+                          </span>
+                          <span className="text-yellow-600">
+                            ⏳ {match.rsvpSummary.pending}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       )}
 
