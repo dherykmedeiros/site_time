@@ -711,6 +711,11 @@ export default async function HomePage({
   const bestPresence = stats.highlights.bestPresence || null;
   const bestRated = stats.highlights.bestRated || null;
 
+  const activeScorer = bestScorer || { shirtNumber: "-", playerName: "A definir", position: "ATA", goals: 0 };
+  const activeAssist = bestAssist || { shirtNumber: "-", playerName: "A definir", position: "MEI", assists: 0 };
+  const activePresence = bestPresence || { shirtNumber: "-", playerName: "A definir", position: "ZAG", matches: 0 };
+  const activeRated = bestRated || { shirtNumber: "-", playerName: "A definir", position: "GOL", averageStars: 0.0, totalRatings: 0 };
+
   const clubInitials = team.shortName || team.name.substring(0, 2).toUpperCase();
 
   return (
@@ -1034,94 +1039,95 @@ export default async function HomePage({
               </div>
             </div>
 
-            <div className="top-grid grid grid-cols-1 md:grid-cols-4 gap-6">
-              {bestScorer && (
-                <article className="top-card feature border border-[var(--primary)] bg-[var(--surface)] p-6 rounded flex flex-col justify-between aspect-[4/5] col-span-1 md:col-span-2 relative overflow-hidden group">
-                  <div className="absolute -right-4 -bottom-8 text-[11rem] font-serif font-bold text-[var(--primary-tint)] opacity-40 group-hover:scale-105 transition-transform duration-300 select-none pointer-events-none leading-none">
-                    {bestScorer.goals}
-                  </div>
-                  <div className="tag-row flex justify-between items-center text-[10.5px] font-mono text-[var(--text-3)] uppercase tracking-wider">
-                    <span className="text-[var(--primary)] font-bold">▸ Destaque principal</span>
-                    <span>ARTILHEIRO</span>
-                  </div>
-                  <div className="player flex items-end gap-4 mt-6 z-10">
-                    <div className="num font-serif font-black text-6xl text-[var(--primary)] leading-none">#{bestScorer.shirtNumber}</div>
-                    <div className="who">
-                      <div className="n font-serif font-bold text-xl text-[var(--ink)]">{bestScorer.playerName}</div>
-                      <div className="role text-[10px] font-mono text-[var(--text-3)] uppercase tracking-wider mt-1">
-                        {prettyRoles[bestScorer.position] || bestScorer.position}
-                      </div>
+            <div className="top-grid">
+              <article className="top-card feature group relative overflow-hidden">
+                <div className="absolute -right-4 -bottom-8 text-[11rem] font-serif font-bold text-[var(--primary-tint)] opacity-40 group-hover:scale-105 transition-transform duration-300 select-none pointer-events-none leading-none">
+                  {activeScorer.goals}
+                </div>
+                <div className="tag-row">
+                  <span className="pos">▸ Destaque principal</span>
+                  <span>ARTILHEIRO</span>
+                </div>
+                <div className="player">
+                  <div className="num">#{activeScorer.shirtNumber}</div>
+                  <div className="who">
+                    <div className="n">{activeScorer.playerName}</div>
+                    <div className="role">
+                      {prettyRoles[activeScorer.position] || activeScorer.position}
                     </div>
                   </div>
-                  <p className="desc text-xs text-[var(--text-2)] mt-4 leading-relaxed max-w-sm z-10">
-                    Líder absoluto de finalizações na temporada atual. Essencial no aproveitamento tático ofensivo da equipe.
-                  </p>
-                  <div className="main-stat border-t border-[var(--border)] pt-4 mt-6 flex items-baseline gap-2 z-10">
-                    <span className="val text-4xl font-mono font-bold text-[var(--ink)]">{bestScorer.goals}</span>
-                    <span className="unit text-[11px] font-mono text-[var(--text-3)] uppercase">gol(s) marcado(s)</span>
-                  </div>
-                </article>
-              )}
+                </div>
+                <p className="desc text-xs text-[var(--text-2)] mt-4 leading-relaxed max-w-sm z-10">
+                  Líder em gols na temporada atual. Essencial no aproveitamento tático ofensivo da equipe.
+                </p>
+                <div className="main-stat pt-4 mt-6 z-10">
+                  <span className="val">{activeScorer.goals}</span>
+                  <span className="unit">gol(s) marcado(s)</span>
+                </div>
+              </article>
 
-              {bestAssist && (
-                <article className="top-card border border-[var(--border)] bg-[var(--surface)] p-6 rounded flex flex-col justify-between aspect-[4/5] group hover:border-[var(--primary)] transition-colors duration-200">
-                  <div className="tag-row flex justify-between items-center text-[10.5px] font-mono text-[var(--text-3)] uppercase tracking-wider">
-                    <span>02 / Assistências</span>
-                    <span>GARÇOM</span>
+              <article className="top-card group">
+                <div className="tag-row">
+                  <span>02 / Assistências</span>
+                  <span>GARÇOM</span>
+                </div>
+                <div className="player">
+                  <div className="num">#{activeAssist.shirtNumber}</div>
+                  <div className="who">
+                    <div className="n truncate max-w-[120px]">{activeAssist.playerName}</div>
+                    <div className="role">{prettyRoles[activeAssist.position] || activeAssist.position}</div>
                   </div>
-                  <div className="player flex items-end gap-3 mt-6">
-                    <div className="num font-serif font-bold text-4xl text-[var(--ink)]">#{bestAssist.shirtNumber}</div>
-                    <div className="who">
-                      <div className="n font-serif font-bold text-base text-[var(--ink)] truncate max-w-[120px]">{bestAssist.playerName}</div>
-                      <div className="role text-[9.5px] font-mono text-[var(--text-3)] uppercase mt-0.5">{prettyRoles[bestAssist.position] || bestAssist.position}</div>
-                    </div>
-                  </div>
-                  <div className="main-stat border-t border-[var(--border)] pt-4 mt-6">
-                    <span className="val text-4xl font-mono font-bold text-[var(--ink)]">{bestAssist.assists}</span>
-                    <span className="unit text-[10px] font-mono text-[var(--text-3)] uppercase block mt-1">passes para gol</span>
-                  </div>
-                </article>
-              )}
+                </div>
+                <p className="desc text-xs text-[var(--text-2)] mt-4 leading-relaxed">
+                  Maestro do meio-campo, servindo os companheiros com passes precisos e decisivos.
+                </p>
+                <div className="main-stat pt-4 mt-6">
+                  <span className="val">{activeAssist.assists}</span>
+                  <span className="unit">passes para gol</span>
+                </div>
+              </article>
 
-              {bestPresence && (
-                <article className="top-card border border-[var(--border)] bg-[var(--surface)] p-6 rounded flex flex-col justify-between aspect-[4/5] group hover:border-[var(--primary)] transition-colors duration-200">
-                  <div className="tag-row flex justify-between items-center text-[10.5px] font-mono text-[var(--text-3)] uppercase tracking-wider">
-                    <span>03 / Mais atuante</span>
-                    <span>PRESENÇA</span>
+              <article className="top-card group">
+                <div className="tag-row">
+                  <span>03 / Mais atuante</span>
+                  <span>PRESENÇA</span>
+                </div>
+                <div className="player">
+                  <div className="num">#{activePresence.shirtNumber}</div>
+                  <div className="who">
+                    <div className="n truncate max-w-[120px]">{activePresence.playerName}</div>
+                    <div className="role">{prettyRoles[activePresence.position] || activePresence.position}</div>
                   </div>
-                  <div className="player flex items-end gap-3 mt-6">
-                    <div className="num font-serif font-bold text-4xl text-[var(--ink)]">#{bestPresence.shirtNumber}</div>
-                    <div className="who">
-                      <div className="n font-serif font-bold text-base text-[var(--ink)] truncate max-w-[120px]">{bestPresence.playerName}</div>
-                      <div className="role text-[9.5px] font-mono text-[var(--text-3)] uppercase mt-0.5">{prettyRoles[bestPresence.position] || bestPresence.position}</div>
-                    </div>
-                  </div>
-                  <div className="main-stat border-t border-[var(--border)] pt-4 mt-6">
-                    <span className="val text-4xl font-mono font-bold text-[var(--ink)]">{bestPresence.matches}</span>
-                    <span className="unit text-[10px] font-mono text-[var(--text-3)] uppercase block mt-1">jogos disputados</span>
-                  </div>
-                </article>
-              )}
+                </div>
+                <p className="desc text-xs text-[var(--text-2)] mt-4 leading-relaxed">
+                  Pilar físico do elenco, demonstrando consistência e regularidade em todas as partidas.
+                </p>
+                <div className="main-stat pt-4 mt-6">
+                  <span className="val">{activePresence.matches}</span>
+                  <span className="unit">jogos disputados</span>
+                </div>
+              </article>
 
-              {bestRated && (
-                <article className="top-card border border-[var(--border)] bg-[var(--surface)] p-6 rounded flex flex-col justify-between aspect-[4/5] group hover:border-[var(--primary)] transition-colors duration-200">
-                  <div className="tag-row flex justify-between items-center text-[10.5px] font-mono text-[var(--text-3)] uppercase tracking-wider">
-                    <span>04 / Maior nota</span>
-                    <span>SCOUT</span>
+              <article className="top-card group">
+                <div className="tag-row">
+                  <span>04 / Maior nota</span>
+                  <span>SCOUT</span>
+                </div>
+                <div className="player">
+                  <div className="num">#{activeRated.shirtNumber}</div>
+                  <div className="who">
+                    <div className="n truncate max-w-[120px]">{activeRated.playerName}</div>
+                    <div className="role">{prettyRoles[activeRated.position] || activeRated.position}</div>
                   </div>
-                  <div className="player flex items-end gap-3 mt-6">
-                    <div className="num font-serif font-bold text-4xl text-[var(--ink)]">#{bestRated.shirtNumber}</div>
-                    <div className="who">
-                      <div className="n font-serif font-bold text-base text-[var(--ink)] truncate max-w-[120px]">{bestRated.playerName}</div>
-                      <div className="role text-[9.5px] font-mono text-[var(--text-3)] uppercase mt-0.5">{prettyRoles[bestRated.position] || bestRated.position}</div>
-                    </div>
-                  </div>
-                  <div className="main-stat border-t border-[var(--border)] pt-4 mt-6">
-                    <span className="val text-4xl font-mono font-bold text-[var(--ink)]">{bestRated.averageStars?.toFixed(1) || "0.0"}</span>
-                    <span className="unit text-[10px] font-mono text-[var(--text-3)] uppercase block mt-1">{bestRated.totalRatings} avaliações</span>
-                  </div>
-                </article>
-              )}
+                </div>
+                <p className="desc text-xs text-[var(--text-2)] mt-4 leading-relaxed">
+                  Consistência técnica excepcional e alto índice de avaliações de desempenho coletivo.
+                </p>
+                <div className="main-stat pt-4 mt-6">
+                  <span className="val">{activeRated.averageStars?.toFixed(1) || "0.0"}</span>
+                  <span className="unit">{activeRated.totalRatings} avaliações</span>
+                </div>
+              </article>
             </div>
           </section>
 
