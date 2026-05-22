@@ -25,6 +25,7 @@ interface SquadPlayer {
   name: string;
   position: string;
   shirtNumber: number;
+  status?: string;
 }
 
 interface PostGameFormProps {
@@ -74,7 +75,7 @@ export function PostGameForm({
   const [selectedPlayerToAdd, setSelectedPlayerToAdd] = useState("");
 
   useEffect(() => {
-    fetch("/api/players?status=ACTIVE")
+    fetch("/api/players")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d?.players) setSquadPlayers(d.players);
@@ -410,7 +411,7 @@ export function PostGameForm({
                     { value: "", label: "Selecione um jogador..." },
                     ...eligiblePlayers.map((p) => ({
                       value: p.id,
-                      label: `${p.name} (#${p.shirtNumber || "-"} - ${p.position || "-"})`,
+                      label: `${p.name} (#${p.shirtNumber || "-"} - ${p.position || "-"})${p.status === "INACTIVE" ? " (Inativo)" : ""}`,
                     })),
                   ]}
                   value={selectedPlayerToAdd}
@@ -455,8 +456,13 @@ export function PostGameForm({
                   key={stat.playerId}
                   className="rounded-xl border border-white/10 bg-[#090f0c] p-4"
                 >
-                  <p className="mb-3 font-semibold text-white">
-                    {stat.playerName}
+                  <p className="mb-3 font-semibold text-white flex items-center gap-2">
+                    <span>{stat.playerName}</span>
+                    {squadPlayers.find((sp) => sp.id === stat.playerId)?.status === "INACTIVE" && (
+                      <span className="text-[10px] font-semibold text-red-400 bg-red-950/50 border border-red-800/30 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        Inativo
+                      </span>
+                    )}
                   </p>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <Input
