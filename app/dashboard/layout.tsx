@@ -103,10 +103,25 @@ export default function DashboardLayout({
     return role === "ADMIN" || role === "COACH";
   });
 
-  const activeItem =
-    visibleNavItems.find(
-      (item) => pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
-    ) || visibleNavItems[0] || navItems[0];
+  const activeItem = (() => {
+    const exact = visibleNavItems.find((item) => pathname === item.href);
+    if (exact) return exact;
+
+    let bestMatch = null;
+    let longestPrefixLength = 0;
+
+    for (const item of visibleNavItems) {
+      if (item.href === "/dashboard") continue;
+      if (pathname.startsWith(item.href + "/") || pathname === item.href) {
+        if (item.href.length > longestPrefixLength) {
+          bestMatch = item;
+          longestPrefixLength = item.href.length;
+        }
+      }
+    }
+
+    return bestMatch || visibleNavItems.find((item) => item.href === "/dashboard") || visibleNavItems[0] || navItems[0];
+  })();
 
   const todayLabel = new Intl.DateTimeFormat("pt-BR", {
     weekday: "long",
@@ -118,9 +133,7 @@ export default function DashboardLayout({
     return (
       <>
         {visibleNavItems.map((item) => {
-          const isActive =
-            pathname === item.href ||
-            (item.href !== "/" && pathname.startsWith(item.href));
+          const isActive = activeItem.href === item.href;
           const badgeCount = item.badgeKey ? badges[item.badgeKey] : 0;
           const isCollapsed = !mobile && collapsed;
 
