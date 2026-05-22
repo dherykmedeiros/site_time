@@ -8,7 +8,7 @@ import { PublicNavbar } from "@/components/PublicNavbar";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ slot?: string }>;
+  searchParams: Promise<{ slot?: string; tab?: string }>;
 }
 
 const competitiveLevelLabels: Record<string, string> = {
@@ -319,6 +319,10 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
   const { slug } = await params;
   const resolvedSearchParams = await searchParams;
   const selectedSlotId = resolvedSearchParams?.slot;
+  const selectedTab = resolvedSearchParams?.tab;
+  const isSecretaria = selectedTab === "secretaria" || !!selectedSlotId;
+  const isAlbum = selectedTab === "album" && !selectedSlotId;
+  const isEsportes = !isSecretaria && !isAlbum;
 
   const team = await prisma.team.findUnique({
     where: { slug },
@@ -537,6 +541,35 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
         "--brand-neon": themeSecondary,
       } as React.CSSProperties}
     >
+      <style dangerouslySetInnerHTML={{ __html: `
+        #content-esportes, #content-album, #content-secretaria { display: none; }
+        #caderno-esportes:checked ~ main #content-esportes { display: block; }
+        #caderno-album:checked ~ main #content-album { display: block; }
+        #caderno-secretaria:checked ~ main #content-secretaria { display: block; }
+
+        #caderno-esportes:checked ~ main label[for="caderno-esportes"],
+        #caderno-album:checked ~ main label[for="caderno-album"],
+        #caderno-secretaria:checked ~ main label[for="caderno-secretaria"] {
+          background-color: var(--team-primary) !important;
+          color: #010403 !important;
+          border-color: #000000 !important;
+          font-weight: 900 !important;
+          box-shadow: 4px 4px 0px 0px #000000 !important;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}} />
+
+      <input type="radio" id="caderno-esportes" name="cadernos" className="hidden" defaultChecked={isEsportes} />
+      <input type="radio" id="caderno-album" name="cadernos" className="hidden" defaultChecked={isAlbum} />
+      <input type="radio" id="caderno-secretaria" name="cadernos" className="hidden" defaultChecked={isSecretaria} />
+
       {/* Public Navbar */}
       <PublicNavbar teamName={team.name} badgeUrl={team.badgeUrl} slug={team.slug} />
 
@@ -610,18 +643,18 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
 
             {/* Premium CTA Buttons */}
             <div className="flex flex-wrap items-center gap-4 pt-2">
-              <a
-                href="#elenco"
-                className="inline-flex min-h-12 items-center justify-center rounded-none border-2 border-black bg-[var(--brand)] px-8 py-3.5 text-xs font-black uppercase tracking-wider text-[#090d0f] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.9)] active:translate-x-[0px] active:translate-y-[0px] active:shadow-none duration-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
+              <label
+                htmlFor="caderno-album"
+                className="cursor-pointer inline-flex min-h-12 items-center justify-center rounded-none border-2 border-black bg-[var(--brand)] px-8 py-3.5 text-xs font-black uppercase tracking-wider text-[#090d0f] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.9)] active:translate-x-[0px] active:translate-y-[0px] active:shadow-none duration-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
               >
                 Conhecer Elenco
-              </a>
-              <a
-                href="#amistoso"
-                className="inline-flex min-h-12 items-center justify-center rounded-none border-2 border-slate-800 bg-[#0f1418] hover:bg-slate-900 px-8 py-3.5 text-xs font-black uppercase tracking-wider text-white transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_var(--brand)] active:translate-x-[0px] active:translate-y-[0px] active:shadow-none duration-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
+              </label>
+              <label
+                htmlFor="caderno-secretaria"
+                className="cursor-pointer inline-flex min-h-12 items-center justify-center rounded-none border-2 border-slate-800 bg-[#0f1418] hover:bg-slate-900 px-8 py-3.5 text-xs font-black uppercase tracking-wider text-white transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_var(--brand)] active:translate-x-[0px] active:translate-y-[0px] active:shadow-none duration-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
               >
                 Desafiar Equipe
-              </a>
+              </label>
             </div>
           </div>
 
@@ -665,7 +698,7 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
       </header>
 
       {/* Main Content Area */}
-      <main className="mx-auto mt-6 max-w-6xl px-4 sm:px-6 lg:px-8 space-y-24">
+      <main className="mx-auto mt-6 max-w-6xl px-4 sm:px-6 lg:px-8">
         <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 relative z-10">
           {[
             { label: "Atletas Registrados", value: team.players.length, desc: "Inscritos no elenco principal", color: "border-slate-800" },
@@ -683,6 +716,38 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
             </div>
           ))}
         </section>
+
+        {/* Newspaper Cadernos Menu (Brutalist Tab Navigation) */}
+        <div className="relative z-20 mt-12 mb-6">
+          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 font-mono text-center mb-3">
+            [ SELECIONE O CADERNO PARA LEITURA ]
+          </p>
+          <div id="tabs-nav" className="grid grid-cols-3 gap-2 border-y-4 border-double border-slate-800 py-4 font-mono">
+            <label
+              htmlFor="caderno-esportes"
+              className="cursor-pointer text-center py-4 px-2 border-2 border-slate-800 bg-[#0b0f11] text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400 hover:text-white hover:border-slate-700 transition-all duration-150 select-none flex flex-col sm:flex-row items-center justify-center gap-2 rounded-none"
+            >
+              <span className="text-sm">📰</span>
+              <span>Esportes & Jogos</span>
+            </label>
+            <label
+              htmlFor="caderno-album"
+              className="cursor-pointer text-center py-4 px-2 border-2 border-slate-800 bg-[#0b0f11] text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400 hover:text-white hover:border-slate-700 transition-all duration-150 select-none flex flex-col sm:flex-row items-center justify-center gap-2 rounded-none"
+            >
+              <span className="text-sm">👥</span>
+              <span>Álbum & Elenco</span>
+            </label>
+            <label
+              htmlFor="caderno-secretaria"
+              className="cursor-pointer text-center py-4 px-2 border-2 border-slate-800 bg-[#0b0f11] text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400 hover:text-white hover:border-slate-700 transition-all duration-150 select-none flex flex-col sm:flex-row items-center justify-center gap-2 rounded-none"
+            >
+              <span className="text-sm">📋</span>
+              <span>Secretaria do Clube</span>
+            </label>
+          </div>
+        </div>
+
+        <div id="content-esportes" className="space-y-16 mt-8 animate-fade-in">
 
         {/* Estrelas da Temporada (Hall of Fame) - Asymmetric, premium layout */}
         <section id="destaques" className="scroll-mt-24 space-y-6">
@@ -1193,7 +1258,9 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
             )}
           </div>
         </section>
+      </div>
 
+      <div id="content-album" className="space-y-16 mt-8 animate-fade-in">
         {/* ELENCO OFICIAL (SQUAD DOSSIER) - Clean athletical visual dossier cards */}
         <section id="elenco" className="scroll-mt-24 space-y-6">
           <div className="mb-6 flex items-end justify-between gap-3 border-b border-white/5 pb-4">
@@ -1320,7 +1387,9 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
             </div>
           )}
         </section>
+      </div>
 
+      <div id="content-secretaria" className="space-y-16 mt-8 animate-fade-in">
         {/* Match Availability & Open Slots */}
         {(team.openMatchSlots.length > 0 || hasDiscoveryInfo) && (
           <section id="agenda-aberta" className="scroll-mt-24 rounded-none border-2 border-slate-800 bg-[#0b0f11] p-6 sm:p-8 space-y-6 shadow-[6px_6px_0px_0px_#000]">
@@ -1472,7 +1541,8 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
             </div>
           </section>
         )}
-      </main>
+      </div>
+    </main>
 
       {/* Footer */}
       <footer className="mx-auto max-w-6xl mt-24 border-t border-[rgba(255,255,255,0.06)] px-4 pt-10 text-center text-xs font-semibold text-slate-500 sm:px-6 lg:px-8 space-y-2">
