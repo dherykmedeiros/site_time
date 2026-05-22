@@ -195,3 +195,41 @@ select:focus {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--brand);
 }
+
+/* ==========================================================================
+   BRUTALIST EDITORIAL TAB SYSTEM ("CADERNOS DA GAZETA")
+   ========================================================================== */
+#content-esportes, 
+#content-album, 
+#content-secretaria { 
+  display: none !important; 
+}
+
+#caderno-esportes:checked ~ main #content-esportes { 
+  display: block !important; 
+}
+#caderno-album:checked ~ main #content-album { 
+  display: block !important; 
+}
+#caderno-secretaria:checked ~ main #content-secretaria { 
+  display: block !important; 
+}
+
+#caderno-esportes:checked ~ main label[for="caderno-esportes"],
+#caderno-album:checked ~ main label[for="caderno-album"],
+#caderno-secretaria:checked ~ main label[for="caderno-secretaria"] {
+  background-color: var(--team-primary) !important;
+  color: #010403 !important;
+  border-color: #000000 !important;
+  font-weight: 900 !important;
+  box-shadow: 4px 4px 0px 0px #000000 !important;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

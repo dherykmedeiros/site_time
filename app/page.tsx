@@ -756,30 +756,7 @@ export default async function HomePage({
         "--brand-neon": themeSecondary,
       } as React.CSSProperties}
     >
-      <style dangerouslySetInnerHTML={{ __html: `
-        #content-esportes, #content-album, #content-secretaria { display: none; }
-        #caderno-esportes:checked ~ main #content-esportes { display: block; }
-        #caderno-album:checked ~ main #content-album { display: block; }
-        #caderno-secretaria:checked ~ main #content-secretaria { display: block; }
 
-        #caderno-esportes:checked ~ main label[for="caderno-esportes"],
-        #caderno-album:checked ~ main label[for="caderno-album"],
-        #caderno-secretaria:checked ~ main label[for="caderno-secretaria"] {
-          background-color: var(--team-primary) !important;
-          color: #010403 !important;
-          border-color: #000000 !important;
-          font-weight: 900 !important;
-          box-shadow: 4px 4px 0px 0px #000000 !important;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-      `}} />
 
       <input type="radio" id="caderno-esportes" name="cadernos" className="hidden" defaultChecked={isEsportes} />
       <input type="radio" id="caderno-album" name="cadernos" className="hidden" defaultChecked={isAlbum} />
