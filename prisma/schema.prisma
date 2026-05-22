@@ -627,6 +627,7 @@ model Equipment {
   category     String   // UNIFORM, SOCKS, BALL, OTHER
   totalQty     Int      @default(0)
   availableQty Int      @default(0)
+  minQty       Int      @default(0)
   damagedQty   Int      @default(0)
   lostQty      Int      @default(0)
   status       String   @default("GOOD") // NEW, GOOD, USED, POOR

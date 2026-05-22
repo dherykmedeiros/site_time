@@ -15,6 +15,7 @@ interface Equipment {
   category: "UNIFORM" | "SOCKS" | "BALL" | "OTHER";
   totalQty: number;
   availableQty: number;
+  minQty: number;
   damagedQty: number;
   lostQty: number;
   status: "NEW" | "GOOD" | "USED" | "POOR";
@@ -42,6 +43,7 @@ export default function EquipmentPage() {
   const [category, setCategory] = useState<"UNIFORM" | "SOCKS" | "BALL" | "OTHER">("UNIFORM");
   const [totalQty, setTotalQty] = useState(0);
   const [availableQty, setAvailableQty] = useState(0);
+  const [minQty, setMinQty] = useState(0);
   const [damagedQty, setDamagedQty] = useState(0);
   const [lostQty, setLostQty] = useState(0);
   const [status, setStatus] = useState<"NEW" | "GOOD" | "USED" | "POOR">("GOOD");
@@ -80,6 +82,7 @@ export default function EquipmentPage() {
     setCategory("UNIFORM");
     setTotalQty(1);
     setAvailableQty(1);
+    setMinQty(0);
     setDamagedQty(0);
     setLostQty(0);
     setStatus("GOOD");
@@ -94,6 +97,7 @@ export default function EquipmentPage() {
     setCategory(eq.category);
     setTotalQty(eq.totalQty);
     setAvailableQty(eq.availableQty);
+    setMinQty(eq.minQty || 0);
     setDamagedQty(eq.damagedQty);
     setLostQty(eq.lostQty);
     setStatus(eq.status);
@@ -119,6 +123,7 @@ export default function EquipmentPage() {
       category,
       totalQty,
       availableQty,
+      minQty,
       damagedQty,
       lostQty,
       status,
@@ -360,7 +365,13 @@ export default function EquipmentPage() {
             return (
               <div
                 key={eq.id}
-                className="app-surface rounded-2xl border border-[var(--border)] p-5 shadow-sm hover:border-[var(--brand-soft)] transition-all flex flex-col justify-between"
+                className={`app-surface rounded-2xl border p-5 shadow-sm hover:border-[var(--brand-soft)] transition-all flex flex-col justify-between ${
+                  eq.availableQty > (eq.minQty || 0)
+                    ? "border-[var(--border)] hover:shadow-emerald-500/5 hover:border-emerald-500/30"
+                    : eq.availableQty === (eq.minQty || 0)
+                    ? "border-amber-500/20 hover:shadow-amber-500/5 hover:border-amber-500/40"
+                    : "border-red-500/30 hover:shadow-red-500/5 hover:border-red-500/50"
+                }`}
               >
                 <div className="space-y-4">
                   {/* Card Title Header */}
@@ -379,13 +390,38 @@ export default function EquipmentPage() {
                     <div>{getStatusBadge(eq.status)}</div>
                   </div>
 
-                  {/* Location badge */}
-                  {eq.location && (
-                    <div className="flex items-center gap-1.5 text-xs text-[var(--text-subtle)] font-medium">
-                      <span>📍</span>
-                      <span>{eq.location}</span>
-                    </div>
-                  )}
+                  {/* Location and Stock Health Badges */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {eq.location && (
+                      <div className="flex items-center gap-1.5 text-xs text-[var(--text-subtle)] font-medium bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
+                        <span>📍</span>
+                        <span>{eq.location}</span>
+                      </div>
+                    )}
+                    {(() => {
+                      const min = eq.minQty || 0;
+                      const avail = eq.availableQty;
+                      if (avail > min) {
+                        return (
+                          <Badge variant="success" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 rounded-full px-2.5 py-1 text-[0.65rem] uppercase font-bold">
+                            🟢 Estoque Saudável
+                          </Badge>
+                        );
+                      } else if (avail === min) {
+                        return (
+                          <Badge variant="warning" className="bg-amber-500/10 text-amber-400 border-amber-500/20 rounded-full px-2.5 py-1 text-[0.65rem] uppercase font-bold">
+                            🟡 No Limite
+                          </Badge>
+                        );
+                      } else {
+                        return (
+                          <Badge variant="danger" className="bg-red-500/10 text-red-400 border-red-500/20 rounded-full px-2.5 py-1 text-[0.65rem] uppercase font-bold animate-pulse">
+                            🔴 Abaixo do Mínimo
+                          </Badge>
+                        );
+                      }
+                    })()}
+                  </div>
 
                   {/* Segmented Distribution Stock Bar */}
                   <div className="space-y-1.5">
@@ -402,13 +438,29 @@ export default function EquipmentPage() {
                     </div>
 
                     {/* Stock numeric table breakdown */}
-                    <div className="grid grid-cols-4 gap-1 text-[0.68rem] text-center font-bold">
-                      <div className="rounded-lg bg-white/5 py-1 text-white">
+                    <div className="grid grid-cols-5 gap-1 text-[0.68rem] text-center font-bold">
+                      <div className="rounded-lg bg-white/5 py-1 text-white border border-white/5">
                         <span className="block text-[var(--text-muted)] font-medium text-[0.6rem] uppercase">Total</span>
                         {eq.totalQty}
                       </div>
-                      <div className="rounded-lg bg-emerald-500/10 py-1 text-emerald-400 border border-emerald-500/10">
-                        <span className="block text-emerald-500/50 font-medium text-[0.6rem] uppercase">Dispo.</span>
+                      <div className="rounded-lg bg-white/5 py-1 text-white/70 border border-white/5">
+                        <span className="block text-[var(--text-muted)] font-medium text-[0.6rem] uppercase">Mínimo</span>
+                        {eq.minQty || 0}
+                      </div>
+                      <div className={`rounded-lg py-1 border ${
+                        eq.availableQty > (eq.minQty || 0)
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : eq.availableQty === (eq.minQty || 0)
+                          ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          : "bg-red-500/10 text-red-400 border-red-500/20"
+                      }`}>
+                        <span className={`block font-medium text-[0.6rem] uppercase ${
+                          eq.availableQty > (eq.minQty || 0)
+                            ? "text-emerald-500/50"
+                            : eq.availableQty === (eq.minQty || 0)
+                            ? "text-amber-500/50"
+                            : "text-red-500/50"
+                        }`}>Dispo.</span>
                         {eq.availableQty}
                       </div>
                       <div className="rounded-lg bg-amber-500/10 py-1 text-amber-400 border border-amber-500/10">
@@ -520,7 +572,7 @@ export default function EquipmentPage() {
             <div className="p-4 rounded-xl border border-white/5 bg-white/[0.01] space-y-4">
               <h4 className="text-xs uppercase tracking-wider font-bold text-white">Controle de Quantidades Físicas</h4>
               
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <Input
                   label="Qtd Total *"
                   type="number"
@@ -535,6 +587,14 @@ export default function EquipmentPage() {
                   min="0"
                   value={availableQty}
                   onChange={(e) => setAvailableQty(parseInt(e.target.value) || 0)}
+                  required
+                />
+                <Input
+                  label="Mínimo Aceitável *"
+                  type="number"
+                  min="0"
+                  value={minQty}
+                  onChange={(e) => setMinQty(parseInt(e.target.value) || 0)}
                   required
                 />
                 <Input

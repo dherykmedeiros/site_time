@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "equipments" ADD COLUMN "minQty" INTEGER NOT NULL DEFAULT 0;

@@ -18,6 +18,10 @@ export const equipmentSchema = z
       .number()
       .int()
       .min(0, "A quantidade disponível não pode ser negativa"),
+    minQty: z.coerce
+      .number()
+      .int()
+      .min(0, "A quantidade mínima aceitável não pode ser negativa"),
     damagedQty: z.coerce
       .number()
       .int()
