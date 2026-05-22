@@ -200,7 +200,11 @@ const positionThemes: Record<string, { border: string; text: string; glow: strin
     text: "text-rose-400",
     glow: "rgba(244, 63, 94, 0.12)",
     label: "Ponta Direito",
-    badge: "bg-rose-500/10 text-rose-400 border-rose-500/30",export default async function PlayerProfilePage({ params }: PlayerPageProps) {
+    badge: "bg-rose-500/10 text-rose-400 border-rose-500/30",
+  },
+};
+
+export default async function PlayerProfilePage({ params }: PlayerPageProps) {
   const { id } = await params;
   const player = await getPlayerProfile(id);
 

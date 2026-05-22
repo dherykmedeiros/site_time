@@ -815,8 +815,6 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
               </div>
             </div>
           </div>
-          </div>
-          </div>
         </section>
 
         {/* MATCHES SECTION (3-LEVEL TIMELINE) - High contrast & professional Sofascore layout */}

@@ -849,7 +849,7 @@ export default async function HomePage({
                 Desafiar Equipe
               </a>
             </div>
-          </div>         </div>
+          </div>
 
           {/* Premium Season Pass Card (Visual Scoreboard) */}
           <aside className="relative overflow-hidden max-w-md rounded-none border-2 border-slate-800 bg-[#0b0f11] p-8 shadow-[6px_6px_0px_0px_#000] lg:ml-auto lg:w-full space-y-6">
