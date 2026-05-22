@@ -200,11 +200,7 @@ const positionThemes: Record<string, { border: string; text: string; glow: strin
     text: "text-rose-400",
     glow: "rgba(244, 63, 94, 0.12)",
     label: "Ponta Direito",
-    badge: "bg-rose-500/10 text-rose-400 border-rose-500/30",
-  },
-};
-
-export default async function PlayerProfilePage({ params }: PlayerPageProps) {
+    badge: "bg-rose-500/10 text-rose-400 border-rose-500/30",export default async function PlayerProfilePage({ params }: PlayerPageProps) {
   const { id } = await params;
   const player = await getPlayerProfile(id);
 
@@ -223,12 +219,12 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
     { label: "Vermelhos", value: player.career.totalRedCards },
   ];
 
-  const achievementMeta: Record<string, { emoji: string; label: string }> = {
-    HAT_TRICK: { emoji: "⚽⚽⚽", label: "Hat-trick" },
-    TOP_SCORER_ROUND: { emoji: "🥇", label: "Artilheiro da Rodada" },
-    VETERAN: { emoji: "👑", label: "Veterano" },
-    ASSIST_MASTER: { emoji: "🎯", label: "Mestre das Assistências" },
-    FULL_ATTENDANCE_MONTH: { emoji: "🛡️", label: "Presença 100%" },
+  const achievementMeta: Record<string, { badge: string; label: string; bg: string; text: string }> = {
+    HAT_TRICK: { badge: "TRIPLETA", label: "Hat-trick na partida", bg: "bg-emerald-500/10 border-emerald-500/30", text: "text-emerald-400" },
+    TOP_SCORER_ROUND: { badge: "ARTILHEIRO", label: "Artilheiro da Rodada", bg: "bg-amber-500/10 border-amber-500/30", text: "text-amber-400" },
+    VETERAN: { badge: "ELITE", label: "Veterano do Clube", bg: "bg-purple-500/10 border-purple-500/30", text: "text-purple-400" },
+    ASSIST_MASTER: { badge: "GARÇOM", label: "Mestre dos Passes", bg: "bg-cyan-500/10 border-cyan-500/30", text: "text-cyan-400" },
+    FULL_ATTENDANCE_MONTH: { badge: "100% ATUANTE", label: "Frequência Total", bg: "bg-blue-500/10 border-blue-500/30", text: "text-blue-400" },
   };
 
   const achievementCounts: Record<string, number> = {};
@@ -238,11 +234,10 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
   const uniqueAchievements = Object.entries(achievementCounts);
 
   const theme = positionThemes[player.position] || {
-    border: "border-white/10 hover:border-white/30",
-    text: "text-[#94a3b8]",
-    glow: "rgba(255, 255, 255, 0.05)",
+    border: "border-slate-800",
+    text: "text-slate-400",
     label: player.position,
-    badge: "bg-white/5 text-[#94a3b8] border-white/10",
+    badge: "bg-slate-800 text-slate-300 border-slate-700",
   };
 
   return (
@@ -257,46 +252,36 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
         "--brand-strong": themePrimary,
         "--brand-soft": `rgba(${primaryRgb}, 0.1)`,
         "--brand-neon": themeSecondary,
-        "--border": "rgba(255, 255, 255, 0.08)",
+        "--border": "#1e293b",
       } as React.CSSProperties}
     >
-      {/* Background Accent Gradients */}
-      <div 
-        className="absolute top-0 left-0 w-full h-[500px] pointer-events-none opacity-10"
-        style={{
-          background: `radial-gradient(circle at 50% 20%, rgba(var(--team-primary-rgb), 0.7) 0%, transparent 60%)`,
-        }}
-      />
-      <div className="absolute top-[400px] right-[-10%] w-[400px] h-[400px] pointer-events-none opacity-5 rounded-full filter blur-[100px] bg-cyan-500" />
-      
       <PublicNavbar teamName={player.team.name} badgeUrl={player.team.badgeUrl} slug={player.team.slug || undefined} />
 
       {/* Athlete Premium Editorial Profile Header */}
-      <header className="relative overflow-hidden px-4 pb-20 pt-12 lg:pb-24 lg:pt-16">
+      <header className="relative overflow-hidden px-4 pb-16 pt-12 lg:pb-20 lg:pt-16">
         <div className="relative mx-auto mt-4 max-w-4xl grid gap-8 md:grid-cols-[240px_1fr] items-end">
           
           {/* Technical Image Dossier Display */}
-          <div className="relative w-[240px] h-[300px] bg-[#0b0f11] border border-[var(--border)] rounded-md overflow-hidden shadow-2xl shrink-0 group mx-auto md:mx-0">
+          <div className="relative w-[240px] h-[300px] bg-[#090d0f] border-2 border-slate-800 shadow-[6px_6px_0px_0px_var(--team-primary)] overflow-hidden shrink-0 group mx-auto md:mx-0">
             {player.photoUrl ? (
               <img
                 src={player.photoUrl}
                 alt={player.name}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                className="w-full h-full object-cover grayscale transition-all duration-300 group-hover:grayscale-0"
               />
             ) : (
-              <div className="w-full h-full flex flex-col justify-center items-center bg-gradient-to-b from-[#13191c] to-[#090d0f] relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(var(--team-primary-rgb),0.08),transparent_80%)] pointer-events-none" />
+              <div className="w-full h-full flex flex-col justify-center items-center bg-[#070a0c] relative overflow-hidden">
                 <span className="font-mono text-[9rem] font-black text-white/5 tracking-tighter select-none">
                   {player.shirtNumber}
                 </span>
-                <span className="absolute bottom-6 font-mono text-[10px] font-black uppercase tracking-widest text-[#94a3b8] border border-[var(--border)] bg-[#0f1418]/80 px-3 py-1 rounded">
-                  Ficha Oficial
+                <span className="absolute bottom-6 font-mono text-[9px] font-black uppercase tracking-widest text-[#94a3b8] border border-slate-800 bg-[#090d0f] px-3 py-1">
+                  FICHA TÉCNICA
                 </span>
               </div>
             )}
             
             {/* Jersey Badge over Photo */}
-            <div className="absolute top-4 right-4 h-10 w-10 bg-[#090d0f]/95 border border-[var(--border)] rounded-md flex items-center justify-center font-mono font-black text-white shadow-lg">
+            <div className="absolute top-4 right-4 h-10 w-10 bg-[#030708] border-2 border-slate-800 flex items-center justify-center font-mono font-black text-white shadow-lg">
               #{player.shirtNumber}
             </div>
           </div>
@@ -304,15 +289,15 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
           {/* Dossier Text Info */}
           <div className="space-y-4 text-center md:text-left">
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
-              <span className={`inline-flex rounded border px-3 py-1 font-mono text-[10px] font-black uppercase tracking-widest ${theme.badge}`}>
+              <span className="inline-flex border-2 border-slate-800 bg-slate-900 px-3 py-1 font-mono text-[10px] font-black uppercase tracking-widest text-[var(--team-primary)]">
                 {theme.label}
               </span>
               {player.status === "INACTIVE" && (
-                <span className="inline-flex rounded border border-red-500/30 bg-red-500/10 px-3 py-1 font-mono text-[10px] font-black uppercase tracking-widest text-red-400">
+                <span className="inline-flex border-2 border-red-900 bg-red-950 px-3 py-1 font-mono text-[10px] font-black uppercase tracking-widest text-red-400">
                   Inativo
                 </span>
               )}
-              <span className="font-mono text-[9px] text-[#64748b] font-black uppercase tracking-widest bg-white/5 px-2.5 py-1 rounded border border-white/5">
+              <span className="font-mono text-[9px] text-[#64748b] font-black uppercase tracking-widest bg-slate-950 px-2.5 py-1 border border-slate-900">
                 DOSSIÊ TÉCNICO
               </span>
             </div>
@@ -322,7 +307,7 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
             </h1>
             
             {player.fullName && (
-              <p className="text-sm font-semibold text-[#94a3b8] font-mono tracking-wide uppercase">
+              <p className="text-xs font-semibold text-[#94a3b8] font-mono tracking-wide uppercase">
                 Nome completo: {player.fullName}
               </p>
             )}
@@ -330,16 +315,16 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
             <div className="flex items-center justify-center md:justify-start gap-2.5 pt-2">
               <Link 
                 href={player.team.slug ? `/${player.team.slug}` : "/"}
-                className="flex items-center gap-2 bg-[#0f1418] border border-[var(--border)] rounded px-4 py-2 hover:border-[#ffffff/15] transition-all group"
+                className="flex items-center gap-2 bg-[#090d0f] border-2 border-slate-800 px-4 py-2 hover:border-[var(--team-primary)] transition-all group"
               >
                 {player.team.badgeUrl ? (
                   <img
                     src={player.team.badgeUrl}
                     alt=""
-                    className="h-5 w-5 rounded object-cover p-0.5 bg-black/60"
+                    className="h-5 w-5 object-cover p-0.5 bg-black/60 border border-slate-800"
                   />
                 ) : (
-                  <span className="w-5 h-5 flex items-center justify-center font-mono font-black text-white text-[9px] bg-black/60 border border-white/10 rounded uppercase">
+                  <span className="w-5 h-5 flex items-center justify-center font-mono font-black text-white text-[9px] bg-black/60 border border-slate-800 uppercase">
                     {player.team.name.substring(0, 3)}
                   </span>
                 )}
@@ -361,10 +346,10 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
           {stats.map(({ label, value }) => (
             <article
               key={label}
-              className="app-surface p-5 text-center shadow-lg hover:border-[var(--brand)] card-hover"
+              className="border-2 border-slate-800 bg-[#070a0c] p-5 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,0.9)] hover:border-[var(--brand)] transition-all"
             >
-              <p className="text-4xl sm:text-5xl font-black text-white font-mono">{value}</p>
-              <p className="mt-2 text-[9px] font-black uppercase tracking-widest text-[#94a3b8]">
+              <p className="text-4xl sm:text-5xl font-black text-white font-mono leading-none">{value}</p>
+              <p className="mt-2 text-[9px] font-black uppercase tracking-widest text-[#94a3b8] font-mono">
                 {label}
               </p>
             </article>
@@ -373,8 +358,8 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
 
         {/* Player Description */}
         {player.description && (
-          <section aria-label="Descrição do jogador" className="app-surface p-6 sm:p-8 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-[2px] bg-[var(--brand)]" />
+          <section aria-label="Descrição do jogador" className="border-2 border-slate-800 bg-[#070a0c] p-6 sm:p-8 relative overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,0.9)]">
+            <div className="absolute top-0 left-0 w-full h-[3px] bg-[var(--brand)]" />
             <h2 className="font-mono text-xs font-black uppercase text-[#94a3b8] tracking-widest">Sobre o Atleta</h2>
             <p className="mt-4 text-sm sm:text-base leading-relaxed text-[#d1d5db] font-medium whitespace-pre-wrap">
               {player.description}
@@ -383,8 +368,8 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
         )}
 
         {/* Shareable Player Recap Widget */}
-        <section aria-label="Recap compartilhavel" className="app-surface p-6 sm:p-8 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-cyan-500" />
+        <section aria-label="Recap compartilhável" className="border-2 border-slate-800 bg-[#070a0c] p-6 sm:p-8 relative overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,0.9)]">
+          <div className="absolute top-0 left-0 w-full h-[3px] bg-cyan-500" />
           <h2 className="font-mono text-xs font-black uppercase text-[#94a3b8] tracking-widest mb-6">Vitrine Digital de Desempenho</h2>
           <PlayerRecapWidget playerId={player.id} playerName={player.name} vitrineUrl={`/jogadores/${player.id}`} />
         </section>
@@ -393,25 +378,27 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
         {uniqueAchievements.length > 0 && (
           <section aria-label="Conquistas oficiais" className="space-y-4">
             <h2 className="font-mono text-lg font-black uppercase text-white tracking-tight">Conquistas Oficiais</h2>
-            <div className="flex flex-wrap gap-3">
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
               {uniqueAchievements.map(([type, count]) => {
                 const meta = achievementMeta[type];
                 if (!meta) return null;
                 return (
                   <div
                     key={type}
-                    className="app-surface flex items-center gap-3 px-5 py-3 hover:border-violet-500/30 card-hover"
+                    className={`border-2 border-slate-800 bg-[#070a0c] p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.9)] flex flex-col justify-between`}
                     title={`Conquistado ${count}x`}
                   >
-                    <span className="text-xl shrink-0">{meta.emoji}</span>
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-white uppercase tracking-widest">{meta.label}</span>
-                      {count > 1 && (
-                        <span className="mt-1 font-mono text-[9px] font-black bg-violet-500/10 text-violet-400 px-2 py-0.5 rounded border border-violet-500/20 w-fit">
-                          ×{count} Conquistado
-                        </span>
-                      )}
+                    <div>
+                      <span className={`inline-block font-mono text-[9px] font-black border-2 px-2.5 py-0.5 uppercase tracking-widest ${meta.bg} ${meta.text}`}>
+                        {meta.badge}
+                      </span>
+                      <p className="mt-3 text-xs font-extrabold text-white uppercase tracking-tight">{meta.label}</p>
                     </div>
+                    {count > 1 && (
+                      <span className="mt-3 font-mono text-[9px] font-black bg-white/5 border border-slate-800 text-slate-400 px-2 py-0.5 w-fit uppercase tracking-widest">
+                        ×{count} Conquistas
+                      </span>
+                    )}
                   </div>
                 );
               })}
@@ -421,7 +408,7 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
 
         {/* Recent Matches Section */}
         <section aria-label="Últimas partidas" className="space-y-4">
-          <div className="flex items-end justify-between gap-3 border-b border-[var(--border)] pb-3">
+          <div className="flex items-end justify-between gap-3 border-b border-slate-800 pb-3">
             <h2 className="font-mono text-lg font-black uppercase text-white tracking-tight">Registro de Partidas Recentes</h2>
             <p className="font-mono text-[9px] uppercase tracking-widest text-[#94a3b8] font-black">
               Histórico Técnico
@@ -429,32 +416,32 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
           </div>
 
           {player.recentMatches.length > 0 ? (
-            <div className="app-surface overflow-hidden shadow-xl">
+            <div className="border-2 border-slate-800 bg-[#070a0c] overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,0.9)]">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm divide-y divide-[var(--border)]">
+                <table className="w-full text-left text-sm divide-y divide-slate-800">
                   <thead>
-                    <tr className="bg-[#0b0f11]">
-                      <th className="px-5 py-4 font-mono font-black text-[#94a3b8] text-[9px] uppercase tracking-widest">
+                    <tr className="bg-[#090d0f]">
+                      <th className="px-5 py-4 font-mono font-black text-[#94a3b8] text-[9px] uppercase tracking-widest border-r border-slate-800">
                         Confronto / Data
                       </th>
-                      <th className="px-5 py-4 font-mono font-black text-[#94a3b8] text-[9px] uppercase tracking-widest">
+                      <th className="px-5 py-4 font-mono font-black text-[#94a3b8] text-[9px] uppercase tracking-widest border-r border-slate-800">
                         Placar Final
                       </th>
-                      <th className="px-4 py-4 text-center font-mono font-black text-[#94a3b8] text-[9px] uppercase tracking-widest">
-                        ⚽ Gols
+                      <th className="px-4 py-4 text-center font-mono font-black text-[#94a3b8] text-[9px] uppercase tracking-widest border-r border-slate-800">
+                        GOLS
+                      </th>
+                      <th className="px-4 py-4 text-center font-mono font-black text-[#94a3b8] text-[9px] uppercase tracking-widest border-r border-slate-800">
+                        ASSISTÊNCIAS
+                      </th>
+                      <th className="px-4 py-4 text-center font-mono font-black text-[#94a3b8] text-[9px] uppercase tracking-widest border-r border-slate-800">
+                        AMARELO
                       </th>
                       <th className="px-4 py-4 text-center font-mono font-black text-[#94a3b8] text-[9px] uppercase tracking-widest">
-                        🎯 Passes
-                      </th>
-                      <th className="px-4 py-4 text-center font-mono font-black text-[#94a3b8] text-[9px] uppercase tracking-widest">
-                        🟨 Cartão
-                      </th>
-                      <th className="px-4 py-4 text-center font-mono font-black text-[#94a3b8] text-[9px] uppercase tracking-widest">
-                        🟥 Vermelho
+                        VERMELHO
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--border)] bg-[#0f1418]">
+                  <tbody className="divide-y divide-slate-800 bg-[#070a0c]">
                     {player.recentMatches.map((m) => {
                       const dateStr = new Intl.DateTimeFormat("pt-BR", {
                         dateStyle: "short",
@@ -462,41 +449,41 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
                       return (
                         <tr
                           key={m.matchId}
-                          className="hover:bg-[#13191c] transition-colors duration-150"
+                          className="hover:bg-[#090d0f] transition-colors"
                         >
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-4 border-r border-slate-800">
                             <p className="font-mono font-black text-white uppercase text-xs">vs {m.opponent}</p>
                             <p className="font-mono text-[9px] text-[#64748b] uppercase tracking-wider mt-0.5">{dateStr}</p>
                           </td>
-                          <td className="px-5 py-4 font-mono font-bold text-white text-xs">
+                          <td className="px-5 py-4 font-mono font-bold text-white text-xs border-r border-slate-800">
                             {m.homeScore !== null && m.awayScore !== null
                               ? `${m.homeScore} - ${m.awayScore}`
                               : "—"}
                           </td>
-                          <td className="px-4 py-4 text-center font-mono font-black text-white text-xs">
+                          <td className="px-4 py-4 text-center font-mono font-black text-white text-xs border-r border-slate-800">
                             {m.goals > 0 ? (
-                              <span className="inline-block bg-[var(--brand-soft)] text-[var(--brand)] px-2 py-0.5 rounded border border-[var(--brand-soft)]">
+                              <span className="inline-block bg-[var(--brand-soft)] text-[var(--brand)] border border-[var(--brand)] px-2.5 py-0.5 font-bold">
                                 {m.goals}
                               </span>
                             ) : "—"}
                           </td>
-                          <td className="px-4 py-4 text-center font-mono font-black text-white text-xs">
+                          <td className="px-4 py-4 text-center font-mono font-black text-white text-xs border-r border-slate-800">
                             {m.assists > 0 ? (
-                              <span className="inline-block bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/25">
+                              <span className="inline-block bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 px-2.5 py-0.5 font-bold">
                                 {m.assists}
                               </span>
                             ) : "—"}
                           </td>
-                          <td className="px-4 py-4 text-center font-mono font-black text-amber-500 text-xs">
+                          <td className="px-4 py-4 text-center font-mono font-black text-amber-500 text-xs border-r border-slate-800">
                             {m.yellowCards > 0 ? (
-                              <span className="inline-block bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded border border-amber-500/25">
+                              <span className="inline-block bg-amber-500/10 text-amber-500 border border-amber-500/30 px-2.5 py-0.5 font-bold">
                                 {m.yellowCards}
                               </span>
                             ) : "—"}
                           </td>
                           <td className="px-4 py-4 text-center font-mono font-black text-rose-500 text-xs">
                             {m.redCards > 0 ? (
-                              <span className="inline-block bg-rose-500/10 text-rose-500 px-2 py-0.5 rounded border border-rose-500/25">
+                              <span className="inline-block bg-rose-500/10 text-rose-500 border border-rose-500/30 px-2.5 py-0.5 font-bold">
                                 {m.redCards}
                               </span>
                             ) : "—"}
@@ -509,7 +496,7 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
               </div>
             </div>
           ) : (
-            <div className="app-surface p-12 text-center text-[#94a3b8] font-mono text-xs uppercase font-bold bg-black/20 border-dashed">
+            <div className="border-2 border-slate-800 bg-[#070a0c] p-12 text-center text-[#94a3b8] font-mono text-xs uppercase font-bold border-dashed shadow-[4px_4px_0px_0px_rgba(0,0,0,0.9)]">
               Nenhuma estatística registrada em partidas recentes.
             </div>
           )}
@@ -519,7 +506,7 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
         <div className="text-center pt-8">
           <Link
             href={player.team.slug ? `/${player.team.slug}` : "/"}
-            className="inline-flex min-h-12 items-center justify-center rounded-md border border-[var(--brand)] hover:bg-[var(--brand)] text-[var(--brand)] hover:text-[#090d0f] font-mono text-[10px] font-black uppercase tracking-widest px-8 transition-all duration-150 shadow-md"
+            className="inline-flex min-h-12 items-center justify-center border-2 border-slate-800 bg-[#0f1418] hover:bg-slate-900 px-8 text-xs font-mono font-black uppercase tracking-wider text-white transition-all duration-150 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
           >
             &larr; Retornar ao Portal do {player.team.name}
           </Link>
@@ -527,9 +514,13 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
       </main>
 
       {/* Footer */}
-      <footer className="mx-auto max-w-4xl mt-24 border-t border-[rgba(255,255,255,0.08)] px-4 pt-10 text-center text-xs font-semibold text-[#64748b] space-y-2">
+      <footer className="mx-auto max-w-4xl mt-24 border-t border-slate-800 px-4 pt-10 text-center text-xs font-semibold text-[#64748b] space-y-2">
         <p>&copy; {new Date().getFullYear()} {player.team.name}. Todos os direitos reservados.</p>
         <p className="text-[10px] text-[#94a3b8] uppercase tracking-widest font-black font-mono">Plataforma Esportiva Premium VARzea</p>
+      </footer>
+    </div>
+  );
+}ma Esportiva Premium VARzea</p>
       </footer>
     </div>
   );
