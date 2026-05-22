@@ -1,47 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #030708;
-  --bg-elevated: rgba(10, 20, 24, 0.55);
-  --text: #f0f7f4;
-  --text-muted: #a8bdb5;
-  --text-subtle: #7a9089;
-  --border: rgba(16, 185, 129, 0.18);
-  --border-subtle: rgba(255, 255, 255, 0.07);
+  --bg: #090d0f;
+  --bg-elevated: #0f1418;
+  --bg-card: #13191c;
+  --text: #f3f7f9;
+  --text-muted: #94a3b8;
+  --text-subtle: #64748b;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-active: rgba(255, 255, 255, 0.2);
   --brand: #10b981;
   --brand-strong: #059669;
-  --brand-soft: rgba(16, 185, 129, 0.12);
+  --brand-soft: rgba(16, 185, 129, 0.1);
   --brand-neon: #34d399;
-  --cyan-neon: #06b6d4;
   --danger: #ef4444;
-  --danger-soft: rgba(239, 68, 68, 0.12);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.6);
-  --shadow-md: 0 10px 40px rgba(16, 185, 129, 0.08);
-  --shadow-neon: 0 0 20px rgba(16, 185, 129, 0.25);
-  --radius-sm: 12px;
-  --radius-md: 18px;
-  --radius-lg: 26px;
+  --danger-soft: rgba(239, 68, 68, 0.1);
+  
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
 
-  /* Badge tokens — texto sempre acima de 4.5:1 contra o fundo translúcido */
-  --badge-default-bg: rgba(255, 255, 255, 0.07);
-  --badge-default-text: #d4e0da;
-  --badge-default-border: rgba(255, 255, 255, 0.12);
+  --badge-default-bg: #1e293b;
+  --badge-default-text: #e2e8f0;
+  --badge-default-border: rgba(255, 255, 255, 0.1);
   
-  --badge-success-bg: rgba(16, 185, 129, 0.14);
-  --badge-success-text: #6ee7b7;
-  --badge-success-border: rgba(16, 185, 129, 0.32);
+  --badge-success-bg: rgba(16, 185, 129, 0.12);
+  --badge-success-text: #34d399;
+  --badge-success-border: rgba(16, 185, 129, 0.25);
   
-  --badge-warning-bg: rgba(245, 158, 11, 0.14);
-  --badge-warning-text: #fcd34d;
-  --badge-warning-border: rgba(245, 158, 11, 0.32);
+  --badge-warning-bg: rgba(245, 158, 11, 0.12);
+  --badge-warning-text: #fbbf24;
+  --badge-warning-border: rgba(245, 158, 11, 0.25);
   
-  --badge-danger-bg: rgba(239, 68, 68, 0.14);
-  --badge-danger-text: #fca5a5;
-  --badge-danger-border: rgba(239, 68, 68, 0.32);
+  --badge-danger-bg: rgba(239, 68, 68, 0.12);
+  --badge-danger-text: #f87171;
+  --badge-danger-border: rgba(239, 68, 68, 0.25);
 
-  --badge-info-bg: rgba(6, 182, 212, 0.14);
-  --badge-info-text: #67e8f9;
-  --badge-info-border: rgba(6, 182, 212, 0.32);
+  --badge-info-bg: rgba(59, 130, 246, 0.12);
+  --badge-info-text: #60a5fa;
+  --badge-info-border: rgba(59, 130, 246, 0.25);
 }
 
 @theme inline {
@@ -51,33 +48,32 @@
   --font-mono: var(--font-space-grotesk);
 }
 
-/* Base Body Style */
+/* Base Body Style - Clean solid sports publication feel */
 body {
-  background: 
-    radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 45%),
-    radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.06) 0%, transparent 45%),
-    radial-gradient(circle at 50% 50%, rgba(5, 150, 105, 0.04) 0%, transparent 60%),
-    #020506;
+  background-color: var(--bg);
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.03) 0%, transparent 60%),
+    radial-gradient(circle at 100% 60%, rgba(16, 185, 129, 0.02) 0%, transparent 40%);
   color: var(--text);
   font-family: var(--font-manrope), "Segoe UI", sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
 }
 
-/* Beautiful custom selection */
+/* Custom Selection */
 ::selection {
   background: var(--brand);
-  color: #010403;
+  color: #090d0f;
 }
 
-/* Headings with futurist feel */
+/* Headings with high editorial impact */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-space-grotesk), "Segoe UI", sans-serif;
-  letter-spacing: -0.03em;
-  text-shadow: 0 0 30px rgba(16, 185, 129, 0.15);
+  letter-spacing: -0.02em;
+  font-weight: 900;
 }
 
-/* Interactive elements glow and styling */
+/* Sharp focus styles */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -87,117 +83,79 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
-/* Futuristic App Surfaces */
+/* Solid Editorial Surface Cards - No sensless glassmorphism */
 .app-surface {
   border: 1px solid var(--border);
-  background: var(--bg-elevated);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background-color: var(--bg-elevated);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease-in-out;
 }
 
-/* Cyber Glassmorphism Utility */
-.glassmorphism {
-  background: rgba(10, 22, 20, 0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(16, 185, 129, 0.15);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-}
-
-/* Interactive Premium Hover */
+/* Clean Professional Card Hover */
 .card-hover:hover {
-  transform: translateY(-6px) scale(1.015);
-  box-shadow: var(--shadow-neon), var(--shadow-md);
-  border-color: rgba(16, 185, 129, 0.45);
-  background: rgba(16, 185, 129, 0.05);
+  border-color: var(--border-active);
+  background-color: var(--bg-card);
 }
 
-/* Trading Card Styles (FUT style) */
-.trading-card {
+/* Match Pass/Ticket visual design */
+.match-ticket {
   position: relative;
-  background: linear-gradient(135deg, rgba(8, 20, 18, 0.8) 0%, rgba(3, 7, 8, 0.95) 100%);
-  border: 2px solid rgba(16, 185, 129, 0.2);
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.trading-card::before {
+.match-ticket::after {
   content: '';
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle at center, rgba(16, 185, 129, 0.15) 0%, transparent 60%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background-color: var(--brand);
 }
 
-.trading-card:hover {
-  transform: translateY(-10px) rotate(1deg);
-  border-color: var(--brand-neon);
-  box-shadow: 0 15px 35px rgba(16, 185, 129, 0.3), 0 0 25px rgba(6, 182, 212, 0.15);
+/* Athlete Dossier Card - Clean & Sharp */
+.athlete-card {
+  position: relative;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.trading-card:hover::before {
-  opacity: 1;
+.athlete-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-active);
+  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.8);
 }
 
-/* Text Neon Gradient */
-.text-neon-gradient {
-  background: linear-gradient(135deg, #ffffff 0%, var(--brand-neon) 50%, var(--cyan-neon) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 0 40px rgba(52, 211, 153, 0.2);
+.athlete-card .athlete-img-container {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  background-color: #0b0f11;
+  overflow: hidden;
 }
 
-/* Floating animation */
-.animate-float {
-  animation: float 6s ease-in-out infinite;
+.athlete-card .athlete-img-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
 }
 
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
-}
-
-/* Toast styling entry animations */
-.animate-in {
-  animation: animate-in 200ms ease-out;
-}
-.slide-in-from-right-5 {
-  --tw-enter-translate-x: 1.25rem;
-}
-@keyframes animate-in {
-  from {
-    opacity: 0;
-    transform: translateX(var(--tw-enter-translate-x, 0));
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.athlete-card:hover .athlete-img-container img {
+  transform: scale(1.04);
 }
 
 /* Legibilidade e Estilo de Select e Options Nativos */
 select {
   background-color: #090f0c !important;
   color: #f0f7f4 !important;
-  border-color: rgba(16, 185, 129, 0.2) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 select option {
@@ -205,7 +163,7 @@ select option {
   color: #f0f7f4 !important;
 }
 
-/* Placeholder visivelmente legível em dark mode */
+/* Placeholder */
 ::placeholder {
   color: var(--text-subtle);
   opacity: 1;
@@ -216,23 +174,23 @@ select option {
   opacity: 1;
 }
 
-/* Scrollbar customizada para o tema */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.02);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(16, 185, 129, 0.25);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.45);
+  background: rgba(255, 255, 255, 0.25);
 }
 
-/* Garantia de texto legível em inputs, selects e textareas */
+/* Inputs, Selects, Textareas color scheme */
 input,
 textarea,
 select {

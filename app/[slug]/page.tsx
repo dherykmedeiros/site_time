@@ -8,6 +8,7 @@ import { PublicNavbar } from "@/components/PublicNavbar";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ slot?: string }>;
 }
 
 const competitiveLevelLabels: Record<string, string> = {
@@ -125,8 +126,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function TeamPublicPage({ params }: PageProps) {
+export default async function TeamPublicPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
+  const selectedSlotId = resolvedSearchParams?.slot;
 
   const team = await prisma.team.findUnique({
     where: { slug },
@@ -137,6 +140,10 @@ export default async function TeamPublicPage({ params }: PageProps) {
       },
       matches: {
         orderBy: { date: "desc" },
+      },
+      openMatchSlots: {
+        where: { status: "OPEN" },
+        orderBy: { date: "asc" },
       },
     },
   });
@@ -258,6 +265,22 @@ export default async function TeamPublicPage({ params }: PageProps) {
     .filter((m) => m.status === "COMPLETED" || m.status === "CANCELLED")
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  const goalBalance = goalsScored - goalsConceded;
+  const summaryLine = totalGames > 0 ? `${wins}V · ${draws}E · ${losses}D` : "Temporada em construção";
+  const hasDiscoveryInfo = Boolean(team.city || team.region || team.fieldType || team.competitiveLevel);
+
+  const selectedSlot = selectedSlotId
+    ? team.openMatchSlots.find((slot) => slot.id === selectedSlotId) ?? null
+    : null;
+  const selectedSlotDateText = selectedSlot
+    ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(selectedSlot.date)
+    : null;
+  const selectedSlotTimeLabel = selectedSlot?.timeLabel || "";
+  const suggestedDatesInitialValue = selectedSlotDateText
+    ? `Preferencia pelo horario aberto em ${selectedSlotDateText}${selectedSlotTimeLabel ? ` (${selectedSlotTimeLabel})` : ""}`
+    : "";
+  const suggestedVenueInitialValue = selectedSlot?.venueLabel || "";
+
   return (
     <div 
       className="min-h-screen text-[#f0f7f4] relative overflow-hidden bg-[#030708] pb-24 font-sans selection:bg-[var(--team-primary)] selection:text-[#020506] antialiased"
@@ -266,6 +289,10 @@ export default async function TeamPublicPage({ params }: PageProps) {
         "--team-secondary": themeSecondary,
         "--team-primary-rgb": primaryRgb,
         "--team-secondary-rgb": secondaryRgb,
+        "--brand": themePrimary,
+        "--brand-strong": themePrimary,
+        "--brand-soft": `rgba(${primaryRgb}, 0.1)`,
+        "--brand-neon": themeSecondary,
       } as React.CSSProperties}
     >
       {/* Background Gradients utilizing custom colors */}
@@ -278,64 +305,33 @@ export default async function TeamPublicPage({ params }: PageProps) {
       <div className="absolute top-[500px] right-[-10%] w-[500px] h-[500px] pointer-events-none opacity-5 rounded-full filter blur-[120px] bg-cyan-500" />
       <div className="absolute bottom-[300px] left-[-10%] w-[500px] h-[500px] pointer-events-none opacity-5 rounded-full filter blur-[120px] bg-[var(--team-primary)]" />
 
-      {/* Public Glassmorphic Navbar aware of slug */}
+      {/* Public Navbar */}
       <PublicNavbar teamName={team.name} badgeUrl={team.badgeUrl} slug={team.slug} />
 
-      {/* Main Container */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 relative z-10 space-y-24">
-        
-        {/* HERO SECTION */}
-        <section className="app-surface p-8 md:p-12 mb-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden bg-gradient-to-br from-[rgba(10,20,24,0.7)] to-[rgba(var(--team-primary-rgb),0.02)] border-[rgba(var(--team-primary-rgb),0.2)]">
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[var(--team-secondary)] to-transparent opacity-60 animate-pulse" />
-          
-          {/* Badge with glowing boundary */}
-          <div className="relative group shrink-0">
-            <div 
-              className="absolute -inset-1 rounded-full blur opacity-40 group-hover:opacity-75 transition duration-500" 
-              style={{
-                background: `linear-gradient(to right, var(--team-primary), var(--team-secondary))`,
-              }}
-            />
-            <div className="relative w-36 h-36 md:w-44 md:h-44 rounded-full bg-black/80 flex items-center justify-center border-2 border-white/10 overflow-hidden">
-              {team.badgeUrl ? (
-                <img 
-                  src={team.badgeUrl} 
-                  alt={`Escudo do ${team.name}`} 
-                  className="w-full h-full object-cover p-2"
-                />
-              ) : (
-                <span className="text-4xl md:text-5xl font-black text-white font-mono uppercase tracking-widest text-neon-gradient">
-                  {team.shortName || team.name.substring(0, 3).toUpperCase()}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Info Details */}
-          <div className="text-center md:text-left space-y-4 max-w-2xl">
-            <div className="space-y-1">
-              <span 
-                className="inline-flex items-center px-3 py-1 rounded-full text-xs font-mono font-medium border"
-                style={{
-                  backgroundColor: `rgba(var(--team-primary-rgb), 0.15)`,
-                  borderColor: `rgba(var(--team-primary-rgb), 0.3)`,
-                  color: `var(--team-secondary)`,
-                }}
-              >
-                ⭐ {team.competitiveLevel ? competitiveLevelLabels[team.competitiveLevel] : "Competitivo"}
+      {/* Premium Editorial Sports Hero */}
+      <header className="relative overflow-hidden px-4 pb-28 pt-12 lg:pb-36 lg:pt-20">
+        <div className="relative mx-auto mt-4 grid max-w-6xl gap-10 lg:grid-cols-[1.25fr_0.75fr] lg:items-center">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 rounded border border-[var(--border)] bg-[#0f1418] px-3.5 py-1.5 font-mono text-[10px] font-black uppercase tracking-widest text-[var(--brand)]">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--brand)] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--brand)]"></span>
               </span>
-              <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight leading-none mt-2 uppercase">
-                {team.name}
-              </h1>
+              <span>⭐ {team.competitiveLevel ? competitiveLevelLabels[team.competitiveLevel] : "Competitivo"}</span>
             </div>
 
+            <h1 className="text-balance text-4xl font-black leading-[1.05] sm:text-6xl lg:text-7xl uppercase tracking-tight font-mono">
+              <span className="block text-white">PORTAL OFICIAL</span>
+              <span className="block text-[var(--brand)]">{team.name}</span>
+            </h1>
+            
             {team.description && (
-              <p className="text-[#8fa39b] text-sm sm:text-base leading-relaxed max-w-xl font-medium">
+              <p className="max-w-2xl text-sm sm:text-base leading-relaxed text-[#94a3b8] font-medium border-l-2 border-[var(--brand)] pl-4">
                 {team.description}
               </p>
             )}
 
-            <div className="flex flex-wrap justify-center md:justify-start gap-y-2 gap-x-6 text-xs sm:text-sm font-mono text-[#8fa39b] font-semibold">
+            <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-xs sm:text-sm font-mono text-[#8fa39b] font-semibold">
               {team.city && (
                 <div className="flex items-center gap-1.5">
                   <span>📍</span>
@@ -355,104 +351,126 @@ export default async function TeamPublicPage({ params }: PageProps) {
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Decorative Team Color Flags */}
-          <div className="absolute top-0 right-0 flex gap-2 p-4">
-            <div className="w-4.5 h-14 rounded-b shadow" style={{ backgroundColor: themePrimary }} />
-            <div className="w-4.5 h-9 rounded-b shadow" style={{ backgroundColor: themeSecondary }} />
-          </div>
-        </section>
-
-        {/* CORE STATS BAR */}
-        <section className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="app-surface p-6 text-center bg-black/40 border-[rgba(var(--team-primary-rgb),0.15)] hover:border-[rgba(var(--team-primary-rgb),0.4)] card-hover">
-            <p className="text-[10px] font-bold text-[#8fa39b] uppercase tracking-wider">Partidas</p>
-            <p className="text-3xl md:text-4xl font-black text-white mt-2 tracking-tight">{totalGames}</p>
-          </div>
-          <div 
-            className="app-surface p-6 text-center bg-black/40 border-l-4 card-hover"
-            style={{ borderLeftColor: themePrimary, borderColor: `rgba(var(--team-primary-rgb), 0.15)` }}
-          >
-            <p className="text-[10px] font-bold text-[#8fa39b] uppercase tracking-wider">Vitórias</p>
-            <p className="text-3xl md:text-4xl font-black mt-2 tracking-tight text-[#34d399]">{wins}</p>
-          </div>
-          <div className="app-surface p-6 text-center bg-black/40 border-l-4 border-l-gray-600 border-[rgba(var(--team-primary-rgb),0.15)] hover:border-[rgba(var(--team-primary-rgb),0.4)] card-hover">
-            <p className="text-[10px] font-bold text-[#8fa39b] uppercase tracking-wider">Empates</p>
-            <p className="text-3xl md:text-4xl font-black mt-2 tracking-tight text-[#8fa39b]">{draws}</p>
-          </div>
-          <div className="app-surface p-6 text-center bg-black/40 border-l-4 border-l-red-500 border-[rgba(var(--team-primary-rgb),0.15)] hover:border-[rgba(var(--team-primary-rgb),0.4)] card-hover">
-            <p className="text-[10px] font-bold text-[#8fa39b] uppercase tracking-wider">Derrotas</p>
-            <p className="text-3xl md:text-4xl font-black mt-2 tracking-tight text-red-400">{losses}</p>
-          </div>
-          <div className="app-surface p-6 text-center col-span-2 md:col-span-1 bg-black/40 border-[rgba(var(--team-primary-rgb),0.15)] hover:border-[rgba(var(--team-primary-rgb),0.4)] card-hover flex flex-col justify-center items-center">
-            <p className="text-[10px] font-bold text-[#8fa39b] uppercase tracking-wider">Aproveitamento</p>
-            <div className="mt-2 flex items-baseline gap-0.5">
-              <span className="text-3xl md:text-4xl font-black tracking-tight" style={{ color: themeSecondary }}>{winRate}</span>
-              <span className="text-xs font-bold text-[#8fa39b]">%</span>
+            <div className="flex flex-wrap items-center gap-4 pt-2">
+              <a
+                href="#elenco"
+                className="inline-flex min-h-12 items-center justify-center rounded-md bg-[var(--brand)] px-8 py-3 text-xs font-black uppercase tracking-wider text-[#090d0f] transition-all hover:bg-[var(--brand-strong)] hover:-translate-y-0.5 active:translate-y-0 duration-150 shadow"
+              >
+                Conhecer Elenco
+              </a>
+              <a
+                href="#amistoso"
+                className="inline-flex min-h-12 items-center justify-center rounded-md border border-[var(--border)] bg-[#0f1418] hover:bg-[#13191c] px-8 py-3 text-xs font-black uppercase tracking-wider text-white transition-all hover:-translate-y-0.5 active:translate-y-0 duration-150"
+              >
+                Desafiar Equipe
+              </a>
             </div>
           </div>
-        </section>
 
-        {/* Goals Detail row */}
-        <section id="retrospecto" className="grid grid-cols-1 md:grid-cols-2 gap-6 scroll-mt-24">
-          <div className="app-surface p-5 flex justify-between items-center bg-black/40 border-[rgba(var(--team-primary-rgb),0.15)] hover:border-[rgba(var(--team-primary-rgb),0.4)] card-hover">
+          <aside className="relative overflow-hidden max-w-md rounded-md border border-[var(--border)] bg-[#0f1418] p-8 shadow-xl lg:ml-auto lg:w-full space-y-6">
+            <div className="absolute top-0 left-0 w-full h-[3px] bg-[var(--brand)]" />
             <div className="flex items-center gap-4">
-              <span className="text-3xl">⚽</span>
+              <div className="relative w-20 h-20 shrink-0 rounded-full bg-black/60 flex items-center justify-center border border-white/10 overflow-hidden">
+                {team.badgeUrl ? (
+                  <img 
+                    src={team.badgeUrl} 
+                    alt={`Escudo do ${team.name}`} 
+                    className="w-full h-full object-cover p-1.5"
+                  />
+                ) : (
+                  <span className="text-xl font-black text-white font-mono uppercase tracking-widest">
+                    {team.shortName || team.name.substring(0, 3).toUpperCase()}
+                  </span>
+                )}
+              </div>
               <div>
-                <p className="text-xs font-bold text-[#8fa39b] uppercase tracking-wider">Gols Marcados</p>
-                <p className="text-2xl font-black text-white tracking-tight mt-1">{goalsScored}</p>
+                <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Status da Temporada</p>
+                <p className="mt-1 text-xl font-black tracking-tight text-white uppercase">{summaryLine}</p>
               </div>
             </div>
-            <span className="text-xs font-semibold text-[#8fa39b] bg-white/5 border border-white/10 px-3 py-1 rounded-full">Média {avgGoalsScored} / jogo</span>
-          </div>
-          <div className="app-surface p-5 flex justify-between items-center bg-black/40 border-[rgba(var(--team-primary-rgb),0.15)] hover:border-[rgba(var(--team-primary-rgb),0.4)] card-hover">
-            <div className="flex items-center gap-4">
-              <span className="text-3xl">🛡️</span>
-              <div>
-                <p className="text-xs font-bold text-[#8fa39b] uppercase tracking-wider">Gols Sofridos</p>
-                <p className="text-2xl font-black text-white tracking-tight mt-1">{goalsConceded}</p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+              <div className="rounded-md border border-[var(--border)] bg-[#090d0f] p-5">
+                <p className="font-mono text-[9px] text-[#94a3b8] font-black uppercase tracking-wider">Aproveitamento Geral</p>
+                <p className="text-4xl font-black text-[var(--brand)] mt-1 tracking-tight">{winRate}%</p>
+              </div>
+              <div className="rounded-md border border-[var(--border)] bg-[#090d0f] p-5">
+                <p className="font-mono text-[9px] text-[#94a3b8] font-black uppercase tracking-wider">Ataque Produtivo</p>
+                <p className="text-4xl font-black text-white mt-1 tracking-tight">
+                  {avgGoalsScored} <span className="text-xs font-bold text-[#94a3b8] uppercase font-sans">/ jogo</span>
+                </p>
               </div>
             </div>
-            <span className="text-xs font-semibold text-[#8fa39b] bg-white/5 border border-white/10 px-3 py-1 rounded-full">Média {avgGoalsConceded} / jogo</span>
+          </aside>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="mx-auto mt-8 max-w-6xl px-4 sm:px-6 lg:px-8 space-y-24">
+        
+        {/* Core Stats Bar */}
+        <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 -mt-24 relative z-10">
+          <div className="app-surface p-6 hover:border-[var(--brand)] shadow-lg card-hover">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8fa39b]">Atletas Integrados</p>
+            <p className="mt-2 text-4xl font-black tracking-tight text-white">{team.players.length}</p>
+            <p className="mt-1 text-xs text-[#8fa39b] font-medium">Integrados ao elenco principal</p>
+          </div>
+
+          <div className="app-surface p-6 hover:border-[var(--brand)] shadow-lg card-hover">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8fa39b]">Jogos Realizados</p>
+            <p className="mt-2 text-4xl font-black tracking-tight text-white">{totalGames}</p>
+            <p className="mt-1 text-xs text-[#8fa39b] font-medium">Partidas computadas na temporada</p>
+          </div>
+
+          <div className="app-surface p-6 hover:border-[var(--brand)] shadow-lg card-hover">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8fa39b]">Saldo de Gols</p>
+            <p className="mt-2 text-4xl font-black tracking-tight text-white">{goalBalance >= 0 ? `+${goalBalance}` : goalBalance}</p>
+            <p className="mt-1 text-xs text-[#8fa39b] font-medium">
+              {goalsScored} pró · {goalsConceded} contra
+            </p>
+          </div>
+
+          <div className="app-surface p-6 hover:border-[var(--brand)] shadow-lg card-hover">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8fa39b]">Gols na Temporada</p>
+            <p className="mt-2 text-4xl font-black tracking-tight text-[var(--brand)]">{goalsScored}</p>
+            <p className="mt-1 text-xs text-[#8fa39b] font-medium">
+              Marcados em confrontos oficiais
+            </p>
           </div>
         </section>
 
         {/* Dynamic Highlights Panel (Hall of Fame) */}
-        <section id="destaques" className="space-y-6">
-          <div className="mb-6 flex items-end justify-between gap-3 border-b border-white/10 pb-4">
+        <section id="destaques" className="scroll-mt-24 space-y-6">
+          <div className="mb-6 flex items-end justify-between gap-3 border-b border-[var(--border)] pb-4">
             <div>
-              <h2 className="text-2xl font-black uppercase text-white tracking-tight">Estrelas da Temporada</h2>
-              <p className="text-xs text-[#8fa39b] font-medium">Os principais atletas da nossa comissão técnica nos rankings</p>
+              <h2 className="text-2xl font-black uppercase text-white tracking-tight font-mono">Estrelas da Temporada</h2>
+              <p className="text-xs text-[#94a3b8] font-medium">Os destaques estatísticos e atletas em evidência na arena</p>
             </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: themeSecondary }}>Hall da Fama</p>
+            <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[var(--brand)]">Hall da Fama</p>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {/* Highlight 1: Artilheiro */}
-            <div 
-              className="app-surface relative overflow-hidden p-6 flex flex-col justify-between min-h-[220px] card-hover bg-gradient-to-br from-[rgba(10,20,24,0.7)] to-[rgba(var(--team-primary-rgb),0.02)]"
-              style={{ borderColor: `rgba(var(--team-primary-rgb), 0.15)` }}
-            >
+            <div className="rounded-md border border-[var(--border)] bg-[#0f1418] p-6 flex flex-col justify-between min-h-[220px] transition-colors hover:border-[#ffffff/15] group">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#8fa39b]">⚽ Artilheiro</span>
-                  <span className="text-xs font-mono font-bold bg-white/5 px-2 py-0.5 rounded border border-white/10" style={{ color: themeSecondary }}>GOLS</span>
+                  <span className="font-mono text-[9px] font-black uppercase tracking-widest text-[#94a3b8]">⚽ Artilheiro</span>
+                  <span className="font-mono text-[9px] font-black bg-[var(--brand-soft)] text-[var(--brand)] px-2 py-0.5 rounded border border-[var(--brand-soft)]">GOLS</span>
                 </div>
-                <p className="mt-4 text-5xl font-black tracking-tight text-white">{bestScorer?.goals || 0}</p>
-                <p className="mt-0.5 text-[10px] font-bold text-[#8fa39b] uppercase tracking-wider">Gols marcados</p>
+                <p className="mt-4 text-5xl font-black tracking-tight text-white font-mono">{bestScorer?.goals || 0}</p>
+                <p className="mt-1 font-mono text-[9px] font-black text-[#64748b] uppercase tracking-widest">Gols marcados</p>
               </div>
-              <div className="mt-6 flex items-center gap-3 pt-4 border-t border-white/5">
+              <div className="mt-6 flex items-center gap-3 pt-4 border-t border-[var(--border)]">
                 {bestScorer?.photoUrl ? (
-                  <img src={bestScorer.photoUrl} alt="Foto" className="h-10 w-10 rounded-xl object-cover border border-white/10 shadow" />
+                  <img src={bestScorer.photoUrl} alt="Foto" className="h-10 w-10 rounded-md object-cover border border-[var(--border)] shadow-sm" />
                 ) : (
-                  <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center font-bold text-white text-xs">
+                  <div className="h-10 w-10 rounded-md bg-[#090d0f] border border-[var(--border)] flex items-center justify-center font-mono font-black text-white text-xs">
                     #{bestScorer?.shirtNumber ?? "—"}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="font-extrabold text-sm text-white uppercase truncate tracking-tight">{bestScorer?.playerName || "Sem registro"}</p>
-                  <p className="text-[10px] text-[#8fa39b] font-medium truncate mt-0.5">
+                  <p className="font-extrabold text-sm text-white uppercase truncate tracking-tight group-hover:text-[var(--brand)] transition-colors">{bestScorer?.playerName || "Sem registro"}</p>
+                  <p className="font-mono text-[9px] text-[#94a3b8] font-bold truncate mt-0.5">
                     {bestScorer ? `Camisa #${bestScorer.shirtNumber}` : "Aguardando gols"}
                   </p>
                 </div>
@@ -460,29 +478,26 @@ export default async function TeamPublicPage({ params }: PageProps) {
             </div>
 
             {/* Highlight 2: Assistência */}
-            <div 
-              className="app-surface relative overflow-hidden p-6 flex flex-col justify-between min-h-[220px] card-hover bg-gradient-to-br from-[rgba(10,20,24,0.7)] to-[rgba(var(--team-primary-rgb),0.02)]"
-              style={{ borderColor: `rgba(var(--team-primary-rgb), 0.15)` }}
-            >
+            <div className="rounded-md border border-[var(--border)] bg-[#0f1418] p-6 flex flex-col justify-between min-h-[220px] transition-colors hover:border-[#ffffff/15] group">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#8fa39b]">🎯 Garçom</span>
-                  <span className="text-xs font-mono font-bold bg-white/5 px-2 py-0.5 rounded border border-white/10" style={{ color: themeSecondary }}>PASSE</span>
+                  <span className="font-mono text-[9px] font-black uppercase tracking-widest text-[#94a3b8]">🎯 Garçom</span>
+                  <span className="font-mono text-[9px] font-black bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/20">PASSE</span>
                 </div>
-                <p className="mt-4 text-5xl font-black tracking-tight text-white">{bestAssist?.assists || 0}</p>
-                <p className="mt-0.5 text-[10px] font-bold text-[#8fa39b] uppercase tracking-wider">Assistências</p>
+                <p className="mt-4 text-5xl font-black tracking-tight text-white font-mono">{bestAssist?.assists || 0}</p>
+                <p className="mt-1 font-mono text-[9px] font-black text-[#64748b] uppercase tracking-widest">Assistências</p>
               </div>
-              <div className="mt-6 flex items-center gap-3 pt-4 border-t border-white/5">
+              <div className="mt-6 flex items-center gap-3 pt-4 border-t border-[var(--border)]">
                 {bestAssist?.photoUrl ? (
-                  <img src={bestAssist.photoUrl} alt="Foto" className="h-10 w-10 rounded-xl object-cover border border-white/10 shadow" />
+                  <img src={bestAssist.photoUrl} alt="Foto" className="h-10 w-10 rounded-md object-cover border border-[var(--border)] shadow-sm" />
                 ) : (
-                  <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center font-bold text-white text-xs">
+                  <div className="h-10 w-10 rounded-md bg-[#090d0f] border border-[var(--border)] flex items-center justify-center font-mono font-black text-white text-xs">
                     #{bestAssist?.shirtNumber ?? "—"}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="font-extrabold text-sm text-white uppercase truncate tracking-tight">{bestAssist?.playerName || "Sem registro"}</p>
-                  <p className="text-[10px] text-[#8fa39b] font-medium truncate mt-0.5">
+                  <p className="font-extrabold text-sm text-white uppercase truncate tracking-tight group-hover:text-cyan-400 transition-colors">{bestAssist?.playerName || "Sem registro"}</p>
+                  <p className="font-mono text-[9px] text-[#94a3b8] font-bold truncate mt-0.5">
                     {bestAssist ? `Camisa #${bestAssist.shirtNumber}` : "Aguardando passes"}
                   </p>
                 </div>
@@ -490,29 +505,26 @@ export default async function TeamPublicPage({ params }: PageProps) {
             </div>
 
             {/* Highlight 3: Presença */}
-            <div 
-              className="app-surface relative overflow-hidden p-6 flex flex-col justify-between min-h-[220px] card-hover bg-gradient-to-br from-[rgba(10,20,24,0.7)] to-[rgba(var(--team-primary-rgb),0.02)]"
-              style={{ borderColor: `rgba(var(--team-primary-rgb), 0.15)` }}
-            >
+            <div className="rounded-md border border-[var(--border)] bg-[#0f1418] p-6 flex flex-col justify-between min-h-[220px] transition-colors hover:border-[#ffffff/15] group">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#8fa39b]">📅 Mais Presente</span>
-                  <span className="text-xs font-mono font-bold bg-white/5 px-2 py-0.5 rounded border border-white/10" style={{ color: themeSecondary }}>JOGOS</span>
+                  <span className="font-mono text-[9px] font-black uppercase tracking-widest text-[#94a3b8]">📅 Mais Presente</span>
+                  <span className="font-mono text-[9px] font-black bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded border border-amber-500/20">JOGOS</span>
                 </div>
-                <p className="mt-4 text-5xl font-black tracking-tight text-white">{bestPresence?.matches || 0}</p>
-                <p className="mt-0.5 text-[10px] font-bold text-[#8fa39b] uppercase tracking-wider">Presenças em campo</p>
+                <p className="mt-4 text-5xl font-black tracking-tight text-white font-mono">{bestPresence?.matches || 0}</p>
+                <p className="mt-1 font-mono text-[9px] font-black text-[#64748b] uppercase tracking-widest">Presenças em campo</p>
               </div>
-              <div className="mt-6 flex items-center gap-3 pt-4 border-t border-white/5">
+              <div className="mt-6 flex items-center gap-3 pt-4 border-t border-[var(--border)]">
                 {bestPresence?.photoUrl ? (
-                  <img src={bestPresence.photoUrl} alt="Foto" className="h-10 w-10 rounded-xl object-cover border border-white/10 shadow" />
+                  <img src={bestPresence.photoUrl} alt="Foto" className="h-10 w-10 rounded-md object-cover border border-[var(--border)] shadow-sm" />
                 ) : (
-                  <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center font-bold text-white text-xs">
+                  <div className="h-10 w-10 rounded-md bg-[#090d0f] border border-[var(--border)] flex items-center justify-center font-mono font-black text-white text-xs">
                     #{bestPresence?.shirtNumber ?? "—"}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="font-extrabold text-sm text-white uppercase truncate tracking-tight">{bestPresence?.playerName || "Sem registro"}</p>
-                  <p className="text-[10px] text-[#8fa39b] font-medium truncate mt-0.5">
+                  <p className="font-extrabold text-sm text-white uppercase truncate tracking-tight group-hover:text-amber-400 transition-colors">{bestPresence?.playerName || "Sem registro"}</p>
+                  <p className="font-mono text-[9px] text-[#94a3b8] font-bold truncate mt-0.5">
                     {bestPresence ? `Camisa #${bestPresence.shirtNumber}` : "Aguardando partidas"}
                   </p>
                 </div>
@@ -520,29 +532,26 @@ export default async function TeamPublicPage({ params }: PageProps) {
             </div>
 
             {/* Highlight 4: Melhor Avaliado */}
-            <div 
-              className="app-surface relative overflow-hidden p-6 flex flex-col justify-between min-h-[220px] card-hover bg-gradient-to-br from-[rgba(10,20,24,0.7)] to-[rgba(var(--team-primary-rgb),0.02)]"
-              style={{ borderColor: `rgba(var(--team-primary-rgb), 0.15)` }}
-            >
+            <div className="rounded-md border border-[var(--border)] bg-[#0f1418] p-6 flex flex-col justify-between min-h-[220px] transition-colors hover:border-[#ffffff/15] group">
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#8fa39b]">⭐ Melhor Nota</span>
-                  <span className="text-xs font-mono font-bold bg-white/5 px-2 py-0.5 rounded border border-white/10" style={{ color: themeSecondary }}>AVALIAÇÃO</span>
+                  <span className="font-mono text-[9px] font-black uppercase tracking-widest text-[#94a3b8]">⭐ Melhor Nota</span>
+                  <span className="font-mono text-[9px] font-black bg-violet-500/10 text-violet-400 px-2 py-0.5 rounded border border-violet-500/20">AVALIAÇÃO</span>
                 </div>
-                <p className="mt-4 text-5xl font-black tracking-tight text-white">{bestRated?.averageStars?.toFixed(1) || "0.0"}</p>
-                <p className="mt-0.5 text-[10px] font-bold text-[#8fa39b] uppercase tracking-wider">Média de estrelas</p>
+                <p className="mt-4 text-5xl font-black tracking-tight text-white font-mono">{bestRated?.averageStars?.toFixed(1) || "0.0"}</p>
+                <p className="mt-1 font-mono text-[9px] font-black text-[#64748b] uppercase tracking-widest">Média de estrelas</p>
               </div>
-              <div className="mt-6 flex items-center gap-3 pt-4 border-t border-white/5">
+              <div className="mt-6 flex items-center gap-3 pt-4 border-t border-[var(--border)]">
                 {bestRated?.photoUrl ? (
-                  <img src={bestRated.photoUrl} alt="Foto" className="h-10 w-10 rounded-xl object-cover border border-white/10 shadow" />
+                  <img src={bestRated.photoUrl} alt="Foto" className="h-10 w-10 rounded-md object-cover border border-[var(--border)] shadow-sm" />
                 ) : (
-                  <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center font-bold text-white text-xs">
+                  <div className="h-10 w-10 rounded-md bg-[#090d0f] border border-[var(--border)] flex items-center justify-center font-mono font-black text-white text-xs">
                     #{bestRated?.shirtNumber ?? "—"}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="font-extrabold text-sm text-white uppercase truncate tracking-tight">{bestRated?.playerName || "Sem registro"}</p>
-                  <p className="text-[10px] text-[#8fa39b] font-medium truncate mt-0.5">
+                  <p className="font-extrabold text-sm text-white uppercase truncate tracking-tight group-hover:text-violet-400 transition-colors">{bestRated?.playerName || "Sem registro"}</p>
+                  <p className="font-mono text-[9px] text-[#94a3b8] font-bold truncate mt-0.5">
                     {bestRated ? `${bestRated.totalRatings} avaliações` : "Aguardando votos"}
                   </p>
                 </div>
@@ -553,30 +562,35 @@ export default async function TeamPublicPage({ params }: PageProps) {
 
         {/* MATCHES SECTION (3-LEVEL TIMELINE) */}
         <section id="retrospecto" className="space-y-6 scroll-mt-24">
-          <div className="mb-6 flex items-end justify-between gap-3 border-b border-white/10 pb-4">
+          <div className="mb-6 flex items-end justify-between gap-3 border-b border-[var(--border)] pb-4">
             <div>
-              <h2 className="text-2xl font-black uppercase text-white tracking-tight">Linha do Tempo de Partidas</h2>
-              <p className="text-xs text-[#8fa39b] font-medium">Os compromissos agendados e histórico recente de confrontos</p>
+              <h2 className="text-2xl font-black uppercase text-white tracking-tight font-mono">Linha do Tempo de Partidas</h2>
+              <p className="text-xs text-[#94a3b8] font-medium">Os compromissos agendados e histórico recente de confrontos</p>
             </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: themeSecondary }}>Agenda & Resultados</p>
+            <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[var(--brand)]">Agenda & Resultados</p>
           </div>
 
           <div className="space-y-8">
             {/* LEVEL 1: Próximo Jogo (Highlighted at the top) */}
             {nextMatch && (
               <div className="space-y-3">
-                <span className="text-xs font-extrabold font-mono tracking-widest text-[#3b82f6] bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">🎯 PRÓXIMO COMPROMISSO</span>
-                <div 
-                  className="app-surface p-6 bg-gradient-to-r from-[rgba(10,20,24,0.85)] to-[rgba(59,130,246,0.04)] border-[rgba(var(--team-primary-rgb),0.35)] shadow-xl relative overflow-hidden"
-                >
+                <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/10 px-3 py-1 rounded border border-blue-500/20">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
+                  </span>
+                  PRÓXIMO COMPROMISSO
+                </span>
+                
+                <div className="match-ticket p-6 shadow-xl relative overflow-hidden bg-[#0f1418]">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                     <div>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs font-mono font-bold bg-[#3b82f6]/10 text-blue-400 px-2 py-0.5 border border-[#3b82f6]/20 rounded">
+                        <span className="font-mono text-[9px] font-black bg-blue-500/10 text-blue-400 px-2 py-0.5 border border-blue-500/20 rounded">
                           {nextMatch.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
                         </span>
-                        <span className="text-xs font-mono text-[#8fa39b] font-semibold">
+                        <span className="font-mono text-[10px] text-[#94a3b8] font-bold uppercase tracking-wider">
                           {new Date(nextMatch.date).toLocaleDateString("pt-BR", {
                             day: "2-digit",
                             month: "2-digit",
@@ -586,18 +600,18 @@ export default async function TeamPublicPage({ params }: PageProps) {
                           })}
                         </span>
                       </div>
-                      <p className="text-2xl font-black text-white tracking-tight mt-3 uppercase flex items-center flex-wrap gap-2.5">
+                      <h3 className="text-2xl font-black text-white tracking-tight mt-3 uppercase flex items-center flex-wrap gap-2.5">
                         <span>{team.shortName || team.name}</span>
-                        <span className="text-[#8fa39b] font-normal text-sm lowercase">vs</span>
-                        <span style={{ color: themeSecondary }}>{nextMatch.opponent}</span>
-                      </p>
-                      <p className="text-xs text-[#8fa39b] font-mono font-semibold mt-2.5 flex items-center gap-1.5">
+                        <span className="text-[#64748b] font-normal text-sm lowercase font-sans">vs</span>
+                        <span className="text-[var(--brand-neon)]">{nextMatch.opponent}</span>
+                      </h3>
+                      <p className="text-xs text-[#94a3b8] font-mono font-semibold mt-2.5 flex items-center gap-1.5">
                         <span>📍</span>
                         <span>{nextMatch.venue}</span>
                       </p>
                     </div>
                     <span 
-                      className="text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full shrink-0 text-center w-full sm:w-auto border border-blue-500/30 text-blue-400 bg-blue-500/10"
+                      className="font-mono text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded shrink-0 text-center w-full sm:w-auto border border-blue-500/25 text-blue-400 bg-blue-500/5"
                     >
                       Agendado
                     </span>
@@ -608,21 +622,23 @@ export default async function TeamPublicPage({ params }: PageProps) {
 
             {/* LEVEL 2: Partidas Finalizadas (chronological descending) */}
             <div className="space-y-4">
-              <h3 className="text-xs font-extrabold font-mono tracking-widest text-[#34d399] bg-[#34d399]/10 px-3 py-1 rounded-full border border-[#34d399]/20 w-fit">🏆 HISTÓRICO DE RESULTADOS</h3>
+              <h3 className="inline-flex items-center gap-1.5 font-mono text-[10px] font-black uppercase tracking-widest text-[#34d399] bg-[#34d399]/10 px-3 py-1 rounded border border-[#34d399]/20 w-fit">
+                🏆 HISTÓRICO DE RESULTADOS
+              </h3>
               {finishedMatches.length === 0 ? (
-                <div className="app-surface p-8 text-center text-[#8fa39b] bg-black/30 border border-dashed border-[#10b981]/10">
+                <div className="rounded-md border border-[var(--border)] p-12 text-center text-[#94a3b8] font-mono text-xs uppercase font-bold bg-black/20 border-dashed">
                   Nenhum jogo disputado registrado.
                 </div>
               ) : (
                 <div className="grid gap-4">
-                  {finishedMatches.slice(0, 8).map((match) => {
+                  {finishedMatches.map((match) => {
                     const isCancelled = match.status === "CANCELLED";
                     const win = match.homeScore !== null && match.awayScore !== null && (
                       match.isHome ? match.homeScore > match.awayScore : match.awayScore > match.homeScore
                     );
                     const draw = match.homeScore !== null && match.awayScore !== null && match.homeScore === match.awayScore;
                     
-                    let badgeColor = "bg-gray-500/10 text-gray-400 border-gray-500/20";
+                    let badgeColor = "bg-white/5 text-[#94a3b8] border-white/5";
                     let resultLabel = "Empate";
                     
                     if (isCancelled) {
@@ -630,20 +646,20 @@ export default async function TeamPublicPage({ params }: PageProps) {
                       badgeColor = "bg-red-500/10 text-red-400 border-red-500/20";
                     } else if (win) {
                       resultLabel = "Vitória";
-                      badgeColor = "bg-emerald-500/15 text-[#34d399] border-emerald-500/30";
+                      badgeColor = "bg-[var(--brand-soft)] text-[var(--brand)] border-[var(--brand-soft)]";
                     } else if (!draw) {
                       resultLabel = "Derrota";
                       badgeColor = "bg-red-500/10 text-red-400 border-red-500/20";
                     }
 
                     return (
-                      <div key={match.id} className="app-surface p-5 bg-black/40 border-[rgba(var(--team-primary-rgb),0.15)] hover:border-[rgba(var(--team-primary-rgb),0.35)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-[rgba(var(--team-primary-rgb),0.02)] card-hover">
+                      <div key={match.id} className="app-surface p-5 hover:border-[var(--brand)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 card-hover">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono bg-white/5 text-[#8fa39b] px-2 py-0.5 border border-white/10 rounded">
+                            <span className="font-mono text-[9px] font-black bg-white/5 text-[#94a3b8] px-2 py-0.5 border border-white/10 rounded">
                               {match.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
                             </span>
-                            <span className="text-xs font-mono text-[#8fa39b]">
+                            <span className="font-mono text-[10px] text-[#94a3b8] font-bold">
                               {new Date(match.date).toLocaleDateString("pt-BR", {
                                 day: "2-digit",
                                 month: "2-digit",
@@ -651,7 +667,7 @@ export default async function TeamPublicPage({ params }: PageProps) {
                               })}
                             </span>
                           </div>
-                          <p className="text-lg font-black text-white mt-2 flex items-center gap-3 uppercase">
+                          <p className="text-lg font-black text-white mt-2 flex items-center gap-3 uppercase font-mono">
                             <span>{team.shortName || team.name}</span>
                             {!isCancelled && match.homeScore !== null && match.awayScore !== null ? (
                               <span className="font-black font-mono text-white bg-black/60 px-3 py-0.5 rounded border border-white/5 text-sm sm:text-base">
@@ -661,16 +677,16 @@ export default async function TeamPublicPage({ params }: PageProps) {
                                 }
                               </span>
                             ) : (
-                              <span className="text-gray-500 font-normal lowercase text-xs">vs</span>
+                              <span className="text-[#64748b] font-normal lowercase text-xs font-sans">vs</span>
                             )}
-                            <span style={{ color: themeSecondary }}>{match.opponent}</span>
+                            <span className="text-[var(--brand-neon)]">{match.opponent}</span>
                           </p>
-                          <p className="text-xs text-[#8fa39b] font-mono mt-1 flex items-center gap-1">
+                          <p className="text-xs text-[#94a3b8] font-mono mt-1 flex items-center gap-1">
                             <span>📍</span>
                             <span>{match.venue}</span>
                           </p>
                         </div>
-                        <span className={`text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full border shrink-0 text-center w-full sm:w-auto ${badgeColor}`}>
+                        <span className={`font-mono text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded border shrink-0 text-center w-full sm:w-auto ${badgeColor}`}>
                           {resultLabel}
                         </span>
                       </div>
@@ -683,16 +699,18 @@ export default async function TeamPublicPage({ params }: PageProps) {
             {/* LEVEL 3: Outros Jogos Agendados (chronological ascending) */}
             {remainingScheduled.length > 0 && (
               <div className="space-y-4 pt-2">
-                <h3 className="text-xs font-extrabold font-mono tracking-widest text-blue-400 bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20 w-fit">🗓️ OUTROS COMPROMISSOS FUTUROS</h3>
+                <h3 className="inline-flex items-center gap-1.5 font-mono text-[10px] font-black uppercase tracking-widest text-blue-400 bg-blue-500/10 px-3 py-1 rounded border border-blue-500/20 w-fit">
+                  🗓️ OUTROS COMPROMISSOS FUTUROS
+                </h3>
                 <div className="grid gap-4">
                   {remainingScheduled.map((match) => (
-                    <div key={match.id} className="app-surface p-5 bg-black/40 border-[rgba(var(--team-primary-rgb),0.15)] hover:border-[rgba(var(--team-primary-rgb),0.35)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-[rgba(var(--team-primary-rgb),0.02)] card-hover">
+                    <div key={match.id} className="app-surface p-5 hover:border-[var(--brand)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 card-hover">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono bg-white/5 text-[#8fa39b] px-2 py-0.5 border border-white/10 rounded">
+                          <span className="font-mono text-[9px] font-black bg-white/5 text-[#94a3b8] px-2 py-0.5 border border-white/10 rounded">
                             {match.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
                           </span>
-                          <span className="text-xs font-mono text-[#8fa39b]">
+                          <span className="font-mono text-[10px] text-[#94a3b8] font-bold">
                             {new Date(match.date).toLocaleDateString("pt-BR", {
                               day: "2-digit",
                               month: "2-digit",
@@ -702,17 +720,17 @@ export default async function TeamPublicPage({ params }: PageProps) {
                             })}
                           </span>
                         </div>
-                        <p className="text-lg font-black text-white mt-2 flex items-center gap-3 uppercase">
+                        <p className="text-lg font-black text-white mt-2 flex items-center gap-3 uppercase font-mono">
                           <span>{team.shortName || team.name}</span>
-                          <span className="text-[#8fa39b] font-normal lowercase text-xs">vs</span>
-                          <span style={{ color: themeSecondary }}>{match.opponent}</span>
+                          <span className="text-[#64748b] font-normal lowercase text-xs font-sans">vs</span>
+                          <span className="text-[var(--brand-neon)]">{match.opponent}</span>
                         </p>
-                        <p className="text-xs text-[#8fa39b] font-mono mt-1 flex items-center gap-1">
+                        <p className="text-xs text-[#94a3b8] font-mono mt-1 flex items-center gap-1">
                           <span>📍</span>
                           <span>{match.venue}</span>
                         </p>
                       </div>
-                      <span className="text-xs font-black uppercase tracking-widest px-4 py-2 rounded-full bg-white/5 border border-white/10 shrink-0 text-center w-full sm:w-auto text-[#8fa39b]">
+                      <span className="font-mono text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded bg-white/5 border border-white/10 shrink-0 text-center w-full sm:w-auto text-[#94a3b8]">
                         Agendado
                       </span>
                     </div>
@@ -723,20 +741,20 @@ export default async function TeamPublicPage({ params }: PageProps) {
           </div>
         </section>
 
-        {/* ELENCO OFICIAL (FUT TRADING CARDS) */}
+        {/* ELENCO OFICIAL (SQUAD DOSSIER) */}
         <section id="elenco" className="scroll-mt-24 space-y-6">
-          <div className="mb-6 flex items-end justify-between gap-3 border-b border-white/10 pb-4">
+          <div className="mb-6 flex items-end justify-between gap-3 border-b border-[var(--border)] pb-4">
             <div>
-              <h2 className="text-2xl font-black uppercase text-white tracking-tight">Guerreiros do Elenco</h2>
-              <p className="text-xs text-[#8fa39b] font-medium mt-1">Nossos atletas que defendem as cores do clube oficialmente</p>
+              <h2 className="text-2xl font-black uppercase text-white tracking-tight font-mono">Guerreiros do Elenco</h2>
+              <p className="text-xs text-[#94a3b8] font-medium mt-1">Nossos atletas que defendem as cores do clube oficialmente</p>
             </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: themeSecondary }}>
+            <p className="font-mono text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
               {team.players.length} Inscritos
             </p>
           </div>
 
           {team.players.length === 0 ? (
-            <div className="app-surface p-8 text-center text-[#8fa39b] bg-black/30 border border-dashed border-[#10b981]/10">
+            <div className="rounded-md border border-[var(--border)] p-12 text-center text-[#94a3b8] text-sm border-dashed">
               Nenhum jogador cadastrado ou ativo no elenco.
             </div>
           ) : (
@@ -744,10 +762,10 @@ export default async function TeamPublicPage({ params }: PageProps) {
               {team.players.map((player) => {
                 const theme = positionThemes[player.position] || {
                   border: "border-white/10 hover:border-white/30",
-                  text: "text-[#8fa39b]",
+                  text: "text-[#94a3b8]",
                   glow: "rgba(255, 255, 255, 0.05)",
                   label: player.position,
-                  badge: "bg-white/5 text-[#8fa39b] border-white/10",
+                  badge: "bg-white/5 text-[#94a3b8] border-white/10",
                 };
 
                 return (
@@ -757,47 +775,60 @@ export default async function TeamPublicPage({ params }: PageProps) {
                     className="group block"
                     aria-label={`Ver perfil de ${player.name}`}
                   >
-                    <article 
-                      className={`trading-card p-6 flex flex-col justify-between min-h-[180px] ${theme.border}`}
-                      style={{
-                        boxShadow: `0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px ${theme.glow}`,
-                      }}
-                    >
-                      {/* Shirt Number Silhouette */}
-                      <span className="absolute bottom-2 right-2 text-8xl font-black text-white/[0.02] pointer-events-none group-hover:text-white/[0.04] transition-all">
-                        #{player.shirtNumber}
-                      </span>
-
-                      <div className="relative z-10 flex items-center gap-4">
+                    <article className="athlete-card">
+                      {/* Image Container / Empty State Dossier Banner */}
+                      <div className="athlete-img-container">
                         {player.photoUrl ? (
                           <img
                             src={player.photoUrl}
                             alt={player.name}
-                            className="h-16 w-16 rounded-2xl border border-white/10 object-cover shadow-md transition group-hover:scale-105 duration-200"
+                            loading="lazy"
                           />
                         ) : (
-                          <div
-                            className={`flex h-16 w-16 items-center justify-center rounded-2xl border text-xl font-black shadow-inner transition group-hover:scale-105 duration-200 ${theme.badge}`}
-                          >
-                            {player.shirtNumber}
+                          <div className="w-full h-full flex flex-col justify-center items-center bg-gradient-to-b from-[#13191c] to-[#090d0f] relative overflow-hidden">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(var(--team-primary-rgb),0.08),transparent_80%)] pointer-events-none" />
+                            <span className="font-mono text-[10rem] font-black text-white/5 tracking-tighter select-none">
+                              {player.shirtNumber}
+                            </span>
+                            <span className="absolute bottom-6 font-mono text-[10px] font-black uppercase tracking-widest text-[#94a3b8] border border-[var(--border)] bg-[#0f1418]/80 px-3 py-1 rounded">
+                              Ficha Técnica
+                            </span>
                           </div>
                         )}
-                        <div>
-                          <p className="text-lg font-black text-white group-hover:text-[var(--team-primary)] transition-colors duration-150 uppercase tracking-tight truncate max-w-[170px]">{player.name}</p>
-                          <p className="text-xs text-[#8fa39b] font-medium mt-0.5">Camisa #{player.shirtNumber}</p>
+                        {/* Jersey Number Over Badge */}
+                        <div className="absolute top-4 right-4 h-10 w-10 bg-[#090d0f]/90 border border-[var(--border)] rounded-md flex items-center justify-center font-mono font-black text-white shadow">
+                          #{player.shirtNumber}
                         </div>
                       </div>
 
-                      <div className="relative z-10 mt-6 flex items-center justify-between">
-                        <span className={`inline-flex rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.08em] ${theme.badge}`}>
-                          {theme.label}
-                        </span>
-                        <span 
-                          className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0"
-                          style={{ color: themeSecondary }}
-                        >
-                          Ver Perfil &rarr;
-                        </span>
+                      {/* Info and Details */}
+                      <div className="p-5 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className={`inline-flex rounded border px-2.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-widest ${theme.badge}`}>
+                            {theme.label}
+                          </span>
+                          <span className="font-mono text-[9px] text-[#64748b] font-bold uppercase tracking-widest">
+                            Elenco Oficial
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <h3 className="font-mono text-xl font-black text-white uppercase tracking-tight group-hover:text-[var(--team-primary)] transition-colors duration-150 truncate">
+                            {player.name}
+                          </h3>
+                          <p className="font-mono text-[9px] text-[#94a3b8] font-bold uppercase tracking-widest">
+                            Camisa #{player.shirtNumber}
+                          </p>
+                        </div>
+
+                        <div className="pt-2 border-t border-[var(--border)] flex items-center justify-between">
+                          <span className="text-[10px] text-[#94a3b8] font-bold uppercase tracking-wider">
+                            Ver Perfil Completo
+                          </span>
+                          <span className="font-mono text-[10px] font-black text-[var(--brand)] transition-transform group-hover:translate-x-1">
+                            &rarr;
+                          </span>
+                        </div>
                       </div>
                     </article>
                   </Link>
@@ -807,40 +838,116 @@ export default async function TeamPublicPage({ params }: PageProps) {
           )}
         </section>
 
+        {/* Match Availability & Open Slots */}
+        {(team.openMatchSlots.length > 0 || hasDiscoveryInfo) && (
+          <section id="agenda-aberta" className="scroll-mt-24 rounded-md border border-[var(--border)] bg-[#0f1418] p-6 sm:p-8 space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-5">
+              <div>
+                <p className="font-mono text-[9px] font-black uppercase tracking-widest text-[#94a3b8]">Disponibilidade de Arena</p>
+                <h2 className="mt-1.5 font-mono text-2xl font-black uppercase text-white tracking-tight">Datas Disponíveis para Amistoso</h2>
+              </div>
+              {team.openMatchSlots.length > 0 && (
+                <span className="rounded border border-[var(--brand-soft)] bg-[var(--brand-soft)] px-2.5 py-1 font-mono text-[9px] font-black uppercase tracking-widest text-[var(--brand)]">
+                  {team.openMatchSlots.length} Horário(s) Aberto(s)
+                </span>
+              )}
+            </div>
+
+            {hasDiscoveryInfo && (
+              <div className="flex flex-wrap gap-2">
+                {team.city && (
+                  <span className="rounded border border-[var(--border)] bg-[#090d0f] px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">
+                    Cidade: {team.city}
+                  </span>
+                )}
+                {team.region && (
+                  <span className="rounded border border-[var(--border)] bg-[#090d0f] px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">
+                    Região: {team.region}
+                  </span>
+                )}
+                {team.fieldType && (
+                  <span className="rounded border border-[var(--border)] bg-[#090d0f] px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">
+                    Campo: {fieldTypeLabels[team.fieldType]}
+                  </span>
+                )}
+                {team.competitiveLevel && (
+                  <span className="rounded border border-[var(--border)] bg-[#090d0f] px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-widest text-[#94a3b8]">
+                    Nível: {competitiveLevelLabels[team.competitiveLevel]}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {team.openMatchSlots.length > 0 ? (
+              <div className="grid gap-5 sm:grid-cols-2 pt-2">
+                {team.openMatchSlots.map((slot) => (
+                  <article key={slot.id} className="rounded-md border border-[var(--border)] bg-[#090d0f] p-6 flex flex-col justify-between shadow transition-colors hover:border-white/10 group">
+                    <div className="space-y-2">
+                      <p className="font-mono text-base font-black text-white uppercase tracking-tight">
+                        {new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(slot.date)}
+                      </p>
+                      <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">
+                        {(slot.timeLabel || "Horário a definir") + " • " + (slot.venueLabel || "Local a definir")}
+                      </p>
+                      {slot.notes && <p className="font-mono text-[10px] text-[#64748b] italic pt-1">Nota: {slot.notes}</p>}
+                    </div>
+                    <Link
+                      href={`/${team.slug}?slot=${slot.id}#amistoso`}
+                      className="mt-6 inline-flex min-h-10 items-center justify-center rounded-md border border-[var(--brand)] text-[var(--brand)] hover:bg-[var(--brand)] hover:text-[#090d0f] text-[10px] font-black uppercase tracking-wider px-6 transition-all duration-150 shadow-sm"
+                    >
+                      Propor jogo neste horário
+                    </Link>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="font-mono text-xs text-[#94a3b8] pt-2 font-bold uppercase tracking-wide">
+                No momento não temos datas abertas cadastradas, mas você pode sugerir um dia e local no formulário abaixo!
+              </p>
+            )}
+          </section>
+        )}
+
         {/* FORMS SECTION (AMISTOSO / RECRUTAMENTO SPLIT) */}
-        <section id="amistoso" className="grid grid-cols-1 lg:grid-cols-2 gap-8 scroll-mt-24">
+        <section id="amistoso" className="scroll-mt-24 grid gap-8 lg:grid-cols-2">
           
           {/* Friendly Request Form Card */}
-          <div 
-            className="app-surface p-6 md:p-8 bg-black/50 space-y-6 flex flex-col"
-            style={{ 
-              borderColor: `rgba(var(--team-primary-rgb), 0.2)`,
-              boxShadow: `0 10px 40px rgba(var(--team-primary-rgb), 0.05)` 
-            }}
-          >
+          <div className="rounded-md border border-[var(--border)] bg-[#0f1418] p-6 sm:p-8 flex flex-col space-y-6">
             <div className="space-y-4">
-              <span className="text-xs font-black font-mono tracking-widest text-[#10b981] bg-[#10b981]/10 px-3 py-1 rounded-full border border-[#10b981]/20 w-fit">AMISTOSO</span>
-              <h2 className="text-2xl font-black uppercase text-white tracking-tight mt-2">⚔️ Desafiar para Amistoso</h2>
-              <p className="text-sm text-[#8fa39b] font-medium">
+              <span className="rounded border border-[var(--brand-soft)] bg-[var(--brand-soft)] px-2.5 py-1 font-mono text-[9px] font-black uppercase tracking-widest text-[var(--brand)]">
+                AMISTOSO
+              </span>
+              <h2 className="font-mono text-balance text-3xl font-black uppercase text-white tracking-tight mt-2">
+                Desafie o {team.name}
+              </h2>
+              <p className="text-xs leading-relaxed text-[#94a3b8] font-semibold uppercase tracking-wide">
                 Representa outra equipe e quer agendar um confronto contra o {team.name}? Envie os detalhes do local, horário e proposta e nossa comissão responderá!
               </p>
             </div>
             
-            <FriendlyRequestForm teamSlug={team.slug} />
+            {selectedSlot && (
+              <div className="rounded border border-[var(--brand-soft)] bg-[var(--brand-soft)] px-4 py-3 font-mono text-[10px] text-[var(--brand)] font-bold animate-fade-in uppercase tracking-wider">
+                🎯 Agendando proposta com base no horário aberto de {selectedSlotDateText}.
+              </div>
+            )}
+            
+            <FriendlyRequestForm 
+              teamSlug={team.slug}
+              initialSuggestedDates={suggestedDatesInitialValue}
+              initialSuggestedVenue={suggestedVenueInitialValue}
+            />
           </div>
 
           {/* Recruitment Form Card */}
-          <div 
-            className="app-surface p-6 md:p-8 bg-black/50 space-y-6 flex flex-col"
-            style={{ 
-              borderColor: `rgba(var(--team-primary-rgb), 0.2)`,
-              boxShadow: `0 10px 40px rgba(var(--team-primary-rgb), 0.05)` 
-            }}
-          >
+          <div className="rounded-md border border-[var(--border)] bg-[#0f1418] p-6 sm:p-8 flex flex-col space-y-6">
             <div className="space-y-4">
-              <span className="text-xs font-black font-mono tracking-widest text-[#06b6d4] bg-[#06b6d4]/10 px-3 py-1 rounded-full border border-[#06b6d4]/20 w-fit">RECRUTAMENTO</span>
-              <h2 className="text-2xl font-black uppercase text-white tracking-tight mt-2">Faça Parte do Time</h2>
-              <p className="text-sm text-[#8fa39b] font-medium">
+              <span className="rounded border border-cyan-500/20 bg-cyan-500/10 px-2.5 py-1 font-mono text-[9px] font-black uppercase tracking-widest text-cyan-400">
+                RECRUTAMENTO
+              </span>
+              <h2 className="font-mono text-balance text-3xl font-black uppercase text-white tracking-tight mt-2">
+                Faça Parte do Elenco
+              </h2>
+              <p className="text-xs leading-relaxed text-[#94a3b8] font-semibold uppercase tracking-wide">
                 {team.publicDirectoryOptIn 
                   ? `Quer vestir a camisa do ${team.name} e mostrar seu futebol? Deixe seus dados abaixo para a comissão técnica avaliar!`
                   : `O recrutamento público está atualmente fechado para esta equipe no momento.`
@@ -851,10 +958,10 @@ export default async function TeamPublicPage({ params }: PageProps) {
             {team.publicDirectoryOptIn ? (
               <RecruitmentForm teamSlug={team.slug} />
             ) : (
-              <div className="rounded-2xl border border-white/5 bg-white/5 p-8 text-center text-[#8fa39b] flex flex-col justify-center items-center min-h-[300px]">
-                <span className="text-4xl mb-4">🔒</span>
-                <p className="text-base font-bold text-white uppercase">Recrutamento Fechado</p>
-                <p className="text-xs text-[#8fa39b] mt-2 max-w-xs mx-auto">
+              <div className="rounded-md border border-[var(--border)] bg-[#090d0f] p-8 text-center text-[#94a3b8] flex flex-col justify-center items-center min-h-[250px]">
+                <span className="text-3xl mb-3">🔒</span>
+                <p className="font-mono text-sm font-black text-white uppercase tracking-wider">Recrutamento Suspenso</p>
+                <p className="font-mono text-[10px] text-[#64748b] font-bold uppercase tracking-wider mt-2 max-w-xs mx-auto">
                   Esta equipe optou por não aceitar novas candidaturas de recrutamento público no momento.
                 </p>
               </div>
@@ -862,12 +969,32 @@ export default async function TeamPublicPage({ params }: PageProps) {
           </div>
         </section>
 
-      </div>
+        {/* Identity Details */}
+        {(team.primaryColor || team.secondaryColor) && (
+          <section className="text-center pt-4 space-y-6">
+            <h2 className="font-mono text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Manto e Cores Oficiais</h2>
+            <div className="flex justify-center gap-6">
+              {team.primaryColor && (
+                <div className="flex items-center gap-3 bg-[#0f1418] border border-[var(--border)] rounded-md px-5 py-2.5 shadow-md">
+                  <div className="h-6 w-6 rounded-md border border-white/10 shadow-sm" style={{ backgroundColor: team.primaryColor }} />
+                  <span className="font-mono text-[10px] font-black uppercase text-white tracking-widest">Manto Principal</span>
+                </div>
+              )}
+              {team.secondaryColor && (
+                <div className="flex items-center gap-3 bg-[#0f1418] border border-[var(--border)] rounded-md px-5 py-2.5 shadow-md">
+                  <div className="h-6 w-6 rounded-md border border-white/10 shadow-sm" style={{ backgroundColor: team.secondaryColor }} />
+                  <span className="font-mono text-[10px] font-black uppercase text-white tracking-widest">Manto Reserva</span>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+      </main>
 
       {/* Footer */}
-      <footer className="mx-auto max-w-6xl mt-24 border-t border-white/10 px-4 pt-10 text-center text-xs font-bold text-[#8fa39b] sm:px-6 lg:px-8 space-y-2">
+      <footer className="mx-auto max-w-6xl mt-24 border-t border-[rgba(255,255,255,0.08)] px-4 pt-10 text-center text-xs font-semibold text-[#64748b] sm:px-6 lg:px-8 space-y-2">
         <p>&copy; {new Date().getFullYear()} {team.name}. Todos os direitos reservados.</p>
-        <p className="text-[10px] text-white/40 uppercase tracking-widest font-black font-mono">Plataforma Esportiva Premium VARzea</p>
+        <p className="text-[10px] text-[#94a3b8] uppercase tracking-widest font-black font-mono">Plataforma Esportiva Premium VARzea</p>
       </footer>
     </div>
   );
