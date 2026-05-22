@@ -55,8 +55,20 @@ export async function GET(request: Request) {
   });
   const playerMap = new Map(players.map((p) => [p.id, p]));
 
+  // Aggregate ratings per player for the same team/season filter
+  const ratingsAgg = await prisma.matchPlayerRating.groupBy({
+    by: ["ratedId"],
+    where: { match: matchWhere },
+    _avg: { stars: true },
+    _count: { stars: true },
+  });
+  const ratingsMap = new Map(
+    ratingsAgg.map((r) => [r.ratedId, { avg: r._avg.stars ?? 0, count: r._count.stars }])
+  );
+
   const ranking = stats.map((s, idx) => {
     const player = playerMap.get(s.playerId);
+    const ratingInfo = ratingsMap.get(s.playerId);
     return {
       rank: idx + 1,
       playerId: s.playerId,
@@ -69,6 +81,8 @@ export async function GET(request: Request) {
       yellowCards: s._sum.yellowCards ?? 0,
       redCards: s._sum.redCards ?? 0,
       matches: s._count.matchId,
+      averageStars: ratingInfo ? Number(ratingInfo.avg.toFixed(1)) : null,
+      totalRatings: ratingInfo?.count ?? 0,
       seasonId: seasonId ?? null,
     };
   });

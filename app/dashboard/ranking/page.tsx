@@ -28,6 +28,8 @@ interface RankingEntry {
   yellowCards: number;
   redCards: number;
   matches: number;
+  averageStars: number | null;
+  totalRatings: number;
   seasonId: string | null;
 }
 
@@ -54,6 +56,18 @@ interface Season {
   status: string;
 }
 
+interface Highlight {
+  label: string;
+  emoji: string;
+  value: string;
+  sub: string;
+  player: RankingEntry;
+  gradient: string;
+  glow: string;
+  borderColor: string;
+  accentColor: string;
+}
+
 const medalColors = [
   { border: "border-yellow-400/60", bg: "bg-yellow-400/10", text: "text-yellow-400", shadow: "shadow-[0_0_20px_rgba(250,204,21,0.15)]", label: "🥇 1º" },
   { border: "border-gray-300/50", bg: "bg-gray-300/10", text: "text-gray-300", shadow: "shadow-[0_0_15px_rgba(209,213,219,0.10)]", label: "🥈 2º" },
@@ -61,17 +75,25 @@ const medalColors = [
 ];
 
 function PlayerAvatar({ photoUrl, name, size = 14 }: { photoUrl: string | null; name: string; size?: number }) {
+  const sizeClasses: Record<number, string> = {
+    9: "h-9 w-9 text-sm",
+    14: "h-14 w-14 text-xl",
+    16: "h-16 w-16 text-2xl",
+    24: "h-24 w-24 text-3xl",
+  };
+  const cls = sizeClasses[size] || `h-${size} w-${size} text-xl`;
+
   if (photoUrl) {
     return (
       <img
         src={photoUrl}
         alt={name}
-        className={`h-${size} w-${size} rounded-full object-cover ring-2 ring-[#10b981]/30`}
+        className={`${cls} rounded-full object-cover ring-2 ring-[#10b981]/30`}
       />
     );
   }
   return (
-    <div className={`h-${size} w-${size} flex items-center justify-center rounded-full bg-[rgba(16,185,129,0.15)] text-[#34d399] font-black text-xl ring-2 ring-[#10b981]/20`}>
+    <div className={`${cls} flex items-center justify-center rounded-full bg-[rgba(16,185,129,0.15)] text-[#34d399] font-black ring-2 ring-[#10b981]/20`}>
       {name.charAt(0).toUpperCase()}
     </div>
   );
@@ -95,6 +117,52 @@ function StarRating({ rating }: { rating: number }) {
       })}
       <span className="ml-1.5 text-xs font-black text-white">{rating.toFixed(1)}</span>
     </div>
+  );
+}
+
+function HighlightCard({ highlight }: { highlight: Highlight }) {
+  return (
+    <Link
+      href={`/dashboard/squad/${highlight.player.playerId}`}
+      className={`group relative flex flex-col items-center gap-3 rounded-2xl border p-5 transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1 overflow-hidden ${highlight.borderColor} ${highlight.glow}`}
+      style={{ background: `linear-gradient(160deg, ${highlight.gradient})` }}
+    >
+      {/* Subtle radial glow behind avatar */}
+      <div
+        className="pointer-events-none absolute top-6 left-1/2 -translate-x-1/2 h-24 w-24 rounded-full opacity-30 blur-2xl transition-opacity duration-300 group-hover:opacity-50"
+        style={{ background: highlight.accentColor }}
+      />
+
+      {/* Badge label */}
+      <span className="relative z-10 rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white/80 backdrop-blur-sm">
+        {highlight.emoji} {highlight.label}
+      </span>
+
+      {/* Avatar */}
+      <div className="relative z-10">
+        <PlayerAvatar photoUrl={highlight.player.photoUrl} name={highlight.player.playerName} size={16} />
+      </div>
+
+      {/* Player info */}
+      <div className="relative z-10 text-center">
+        <p className="font-black text-white text-base leading-tight group-hover:text-[#6ee7b7] transition-colors">
+          {highlight.player.playerName}
+        </p>
+        <p className="text-[11px] text-white/50 font-semibold">
+          #{highlight.player.shirtNumber} · {positionLabels[highlight.player.position] || highlight.player.position}
+        </p>
+      </div>
+
+      {/* Big stat */}
+      <div className="relative z-10 text-center">
+        <p className="text-3xl font-black leading-none" style={{ color: highlight.accentColor }}>
+          {highlight.value}
+        </p>
+        <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-white/40">
+          {highlight.sub}
+        </p>
+      </div>
+    </Link>
   );
 }
 
@@ -135,6 +203,84 @@ export default function RankingPage() {
     loadData(activeTab, seasonFilter || undefined);
   }, [activeTab, seasonFilter]);
 
+  // ── Compute highlights from ranking data ──
+  function computeHighlights(): Highlight[] {
+    if (ranking.length === 0) return [];
+
+    const highlights: Highlight[] = [];
+
+    // 1. Top Scorer
+    const topScorer = [...ranking].sort((a, b) => b.goals - a.goals)[0];
+    if (topScorer && topScorer.goals > 0) {
+      highlights.push({
+        label: "Artilheiro",
+        emoji: "⚽",
+        value: String(topScorer.goals),
+        sub: topScorer.goals === 1 ? "gol" : "gols",
+        player: topScorer,
+        gradient: "rgba(16,185,129,0.12) 0%, rgba(6,78,54,0.08) 100%",
+        glow: "shadow-[0_0_30px_rgba(16,185,129,0.12)]",
+        borderColor: "border-[rgba(16,185,129,0.3)] hover:border-[rgba(16,185,129,0.5)]",
+        accentColor: "#34d399",
+      });
+    }
+
+    // 2. Assist Leader
+    const assistLeader = [...ranking].sort((a, b) => b.assists - a.assists)[0];
+    if (assistLeader && assistLeader.assists > 0) {
+      highlights.push({
+        label: "Garçom",
+        emoji: "🎯",
+        value: String(assistLeader.assists),
+        sub: assistLeader.assists === 1 ? "assistência" : "assistências",
+        player: assistLeader,
+        gradient: "rgba(99,102,241,0.12) 0%, rgba(49,46,129,0.08) 100%",
+        glow: "shadow-[0_0_30px_rgba(99,102,241,0.12)]",
+        borderColor: "border-[rgba(99,102,241,0.3)] hover:border-[rgba(99,102,241,0.5)]",
+        accentColor: "#818cf8",
+      });
+    }
+
+    // 3. Most Present
+    const mostPresent = [...ranking].sort((a, b) => b.matches - a.matches)[0];
+    if (mostPresent && mostPresent.matches > 0) {
+      highlights.push({
+        label: "Mais Presente",
+        emoji: "📅",
+        value: String(mostPresent.matches),
+        sub: mostPresent.matches === 1 ? "jogo" : "jogos",
+        player: mostPresent,
+        gradient: "rgba(251,191,36,0.10) 0%, rgba(120,83,0,0.06) 100%",
+        glow: "shadow-[0_0_30px_rgba(251,191,36,0.10)]",
+        borderColor: "border-[rgba(251,191,36,0.3)] hover:border-[rgba(251,191,36,0.5)]",
+        accentColor: "#fbbf24",
+      });
+    }
+
+    // 4. Best Rated Overall
+    const rated = ranking.filter((p) => p.averageStars !== null && p.totalRatings > 0);
+    if (rated.length > 0) {
+      const bestRated = [...rated].sort((a, b) => {
+        if ((b.averageStars ?? 0) !== (a.averageStars ?? 0)) return (b.averageStars ?? 0) - (a.averageStars ?? 0);
+        return b.totalRatings - a.totalRatings;
+      })[0];
+      highlights.push({
+        label: "Melhor Avaliado",
+        emoji: "⭐",
+        value: bestRated.averageStars!.toFixed(1),
+        sub: `${bestRated.totalRatings} ${bestRated.totalRatings === 1 ? "avaliação" : "avaliações"}`,
+        player: bestRated,
+        gradient: "rgba(245,158,11,0.10) 0%, rgba(120,53,0,0.06) 100%",
+        glow: "shadow-[0_0_30px_rgba(245,158,11,0.10)]",
+        borderColor: "border-[rgba(245,158,11,0.3)] hover:border-[rgba(245,158,11,0.5)]",
+        accentColor: "#f59e0b",
+      });
+    }
+
+    return highlights;
+  }
+
+  const highlights = computeHighlights();
   const podium = ranking.slice(0, 3);
   const restOfRanking = ranking;
 
@@ -223,6 +369,35 @@ export default function RankingPage() {
           </div>
         ) : (
           <>
+            {/* ═══════════════════════════════════════════════ */}
+            {/* ██ DESTAQUES DA TEMPORADA ██ */}
+            {/* ═══════════════════════════════════════════════ */}
+            {highlights.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#34d399]/20 to-transparent" />
+                  <h2 className="text-[11px] font-black uppercase tracking-[0.25em] text-[#34d399]">
+                    🏆 Destaques da Temporada
+                  </h2>
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#34d399]/20 to-transparent" />
+                </div>
+
+                <div className={`grid gap-4 ${
+                  highlights.length === 1
+                    ? "grid-cols-1 max-w-xs mx-auto"
+                    : highlights.length === 2
+                    ? "grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto"
+                    : highlights.length === 3
+                    ? "grid-cols-1 sm:grid-cols-3"
+                    : "grid-cols-2 lg:grid-cols-4"
+                }`}>
+                  {highlights.map((h) => (
+                    <HighlightCard key={h.label} highlight={h} />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Podium — top 3 */}
             {podium.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -283,7 +458,7 @@ export default function RankingPage() {
               </div>
 
               {/* Table header */}
-              <div className="hidden sm:grid sm:grid-cols-[3rem_2fr_5rem_5rem_5rem_5rem_5rem] gap-2 border-b border-white/5 bg-white/[0.015] px-6 py-3 text-[10px] font-black uppercase tracking-[0.15em] text-[#8fa39b]">
+              <div className="hidden sm:grid sm:grid-cols-[3rem_2fr_5rem_5rem_5rem_5rem_5rem_5rem] gap-2 border-b border-white/5 bg-white/[0.015] px-6 py-3 text-[10px] font-black uppercase tracking-[0.15em] text-[#8fa39b]">
                 <span className="text-center">#</span>
                 <span>Jogador</span>
                 <span className="text-center">⚽ Gols</span>
@@ -291,6 +466,7 @@ export default function RankingPage() {
                 <span className="text-center">🟨</span>
                 <span className="text-center">🟥</span>
                 <span className="text-center">Jogos</span>
+                <span className="text-center">⭐ Nota</span>
               </div>
 
               <div className="divide-y divide-white/5">
@@ -300,7 +476,7 @@ export default function RankingPage() {
                     <Link
                       key={entry.playerId}
                       href={`/dashboard/squad/${entry.playerId}`}
-                      className={`group flex items-center gap-4 px-6 py-4 transition-all duration-200 hover:bg-white/[0.04] sm:grid sm:grid-cols-[3rem_2fr_5rem_5rem_5rem_5rem_5rem] ${isTop3 ? "bg-[rgba(16,185,129,0.03)]" : ""}`}
+                      className={`group flex items-center gap-4 px-6 py-4 transition-all duration-200 hover:bg-white/[0.04] sm:grid sm:grid-cols-[3rem_2fr_5rem_5rem_5rem_5rem_5rem_5rem] ${isTop3 ? "bg-[rgba(16,185,129,0.03)]" : ""}`}
                     >
                       {/* Rank */}
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-black sm:h-7 sm:w-7">
@@ -343,6 +519,13 @@ export default function RankingPage() {
                       </div>
                       <div className="hidden sm:flex sm:justify-center">
                         <span className="font-bold text-[#8fa39b]">{entry.matches}</span>
+                      </div>
+                      <div className="hidden sm:flex sm:justify-center">
+                        {entry.averageStars !== null ? (
+                          <span className="font-bold text-yellow-400">{entry.averageStars.toFixed(1)}</span>
+                        ) : (
+                          <span className="text-white/20">—</span>
+                        )}
                       </div>
 
                       {/* Mobile compact stats */}
@@ -448,4 +631,3 @@ export default function RankingPage() {
     </div>
   );
 }
-
