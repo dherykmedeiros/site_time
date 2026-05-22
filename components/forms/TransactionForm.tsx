@@ -71,6 +71,8 @@ export function TransactionForm({
         throw new Error(data.error || "Erro ao salvar");
       }
 
+      setAmount("");
+      setDescription("");
       onSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar");

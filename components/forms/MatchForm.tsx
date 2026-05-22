@@ -133,6 +133,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
     watch,
     setValue,
     formState: { errors },
+    reset,
   } = useForm<CreateMatchInput>({
     resolver: zodResolver(createMatchSchema) as any,
     defaultValues: {
@@ -315,6 +316,17 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         return;
       }
 
+      if (!isEditing) {
+        reset();
+        setOpponentBadgePreview(null);
+        setAvailabilitySnapshot(null);
+        setPositionLimitsEnabled(false);
+        const initialLimits: Record<string, string> = {};
+        for (const position of playerPositions) {
+          initialLimits[position] = "";
+        }
+        setPositionLimits(initialLimits);
+      }
       onSuccess?.();
     } catch {
       setErrorMsg("Erro de conexão");

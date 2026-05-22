@@ -45,6 +45,7 @@ export function PlayerForm({ defaultValues, onSuccess, onCancel }: PlayerFormPro
     register,
     handleSubmit,
     formState: { errors },
+    reset,
   } = useForm<CreatePlayerInput | UpdatePlayerInput>({
     resolver: zodResolver(isEditing ? updatePlayerSchema : createPlayerSchema),
     defaultValues: {
@@ -82,6 +83,9 @@ export function PlayerForm({ defaultValues, onSuccess, onCancel }: PlayerFormPro
         return;
       }
 
+      if (!isEditing) {
+        reset();
+      }
       onSuccess?.();
     } catch {
       setErrorMsg("Erro de conexão");
