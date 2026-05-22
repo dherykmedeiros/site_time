@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Star } from "lucide-react";
+import { Star, ChevronUp, ChevronDown } from "lucide-react";
 
 const positionLabels: Record<string, string> = {
   GOALKEEPER: "Goleiro",
@@ -56,23 +56,8 @@ interface Season {
   status: string;
 }
 
-interface Highlight {
-  label: string;
-  emoji: string;
-  value: string;
-  sub: string;
-  player: RankingEntry;
-  gradient: string;
-  glow: string;
-  borderColor: string;
-  accentColor: string;
-}
-
-const medalColors = [
-  { border: "border-yellow-400/60", bg: "bg-yellow-400/10", text: "text-yellow-400", shadow: "shadow-[0_0_20px_rgba(250,204,21,0.15)]", label: "🥇 1º" },
-  { border: "border-gray-300/50", bg: "bg-gray-300/10", text: "text-gray-300", shadow: "shadow-[0_0_15px_rgba(209,213,219,0.10)]", label: "🥈 2º" },
-  { border: "border-amber-600/50", bg: "bg-amber-700/10", text: "text-amber-500", shadow: "shadow-[0_0_15px_rgba(180,83,9,0.10)]", label: "🥉 3º" },
-];
+type SortKey = "goals" | "assists" | "yellowCards" | "redCards" | "matches" | "averageStars";
+type SortDir = "asc" | "desc";
 
 function PlayerAvatar({ photoUrl, name, size = 14 }: { photoUrl: string | null; name: string; size?: number }) {
   const sizeClasses: Record<number, string> = {
@@ -120,50 +105,13 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-function HighlightCard({ highlight }: { highlight: Highlight }) {
-  return (
-    <Link
-      href={`/dashboard/squad/${highlight.player.playerId}`}
-      className={`group relative flex flex-col items-center gap-3 rounded-2xl border p-5 transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1 overflow-hidden ${highlight.borderColor} ${highlight.glow}`}
-      style={{ background: `linear-gradient(160deg, ${highlight.gradient})` }}
-    >
-      {/* Subtle radial glow behind avatar */}
-      <div
-        className="pointer-events-none absolute top-6 left-1/2 -translate-x-1/2 h-24 w-24 rounded-full opacity-30 blur-2xl transition-opacity duration-300 group-hover:opacity-50"
-        style={{ background: highlight.accentColor }}
-      />
-
-      {/* Badge label */}
-      <span className="relative z-10 rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white/80 backdrop-blur-sm">
-        {highlight.emoji} {highlight.label}
-      </span>
-
-      {/* Avatar */}
-      <div className="relative z-10">
-        <PlayerAvatar photoUrl={highlight.player.photoUrl} name={highlight.player.playerName} size={16} />
-      </div>
-
-      {/* Player info */}
-      <div className="relative z-10 text-center">
-        <p className="font-black text-white text-base leading-tight group-hover:text-[#6ee7b7] transition-colors">
-          {highlight.player.playerName}
-        </p>
-        <p className="text-[11px] text-white/50 font-semibold">
-          #{highlight.player.shirtNumber} · {positionLabels[highlight.player.position] || highlight.player.position}
-        </p>
-      </div>
-
-      {/* Big stat */}
-      <div className="relative z-10 text-center">
-        <p className="text-3xl font-black leading-none" style={{ color: highlight.accentColor }}>
-          {highlight.value}
-        </p>
-        <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-white/40">
-          {highlight.sub}
-        </p>
-      </div>
-    </Link>
-  );
+function SortIcon({ column, sortKey, sortDir }: { column: SortKey; sortKey: SortKey; sortDir: SortDir }) {
+  if (sortKey !== column) {
+    return <ChevronDown className="inline h-3 w-3 opacity-0 group-hover/col:opacity-40 transition-opacity" />;
+  }
+  return sortDir === "desc"
+    ? <ChevronDown className="inline h-3 w-3 text-[#34d399]" />
+    : <ChevronUp className="inline h-3 w-3 text-[#34d399]" />;
 }
 
 export default function RankingPage() {
@@ -174,6 +122,19 @@ export default function RankingPage() {
   const [seasonFilter, setSeasonFilter] = useState("");
   const [activeSeason, setActiveSeason] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Sorting state
+  const [sortKey, setSortKey] = useState<SortKey>("goals");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((prev) => (prev === "desc" ? "asc" : "desc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  }
 
   async function loadData(tab: "stats" | "ratings", sid?: string) {
     setLoading(true);
@@ -203,89 +164,69 @@ export default function RankingPage() {
     loadData(activeTab, seasonFilter || undefined);
   }, [activeTab, seasonFilter]);
 
+  // Sorted ranking
+  const sortedRanking = useMemo(() => {
+    const sorted = [...ranking].sort((a, b) => {
+      let aVal: number;
+      let bVal: number;
+
+      if (sortKey === "averageStars") {
+        aVal = a.averageStars ?? -1;
+        bVal = b.averageStars ?? -1;
+      } else {
+        aVal = a[sortKey];
+        bVal = b[sortKey];
+      }
+
+      if (bVal !== aVal) {
+        return sortDir === "desc" ? bVal - aVal : aVal - bVal;
+      }
+      // Secondary sort: goals desc, then assists desc
+      if (a.goals !== b.goals) return b.goals - a.goals;
+      return b.assists - a.assists;
+    });
+    return sorted;
+  }, [ranking, sortKey, sortDir]);
+
   // ── Compute highlights from ranking data ──
-  function computeHighlights(): Highlight[] {
+  function computeHighlights() {
     if (ranking.length === 0) return [];
 
-    const highlights: Highlight[] = [];
+    const items: { label: string; emoji: string; value: string; sub: string; player: RankingEntry; accentColor: string }[] = [];
 
-    // 1. Top Scorer
     const topScorer = [...ranking].sort((a, b) => b.goals - a.goals)[0];
     if (topScorer && topScorer.goals > 0) {
-      highlights.push({
-        label: "Artilheiro",
-        emoji: "⚽",
-        value: String(topScorer.goals),
-        sub: topScorer.goals === 1 ? "gol" : "gols",
-        player: topScorer,
-        gradient: "rgba(16,185,129,0.12) 0%, rgba(6,78,54,0.08) 100%",
-        glow: "shadow-[0_0_30px_rgba(16,185,129,0.12)]",
-        borderColor: "border-[rgba(16,185,129,0.3)] hover:border-[rgba(16,185,129,0.5)]",
-        accentColor: "#34d399",
-      });
+      items.push({ label: "Artilheiro", emoji: "⚽", value: String(topScorer.goals), sub: topScorer.goals === 1 ? "gol" : "gols", player: topScorer, accentColor: "#34d399" });
     }
 
-    // 2. Assist Leader
     const assistLeader = [...ranking].sort((a, b) => b.assists - a.assists)[0];
     if (assistLeader && assistLeader.assists > 0) {
-      highlights.push({
-        label: "Garçom",
-        emoji: "🎯",
-        value: String(assistLeader.assists),
-        sub: assistLeader.assists === 1 ? "assistência" : "assistências",
-        player: assistLeader,
-        gradient: "rgba(99,102,241,0.12) 0%, rgba(49,46,129,0.08) 100%",
-        glow: "shadow-[0_0_30px_rgba(99,102,241,0.12)]",
-        borderColor: "border-[rgba(99,102,241,0.3)] hover:border-[rgba(99,102,241,0.5)]",
-        accentColor: "#818cf8",
-      });
+      items.push({ label: "Garçom", emoji: "🎯", value: String(assistLeader.assists), sub: assistLeader.assists === 1 ? "assistência" : "assistências", player: assistLeader, accentColor: "#818cf8" });
     }
 
-    // 3. Most Present
     const mostPresent = [...ranking].sort((a, b) => b.matches - a.matches)[0];
     if (mostPresent && mostPresent.matches > 0) {
-      highlights.push({
-        label: "Mais Presente",
-        emoji: "📅",
-        value: String(mostPresent.matches),
-        sub: mostPresent.matches === 1 ? "jogo" : "jogos",
-        player: mostPresent,
-        gradient: "rgba(251,191,36,0.10) 0%, rgba(120,83,0,0.06) 100%",
-        glow: "shadow-[0_0_30px_rgba(251,191,36,0.10)]",
-        borderColor: "border-[rgba(251,191,36,0.3)] hover:border-[rgba(251,191,36,0.5)]",
-        accentColor: "#fbbf24",
-      });
+      items.push({ label: "Mais Presente", emoji: "📅", value: String(mostPresent.matches), sub: mostPresent.matches === 1 ? "jogo" : "jogos", player: mostPresent, accentColor: "#fbbf24" });
     }
 
-    // 4. Best Rated Overall
     const rated = ranking.filter((p) => p.averageStars !== null && p.totalRatings > 0);
     if (rated.length > 0) {
       const bestRated = [...rated].sort((a, b) => {
         if ((b.averageStars ?? 0) !== (a.averageStars ?? 0)) return (b.averageStars ?? 0) - (a.averageStars ?? 0);
         return b.totalRatings - a.totalRatings;
       })[0];
-      highlights.push({
-        label: "Melhor Avaliado",
-        emoji: "⭐",
-        value: bestRated.averageStars!.toFixed(1),
-        sub: `${bestRated.totalRatings} ${bestRated.totalRatings === 1 ? "avaliação" : "avaliações"}`,
-        player: bestRated,
-        gradient: "rgba(245,158,11,0.10) 0%, rgba(120,53,0,0.06) 100%",
-        glow: "shadow-[0_0_30px_rgba(245,158,11,0.10)]",
-        borderColor: "border-[rgba(245,158,11,0.3)] hover:border-[rgba(245,158,11,0.5)]",
-        accentColor: "#f59e0b",
-      });
+      items.push({ label: "Melhor Avaliado", emoji: "⭐", value: bestRated.averageStars!.toFixed(1), sub: `${bestRated.totalRatings} ${bestRated.totalRatings === 1 ? "avaliação" : "avaliações"}`, player: bestRated, accentColor: "#f59e0b" });
     }
 
-    return highlights;
+    return items;
   }
 
   const highlights = computeHighlights();
-  const podium = ranking.slice(0, 3);
-  const restOfRanking = ranking;
 
   // Check if there are any players rated in any position category
   const hasAnyRatings = ratingsRanking.some((group) => group.players.length > 0);
+
+  const colHeaderClass = "group/col cursor-pointer select-none text-center transition-colors hover:text-white";
 
   return (
     <div className="space-y-8">
@@ -392,60 +333,41 @@ export default function RankingPage() {
                     : "grid-cols-2 lg:grid-cols-4"
                 }`}>
                   {highlights.map((h) => (
-                    <HighlightCard key={h.label} highlight={h} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Podium — top 3 */}
-            {podium.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {podium.map((player, idx) => {
-                  const medal = medalColors[idx];
-                  const isFirst = idx === 0;
-                  return (
                     <Link
-                      key={player.playerId}
-                      href={`/dashboard/squad/${player.playerId}`}
-                      className={`group relative flex flex-col items-center gap-4 rounded-2xl border ${medal.border} ${medal.bg} ${medal.shadow} p-6 transition-all duration-300 hover:scale-[1.02] hover:brightness-110 ${isFirst ? "sm:row-span-1 sm:col-start-2 sm:order-first" : ""}`}
+                      key={h.label}
+                      href={`/dashboard/squad/${h.player.playerId}`}
+                      className="group relative flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all duration-300 hover:bg-white/[0.05] hover:border-white/10 overflow-hidden"
                     >
-                      <span className={`text-sm font-black uppercase tracking-widest ${medal.text}`}>
-                        {medal.label}
-                      </span>
-
-                      {player.photoUrl ? (
-                        <img
-                          src={player.photoUrl}
-                          alt={player.playerName}
-                          className={`${isFirst ? "h-24 w-24" : "h-16 w-16"} rounded-full object-cover ring-2 ${medal.border}`}
-                        />
-                      ) : (
-                        <div className={`${isFirst ? "h-24 w-24 text-3xl" : "h-16 w-16 text-xl"} flex items-center justify-center rounded-full bg-black/20 font-black ${medal.text} ring-2 ${medal.border}`}>
-                          {player.playerName.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-
-                      <div className="text-center">
-                        <p className={`font-black ${isFirst ? "text-lg" : "text-base"} text-white`}>{player.playerName}</p>
-                        <p className="text-xs text-[#8fa39b]">
-                          #{player.shirtNumber} · {positionLabels[player.position] || player.position}
+                      {/* Subtle glow */}
+                      <div
+                        className="pointer-events-none absolute -left-4 top-1/2 -translate-y-1/2 h-16 w-16 rounded-full opacity-20 blur-2xl"
+                        style={{ background: h.accentColor }}
+                      />
+                      <div className="relative z-10 shrink-0">
+                        <PlayerAvatar photoUrl={h.player.photoUrl} name={h.player.playerName} size={14} />
+                      </div>
+                      <div className="relative z-10 min-w-0 flex-1">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
+                          {h.emoji} {h.label}
+                        </p>
+                        <p className="font-bold text-white text-sm truncate group-hover:text-[#6ee7b7] transition-colors">
+                          {h.player.playerName}
+                        </p>
+                        <p className="text-[10px] text-white/40">
+                          #{h.player.shirtNumber} · {positionLabels[h.player.position] || h.player.position}
                         </p>
                       </div>
-
-                      <div className={`flex gap-4 ${isFirst ? "text-base" : "text-sm"}`}>
-                        <div className="text-center">
-                          <p className={`font-black ${medal.text} ${isFirst ? "text-3xl" : "text-2xl"}`}>{player.goals}</p>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">Gols</p>
-                        </div>
-                        <div className="text-center">
-                          <p className={`font-black text-white ${isFirst ? "text-xl" : "text-lg"}`}>{player.assists}</p>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">Assist.</p>
-                        </div>
+                      <div className="relative z-10 text-right shrink-0">
+                        <p className="text-2xl font-black leading-none" style={{ color: h.accentColor }}>
+                          {h.value}
+                        </p>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-white/30 mt-0.5">
+                          {h.sub}
+                        </p>
                       </div>
                     </Link>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             )}
 
@@ -457,38 +379,41 @@ export default function RankingPage() {
                 </h2>
               </div>
 
-              {/* Table header */}
+              {/* Table header — sortable columns */}
               <div className="hidden sm:grid sm:grid-cols-[3rem_2fr_5rem_5rem_5rem_5rem_5rem_5rem] gap-2 border-b border-white/5 bg-white/[0.015] px-6 py-3 text-[10px] font-black uppercase tracking-[0.15em] text-[#8fa39b]">
                 <span className="text-center">#</span>
                 <span>Jogador</span>
-                <span className="text-center">⚽ Gols</span>
-                <span className="text-center">🎯 Assist.</span>
-                <span className="text-center">🟨</span>
-                <span className="text-center">🟥</span>
-                <span className="text-center">Jogos</span>
-                <span className="text-center">⭐ Nota</span>
+                <span className={colHeaderClass} onClick={() => handleSort("goals")}>
+                  ⚽ Gols <SortIcon column="goals" sortKey={sortKey} sortDir={sortDir} />
+                </span>
+                <span className={colHeaderClass} onClick={() => handleSort("assists")}>
+                  🎯 Assist. <SortIcon column="assists" sortKey={sortKey} sortDir={sortDir} />
+                </span>
+                <span className={colHeaderClass} onClick={() => handleSort("yellowCards")}>
+                  🟨 <SortIcon column="yellowCards" sortKey={sortKey} sortDir={sortDir} />
+                </span>
+                <span className={colHeaderClass} onClick={() => handleSort("redCards")}>
+                  🟥 <SortIcon column="redCards" sortKey={sortKey} sortDir={sortDir} />
+                </span>
+                <span className={colHeaderClass} onClick={() => handleSort("matches")}>
+                  Jogos <SortIcon column="matches" sortKey={sortKey} sortDir={sortDir} />
+                </span>
+                <span className={colHeaderClass} onClick={() => handleSort("averageStars")}>
+                  ⭐ Nota <SortIcon column="averageStars" sortKey={sortKey} sortDir={sortDir} />
+                </span>
               </div>
 
               <div className="divide-y divide-white/5">
-                {restOfRanking.map((entry) => {
-                  const isTop3 = entry.rank <= 3;
+                {sortedRanking.map((entry, idx) => {
                   return (
                     <Link
                       key={entry.playerId}
                       href={`/dashboard/squad/${entry.playerId}`}
-                      className={`group flex items-center gap-4 px-6 py-4 transition-all duration-200 hover:bg-white/[0.04] sm:grid sm:grid-cols-[3rem_2fr_5rem_5rem_5rem_5rem_5rem_5rem] ${isTop3 ? "bg-[rgba(16,185,129,0.03)]" : ""}`}
+                      className="group flex items-center gap-4 px-6 py-4 transition-all duration-200 hover:bg-white/[0.04] sm:grid sm:grid-cols-[3rem_2fr_5rem_5rem_5rem_5rem_5rem_5rem]"
                     >
                       {/* Rank */}
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-black sm:h-7 sm:w-7">
-                        {entry.rank === 1 ? (
-                          <span className="text-yellow-400">🥇</span>
-                        ) : entry.rank === 2 ? (
-                          <span className="text-gray-300">🥈</span>
-                        ) : entry.rank === 3 ? (
-                          <span className="text-amber-500">🥉</span>
-                        ) : (
-                          <span className="text-[#8fa39b] font-black text-sm">{entry.rank}</span>
-                        )}
+                        <span className="text-[#8fa39b] font-black text-sm">{idx + 1}</span>
                       </div>
 
                       {/* Player info */}
@@ -506,23 +431,23 @@ export default function RankingPage() {
 
                       {/* Stats */}
                       <div className="hidden sm:flex sm:justify-center">
-                        <span className="font-black text-[#34d399] text-lg">{entry.goals}</span>
+                        <span className={`font-black text-lg ${sortKey === "goals" ? "text-[#34d399]" : "text-[#34d399]/70"}`}>{entry.goals}</span>
                       </div>
                       <div className="hidden sm:flex sm:justify-center">
-                        <span className="font-bold text-white">{entry.assists}</span>
+                        <span className={`font-bold ${sortKey === "assists" ? "text-white" : "text-white/70"}`}>{entry.assists}</span>
                       </div>
                       <div className="hidden sm:flex sm:justify-center">
-                        <span className="font-bold text-yellow-400">{entry.yellowCards}</span>
+                        <span className={`font-bold ${sortKey === "yellowCards" ? "text-yellow-400" : "text-yellow-400/70"}`}>{entry.yellowCards}</span>
                       </div>
                       <div className="hidden sm:flex sm:justify-center">
-                        <span className="font-bold text-red-400">{entry.redCards}</span>
+                        <span className={`font-bold ${sortKey === "redCards" ? "text-red-400" : "text-red-400/70"}`}>{entry.redCards}</span>
                       </div>
                       <div className="hidden sm:flex sm:justify-center">
-                        <span className="font-bold text-[#8fa39b]">{entry.matches}</span>
+                        <span className={`font-bold ${sortKey === "matches" ? "text-white" : "text-[#8fa39b]"}`}>{entry.matches}</span>
                       </div>
                       <div className="hidden sm:flex sm:justify-center">
                         {entry.averageStars !== null ? (
-                          <span className="font-bold text-yellow-400">{entry.averageStars.toFixed(1)}</span>
+                          <span className={`font-bold ${sortKey === "averageStars" ? "text-yellow-400" : "text-yellow-400/70"}`}>{entry.averageStars.toFixed(1)}</span>
                         ) : (
                           <span className="text-white/20">—</span>
                         )}
