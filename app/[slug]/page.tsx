@@ -1,21 +1,11 @@
-import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
+import { notFound } from "next/navigation";
 import { FriendlyRequestForm } from "@/app/FriendlyRequestForm";
 import { RecruitmentForm } from "@/app/RecruitmentForm";
-import { PublicNavbar } from "@/components/PublicNavbar";
-
-interface PageProps {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ slot?: string; tab?: string }>;
-}
-
-const competitiveLevelLabels: Record<string, string> = {
-  CASUAL: "Casual / Recreativo",
-  INTERMEDIATE: "Intermediário",
-  COMPETITIVE: "Competitivo / Várzea Forte",
-};
+import ThemeToggle from "@/components/portal/ThemeToggle";
 
 const fieldTypeLabels: Record<string, string> = {
   GRASS: "Grama Natural",
@@ -23,6 +13,36 @@ const fieldTypeLabels: Record<string, string> = {
   FUTSAL: "Futsal",
   SOCIETY: "Society",
   OTHER: "Outro",
+};
+
+const competitiveLevelLabels: Record<string, string> = {
+  CASUAL: "Casual / Amador",
+  INTERMEDIATE: "Intermediário",
+  COMPETITIVE: "Competitivo / Várzea Forte",
+};
+
+const shortRoles: Record<string, string> = {
+  GOALKEEPER: "GOL",
+  DEFENDER: "ZAG",
+  LEFT_BACK: "LE",
+  RIGHT_BACK: "LD",
+  MIDFIELDER: "MEI",
+  DEFENSIVE_MIDFIELDER: "VOL",
+  FORWARD: "ATA",
+  LEFT_WINGER: "ATA",
+  RIGHT_WINGER: "ATA",
+};
+
+const prettyRoles: Record<string, string> = {
+  GOALKEEPER: "Goleiro",
+  DEFENDER: "Zagueiro",
+  LEFT_BACK: "Lateral Esquerdo",
+  RIGHT_BACK: "Lateral Direito",
+  MIDFIELDER: "Meio-campista",
+  DEFENSIVE_MIDFIELDER: "Volante",
+  FORWARD: "Atacante",
+  LEFT_WINGER: "Ponta Esquerda",
+  RIGHT_WINGER: "Ponta Direita",
 };
 
 const positionThemes: Record<string, { border: string; text: string; label: string; badge: string }> = {
@@ -82,14 +102,50 @@ const positionThemes: Record<string, { border: string; text: string; label: stri
   },
 };
 
-// HELPER: Convert HEX to RGB for inline transparency styles
 function hexToRgb(hex: string): string {
   const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
   const fullHex = hex.replace(shorthandRegex, (_, r, g, b) => r + r + g + g + b + b);
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(fullHex);
   return result
     ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
-    : "16, 185, 129"; // fallback
+    : "10, 88, 75"; // default brand green
+}
+
+function ClubCrest({
+  className = "w-9 h-[42px] shrink-0",
+  variant = "normal",
+  initials = "MC"
+}: {
+  className?: string;
+  variant?: "normal" | "white" | "footer";
+  initials?: string;
+}) {
+  let fill = "var(--primary)";
+  let stroke = "var(--ink)";
+  let textFill = "var(--text-inv)";
+  let lineStroke = "var(--bg)";
+
+  if (variant === "white") {
+    fill = "#fff";
+    stroke = "#fff";
+    textFill = "var(--primary)";
+    lineStroke = "var(--primary)";
+  } else if (variant === "footer") {
+    fill = "var(--primary)";
+    stroke = "#fff";
+    textFill = "#fff";
+    lineStroke = "#fff";
+  }
+
+  return (
+    <svg className={className} viewBox="0 0 36 42">
+      <path d="M18 1 L34 5 V22 C34 30 27 38 18 41 C9 38 2 30 2 22 V5 Z" fill={fill} stroke={stroke} strokeWidth="1" />
+      <path d="M2 14 H34 M2 28 H34" stroke={lineStroke} strokeWidth=".8" opacity=".5" />
+      <text x="18" y="26" textAnchor="middle" fill={textFill} className="font-serif font-bold" fontSize="13">
+        {initials}
+      </text>
+    </svg>
+  );
 }
 
 function getTacticalPositions(starters: any[]) {
@@ -100,25 +156,25 @@ function getTacticalPositions(starters: any[]) {
     
     if (x == null || y == null) {
       if (p.position === "GOALKEEPER") {
-        x = 50; y = 14;
+        x = 10; y = 50;
       } else if (p.position === "LEFT_BACK") {
-        x = 18; y = 35;
+        x = 24; y = 82;
       } else if (p.position === "RIGHT_BACK") {
-        x = 82; y = 35;
+        x = 24; y = 18;
       } else if (p.position === "DEFENDER") {
-        x = 50; y = 35;
+        x = 22; y = 50;
       } else if (p.position === "DEFENSIVE_MIDFIELDER") {
-        x = 50; y = 56;
+        x = 46; y = 50;
       } else if (p.position === "MIDFIELDER") {
-        x = 50; y = 56;
+        x = 42; y = 30;
       } else if (p.position === "LEFT_WINGER") {
-        x = 22; y = 80;
+        x = 74; y = 78;
       } else if (p.position === "RIGHT_WINGER") {
-        x = 78; y = 80;
+        x = 74; y = 22;
       } else if (p.position === "FORWARD") {
-        x = 50; y = 80;
+        x = 84; y = 50;
       } else {
-        x = 50; y = 56;
+        x = 46; y = 50;
       }
     }
     
@@ -164,172 +220,89 @@ function getPlayerStamp(player: any, stats: any) {
   const isBestPresence = stats.highlights.bestPresence?.playerId === player.id;
 
   if (player.position === "GOALKEEPER") {
-    return "[PAREDÃO INSUPERÁVEL]";
+    return "Paredão Insuperável";
   }
   if (isBestScorer && stats.highlights.bestScorer.goals > 0) {
-    return "[ARTILHEIRO DE OURO]";
+    return "Artilheiro de Ouro";
   }
   if (isBestRated && stats.highlights.bestRated.averageStars > 0) {
-    return "[DIFERENCIADO]";
+    return "Diferenciado";
   }
   if (isBestAssist && stats.highlights.bestAssist.assists > 0) {
-    return "[MOTOR DE ASSISTÊNCIAS]";
+    return "Motor de Assistências";
   }
   if (isBestPresence) {
-    return "[XERIFE DE AÇO]";
+    return "Xerife de Aço";
   }
 
   switch (player.position) {
     case "DEFENDER":
     case "LEFT_BACK":
     case "RIGHT_BACK":
-      return "[MURALHA DA VARZEA]";
+      return "Muralha da Várzea";
     case "MIDFIELDER":
     case "DEFENSIVE_MIDFIELDER":
-      return "[MAESTRO DO MEIO]";
+      return "Maestro do Meio";
     case "FORWARD":
     case "LEFT_WINGER":
     case "RIGHT_WINGER":
-      return "[BROCADOR NATO]";
+      return "Brocador Nato";
     default:
-      return "[MANTO SACRADO]";
+      return "Manto Sagrado";
   }
 }
 
-// Minimal Premium SVG Icons
-function IconMapPin({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  );
-}
+function getPlayerTag(player: any, stats: any) {
+  const isBestScorer = stats.highlights.bestScorer?.playerId === player.id;
+  const isBestAssist = stats.highlights.bestAssist?.playerId === player.id;
+  const isBestRated = stats.highlights.bestRated?.playerId === player.id;
+  const isBestPresence = stats.highlights.bestPresence?.playerId === player.id;
 
-function IconStadium({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-    </svg>
-  );
-}
+  if (isBestScorer) return "Artilheiro";
+  if (isBestAssist) return "Garçom";
+  if (isBestRated) return "Scout Altíssimo";
+  if (isBestPresence) return "Incontestável";
 
-function IconPitch({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <rect x="2" y="3" width="20" height="18" rx="2" stroke="currentColor" />
-      <line x1="12" y1="3" x2="12" y2="21" stroke="currentColor" />
-      <circle cx="12" cy="12" r="3" stroke="currentColor" />
-    </svg>
-  );
-}
-
-function IconTrophy({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5a2 2 0 10-2 2h2zm-2 4h4M5 8h14M5 8a2 2 0 110-4h4V8m10-4v4h-4a2 2 0 110-4h4z" />
-    </svg>
-  );
-}
-
-function IconCalendar({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    </svg>
-  );
-}
-
-function IconStar({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-    </svg>
-  );
-}
-
-function IconGoal({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 2a14.5 14.5 0 000 20M2 12h20M12 2c3.5 0 6.5 4.5 6.5 10S15.5 22 12 22 5.5 17.5 5.5 12 8.5 2 12 2z" />
-    </svg>
-  );
-}
-
-function IconAssist({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-    </svg>
-  );
-}
-
-function IconArrowRight({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-    </svg>
-  );
-}
-
-function IconShield({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  );
-}
-
-function IconLock({ className = "w-4 h-4" }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-      <path d="M7 11V7a5 5 0 0110 0v4" />
-    </svg>
-  );
-}
-
-// SEO Metadata Generation
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const team = await prisma.team.findUnique({
-    where: { slug },
-    select: { name: true, description: true, city: true, badgeUrl: true },
-  });
-
-  if (!team) {
-    return { title: "Time Não Encontrado | VARzea" };
+  switch (player.position) {
+    case "GOALKEEPER":
+      return "Insuperável";
+    case "DEFENDER":
+    case "LEFT_BACK":
+    case "RIGHT_BACK":
+      return "Muralha";
+    case "MIDFIELDER":
+    case "DEFENSIVE_MIDFIELDER":
+      return "Maestro";
+    default:
+      return "Brocador";
   }
-
-  const description = team.description || `Confira as conquistas, estatísticas, elenco oficial e linha do tempo de partidas do ${team.name} no portal oficial.`;
-  return {
-    title: `${team.name} — Página Oficial | VARzea`,
-    description,
-    openGraph: {
-      title: `${team.name} — Arena Oficial`,
-      description,
-      type: "website",
-      ...(team.badgeUrl && { images: [{ url: team.badgeUrl, width: 200, height: 200, alt: `Escudo ${team.name}` }] }),
-    },
-  };
 }
 
-export default async function TeamPublicPage({ params, searchParams }: PageProps) {
-  const { slug } = await params;
-  const resolvedSearchParams = await searchParams;
-  const selectedSlotId = resolvedSearchParams?.slot;
-  const selectedTab = resolvedSearchParams?.tab;
-  const isSecretaria = selectedTab === "secretaria" || !!selectedSlotId;
-  const isAlbum = selectedTab === "album" && !selectedSlotId;
-  const isEsportes = !isSecretaria && !isAlbum;
-
-  const team = await prisma.team.findUnique({
+async function getTeamData(slug: string) {
+  return prisma.team.findUnique({
     where: { slug },
     include: {
+      openMatchSlots: {
+        where: { status: "OPEN" },
+        orderBy: { date: "asc" },
+        select: {
+          id: true,
+          date: true,
+          timeLabel: true,
+          venueLabel: true,
+          notes: true,
+        },
+      },
       players: {
         where: { status: "ACTIVE" },
         orderBy: { shirtNumber: "asc" },
+        select: {
+          id: true,
+          name: true,
+          position: true,
+          shirtNumber: true,
+          photoUrl: true,
+        },
       },
       matches: {
         orderBy: { date: "desc" },
@@ -349,53 +322,49 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
           },
         },
       },
-      openMatchSlots: {
-        where: { status: "OPEN" },
-        orderBy: { date: "asc" },
+      _count: {
+        select: {
+          players: true,
+          matches: true,
+        },
       },
     },
   });
+}
 
-  if (!team) {
-    notFound();
-  }
+async function getTeamStats(teamId: string) {
+  const completedMatches = await prisma.match.findMany({
+    where: { teamId, status: "COMPLETED" },
+    select: { homeScore: true, awayScore: true, isHome: true },
+  });
 
-  // Conversions for Branding
-  const themePrimary = team.primaryColor || "#10b981";
-  const themeSecondary = team.secondaryColor || "#34d399";
-  const primaryRgb = hexToRgb(themePrimary);
-  const secondaryRgb = hexToRgb(themeSecondary);
-
-  // Statistics Calculations
-  const completedMatches = team.matches.filter((m) => m.status === "COMPLETED");
   let wins = 0;
   let draws = 0;
   let losses = 0;
   let goalsScored = 0;
   let goalsConceded = 0;
 
-  completedMatches.forEach((m) => {
-    if (m.homeScore !== null && m.awayScore !== null) {
-      const isHome = m.isHome;
-      const teamGoalsFor = isHome ? m.homeScore : m.awayScore;
-      const teamGoalsAgainst = isHome ? m.awayScore : m.homeScore;
-      goalsScored += teamGoalsFor;
-      goalsConceded += teamGoalsAgainst;
-      if (teamGoalsFor > teamGoalsAgainst) wins++;
-      else if (teamGoalsFor === teamGoalsAgainst) draws++;
-      else losses++;
-    }
+  for (const m of completedMatches) {
+    const teamGoalsFor = m.isHome ? m.homeScore ?? 0 : m.awayScore ?? 0;
+    const teamGoalsAgainst = m.isHome ? m.awayScore ?? 0 : m.homeScore ?? 0;
+    goalsScored += teamGoalsFor;
+    goalsConceded += teamGoalsAgainst;
+    if (teamGoalsFor > teamGoalsAgainst) wins++;
+    else if (teamGoalsFor < teamGoalsAgainst) losses++;
+    else draws++;
+  }
+
+  const totalMatches = completedMatches.length;
+  const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
+
+  const activeSeason = await prisma.season.findFirst({
+    where: { teamId, status: "ACTIVE" },
+    orderBy: { startDate: "desc" },
+    select: { id: true, name: true },
   });
 
-  const totalGames = completedMatches.length;
-  const totalMatches = totalGames;
-  const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
-  const avgGoalsScored = totalGames > 0 ? (goalsScored / totalGames).toFixed(1) : "0.0";
-  const avgGoalsConceded = totalGames > 0 ? (goalsConceded / totalGames).toFixed(1) : "0.0";
-
-  // Calculate Season Highlights
-  const allPlayers = await prisma.player.findMany({
-    where: { teamId: team.id },
+  const players = await prisma.player.findMany({
+    where: { teamId },
     select: {
       id: true,
       name: true,
@@ -405,18 +374,25 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
       status: true,
     },
   });
-  const playerMap = new Map(allPlayers.map((p) => [p.id, p]));
+  const playerMap = new Map(players.map((p) => [p.id, p]));
 
   const playerStats = await prisma.matchStats.groupBy({
     by: ["playerId"],
-    where: { match: { teamId: team.id } },
-    _sum: { goals: true, assists: true },
-    _count: { matchId: true },
+    where: { match: { teamId } },
+    _sum: {
+      goals: true,
+      assists: true,
+      yellowCards: true,
+      redCards: true,
+    },
+    _count: {
+      matchId: true,
+    },
   });
 
   const ratingsAgg = await prisma.matchPlayerRating.groupBy({
     by: ["ratedId"],
-    where: { match: { teamId: team.id } },
+    where: { match: { teamId } },
     _avg: { stars: true },
     _count: { stars: true },
   });
@@ -436,6 +412,8 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
       status: player?.status ?? "ACTIVE",
       goals: s._sum.goals ?? 0,
       assists: s._sum.assists ?? 0,
+      yellowCards: s._sum.yellowCards ?? 0,
+      redCards: s._sum.redCards ?? 0,
       matches: s._count.matchId,
       averageStars: ratingInfo ? Number(ratingInfo.avg.toFixed(1)) : null,
       totalRatings: ratingInfo?.count ?? 0,
@@ -462,23 +440,214 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
     .sort((a, b) => (b.averageStars ?? 0) - (a.averageStars ?? 0) || b.totalRatings - a.totalRatings);
   const bestRated = topRatedList[0] || null;
 
-  // Split and Sort Matches precisely matching the timeline rules
+  const topScorers = topScorersList.slice(0, 5).map((s) => ({
+    playerName: s.playerName,
+    total: s.goals,
+  }));
+
+  let activeSeasonStandings: Array<{
+    playerId: string;
+    playerName: string;
+    shirtNumber: number | null;
+    points: number;
+    played: number;
+    won: number;
+    drawn: number;
+    lost: number;
+    goalDiff: number;
+  }> = [];
+
+  if (activeSeason) {
+    const seasonMatches = await prisma.match.findMany({
+      where: {
+        teamId,
+        seasonId: activeSeason.id,
+        type: "CHAMPIONSHIP",
+        status: "COMPLETED",
+        homeScore: { not: null },
+        awayScore: { not: null },
+      },
+      select: {
+        homeScore: true,
+        awayScore: true,
+        isHome: true,
+        matchStats: {
+          select: {
+            playerId: true,
+            player: { select: { name: true, shirtNumber: true } },
+          },
+        },
+      },
+    });
+
+    const standingMap: Record<
+      string,
+      {
+        playerId: string;
+        playerName: string;
+        shirtNumber: number | null;
+        points: number;
+        played: number;
+        won: number;
+        drawn: number;
+        lost: number;
+        goalsFor: number;
+        goalsAgainst: number;
+        goalDiff: number;
+      }
+    > = {};
+
+    for (const match of seasonMatches) {
+      const teamGoalsFor = match.isHome ? match.homeScore ?? 0 : match.awayScore ?? 0;
+      const teamGoalsAgainst = match.isHome ? match.awayScore ?? 0 : match.homeScore ?? 0;
+      const won = teamGoalsFor > teamGoalsAgainst;
+      const drawn = teamGoalsFor === teamGoalsAgainst;
+      const lost = teamGoalsFor < teamGoalsAgainst;
+
+      for (const stat of match.matchStats) {
+        if (!standingMap[stat.playerId]) {
+          standingMap[stat.playerId] = {
+            playerId: stat.playerId,
+            playerName: stat.player.name,
+            shirtNumber: stat.player.shirtNumber,
+            points: 0,
+            played: 0,
+            won: 0,
+            drawn: 0,
+            lost: 0,
+            goalsFor: 0,
+            goalsAgainst: 0,
+            goalDiff: 0,
+          };
+        }
+
+        const row = standingMap[stat.playerId];
+        row.played += 1;
+        row.goalsFor += teamGoalsFor;
+        row.goalsAgainst += teamGoalsAgainst;
+        if (won) {
+          row.won += 1;
+          row.points += 3;
+        } else if (drawn) {
+          row.drawn += 1;
+          row.points += 1;
+        } else if (lost) {
+          row.lost += 1;
+        }
+        row.goalDiff = row.goalsFor - row.goalsAgainst;
+      }
+    }
+
+    activeSeasonStandings = Object.values(standingMap)
+      .sort((a, b) => b.points - a.points || b.goalDiff - a.goalDiff || b.won - a.won)
+      .map(({ goalsFor, goalsAgainst, ...row }) => row);
+  }
+
+  return {
+    totalMatches,
+    wins,
+    draws,
+    losses,
+    winRate,
+    goalsScored,
+    goalsConceded,
+    topScorers,
+    activeSeason,
+    activeSeasonStandings,
+    ranking,
+    highlights: {
+      bestScorer,
+      bestAssist,
+      bestPresence,
+      bestRated,
+    },
+  };
+}
+
+interface PageProps {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ slot?: string; tab?: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const team = await prisma.team.findUnique({
+    where: { slug },
+  });
+  if (!team) {
+    return { title: "Portal Esportivo | VARzea" };
+  }
+  const description = team.description || `Portal oficial do ${team.name}. Confira elenco, estatísticas e envie convites de amistosos.`;
+  return {
+    title: `${team.name} — Arena Oficial | VARzea`,
+    description,
+    openGraph: {
+      title: team.name,
+      description,
+      type: "website",
+      url: `/${team.slug}`,
+      siteName: "VARzea",
+      locale: "pt_BR",
+      ...(team.badgeUrl && { images: [{ url: team.badgeUrl, width: 200, height: 200, alt: `Escudo ${team.name}` }] }),
+    },
+  };
+}
+
+export default async function TeamPublicPage({ params, searchParams }: PageProps) {
+  const { slug } = await params;
+  const session = await getSession();
+  const team = await getTeamData(slug);
+
+  if (!team) {
+    notFound();
+  }
+
+  const { slot: selectedSlotId, tab: selectedTab } = await searchParams;
+  const isSecretaria = selectedTab === "secretaria" || !!selectedSlotId;
+  const isAlbum = selectedTab === "album" && !selectedSlotId;
+  const isEsportes = !isSecretaria && !isAlbum;
+  const stats = await getTeamStats(team.id);
+
+  // Conversions for Branding
+  const themePrimary = team.primaryColor || "#0a584b";
+  const themeSecondary = team.secondaryColor || "#c89832";
+  const primaryRgb = hexToRgb(themePrimary);
+  const secondaryRgb = hexToRgb(themeSecondary);
+
+  // Statistics calculations
+  const completedMatches = team.matches.filter((m) => m.status === "COMPLETED");
+  let wins = 0;
+  let draws = 0;
+  let losses = 0;
+  let goalsScored = 0;
+  let goalsConceded = 0;
+
+  completedMatches.forEach((m) => {
+    if (m.homeScore !== null && m.awayScore !== null) {
+      const isHome = m.isHome;
+      const teamGoalsFor = isHome ? m.homeScore : m.awayScore;
+      const teamGoalsAgainst = isHome ? m.awayScore : m.homeScore;
+      goalsScored += teamGoalsFor;
+      goalsConceded += teamGoalsAgainst;
+      if (teamGoalsFor > teamGoalsAgainst) wins++;
+      else if (teamGoalsFor === teamGoalsAgainst) draws++;
+      else losses++;
+    }
+  });
+
+  const totalGames = completedMatches.length;
+  const totalMatches = totalGames;
+  const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+  const avgGoalsScored = totalGames > 0 ? (goalsScored / totalGames).toFixed(2) : "0.00";
+  const goalBalance = goalsScored - goalsConceded;
+
+  // Split and Sort Matches
   const scheduledMatches = team.matches
     .filter((m) => m.status === "SCHEDULED")
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const nextMatch = scheduledMatches[0] || null;
   const remainingScheduled = scheduledMatches.slice(1);
-
-  // Construct a highlights adapter object to match homePage's getPlayerStamp signature
-  const stats = {
-    highlights: {
-      bestScorer: bestScorer ? { playerId: bestScorer.playerId, goals: bestScorer.goals } : null,
-      bestAssist: bestAssist ? { playerId: bestAssist.playerId, assists: bestAssist.assists } : null,
-      bestRated: bestRated ? { playerId: bestRated.playerId, averageStars: bestRated.averageStars } : null,
-      bestPresence: bestPresence ? { playerId: bestPresence.playerId } : null,
-    }
-  };
 
   let startersData: any[] = [];
   if (nextMatch) {
@@ -511,8 +680,6 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
     .filter((m) => m.status === "COMPLETED" || m.status === "CANCELLED")
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const goalBalance = goalsScored - goalsConceded;
-  const summaryLine = totalGames > 0 ? `${wins}V · ${draws}E · ${losses}D` : "Temporada em construção";
   const hasDiscoveryInfo = Boolean(team.city || team.region || team.fieldType || team.competitiveLevel);
 
   const selectedSlot = selectedSlotId
@@ -527,1004 +694,1031 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
     : "";
   const suggestedVenueInitialValue = selectedSlot?.venueLabel || "";
 
+  // Highlights extraction
+  const bestScorer = stats.highlights.bestScorer || null;
+  const bestAssist = stats.highlights.bestAssist || null;
+  const bestPresence = stats.highlights.bestPresence || null;
+  const bestRated = stats.highlights.bestRated || null;
+
+  const clubInitials = team.shortName || team.name.substring(0, 2).toUpperCase();
+
   return (
-    <div 
-      className="min-h-screen text-[#f0f7f4] relative overflow-hidden bg-[#030708] pb-24 font-sans selection:bg-[var(--team-primary)] selection:text-[#020506] antialiased"
+    <div
+      className="mcfc-portal-body min-h-screen text-[var(--text)] relative overflow-hidden bg-[var(--bg)] pb-24 font-sans selection:bg-[var(--primary)] selection:text-[var(--text-inv)] antialiased"
       style={{
-        "--team-primary": themePrimary,
-        "--team-secondary": themeSecondary,
-        "--team-primary-rgb": primaryRgb,
-        "--team-secondary-rgb": secondaryRgb,
-        "--brand": themePrimary,
-        "--brand-strong": themePrimary,
-        "--brand-soft": `rgba(${primaryRgb}, 0.08)`,
-        "--brand-neon": themeSecondary,
+        "--primary": themePrimary,
+        "--primary-2": themeSecondary,
+        "--primary-deep": `rgba(${primaryRgb}, 0.8)`,
+        "--primary-tint": `rgba(${primaryRgb}, 0.08)`,
+        "--accent": themeSecondary,
       } as React.CSSProperties}
     >
-
-
       <input type="radio" id="caderno-esportes" name="cadernos" className="hidden" defaultChecked={isEsportes} />
       <input type="radio" id="caderno-album" name="cadernos" className="hidden" defaultChecked={isAlbum} />
       <input type="radio" id="caderno-secretaria" name="cadernos" className="hidden" defaultChecked={isSecretaria} />
 
-      {/* Public Navbar */}
-      <PublicNavbar teamName={team.name} badgeUrl={team.badgeUrl} slug={team.slug} />
+      <style>{`
+        #caderno-esportes:checked ~ main #content-esportes { 
+          display: block !important; 
+        }
+        #caderno-album:checked ~ main #content-album { 
+          display: block !important; 
+        }
+        #caderno-secretaria:checked ~ main #content-secretaria { 
+          display: block !important; 
+        }
 
-      {/* Printed Sports Gazette Top Branding Info Banner */}
-      <div className="mx-auto max-w-6xl mt-6 px-4">
-        <div className="border-double border-y-4 border-slate-800 py-3 flex flex-wrap items-center justify-between gap-y-2 text-[10px] font-black uppercase tracking-widest text-slate-400 font-mono">
-          <div>[ GAZETA ESPORTIVA DO TERRÃO ]</div>
-          <div className="hidden sm:block">EDIÇÃO Nº 42 • SÉRIE OFICIAL</div>
-          <div>BOLETIM EXTRA • PORTAL DO CLUBE</div>
+        #caderno-esportes:checked ~ main label[for="caderno-esportes"],
+        #caderno-album:checked ~ main label[for="caderno-album"],
+        #caderno-secretaria:checked ~ main label[for="caderno-secretaria"] {
+          background-color: var(--primary) !important;
+          color: var(--text-inv) !important;
+          border-color: var(--primary) !important;
+          font-weight: 700 !important;
+          box-shadow: none !important;
+        }
+
+        .mcfc-portal-body label {
+          font-family: inherit;
+        }
+      `}</style>
+
+      {/* ── theme handling & restricted access banner ── */}
+      {session && (
+        <div className="relative z-50 bg-[#10b981] border-b border-black/20 px-4 py-2.5 text-center text-[10px] font-black uppercase tracking-widest text-[#090d0f] font-mono">
+          [ACESSO ADMINISTRATIVO HABILITADO] —{" "}
+          <Link href="/dashboard" className="underline hover:opacity-80 transition-opacity font-mono font-black">
+            Ir para Painel de Controle &rarr;
+          </Link>
+        </div>
+      )}
+
+      {/* ── statusbar ── */}
+      <div className="statusbar">
+        <div className="wrap">
+          <div className="left">
+            <span>
+              <span className="dot"></span> &nbsp;
+              {stats.activeSeason ? `Temporada ${stats.activeSeason.name} · ativa` : "Temporada em curso"}
+            </span>
+            {nextMatch && (
+              <span className="ticker">
+                // PRÓXIMO JOGO · {new Date(nextMatch.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} · {new Date(nextMatch.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} · vs {nextMatch.opponent}
+              </span>
+            )}
+          </div>
+          <div className="right font-mono">
+            <a href="#solicitar-amistoso">Solicitar amistoso</a>
+            <a href="#recrutamento">Quero jogar</a>
+            <Link href="/dashboard">Acesso restrito ↗</Link>
+          </div>
         </div>
       </div>
 
-      {/* Editorial Sports Hero Section */}
-      <header className="relative overflow-hidden px-4 pb-20 pt-8 lg:pb-24 lg:pt-14">
-        <div className="relative mx-auto mt-4 grid max-w-6xl gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-          <div className="space-y-6">
-            {/* Elegant Shield-style Level Tag */}
-            <div className="inline-flex items-center gap-2 rounded-none bg-[#090d0f] border-2 border-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-300 font-mono">
-              <IconShield className="w-3.5 h-3.5 text-[var(--brand)]" />
-              <span>{team.competitiveLevel ? competitiveLevelLabels[team.competitiveLevel] : "Competitivo"}</span>
+      {/* ── header.site ── */}
+      <header className="site">
+        <div className="wrap">
+          <Link href={`/${team.slug}`} className="brand">
+            <ClubCrest initials={clubInitials} />
+            <div className="txt">
+              <div className="top">Fundado em {team.foundedYear || 2026} · {team.city || "Fortaleza"}/{team.region || "CE"}</div>
+              <div className="name">{team.name}</div>
             </div>
-
-            {/* Massive punchy typography - Space Grotesk used for visual impact with tight tracking */}
-            <div className="space-y-1">
-              <p className="text-xs font-bold tracking-[0.25em] text-[var(--brand)] uppercase font-mono">
-                Portal Oficial
-              </p>
-              <h1 className="text-balance text-5xl font-black leading-[0.9] sm:text-7xl lg:text-8xl uppercase tracking-tighter text-white font-mono">
-                {team.name}
-              </h1>
-            </div>
-            
-            {team.description && (
-              <p className="max-w-xl text-sm sm:text-base leading-relaxed text-slate-400 font-medium border-l-4 border-[var(--brand)] pl-4 font-mono">
-                {team.description}
-              </p>
-            )}
-
-            {/* Printed Club Manifesto Column */}
-            <div className="border-2 border-dashed border-slate-800 bg-[#090d0f]/50 p-6 space-y-3 relative shadow-[3px_3px_0px_0px_rgba(0,0,0,0.5)]">
-              <span className="absolute -top-3 left-4 bg-black border border-slate-800 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-[var(--brand)] font-mono">
-                [MANIFESTO DE VESTIÁRIO]
-              </span>
-              <p className="text-xs leading-relaxed text-slate-400 font-mono uppercase text-justify pt-1">
-                <span className="float-left text-4xl font-extrabold pr-2 leading-none font-mono text-[var(--brand)]">A</span>
-                QUI A PAIXÃO NÃO É COBRADA EM BILHETERIA E O SUOR PESA MAIS QUE QUALQUER CONTRATO MILIONÁRIO. CADA CAPÍTULO DA NOSSA HISTÓRIA É ESCRITO NO TERRÃO OU NO SINTÉTICO, JOGO A JOGO, PELA HONRA DA COMUNIDADE. VESTIMOS A CAMISA COM A ALMA.
-              </p>
-            </div>
-
-            {/* Info Row with SVG Icons instead of AI emojis */}
-            <div className="flex flex-wrap items-center gap-y-3 gap-x-6 text-xs sm:text-sm text-slate-400 font-semibold font-mono uppercase tracking-wider">
-              {team.city && (
-                <div className="flex items-center gap-2">
-                  <IconMapPin className="w-4 h-4 text-[var(--brand)]" />
-                  <span>{team.city}{team.region ? ` - ${team.region}` : ""}</span>
-                </div>
-              )}
-              {team.defaultVenue && (
-                <div className="flex items-center gap-2">
-                  <IconStadium className="w-4 h-4 text-[var(--brand)]" />
-                  <span>{team.defaultVenue}</span>
-                </div>
-              )}
-              {team.fieldType && (
-                <div className="flex items-center gap-2">
-                  <IconPitch className="w-4 h-4 text-[var(--brand)]" />
-                  <span>{fieldTypeLabels[team.fieldType]}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Premium CTA Buttons */}
-            <div className="flex flex-wrap items-center gap-4 pt-2">
-              <label
-                htmlFor="caderno-album"
-                className="cursor-pointer inline-flex min-h-12 items-center justify-center rounded-none border-2 border-black bg-[var(--brand)] px-8 py-3.5 text-xs font-black uppercase tracking-wider text-[#090d0f] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.9)] active:translate-x-[0px] active:translate-y-[0px] active:shadow-none duration-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
-              >
-                Conhecer Elenco
-              </label>
-              <label
-                htmlFor="caderno-secretaria"
-                className="cursor-pointer inline-flex min-h-12 items-center justify-center rounded-none border-2 border-slate-800 bg-[#0f1418] hover:bg-slate-900 px-8 py-3.5 text-xs font-black uppercase tracking-wider text-white transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[4px_4px_0px_0px_var(--brand)] active:translate-x-[0px] active:translate-y-[0px] active:shadow-none duration-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
-              >
-                Desafiar Equipe
-              </label>
-            </div>
+          </Link>
+          <nav className="primary font-sans">
+            <a href="#elenco">Elenco</a>
+            <a href="#desempenho">Desempenho</a>
+            <a href="#calendario">Calendário</a>
+            <a href="#tatica">Tática</a>
+            <a href="#solicitar-amistoso">Amistosos</a>
+            <a href="#identidade">Identidade</a>
+          </nav>
+          <div className="actions">
+            <ThemeToggle />
+            <a href="#solicitar-amistoso" className="btn secondary hidden md:inline-flex">Desafiar equipe</a>
+            <a href="#elenco" className="btn green hidden md:inline-flex">Conhecer elenco <span className="btn-arr">→</span></a>
           </div>
-
-          {/* Premium Season Pass Card (Visual Scoreboard) */}
-          <aside className="relative overflow-hidden max-w-md rounded-none border-2 border-slate-800 bg-[#0b0f11] p-8 shadow-[6px_6px_0px_0px_#000] lg:ml-auto lg:w-full space-y-6">
-            <div className="absolute top-0 left-0 w-full h-[4px] bg-[var(--brand)]" />
-            <div className="flex items-center gap-5">
-              <div className="relative w-20 h-20 shrink-0 rounded-none bg-black flex items-center justify-center border border-slate-800 overflow-hidden">
-                {team.badgeUrl ? (
-                  <img 
-                    src={team.badgeUrl} 
-                    alt={`Escudo do ${team.name}`} 
-                    className="w-full h-full object-cover p-2"
-                  />
-                ) : (
-                  <span className="text-2xl font-black text-white font-mono uppercase tracking-tighter">
-                    {team.shortName || team.name.substring(0, 3).toUpperCase()}
-                  </span>
-                )}
-              </div>
-              <div>
-                <p className="text-[10px] font-mono font-black uppercase tracking-wider text-slate-500">Campanha</p>
-                <p className="mt-0.5 text-2xl font-black tracking-tight text-white font-mono uppercase">{summaryLine}</p>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 font-mono">
-              <div className="rounded-none border border-slate-800 bg-[#090d0f] p-5 shadow-[3px_3px_0px_0px_#000]">
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Aproveitamento Geral</p>
-                <p className="text-4xl font-black text-[var(--brand)] mt-1 tracking-tighter">{winRate}%</p>
-              </div>
-              <div className="rounded-none border border-slate-800 bg-[#090d0f] p-5 shadow-[3px_3px_0px_0px_#000]">
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">Ataque na Temporada</p>
-                <p className="text-4xl font-black text-white mt-1 tracking-tighter">
-                  {avgGoalsScored} <span className="text-xs font-black text-slate-500 uppercase tracking-wide">/ jogo</span>
-                </p>
-              </div>
-            </div>
-          </aside>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="mx-auto mt-6 max-w-6xl px-4 sm:px-6 lg:px-8">
-        <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 relative z-10">
-          {[
-            { label: "Atletas Registrados", value: team.players.length, desc: "Inscritos no elenco principal", color: "border-slate-800" },
-            { label: "Jogos Disputados", value: totalMatches, desc: "Partidas oficiais finalizadas", color: "border-slate-800" },
-            { label: "Saldo de Gols", value: goalBalance >= 0 ? `+${goalBalance}` : goalBalance, desc: `${goalsScored} pró · ${goalsConceded} contra`, color: "border-slate-800" },
-            { label: "Gols na Temporada", value: goalsScored, desc: "Gols marcados de forma coletiva", color: "border-[var(--team-primary)]" }
-          ].map((item, idx) => (
-            <div 
-              key={idx} 
-              className={`rounded-none border-2 ${item.color} bg-[#0b0f11] p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_var(--team-primary)] duration-200`}
-            >
-              <p className="text-[10px] font-mono font-black uppercase tracking-widest text-slate-400">{item.label}</p>
-              <p className="mt-2 text-4xl font-black tracking-tight text-white font-mono leading-none">{item.value}</p>
-              <p className="mt-2 text-[10px] text-slate-500 font-bold uppercase tracking-wider">{item.desc}</p>
-            </div>
-          ))}
-        </section>
+      {/* ── hero ── */}
+      <section className="hero">
+        <div className="wrap">
+          <div className="hero-grid">
+            <div className="hero-id">
+              <div className="scroll-chips">
+                <span className="tag primary">Temporada {stats.activeSeason ? stats.activeSeason.name : "2026"}</span>
+                {team.competitiveLevel && (
+                  <span className="tag">{competitiveLevelLabels[team.competitiveLevel]}</span>
+                )}
+                {team.fieldType && (
+                  <span className="tag info">{fieldTypeLabels[team.fieldType]}</span>
+                )}
+                <span className="tag">
+                  <span className="dot" style={{ background: "var(--accent)" }}></span> Aberto a amistosos
+                </span>
+              </div>
+              <h1 className="font-serif leading-[1.05] tracking-tight mt-3 text-5xl md:text-6xl font-bold uppercase text-[var(--ink)]">
+                {team.name}.
+              </h1>
+              <p className="tagline font-serif italic text-lg text-[var(--text-2)] mt-4 max-w-xl">
+                {team.description || `"Sempre em frente." — Desde a fundação, o que move o time é a nossa comunidade.`}
+              </p>
+              <div className="since font-mono text-[11px] text-[var(--text-3)] flex gap-4 uppercase mt-6 border-b border-[var(--border)] pb-6">
+                <span>FUND. <b>{team.foundedYear || 2026}</b></span>
+                <span>·</span>
+                <span>SEDE <b>{team.city || "Fortaleza"} · {team.region || "Ceará"}</b></span>
+                <span>·</span>
+                <span>CAMPO <b>{team.defaultVenue || "Arena Principal"}</b></span>
+              </div>
+              
+              {/* Manifesto */}
+              <div className="manifesto mt-8 p-6 bg-[var(--surface-2)] border-l-4 border-[var(--primary)] relative">
+                <div className="tag-row flex justify-between text-[11px] font-mono text-[var(--text-3)] uppercase tracking-wide mb-3">
+                  <span className="lab font-bold">▸ Manifesto de vestiário</span>
+                  <span>{team.foundedYear || 2026} · revisão I</span>
+                </div>
+                <blockquote className="font-serif text-[15px] italic text-[var(--text-2)] leading-relaxed">
+                  Aqui a paixão não é cobrada em bilheteria e o suor pesa mais que qualquer contrato milionário. Cada capítulo da nossa história é escrito no terrão ou no sintético, jogo a jogo, pela honra da comunidade.
+                </blockquote>
+              </div>
 
-        {/* Newspaper Cadernos Menu (Brutalist Tab Navigation) */}
-        <div className="relative z-20 mt-12 mb-6">
-          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 font-mono text-center mb-3">
-            [ SELECIONE O CADERNO PARA LEITURA ]
-          </p>
-          <div id="tabs-nav" className="grid grid-cols-3 gap-2 border-y-4 border-double border-slate-800 py-4 font-mono">
-            <label
-              htmlFor="caderno-esportes"
-              className="cursor-pointer text-center py-4 px-2 border-2 border-slate-800 bg-[#0b0f11] text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400 hover:text-white hover:border-slate-700 transition-all duration-150 select-none flex flex-col sm:flex-row items-center justify-center gap-2 rounded-none"
-            >
-              <span className="text-sm">📰</span>
-              <span>Esportes & Jogos</span>
-            </label>
-            <label
-              htmlFor="caderno-album"
-              className="cursor-pointer text-center py-4 px-2 border-2 border-slate-800 bg-[#0b0f11] text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400 hover:text-white hover:border-slate-700 transition-all duration-150 select-none flex flex-col sm:flex-row items-center justify-center gap-2 rounded-none"
-            >
-              <span className="text-sm">👥</span>
-              <span>Álbum & Elenco</span>
-            </label>
-            <label
-              htmlFor="caderno-secretaria"
-              className="cursor-pointer text-center py-4 px-2 border-2 border-slate-800 bg-[#0b0f11] text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400 hover:text-white hover:border-slate-700 transition-all duration-150 select-none flex flex-col sm:flex-row items-center justify-center gap-2 rounded-none"
-            >
-              <span className="text-sm">📋</span>
-              <span>Secretaria do Clube</span>
-            </label>
+              {/* Geographical and technical meta descriptors */}
+              <div className="hero-meta grid grid-cols-2 sm:grid-cols-4 gap-6 mt-8">
+                <div>
+                  <div className="l text-[10.5px] font-mono text-[var(--text-3)] uppercase tracking-wider">Cidade</div>
+                  <div className="v font-serif font-bold text-lg text-[var(--ink)] mt-1">{team.city || "Fortaleza"}</div>
+                </div>
+                <div>
+                  <div className="l text-[10.5px] font-mono text-[var(--text-3)] uppercase tracking-wider">Região</div>
+                  <div className="v font-serif font-bold text-lg text-[var(--ink)] mt-1">{team.region || "Antônio Bezerra"}</div>
+                </div>
+                <div>
+                  <div className="l text-[10.5px] font-mono text-[var(--text-3)] uppercase tracking-wider">Superfície</div>
+                  <div className="v font-serif font-bold text-lg text-[var(--ink)] mt-1">{team.fieldType ? fieldTypeLabels[team.fieldType] : "Grama Sintética"}</div>
+                </div>
+                <div>
+                  <div className="l text-[10.5px] font-mono text-[var(--text-3)] uppercase tracking-wider">Nível</div>
+                  <div className="v font-serif font-bold text-lg text-[var(--ink)] mt-1">{team.competitiveLevel ? competitiveLevelLabels[team.competitiveLevel].split("/")[0] : "Intermediário"}</div>
+                </div>
+              </div>
+
+              <div className="hero-ctas flex gap-4 mt-8">
+                <a href="#elenco" className="btn primary">Conhecer o elenco <span className="btn-arr">→</span></a>
+                <a href="#solicitar-amistoso" className="btn secondary">Desafiar o time</a>
+              </div>
+            </div>
+
+            {/* Hero Right Visuals */}
+            <div className="hero-right flex flex-col gap-6 justify-center">
+              {/* Crest Wall */}
+              <div className="crest-wall p-6 rounded bg-gradient-to-b from-[var(--primary-deep)] to-[rgba(10,88,75,0.9)] text-[#fff]">
+                <div className="head flex justify-between text-[11px] font-mono opacity-80 uppercase tracking-widest mb-4">
+                  <span className="id">TEMPORADA {stats.activeSeason ? stats.activeSeason.name : "2026"}</span>
+                  <span>Campanha Ativa</span>
+                </div>
+                <div className="body flex items-center gap-6 py-4">
+                  <ClubCrest variant="white" initials={clubInitials} className="w-[84px] h-[98px]" />
+                  <div className="who">
+                    <div className="lab text-[9px] font-mono opacity-65 uppercase tracking-wider">Clube oficial</div>
+                    <div className="t font-serif font-bold text-2xl tracking-tight leading-none mt-1">{team.name}</div>
+                    <div className="s text-xs opacity-75 mt-2">Liga Regional de Várzea · {team.city || "Ceará"}</div>
+                  </div>
+                </div>
+                <div className="stat-row grid grid-cols-4 gap-4 mt-4 border-t border-white/20 pt-4 text-center font-mono">
+                  <div>
+                    <div className="l text-[9px] opacity-75 uppercase">VITÓRIAS</div>
+                    <div className="v text-xl font-bold mt-0.5">{wins}</div>
+                  </div>
+                  <div>
+                    <div className="l text-[9px] opacity-75 uppercase">EMPATES</div>
+                    <div className="v text-xl font-bold mt-0.5">{draws}</div>
+                  </div>
+                  <div>
+                    <div className="l text-[9px] opacity-75 uppercase">DERROTAS</div>
+                    <div className="v text-xl font-bold mt-0.5">{losses}</div>
+                  </div>
+                  <div>
+                    <div className="l text-[9px] opacity-75 uppercase">SALDO</div>
+                    <div className="v text-xl font-bold mt-0.5">{goalBalance >= 0 ? `+${goalBalance}` : goalBalance}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Next Match Fixture Ticket */}
+              {nextMatch && (
+                <div className="next-match p-6 bg-[var(--surface-2)] border border-[var(--border)] rounded">
+                  <div className="head flex justify-between text-[10.5px] font-mono text-[var(--text-3)] uppercase tracking-wider mb-4">
+                    <span className="id">▸ Próximo compromisso</span>
+                    <span className="tag success">Confirmado</span>
+                  </div>
+                  <div className="matchup flex items-center justify-between gap-4 py-2 font-serif">
+                    <div className="side home flex flex-col items-center flex-1 text-center">
+                      <div className="mini-crest w-8 h-8 rounded-full bg-[var(--primary-tint)] border border-[var(--border)] text-[var(--primary)] flex items-center justify-center font-bold font-mono text-xs">{clubInitials}</div>
+                      <div className="n font-bold text-sm text-[var(--ink)] mt-2">{team.shortName || team.name.split(" ")[0]}</div>
+                      <div className="r text-[9.5px] font-mono text-[var(--text-3)] uppercase tracking-wider mt-0.5">Casa</div>
+                    </div>
+                    <div className="vs font-mono text-xs text-[var(--text-3)] font-black">VS</div>
+                    <div className="side away flex flex-col items-center flex-1 text-center">
+                      <div className="mini-crest w-8 h-8 rounded-full bg-[var(--surface-sunk)] border border-[var(--border)] text-[var(--text-2)] flex items-center justify-center font-bold font-mono text-xs">{nextMatch.opponent.substring(0,2).toUpperCase()}</div>
+                      <div className="n font-bold text-sm text-[var(--ink)] mt-2">{nextMatch.opponent.split(" ")[0]}</div>
+                      <div className="r text-[9.5px] font-mono text-[var(--text-3)] uppercase tracking-wider mt-0.5">Visitante</div>
+                    </div>
+                  </div>
+                  <div className="meta grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-[var(--border)] font-mono text-center">
+                    <div>
+                      <div className="l text-[8px] text-[var(--text-3)] uppercase">Data</div>
+                      <div className="v text-xs font-bold mt-0.5">{new Date(nextMatch.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</div>
+                    </div>
+                    <div>
+                      <div className="l text-[8px] text-[var(--text-3)] uppercase">Horário</div>
+                      <div className="v text-xs font-bold mt-0.5">{new Date(nextMatch.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div>
+                    </div>
+                    <div>
+                      <div className="l text-[8px] text-[var(--text-3)] uppercase">Local</div>
+                      <div className="v text-xs font-bold mt-0.5 truncate max-w-[80px]" title={nextMatch.venue}>{nextMatch.venue}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        <div id="content-esportes" className="space-y-16 mt-8 animate-fade-in">
-
-        {/* Estrelas da Temporada (Hall of Fame) - Asymmetric, premium layout */}
-        <section id="destaques" className="scroll-mt-24 space-y-6">
-          <div className="mb-6 flex items-end justify-between gap-3 border-b border-white/5 pb-4">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--brand)] font-mono">Destaques Individuais</p>
-              <h2 className="text-3xl font-black uppercase text-white tracking-tight font-mono mt-1">Estrelas da Temporada</h2>
+        {/* ── kpi-strip ── */}
+        <div className="kpi-strip mt-14 py-8 border-y border-[var(--border)] bg-[var(--surface)]">
+          <div className="wrap">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-6 font-mono text-center md:text-left">
+              <div className="k border-r border-dashed border-[var(--border)] last:border-0 pr-4">
+                <div className="l text-[9.5px] text-[var(--text-3)] uppercase tracking-widest">Campanha · V·E·D</div>
+                <div className="v text-2xl font-bold tracking-tight mt-1 text-[var(--ink)]">{wins}·{draws}·{losses}</div>
+                <div className="d text-[9px] text-[var(--text-3)] mt-1">Jogos oficiais</div>
+              </div>
+              <div className="k border-r border-dashed border-[var(--border)] last:border-0 pr-4">
+                <div className="l text-[9.5px] text-[var(--text-3)] uppercase tracking-widest">Aproveitamento</div>
+                <div className="v text-2xl font-bold tracking-tight mt-1 text-[var(--ink)]">{winRate}%</div>
+                <div className="d text-[9px] text-[var(--text-3)] mt-1">Pontos disputados</div>
+              </div>
+              <div className="k border-r border-dashed border-[var(--border)] last:border-0 pr-4">
+                <div className="l text-[9.5px] text-[var(--text-3)] uppercase tracking-widest">Gols marcados</div>
+                <div className="v text-2xl font-bold tracking-tight mt-1 text-[var(--primary)]">{goalsScored}</div>
+                <div className="d text-[9px] text-[var(--text-3)] mt-1">Média de {avgGoalsScored} / jogo</div>
+              </div>
+              <div className="k border-r border-dashed border-[var(--border)] last:border-0 pr-4">
+                <div className="l text-[9.5px] text-[var(--text-3)] uppercase tracking-widest">Saldo de gols</div>
+                <div className="v text-2xl font-bold tracking-tight mt-1 text-[var(--ink)]">{goalBalance >= 0 ? `+${goalBalance}` : goalBalance}</div>
+                <div className="d text-[9px] text-[var(--text-3)] mt-1">{goalsConceded} sofridos</div>
+              </div>
+              <div className="k border-r border-dashed border-[var(--border)] last:border-0 pr-4">
+                <div className="l text-[9.5px] text-[var(--text-3)] uppercase tracking-widest">Atletas no elenco</div>
+                <div className="v text-2xl font-bold tracking-tight mt-1 text-[var(--ink)]">{team.players.length}</div>
+                <div className="d text-[9px] text-[var(--text-3)] mt-1">Inscritos oficiais</div>
+              </div>
+              <div className="k border-r border-dashed border-[var(--border)] last:border-0 pr-4">
+                <div className="l text-[9.5px] text-[var(--text-3)] uppercase tracking-widest">Jogos disputados</div>
+                <div className="v text-2xl font-bold tracking-tight mt-1 text-[var(--ink)]">{totalMatches}</div>
+                <div className="d text-[9px] text-[var(--text-3)] mt-1">Total na temporada</div>
+              </div>
             </div>
-            <span className="hidden sm:inline-block text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Métricas Oficiais
-            </span>
           </div>
+        </div>
+      </section>
 
-          <div className="grid gap-6 grid-cols-1 lg:grid-cols-3 font-mono">
-            {/* Highlight 1: MVP Poster Card (col-span-2) */}
-            <div className="lg:col-span-2 relative min-h-[340px] border-2 border-[var(--team-primary)] bg-[#0b0f11] p-8 shadow-[8px_8px_0px_0px_#000] overflow-hidden flex flex-col justify-between group hover:shadow-[8px_8px_0px_0px_var(--team-primary)] transition-all duration-300 rounded-none">
-              {/* Massive background number */}
-              <span className="absolute -right-6 -bottom-10 text-[13rem] font-black text-white/[0.02] select-none pointer-events-none leading-none">
-                {bestScorer?.goals || 0}
-              </span>
+      {/* ── pure-css tab selector bar ── */}
+      <div className="sticky top-[68px] z-30 border-b border-[var(--border)] bg-[var(--surface-2)] backdrop-blur bg-opacity-95 shadow-sm mt-8">
+        <div className="wrap">
+          <div className="flex gap-1 py-3 overflow-x-auto scrollbar-none justify-center md:justify-start">
+            <label htmlFor="caderno-esportes" className="cursor-pointer text-center py-2.5 px-6 text-xs font-bold uppercase tracking-wider text-[var(--text-2)] hover:text-[var(--text)] transition-colors duration-150 rounded font-mono border border-transparent select-none flex items-center gap-2">
+              <span className="text-sm">📰</span>
+              <span>Esportes & Jogos</span>
+            </label>
+            <label htmlFor="caderno-album" className="cursor-pointer text-center py-2.5 px-6 text-xs font-bold uppercase tracking-wider text-[var(--text-2)] hover:text-[var(--text)] transition-colors duration-150 rounded font-mono border border-transparent select-none flex items-center gap-2">
+              <span className="text-sm">👥</span>
+              <span>Álbum & Tabela</span>
+            </label>
+            <label htmlFor="caderno-secretaria" className="cursor-pointer text-center py-2.5 px-6 text-xs font-bold uppercase tracking-wider text-[var(--text-2)] hover:text-[var(--text)] transition-colors duration-150 rounded font-mono border border-transparent select-none flex items-center gap-2">
+              <span className="text-sm">📋</span>
+              <span>Secretaria</span>
+            </label>
+          </div>
+        </div>
+      </div>
 
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 z-10">
-                <div>
-                  <span className="text-[9px] font-black bg-[var(--team-primary)] text-black px-3 py-1 uppercase tracking-widest">
-                    [DESTAQUE PRINCIPAL / ARTILHEIRO]
-                  </span>
-                  <h3 className="mt-4 text-5xl sm:text-7xl font-black text-white tracking-tighter uppercase leading-none">
-                    {bestScorer?.goals || 0} GOLS
-                  </h3>
-                  <p className="mt-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    Líder absoluto de finalizações na temporada atual
-                  </p>
-                </div>
-                {bestScorer?.photoUrl ? (
-                  <div className="h-28 w-28 shrink-0 border-2 border-black bg-[#090d0f] overflow-hidden shadow-[4px_4px_0px_0px_#000] relative rounded-none">
-                    <img src={bestScorer.photoUrl} alt="MVP" className="h-full w-full object-cover transition-transform group-hover:scale-105 rounded-none" />
-                    <div className="absolute top-0 right-0 h-6 w-6 bg-black border-l border-b border-slate-800 flex items-center justify-center text-[9px] font-black text-[var(--team-primary)]">
-                      #{bestScorer?.shirtNumber}
+      {/* ── main content ── */}
+      <main className="mx-auto max-w-6xl mt-8">
+        
+        {/* ── CADERNO 1: ESPORTES & JOGOS ── */}
+        <div id="content-esportes" className="space-y-16 animate-fade-in px-4">
+          
+          {/* Estrelas da Temporada */}
+          <section className="scroll-mt-24 space-y-6">
+            <div className="sec-head flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[var(--border)] pb-4">
+              <div className="left">
+                <span className="eyebrow">Destaques individuais</span>
+                <h2 className="font-serif text-3xl font-bold uppercase text-[var(--ink)] mt-1">Estrelas da temporada.</h2>
+                <p className="text-[13px] text-[var(--text-2)] mt-1">Métricas oficiais consolidadas a partir das súmulas oficiais das partidas.</p>
+              </div>
+              <div className="right">
+                <span className="pill">Atualizado recentemente</span>
+              </div>
+            </div>
+
+            <div className="top-grid grid grid-cols-1 md:grid-cols-4 gap-6">
+              {bestScorer && (
+                <article className="top-card feature border border-[var(--primary)] bg-[var(--surface)] p-6 rounded flex flex-col justify-between aspect-[4/5] col-span-1 md:col-span-2 relative overflow-hidden group">
+                  <div className="absolute -right-4 -bottom-8 text-[11rem] font-serif font-bold text-[var(--primary-tint)] opacity-40 group-hover:scale-105 transition-transform duration-300 select-none pointer-events-none leading-none">
+                    {bestScorer.goals}
+                  </div>
+                  <div className="tag-row flex justify-between items-center text-[10.5px] font-mono text-[var(--text-3)] uppercase tracking-wider">
+                    <span className="text-[var(--primary)] font-bold">▸ Destaque principal</span>
+                    <span>ARTILHEIRO</span>
+                  </div>
+                  <div className="player flex items-end gap-4 mt-6 z-10">
+                    <div className="num font-serif font-black text-6xl text-[var(--primary)] leading-none">#{bestScorer.shirtNumber}</div>
+                    <div className="who">
+                      <div className="n font-serif font-bold text-xl text-[var(--ink)]">{bestScorer.playerName}</div>
+                      <div className="role text-[10px] font-mono text-[var(--text-3)] uppercase tracking-wider mt-1">
+                        {prettyRoles[bestScorer.position] || bestScorer.position}
+                      </div>
                     </div>
                   </div>
+                  <p className="desc text-xs text-[var(--text-2)] mt-4 leading-relaxed max-w-sm z-10">
+                    Líder absoluto de finalizações na temporada atual. Essencial no aproveitamento tático ofensivo da equipe.
+                  </p>
+                  <div className="main-stat border-t border-[var(--border)] pt-4 mt-6 flex items-baseline gap-2 z-10">
+                    <span className="val text-4xl font-mono font-bold text-[var(--ink)]">{bestScorer.goals}</span>
+                    <span className="unit text-[11px] font-mono text-[var(--text-3)] uppercase">gol(s) marcado(s)</span>
+                  </div>
+                </article>
+              )}
+
+              {bestAssist && (
+                <article className="top-card border border-[var(--border)] bg-[var(--surface)] p-6 rounded flex flex-col justify-between aspect-[4/5] group hover:border-[var(--primary)] transition-colors duration-200">
+                  <div className="tag-row flex justify-between items-center text-[10.5px] font-mono text-[var(--text-3)] uppercase tracking-wider">
+                    <span>02 / Assistências</span>
+                    <span>GARÇOM</span>
+                  </div>
+                  <div className="player flex items-end gap-3 mt-6">
+                    <div className="num font-serif font-bold text-4xl text-[var(--ink)]">#{bestAssist.shirtNumber}</div>
+                    <div className="who">
+                      <div className="n font-serif font-bold text-base text-[var(--ink)] truncate max-w-[120px]">{bestAssist.playerName}</div>
+                      <div className="role text-[9.5px] font-mono text-[var(--text-3)] uppercase mt-0.5">{prettyRoles[bestAssist.position] || bestAssist.position}</div>
+                    </div>
+                  </div>
+                  <div className="main-stat border-t border-[var(--border)] pt-4 mt-6">
+                    <span className="val text-4xl font-mono font-bold text-[var(--ink)]">{bestAssist.assists}</span>
+                    <span className="unit text-[10px] font-mono text-[var(--text-3)] uppercase block mt-1">passes para gol</span>
+                  </div>
+                </article>
+              )}
+
+              {bestPresence && (
+                <article className="top-card border border-[var(--border)] bg-[var(--surface)] p-6 rounded flex flex-col justify-between aspect-[4/5] group hover:border-[var(--primary)] transition-colors duration-200">
+                  <div className="tag-row flex justify-between items-center text-[10.5px] font-mono text-[var(--text-3)] uppercase tracking-wider">
+                    <span>03 / Mais atuante</span>
+                    <span>PRESENÇA</span>
+                  </div>
+                  <div className="player flex items-end gap-3 mt-6">
+                    <div className="num font-serif font-bold text-4xl text-[var(--ink)]">#{bestPresence.shirtNumber}</div>
+                    <div className="who">
+                      <div className="n font-serif font-bold text-base text-[var(--ink)] truncate max-w-[120px]">{bestPresence.playerName}</div>
+                      <div className="role text-[9.5px] font-mono text-[var(--text-3)] uppercase mt-0.5">{prettyRoles[bestPresence.position] || bestPresence.position}</div>
+                    </div>
+                  </div>
+                  <div className="main-stat border-t border-[var(--border)] pt-4 mt-6">
+                    <span className="val text-4xl font-mono font-bold text-[var(--ink)]">{bestPresence.matches}</span>
+                    <span className="unit text-[10px] font-mono text-[var(--text-3)] uppercase block mt-1">jogos disputados</span>
+                  </div>
+                </article>
+              )}
+
+              {bestRated && (
+                <article className="top-card border border-[var(--border)] bg-[var(--surface)] p-6 rounded flex flex-col justify-between aspect-[4/5] group hover:border-[var(--primary)] transition-colors duration-200">
+                  <div className="tag-row flex justify-between items-center text-[10.5px] font-mono text-[var(--text-3)] uppercase tracking-wider">
+                    <span>04 / Maior nota</span>
+                    <span>SCOUT</span>
+                  </div>
+                  <div className="player flex items-end gap-3 mt-6">
+                    <div className="num font-serif font-bold text-4xl text-[var(--ink)]">#{bestRated.shirtNumber}</div>
+                    <div className="who">
+                      <div className="n font-serif font-bold text-base text-[var(--ink)] truncate max-w-[120px]">{bestRated.playerName}</div>
+                      <div className="role text-[9.5px] font-mono text-[var(--text-3)] uppercase mt-0.5">{prettyRoles[bestRated.position] || bestRated.position}</div>
+                    </div>
+                  </div>
+                  <div className="main-stat border-t border-[var(--border)] pt-4 mt-6">
+                    <span className="val text-4xl font-mono font-bold text-[var(--ink)]">{bestRated.averageStars?.toFixed(1) || "0.0"}</span>
+                    <span className="unit text-[10px] font-mono text-[var(--text-3)] uppercase block mt-1">{bestRated.totalRatings} avaliações</span>
+                  </div>
+                </article>
+              )}
+            </div>
+          </section>
+
+          {/* Calendário: Linha do tempo de partidas */}
+          <section className="scroll-mt-24 space-y-6">
+            <div className="sec-head flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[var(--border)] pb-4">
+              <div className="left">
+                <span className="eyebrow">Linha do tempo</span>
+                <h2 className="font-serif text-3xl font-bold uppercase text-[var(--ink)] mt-1">Histórico & agenda.</h2>
+                <p className="text-[13px] text-[var(--text-2)] mt-1">Resultados passados de amistosos/campeonatos e próximos confrontos.</p>
+              </div>
+            </div>
+
+            <div className="split-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Resultados Passados */}
+              <div className="card bg-[var(--surface)] border border-[var(--border)] rounded p-6">
+                <div className="card-head flex justify-between items-center border-b border-[var(--border)] pb-4 mb-4">
+                  <span className="t font-serif font-bold text-lg text-[var(--ink)]">Histórico de resultados</span>
+                  <span className="s font-mono text-[10.5px] text-[var(--text-3)] uppercase">{finishedMatches.length} partidas disputadas</span>
+                </div>
+                
+                {finishedMatches.length === 0 ? (
+                  <p className="text-center font-mono text-xs text-[var(--text-3)] py-12">Nenhuma partida finalizada registrada.</p>
                 ) : (
-                  <div className="h-28 w-28 shrink-0 border-2 border-dashed border-slate-800 bg-[#090d0f] flex flex-col items-center justify-center text-slate-600 relative rounded-none shadow-[4px_4px_0px_0px_#000]">
-                    <span className="text-4xl font-black text-white/5 select-none leading-none">#{bestScorer?.shirtNumber ?? "—"}</span>
-                    <span className="text-[9px] uppercase tracking-wider mt-1">[SEM FOTO]</span>
+                  <div className="divide-y divide-[var(--border)]">
+                    {finishedMatches.slice(0, 5).map((match) => {
+                      const isCancelled = match.status === "CANCELLED";
+                      const win = match.homeScore !== null && match.awayScore !== null && (
+                        match.isHome ? match.homeScore > match.awayScore : match.awayScore > match.homeScore
+                      );
+                      const draw = match.homeScore !== null && match.awayScore !== null && match.homeScore === match.awayScore;
+
+                      let badgeColor = "bg-[var(--surface-sunk)] text-[var(--text-2)]";
+                      let badgeChar = "E";
+
+                      if (isCancelled) {
+                        badgeColor = "bg-[var(--danger)] text-white";
+                        badgeChar = "C";
+                      } else if (win) {
+                        badgeColor = "bg-[var(--primary)] text-white";
+                        badgeChar = "V";
+                      } else if (!draw) {
+                        badgeColor = "bg-[var(--danger)] text-[#fff]";
+                        badgeChar = "D";
+                      }
+
+                      return (
+                        <div key={match.id} className="match-row py-3.5 flex items-center justify-between gap-4 font-mono">
+                          <div className="date text-[11px] text-[var(--text-3)] leading-none uppercase shrink-0">
+                            <b>{new Date(match.date).toLocaleDateString("pt-BR", { day: "2-digit" })}</b>
+                            <span className="block text-[9px] mt-0.5">{new Date(match.date).toLocaleDateString("pt-BR", { month: "short" }).substring(0,3)}</span>
+                          </div>
+                          <div>
+                            <span className={`tag text-[9px] ${match.type === "CHAMPIONSHIP" ? "info" : ""}`}>
+                              {match.type === "FRIENDLY" ? "Amist" : "Camp"}
+                            </span>
+                          </div>
+                          <div className="teams flex-1 min-w-0">
+                            <div className="opp font-sans font-semibold text-[13.5px] text-[var(--ink)] truncate">
+                              {team.shortName || team.name} vs {match.opponent}
+                            </div>
+                            <div className="det text-[9px] text-[var(--text-3)] truncate mt-0.5">
+                              {match.venue}
+                            </div>
+                          </div>
+                          <div className="score font-bold text-sm text-[var(--ink)] shrink-0">
+                            {!isCancelled && match.homeScore !== null && match.awayScore !== null ? (
+                              `${match.isHome ? match.homeScore : match.awayScore} - ${match.isHome ? match.awayScore : match.homeScore}`
+                            ) : (
+                              "vs"
+                            )}
+                          </div>
+                          <div className="res shrink-0">
+                            <span className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs ${badgeColor}`}>
+                              {badgeChar}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
 
-              <div className="mt-8 pt-6 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 z-10">
-                <div>
-                  <h4 className="text-xl font-black text-white uppercase tracking-tight group-hover:text-[var(--team-primary)] transition-colors">
-                    {bestScorer?.playerName || "Sem registro"}
-                  </h4>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                    Artilharia do elenco · Manto #{bestScorer?.shirtNumber ?? "—"}
-                  </p>
+              {/* Próximos Compromissos */}
+              <div className="card bg-[var(--surface)] border border-[var(--border)] rounded p-6">
+                <div className="card-head flex justify-between items-center border-b border-[var(--border)] pb-4 mb-4">
+                  <span className="t font-serif font-bold text-lg text-[var(--ink)]">Próximos compromissos</span>
+                  <span className="s font-mono text-[10.5px] text-[var(--text-3)] uppercase">{scheduledMatches.length} agendados</span>
                 </div>
-                <div className="text-[9px] font-black text-[var(--team-primary)] bg-black border border-slate-800 px-3 py-1.5 uppercase tracking-wider">
-                  [OFFICIAL MVP CARD]
-                </div>
+
+                {scheduledMatches.length === 0 ? (
+                  <p className="text-center font-mono text-xs text-[var(--text-3)] py-12">Nenhuma partida futura agendada.</p>
+                ) : (
+                  <div className="divide-y divide-[var(--border)]">
+                    {scheduledMatches.slice(0, 5).map((match) => (
+                      <div key={match.id} className="fixture-row py-3.5 flex items-center justify-between gap-4 font-mono">
+                        <div className="day text-[11px] text-[var(--text-3)] leading-none uppercase shrink-0">
+                          <b>{new Date(match.date).toLocaleDateString("pt-BR", { day: "2-digit" })}</b>
+                          <span className="block text-[9px] mt-0.5">{new Date(match.date).toLocaleDateString("pt-BR", { month: "short" }).substring(0,3)}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="opp font-sans font-semibold text-[13.5px] text-[var(--ink)] truncate">
+                            vs {match.opponent}
+                          </div>
+                          <div className="det text-[9px] text-[var(--text-3)] truncate mt-0.5">
+                            {match.type === "FRIENDLY" ? "Amistoso" : "Championship"} · {match.venue}
+                          </div>
+                        </div>
+                        <div className="when text-right shrink-0">
+                          <div className="h font-bold text-xs text-[var(--ink)]">
+                            {new Date(match.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          </div>
+                          <div className="t mt-1">
+                            <span className="tag success text-[8px] py-0.5 px-1.5">CONFIRMADO</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* Prancheta Tática */}
+          <section id="tatica" className="scroll-mt-24 space-y-6">
+            <div className="sec-head flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[var(--border)] pb-4">
+              <div className="left">
+                <span className="eyebrow">Prancheta tática</span>
+                <h2 className="font-serif text-3xl font-bold uppercase text-[var(--ink)] mt-1">Escalação de referência.</h2>
+                <p className="text-[13px] text-[var(--text-2)] mt-1">Formação base utilizada nos últimos confrontos e escalada de início.</p>
+              </div>
+              <div className="right">
+                <span className="pill">Formação: 4-3-3</span>
               </div>
             </div>
 
-            {/* Side Dossiers Stack */}
-            <div className="flex flex-col gap-4">
-              {/* Highlight 2: Garçom */}
-              <div className="relative overflow-hidden border-2 border-slate-800 bg-[#0b0f11] p-5 flex items-center justify-between shadow-[4px_4px_0px_0px_#000] group hover:border-cyan-400 hover:shadow-[4px_4px_0px_0px_rgba(6,182,212,0.9)] transition-all duration-200 rounded-none">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <IconAssist className="w-3.5 h-3.5 text-cyan-400" />
-                    <span className="text-[9px] font-black tracking-widest text-slate-400 uppercase">[GARÇOM]</span>
-                  </div>
-                  <p className="text-lg font-black text-white uppercase truncate tracking-tight max-w-[160px] group-hover:text-cyan-400 transition-colors">
-                    {bestAssist?.playerName || "Sem registro"}
-                  </p>
-                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                    {bestAssist ? `Camisa #${bestAssist.shirtNumber}` : "Aguardando passes"}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-black text-white leading-none tracking-tighter">
-                    {bestAssist?.assists || 0}
-                  </p>
-                  <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">ASSISTÊNCIAS</p>
-                </div>
-              </div>
-
-              {/* Highlight 3: Presença */}
-              <div className="relative overflow-hidden border-2 border-slate-800 bg-[#0b0f11] p-5 flex items-center justify-between shadow-[4px_4px_0px_0px_#000] group hover:border-amber-400 hover:shadow-[4px_4px_0px_0px_rgba(245,158,11,0.9)] transition-all duration-200 rounded-none">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <IconCalendar className="w-3.5 h-3.5 text-amber-500" />
-                    <span className="text-[9px] font-black tracking-widest text-slate-400 uppercase">[MAIS ATUANTE]</span>
-                  </div>
-                  <p className="text-lg font-black text-white uppercase truncate tracking-tight max-w-[160px] group-hover:text-amber-500 transition-colors">
-                    {bestPresence?.playerName || "Sem registro"}
-                  </p>
-                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                    {bestPresence ? `Camisa #${bestPresence.shirtNumber}` : "Aguardando partidas"}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-black text-white leading-none tracking-tighter">
-                    {bestPresence?.matches || 0}
-                  </p>
-                  <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">PARTIDAS</p>
-                </div>
-              </div>
-
-              {/* Highlight 4: Melhor Nota */}
-              <div className="relative overflow-hidden border-2 border-slate-800 bg-[#0b0f11] p-5 flex items-center justify-between shadow-[4px_4px_0px_0px_#000] group hover:border-violet-400 hover:shadow-[4px_4px_0px_0px_rgba(139,92,246,0.9)] transition-all duration-200 rounded-none">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <IconStar className="w-3.5 h-3.5 text-violet-400" />
-                    <span className="text-[9px] font-black tracking-widest text-slate-400 uppercase">[MELHOR NOTA]</span>
-                  </div>
-                  <p className="text-lg font-black text-white uppercase truncate tracking-tight max-w-[160px] group-hover:text-violet-400 transition-colors">
-                    {bestRated?.playerName || "Sem registro"}
-                  </p>
-                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                    {bestRated ? `${bestRated.totalRatings} avaliações` : "Aguardando votos"}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-black text-white leading-none tracking-tighter">
-                    {bestRated?.averageStars?.toFixed(1) || "0.0"}
-                  </p>
-                  <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">MÉDIA</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* MATCHES SECTION (3-LEVEL TIMELINE) - High contrast & professional Sofascore layout */}
-        <section id="retrospecto" className="space-y-6 scroll-mt-24">
-          <div className="mb-6 flex items-end justify-between gap-3 border-b border-white/5 pb-4">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--brand)] font-mono">Linha do Tempo</p>
-              <h2 className="text-3xl font-black uppercase text-white tracking-tight font-mono mt-1">Histórico & Agenda</h2>
-            </div>
-            <span className="hidden sm:inline-block text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Cronograma de Jogos
-            </span>
-          </div>
-
-          <div className="space-y-8">
-            {/* LEVEL 1: Próximo Jogo (Highlighted at the top as a physical ticket) */}
-            {nextMatch && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-[var(--team-primary)] tracking-widest uppercase font-mono">
-                  <IconCalendar className="w-4 h-4" />
-                  PRÓXIMO COMPROMISSO
-                </div>
+            <div className="pitch-wrap grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+              <div className="pitch col-span-1 md:col-span-2 relative aspect-[4/3] rounded overflow-hidden border border-[var(--border)] bg-gradient-to-b from-[var(--primary-deep)] to-[rgba(10,88,75,0.95)]">
+                <div className="lines absolute inset-0 m-4 border border-white/10"></div>
+                <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 border-l border-dashed border-white/10"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border border-white/10"></div>
+                <div className="box left absolute left-4 top-1/4 bottom-1/4 w-28 border-y border-r border-white/10"></div>
+                <div className="box right absolute right-4 top-1/4 bottom-1/4 w-28 border-y border-l border-white/10"></div>
                 
-                <div className="grid gap-6 lg:grid-cols-[1fr_auto] items-stretch">
-                  {/* Bilhete de Ingresso Impresso */}
-                  <div className="relative flex flex-col md:flex-row items-stretch bg-[#0b0f11] border-2 border-black shadow-[6px_6px_0px_0px_var(--team-primary)] overflow-hidden rounded-none">
-                    {/* Left Accent Bar in Brand Color */}
-                    <div className="w-2 shrink-0" style={{ backgroundColor: themePrimary }} />
-
-                    {/* Ticket Main Details Body */}
-                    <div className="flex-1 p-6 md:p-8 flex flex-col justify-between gap-6 z-10 font-mono">
-                      <div className="space-y-4">
-                        {/* Ticket Header Meta */}
-                        <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-400">
-                          <span className="bg-black border border-slate-800 px-3 py-1 font-mono text-[9px] font-black uppercase tracking-widest text-slate-300">
-                            {nextMatch.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
-                          </span>
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-700" />
-                          <span className="font-mono text-[10px] font-black uppercase tracking-widest text-slate-300">
-                            {new Date(nextMatch.date).toLocaleDateString("pt-BR", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-
-                        {/* Scoreboard style naming */}
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                          <span className="text-3xl sm:text-4xl font-black text-white tracking-tighter uppercase font-mono leading-none">
-                            {team.shortName || team.name}
-                          </span>
-                          <span className="px-3 py-1 bg-black border border-slate-800 text-xs font-mono font-black text-slate-500 tracking-widest">
-                            VS
-                          </span>
-                          <span className="text-3xl sm:text-4xl font-black tracking-tighter uppercase font-mono leading-none" style={{ color: themeSecondary }}>
-                            {nextMatch.opponent}
-                          </span>
-                        </div>
-
-                        {/* Map info */}
-                        <div className="flex items-center gap-2 text-xs text-slate-400 font-bold uppercase tracking-wider font-mono">
-                          <IconMapPin className="w-4 h-4 text-[var(--team-primary)] shrink-0" />
-                          <span>LOCAL: {nextMatch.venue}</span>
-                        </div>
-                      </div>
-
-                      {/* Barcode details in ticket footer */}
-                      <div className="text-[9px] text-slate-500 font-mono font-bold tracking-widest uppercase border-t border-slate-800/40 pt-4">
-                        [ PORTÃO ABERTO • TRAGA SUA TORCIDA ]
-                      </div>
+                {tacticalPlayers.map((player) => (
+                  <div
+                    key={player.id}
+                    className="spot animate-fade-in"
+                    style={{
+                      left: `${player.x}%`,
+                      top: `${player.y}%`,
+                    }}
+                  >
+                    <div className="ring bg-white border border-[var(--primary)] text-[var(--primary)] w-9 h-9 rounded-full flex items-center justify-center font-mono font-bold text-xs shadow-md">
+                      {player.shirtNumber || "—"}
                     </div>
-
-                    {/* Perforated Stub Section */}
-                    <div className="w-full md:w-56 p-6 md:p-8 flex flex-col items-center justify-center border-t-2 md:border-t-0 md:border-l-2 border-dashed border-slate-800 relative bg-[#0e1317]/50 shrink-0 text-center z-10">
-                      {/* Punch-hole cutouts mapping exactly to the division line */}
-                      <div className="absolute -top-3.5 -left-3.5 h-7 w-7 rounded-full bg-[#070a0c] border-2 border-slate-800 hidden md:block" />
-                      <div className="absolute -bottom-3.5 -left-3.5 h-7 w-7 rounded-full bg-[#070a0c] border-2 border-slate-800 hidden md:block" />
-                      <div className="absolute -top-3.5 -left-3.5 h-7 w-7 rounded-full bg-[#070a0c] border-2 border-slate-800 md:hidden" />
-                      <div className="absolute -top-3.5 -right-3.5 h-7 w-7 rounded-full bg-[#070a0c] border-2 border-slate-800 md:hidden" />
-
-                      <div className="space-y-3 w-full font-mono">
-                        <div className="text-slate-500 text-[9px] font-black uppercase tracking-widest leading-none">SEÇÃO / STATUS</div>
-                        <div className="inline-flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/30 text-blue-400 px-3 py-1 text-[9px] font-black uppercase tracking-widest w-fit">
-                          ADMIT ONE · AGENDADO
-                        </div>
-
-                        {/* Mock Barcode Graphic */}
-                        <div className="mt-4 flex flex-col items-center gap-1.5 opacity-40 hover:opacity-75 transition-opacity duration-200" aria-hidden="true">
-                          <div className="flex items-center gap-[2px] justify-center">
-                            <div className="w-[1px] h-8 bg-slate-400" />
-                            <div className="w-[3px] h-8 bg-slate-400" />
-                            <div className="w-[1px] h-8 bg-slate-400" />
-                            <div className="w-[2px] h-8 bg-slate-400" />
-                            <div className="w-[1px] h-8 bg-slate-400" />
-                            <div className="w-[4px] h-8 bg-slate-400" />
-                            <div className="w-[1px] h-8 bg-slate-400" />
-                            <div className="w-[2px] h-8 bg-slate-400" />
-                            <div className="w-[3px] h-8 bg-slate-400" />
-                            <div className="w-[1px] h-8 bg-slate-400" />
-                            <div className="w-[2px] h-8 bg-slate-400" />
-                            <div className="w-[1px] h-8 bg-slate-400" />
-                          </div>
-                          <span className="text-[7px] text-slate-500 uppercase tracking-widest leading-none">
-                            MATCH-STUB-{nextMatch.id.substring(0, 8)}
-                          </span>
-                        </div>
-                      </div>
+                    <div className="label bg-[var(--ink)] text-[var(--text-inv)] text-[8px] font-mono tracking-wider font-bold py-0.5 px-2 uppercase rounded-none mt-1">
+                      {player.name.split(" ")[0]}
                     </div>
                   </div>
-
-                  {/* Prancheta Tática do Professor */}
-                  <div className="relative border-2 border-black bg-[#0b0f11] p-4 flex flex-col justify-between shadow-[6px_6px_0px_0px_#000] rounded-none w-full lg:w-[320px] shrink-0 aspect-[4/5] overflow-hidden">
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 h-6 w-28 bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-[7px] font-black uppercase text-slate-300 font-mono tracking-widest z-20">
-                      PRANCHETA TÁTICA
-                    </div>
-
-                    <div className="relative w-full h-full border border-dashed border-slate-800/80 bg-gradient-to-b from-[#081812] to-[#040a08] flex flex-col justify-between overflow-hidden mt-4 p-2">
-                      {/* Soccer Pitch Markings */}
-                      <div className="absolute inset-0 border border-white/5 m-1 pointer-events-none" />
-                      <div className="absolute top-1/2 left-0 right-0 border-t border-white/5 pointer-events-none" />
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full border border-white/5 pointer-events-none" />
-                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-8 border-b border-x border-white/5 pointer-events-none" />
-                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-24 h-8 border-t border-x border-white/5 pointer-events-none" />
-
-                      {/* Render Starting Lineup Jerseys */}
-                      <div className="relative w-full h-full z-10">
-                        {tacticalPlayers.map((player) => (
-                          <div
-                            key={player.id}
-                            className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center group cursor-help"
-                            style={{
-                              left: `${player.x}%`,
-                              top: `${player.y}%`,
-                            }}
-                            title={`${player.name} (${player.position})`}
-                          >
-                            <div 
-                              className="w-7 h-7 rounded-full border-2 border-black flex items-center justify-center text-[9px] font-black shadow-md transition-transform group-hover:scale-110"
-                              style={{ backgroundColor: themePrimary, color: "#000" }}
-                            >
-                              {player.shirtNumber || "—"}
-                            </div>
-                            <div className="bg-black/95 px-1 py-0.5 border border-slate-800 text-[6px] font-black text-white font-mono uppercase tracking-tighter max-w-[60px] truncate text-center mt-0.5 leading-none">
-                              {player.name.split(" ")[0]}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* LEVEL 2: Partidas Finalizadas (Sofascore style list display) */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <IconTrophy className="w-4 h-4 text-[var(--team-primary)]" />
-                <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase">
-                  HISTÓRICO DE RESULTADOS
-                </h3>
+                ))}
               </div>
 
-              {finishedMatches.length === 0 ? (
-                <div className="rounded-none border-2 border-slate-800 p-12 text-center text-slate-500 text-sm font-medium bg-black/20 border-dashed">
-                  Nenhum jogo disputado registrado.
+              <div className="lineup-list bg-[var(--surface)] border border-[var(--border)] rounded p-6 flex flex-col justify-between">
+                <div className="head border-b border-[var(--border)] pb-3 mb-4 flex justify-between items-center">
+                  <span className="t font-serif font-bold text-base text-[var(--ink)]">Line-up de referência</span>
+                  <span className="s font-mono text-[10px] text-[var(--text-3)] uppercase">{tacticalPlayers.length} atletas</span>
                 </div>
-              ) : (
-                <div className="border-2 border-slate-800 rounded-none bg-[#0b0f11] overflow-hidden divide-y-2 divide-slate-800 shadow-[4px_4px_0px_0px_#000]">
-                  {finishedMatches.map((match) => {
-                    const isCancelled = match.status === "CANCELLED";
-                    const win = match.homeScore !== null && match.awayScore !== null && (
-                      match.isHome ? match.homeScore > match.awayScore : match.awayScore > match.homeScore
-                    );
-                    const draw = match.homeScore !== null && match.awayScore !== null && match.homeScore === match.awayScore;
-                    
-                    let badgeColor = "bg-[#090d0f] text-slate-400 border-2 border-slate-800 font-black";
-                    let outcomeChar = "E";
-                    let resultLabel = "Empate";
-                    
-                    if (isCancelled) {
-                      resultLabel = "Cancelado";
-                      outcomeChar = "C";
-                      badgeColor = "bg-[#090d0f] text-red-500 border-2 border-red-500 font-black";
-                    } else if (win) {
-                      resultLabel = "Vitória";
-                      outcomeChar = "V";
-                      badgeColor = "bg-[var(--team-primary)] text-black border-2 border-black font-black";
-                    } else if (!draw) {
-                      resultLabel = "Derrota";
-                      outcomeChar = "D";
-                      badgeColor = "bg-rose-600 text-white border-2 border-black font-black";
-                    }
-
-                    return (
-                      <div key={match.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors hover:bg-white/[0.01]">
-                        <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
-                          {/* Outcome badge column */}
-                          <div className="flex items-center gap-3 shrink-0">
-                            <span className={`h-8 w-8 rounded-none flex items-center justify-center font-mono font-black text-xs ${badgeColor}`}>
-                              {outcomeChar}
-                            </span>
-                            <span className="sm:hidden text-xs font-bold text-slate-400 uppercase">
-                              {resultLabel}
-                            </span>
-                          </div>
-
-                          {/* Match description */}
-                          <div className="min-w-0 flex-1 space-y-1">
-                            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                              <span className="uppercase text-[10px] font-bold text-slate-400 tracking-wider">
-                                {match.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
-                              </span>
-                              <span>•</span>
-                              <span>
-                                {new Date(match.date).toLocaleDateString("pt-BR", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                })}
-                              </span>
-                            </div>
-                            
-                            {/* Score Display Row */}
-                            <div className="flex items-center gap-3">
-                              <span className="text-base font-extrabold text-white tracking-tight uppercase font-mono truncate">
-                                {team.shortName || team.name}
-                              </span>
-                              
-                              {!isCancelled && match.homeScore !== null && match.awayScore !== null ? (
-                                <div className="shrink-0 flex items-center gap-1 bg-black/40 border border-white/5 rounded px-2.5 py-0.5 font-mono text-sm font-black text-white select-none">
-                                  <span>{match.isHome ? match.homeScore : match.awayScore}</span>
-                                  <span className="text-slate-600 font-normal">:</span>
-                                  <span>{match.isHome ? match.awayScore : match.homeScore}</span>
-                                </div>
-                              ) : (
-                                <span className="text-xs text-slate-600 font-bold uppercase tracking-wider">VS</span>
-                              )}
-
-                              <span className="text-base font-extrabold tracking-tight uppercase font-mono truncate" style={{ color: themeSecondary }}>
-                                {match.opponent}
-                              </span>
-                            </div>
-                            
-                            <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                              <IconMapPin className="w-3.5 h-3.5 text-slate-500" />
-                              <span className="truncate">{match.venue}</span>
-                            </div>
-
-                            {match.matchStats && match.matchStats.length > 0 && (
-                              <div className="mt-2.5 border-t border-slate-800/40 pt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-[10px] font-mono">
-                                {match.matchStats.some((s) => s.goals > 0) && (
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-slate-400 uppercase font-black">⚽ Gols:</span>
-                                    <span className="text-white font-black">
-                                      {match.matchStats
-                                        .filter((s) => s.goals > 0)
-                                        .map((s) => `${s.player.name.split(" ")[0]} (${s.goals})`)
-                                        .join(", ")}
-                                    </span>
-                                  </div>
-                                )}
-                                {match.matchStats.some((s) => s.assists > 0) && (
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-slate-400 uppercase font-black">🎯 Assist:</span>
-                                    <span className="text-slate-300 font-bold">
-                                      {match.matchStats
-                                        .filter((s) => s.assists > 0)
-                                        .map((s) => `${s.player.name.split(" ")[0]} (${s.assists})`)
-                                        .join(", ")}
-                                    </span>
-                                  </div>
-                                )}
-                                {match.matchStats.some((s) => s.yellowCards > 0) && (
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-amber-500 font-black">🟨:</span>
-                                    <span className="text-slate-400">
-                                      {match.matchStats
-                                        .filter((s) => s.yellowCards > 0)
-                                        .map((s) => `${s.player.name.split(" ")[0]}${s.yellowCards > 1 ? ` (${s.yellowCards})` : ""}`)
-                                        .join(", ")}
-                                    </span>
-                                  </div>
-                                )}
-                                {match.matchStats.some((s) => s.redCards > 0) && (
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-red-500 font-black">🟥:</span>
-                                    <span className="text-slate-400">
-                                      {match.matchStats
-                                        .filter((s) => s.redCards > 0)
-                                        .map((s) => `${s.player.name.split(" ")[0]}`)
-                                        .join(", ")}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Outcome tag desktop */}
-                        <div className="hidden sm:flex items-center justify-end shrink-0">
-                          <span className={`px-3 py-1 rounded-none text-[10px] font-black uppercase tracking-wider font-mono border-2 ${
-                            isCancelled ? "bg-black text-red-500 border-red-500" :
-                            win ? "bg-black text-[var(--team-primary)] border-[var(--team-primary)]" :
-                            draw ? "bg-black text-slate-400 border-slate-800" : "bg-black text-rose-500 border-rose-500"
-                          }`}>
-                            {resultLabel}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* LEVEL 3: Outros Jogos Agendados (chronological ascending) */}
-            {remainingScheduled.length > 0 && (
-              <div className="space-y-4 pt-4">
-                <div className="flex items-center gap-2">
-                  <IconCalendar className="w-4 h-4 text-blue-400" />
-                  <h3 className="text-xs font-bold text-slate-300 tracking-wider uppercase">
-                    OUTROS COMPROMISSOS FUTUROS
-                  </h3>
-                </div>
-                
-                <div className="border-2 border-slate-800 rounded-none bg-[#0b0f11] overflow-hidden divide-y-2 divide-slate-800 shadow-[4px_4px_0px_0px_#000]">
-                  {remainingScheduled.map((match) => (
-                    <div key={match.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors hover:bg-white/[0.01]">
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                          <span className="bg-black text-blue-400 px-2 py-0.5 border-2 border-blue-500 rounded-none text-[9px] font-black uppercase tracking-widest font-mono">
-                            {match.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
-                          </span>
-                          <span>•</span>
-                          <span className="font-semibold text-slate-300">
-                            {new Date(match.date).toLocaleDateString("pt-BR", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                        
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                          <span className="text-base font-extrabold text-white tracking-tight uppercase font-mono">
-                            {team.shortName || team.name}
-                          </span>
-                          <span className="text-xs font-bold text-slate-600 font-mono tracking-widest">VS</span>
-                          <span className="text-base font-extrabold tracking-tight uppercase font-mono" style={{ color: themeSecondary }}>
-                            {match.opponent}
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                          <IconMapPin className="w-3.5 h-3.5 text-slate-500" />
-                          <span className="truncate">{match.venue}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center shrink-0">
-                        <span className="px-3 py-1 bg-black border-2 border-slate-800 rounded-none text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono">
-                          Agendado
-                        </span>
-                      </div>
+                <div className="divide-y divide-[var(--border)] overflow-y-auto max-h-[300px] flex-1 pr-2">
+                  {tacticalPlayers.map((player) => (
+                    <div key={player.id} className="lineup-row py-2 flex items-center justify-between font-mono text-xs">
+                      <span className="pos text-[9px] font-bold text-[var(--text-3)] uppercase w-10 shrink-0">
+                        {shortRoles[player.position] || "N/A"}
+                      </span>
+                      <span className="n font-bold text-[var(--primary)] w-8 text-center shrink-0">
+                        #{player.shirtNumber || "—"}
+                      </span>
+                      <span className="nm font-sans font-semibold text-[var(--ink)] flex-1 truncate px-2">
+                        {player.name}
+                      </span>
                     </div>
                   ))}
                 </div>
+                <div className="pt-4 border-t border-[var(--border)] mt-4 text-[10px] font-mono text-[var(--text-3)] uppercase leading-relaxed">
+                  // Súmulas oficiais geridas via dashboard administrativo.
+                </div>
               </div>
-            )}
-          </div>
-        </section>
-      </div>
-
-      <div id="content-album" className="space-y-16 mt-8 animate-fade-in">
-        {/* ELENCO OFICIAL (SQUAD DOSSIER) - Clean athletical visual dossier cards */}
-        <section id="elenco" className="scroll-mt-24 space-y-6">
-          <div className="mb-6 flex items-end justify-between gap-3 border-b border-white/5 pb-4">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--brand)] font-mono">Atletas Oficiais</p>
-              <h2 className="text-3xl font-black uppercase text-white tracking-tight font-mono mt-1">Guerreiros do Elenco</h2>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              {team.players.length} Atletas
-            </span>
-          </div>
+          </section>
+        </div>
 
-          {team.players.length === 0 ? (
-            <div className="rounded-xl border border-white/5 p-12 text-center text-slate-500 text-sm font-medium border-dashed">
-              Nenhum jogador cadastrado ou ativo no elenco.
+        {/* ── CADERNO 2: ÁLBUM & TABELA ── */}
+        <div id="content-album" className="space-y-16 animate-fade-in px-4">
+          
+          {/* Classificação */}
+          {stats.activeSeason && (
+            <section id="ranking" className="scroll-mt-24 space-y-6">
+              <div className="sec-head flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[var(--border)] pb-4">
+                <div className="left">
+                  <span className="eyebrow">Classificação interna</span>
+                  <h2 className="font-serif text-3xl font-bold uppercase text-[var(--ink)] mt-1">Tabela individual da temporada.</h2>
+                  <p className="text-[13px] text-[var(--text-2)] mt-1">Desempenho acumulado dos atletas oficiais na temporada: {stats.activeSeason.name}.</p>
+                </div>
+                <div className="right">
+                  <span className="pill">Série A · Campeonato</span>
+                </div>
+              </div>
+
+              <div className="card bg-[var(--surface)] border border-[var(--border)] rounded overflow-hidden">
+                {stats.activeSeasonStandings.length === 0 ? (
+                  <p className="text-center font-mono text-xs text-[var(--text-3)] py-16">Nenhuma estatística disponível nesta temporada.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="rank-table">
+                      <thead>
+                        <tr>
+                          <th>Pos</th>
+                          <th>Atleta</th>
+                          <th className="r">Jogos</th>
+                          <th className="r">V</th>
+                          <th className="r">E</th>
+                          <th className="r">D</th>
+                          <th className="r">SG</th>
+                          <th className="r">PTS</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {stats.activeSeasonStandings.map((row, idx) => (
+                          <tr key={row.playerId}>
+                            <td className="pos">{String(idx + 1).padStart(2, "0")}</td>
+                            <td>
+                              <div className="nm font-sans text-sm font-semibold text-[var(--ink)]">{row.playerName}</div>
+                              <div className="sub text-[9.5px] font-mono text-[var(--text-3)]">Camisa #{row.shirtNumber ?? "—"}</div>
+                            </td>
+                            <td className="r">{row.played}</td>
+                            <td className="r text-[var(--success)]">{row.won}</td>
+                            <td className="r text-[var(--text-3)]">{row.drawn}</td>
+                            <td className="r text-[var(--danger)]">{row.lost}</td>
+                            <td className="r">{row.goalDiff > 0 ? `+${row.goalDiff}` : row.goalDiff}</td>
+                            <td className="r font-bold text-[var(--primary)]">{row.points}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Elenco */}
+          <section className="scroll-mt-24 space-y-6">
+            <div className="sec-head flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[var(--border)] pb-4">
+              <div className="left">
+                <span className="eyebrow">Atletas oficiais</span>
+                <h2 className="font-serif text-3xl font-bold uppercase text-[var(--ink)] mt-1">Guerreiros do elenco.</h2>
+                <p className="text-[13px] text-[var(--text-2)] mt-1">Conheça os {team.players.length} atletas registrados na liga regional.</p>
+              </div>
             </div>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {team.players.map((player) => {
-                const theme = positionThemes[player.position] || {
-                  border: "border-white/10 hover:border-white/20",
-                  text: "text-slate-400",
-                  label: player.position,
-                  badge: "bg-white/5 text-slate-400 border-white/10",
-                };
 
-                const playerStats = ranking.find((p) => p.playerId === player.id);
-                const statsGoals = playerStats?.goals ?? 0;
-                const statsAssists = playerStats?.assists ?? 0;
-                const statsMatches = playerStats?.matches ?? 0;
-                const statsRating = playerStats?.averageStars ?? null;
+            {team.players.length === 0 ? (
+              <p className="text-center font-mono text-xs text-[var(--text-3)] py-16">Nenhum jogador registrado no elenco.</p>
+            ) : (
+              <div className="squad-grid">
+                {team.players.map((player) => {
+                  const roleShort = shortRoles[player.position] || "ATH";
+                  const rolePretty = prettyRoles[player.position] || player.position;
+                  
+                  const playerStats = stats.ranking.find((p) => p.playerId === player.id);
+                  const pMatches = playerStats?.matches ?? 0;
+                  const pGoals = playerStats?.goals ?? 0;
+                  const pAssists = playerStats?.assists ?? 0;
+                  const pRating = playerStats?.averageStars ? playerStats.averageStars.toFixed(1) : "—";
 
-                return (
-                  <Link
-                    key={player.id}
-                    href={`/jogadores/${player.id}`}
-                    className="group block"
-                    aria-label={`Ver perfil de ${player.name}`}
-                  >
-                    <article className="relative bg-[#0b0f11] border-2 border-slate-800 p-2.5 shadow-[5px_5px_0px_0px_rgba(0,0,0,0.5)] hover:shadow-[5px_5px_0px_0px_var(--team-primary)] hover:border-[var(--team-primary)] transition-all duration-200 rounded-none flex flex-col justify-between h-full">
-                      {/* Inner double border margin */}
-                      <div className="border border-slate-800/40 p-2 flex flex-col justify-between h-full bg-[#0e1317]/50">
-                        
-                        {/* Card Image Frame */}
-                        <div className="relative w-full h-[240px] bg-[#090d0f] border border-slate-800 overflow-hidden shrink-0">
-                          {/* Vintage Editorial Stamp Ribbon */}
-                          <div className="absolute bottom-3 left-3 -rotate-3 bg-red-700 border border-black px-2 py-0.5 text-[8px] font-mono font-black uppercase text-white tracking-widest shadow-md z-10 select-none">
-                            {getPlayerStamp(player, stats)}
-                          </div>
-
-                          {player.photoUrl ? (
-                            <img
-                              src={player.photoUrl}
-                              alt={player.name}
-                              loading="lazy"
-                              className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105 rounded-none filter grayscale contrast-125 saturate-50 group-hover:grayscale-0 group-hover:contrast-100 group-hover:saturate-100"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex flex-col justify-center items-center bg-[#090d0f] relative overflow-hidden">
-                              {/* Giant background jersey number */}
-                              <span className="font-mono text-[9rem] font-black text-white/[0.02] tracking-tighter select-none leading-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                                {player.shirtNumber}
-                              </span>
-                              <svg className="w-16 h-16 text-slate-800/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                              </svg>
-                            </div>
-                          )}
-                          
-                          {/* Jersey number stamp inside picture top right */}
-                          <div className="absolute top-3 right-3 h-8 w-8 bg-[#0b0f11] border border-slate-800 flex items-center justify-center font-mono font-black text-xs text-white">
-                            #{player.shirtNumber}
-                          </div>
-
-                          {/* Position Badge top left */}
-                          <div className="absolute top-3 left-3">
-                            <span className={`inline-flex border px-2 py-0.5 font-mono text-[8px] font-black uppercase tracking-widest ${theme.badge}`}>
-                              {theme.label}
-                            </span>
-                          </div>
+                  return (
+                    <Link href={`/jogadores/${player.id}`} key={player.id} className="player-card group">
+                      <div className="top">
+                        <span className={`pos ${roleShort}`}>{roleShort}</span>
+                        <span>#{player.shirtNumber || "0"} · {getPlayerTag(player, stats)}</span>
+                      </div>
+                      <div className="center">
+                        <div className="num font-serif text-[42px] leading-none text-[var(--ink)]">
+                          {String(player.shirtNumber || 0).padStart(2, "0")}
                         </div>
-
-                        {/* Card Dossier Data (Player Info + Stats Table) */}
-                        <div className="mt-4 space-y-4 flex-1 flex flex-col justify-between">
-                          <div className="space-y-0.5">
-                            <h3 className="font-mono text-base font-black text-white uppercase tracking-tight group-hover:text-[var(--team-primary)] transition-colors duration-150 truncate">
-                              {player.name}
-                            </h3>
-                            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                              VARZEA OFFICIAL CARD
-                            </p>
+                        <div className="who">
+                          <div className="name font-sans text-[14.5px] font-bold text-[var(--ink)] group-hover:text-[var(--primary)] transition-colors">
+                            {player.name}
                           </div>
-
-                          {/* Printed scout stats sheet base */}
-                          <div className="grid grid-cols-4 gap-1 border-t border-b border-slate-800/60 py-2 bg-[#090d0f]/60 font-mono text-center">
-                            <div>
-                              <p className="text-[8px] text-slate-500 font-bold uppercase">JOG</p>
-                              <p className="text-xs font-black text-white mt-0.5">{statsMatches}</p>
-                            </div>
-                            <div>
-                              <p className="text-[8px] text-slate-500 font-bold uppercase">GOL</p>
-                              <p className="text-xs font-black text-[var(--team-primary)] mt-0.5">{statsGoals}</p>
-                            </div>
-                            <div>
-                              <p className="text-[8px] text-slate-500 font-bold uppercase">AST</p>
-                              <p className="text-xs font-black text-cyan-400 mt-0.5">{statsAssists}</p>
-                            </div>
-                            <div>
-                              <p className="text-[8px] text-slate-500 font-bold uppercase">NOTA</p>
-                              <p className="text-xs font-black text-violet-400 mt-0.5">{statsRating ? statsRating.toFixed(1) : "—"}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between text-[9px] font-mono font-black text-slate-400 uppercase tracking-widest pt-1">
-                            <span>Ver Scout Completo</span>
-                            <IconArrowRight className="w-3 h-3 text-[var(--team-primary)] group-hover:translate-x-1 transition-transform" />
+                          <div className="pl-tag text-[9.5px] font-mono tracking-wider mt-0.5">
+                            {rolePretty}
                           </div>
                         </div>
                       </div>
-                    </article>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </section>
-      </div>
-
-      <div id="content-secretaria" className="space-y-16 mt-8 animate-fade-in">
-        {/* Match Availability & Open Slots */}
-        {(team.openMatchSlots.length > 0 || hasDiscoveryInfo) && (
-          <section id="agenda-aberta" className="scroll-mt-24 rounded-none border-2 border-slate-800 bg-[#0b0f11] p-6 sm:p-8 space-y-6 shadow-[6px_6px_0px_0px_#000]">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b-2 border-slate-800 pb-5">
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--brand)] font-mono">[DISPONIBILIDADE DE ARENA]</p>
-                <h2 className="text-2xl font-black uppercase text-white tracking-tight font-mono mt-1">Datas para Amistosos</h2>
-              </div>
-              {team.openMatchSlots.length > 0 && (
-                <span className="rounded-none border-2 border-[var(--brand)] bg-black px-3 py-1 text-xs font-black text-[var(--brand)] font-mono">
-                  {team.openMatchSlots.length} HORÁRIO(S) ABERTO(S)
-                </span>
-              )}
-            </div>
-
-            {hasDiscoveryInfo && (
-              <div className="flex flex-wrap gap-2">
-                {team.city && (
-                  <span className="rounded-none border-2 border-slate-800 bg-[#090d0f] px-3 py-1.5 text-xs font-black text-slate-400 font-mono uppercase">
-                    CIDADE: {team.city}
-                  </span>
-                )}
-                {team.region && (
-                  <span className="rounded-none border-2 border-slate-800 bg-[#090d0f] px-3 py-1.5 text-xs font-black text-slate-400 font-mono uppercase">
-                    REGIÃO: {team.region}
-                  </span>
-                )}
-                {team.fieldType && (
-                  <span className="rounded-none border-2 border-slate-800 bg-[#090d0f] px-3 py-1.5 text-xs font-black text-slate-400 font-mono uppercase">
-                    CAMPO: {fieldTypeLabels[team.fieldType]}
-                  </span>
-                )}
-                {team.competitiveLevel && (
-                  <span className="rounded-none border-2 border-slate-800 bg-[#090d0f] px-3 py-1.5 text-xs font-black text-slate-400 font-mono uppercase">
-                    NÍVEL: {competitiveLevelLabels[team.competitiveLevel]}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {team.openMatchSlots.length > 0 ? (
-              <div className="grid gap-5 sm:grid-cols-2 pt-2">
-                {team.openMatchSlots.map((slot) => (
-                  <article key={slot.id} className="rounded-none border-2 border-slate-800 bg-[#090d0f] p-6 flex flex-col justify-between shadow-[4px_4px_0px_0px_#000] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_var(--team-primary)] transition-all duration-200 group">
-                    <div className="space-y-2">
-                      <p className="text-base font-black text-white uppercase tracking-tight font-mono">
-                        {new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(slot.date)}
-                      </p>
-                      <p className="text-xs font-black text-slate-400 font-mono uppercase tracking-wider">
-                        {(slot.timeLabel || "HORÁRIO A DEFINIR") + " • " + (slot.venueLabel || "LOCAL A DEFINIR")}
-                      </p>
-                      {slot.notes && <p className="text-xs text-slate-500 font-mono uppercase pt-1">[NOTA: {slot.notes}]</p>}
-                    </div>
-                    <Link
-                      href={`/${team.slug}?slot=${slot.id}#amistoso`}
-                      className="mt-6 inline-flex min-h-10 items-center justify-center rounded-none border-2 border-[var(--brand)] bg-transparent text-[var(--brand)] hover:bg-[var(--brand)] hover:text-black text-xs font-black uppercase tracking-wider px-6 py-2.5 transition-all duration-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.9)]"
-                    >
-                      Propor jogo neste horário
+                      <div className="stats mt-auto font-mono text-center">
+                        <div>
+                          <div className="l text-[8px] text-[var(--text-3)]">JOG</div>
+                          <div className="v text-xs font-bold text-[var(--ink)]">{pMatches}</div>
+                        </div>
+                        <div>
+                          <div className="l text-[8px] text-[var(--text-3)]">GOL</div>
+                          <div className="v text-xs font-bold text-[var(--primary)]">{pGoals}</div>
+                        </div>
+                        <div>
+                          <div className="l text-[8px] text-[var(--text-3)]">AST</div>
+                          <div className="v text-xs font-bold text-cyan-500">{pAssists}</div>
+                        </div>
+                        <div>
+                          <div className="l text-[8px] text-[var(--text-3)]">NOTA</div>
+                          <div className="v text-xs font-bold text-violet-500">{pRating}</div>
+                        </div>
+                      </div>
                     </Link>
-                  </article>
-                ))}
+                  );
+                })}
               </div>
-            ) : (
-              <p className="text-xs text-slate-400 pt-2 font-medium">
-                No momento não temos datas abertas cadastradas, mas você pode sugerir um dia e local no formulário abaixo!
-              </p>
             )}
           </section>
-        )}
 
-        {/* FORMS SECTION (AMISTOSO / RECRUTAMENTO SPLIT) */}
-        <section id="amistoso" className="scroll-mt-24 grid gap-8 lg:grid-cols-2">
+          {/* Identidade Visual */}
+          <section id="identidade" className="scroll-mt-24 space-y-6">
+            <div className="sec-head flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[var(--border)] pb-4">
+              <div className="left">
+                <span className="eyebrow">Identidade visual & cores</span>
+                <h2 className="font-serif text-3xl font-bold uppercase text-[var(--ink)] mt-1">Os mantos oficiais.</h2>
+                <p className="text-[13px] text-[var(--text-2)] mt-1">Paleta de cores e uniformes clássicos atualizados para a temporada.</p>
+              </div>
+            </div>
+
+            <div className="kits-grid">
+              <article className="kit-card">
+                <div className="vis">
+                  <svg className="kit-shirt" viewBox="0 0 200 240">
+                    <path d="M40 30 L80 10 Q100 30 120 10 L160 30 L180 60 L160 80 L160 220 L40 220 L40 80 L20 60 Z" fill={themePrimary} stroke="rgba(0,0,0,0.15)" strokeWidth="2"/>
+                    <path d="M40 30 L80 10 Q100 30 120 10 L160 30" fill="rgba(0,0,0,0.08)"/>
+                    <text x="100" y="140" textAnchor="middle" fill="#fff" className="font-serif font-black" fontSize="40">{clubInitials}</text>
+                    <text x="100" y="180" textAnchor="middle" fill="#fff" className="font-mono font-bold" fontSize="14">10</text>
+                  </svg>
+                </div>
+                <div className="meta">
+                  <span className="lab">01 / Manto principal · home</span>
+                  <div className="n">Manto Titular</div>
+                  <div className="text-[13px] text-[var(--text-2)]">Camisa titular usada em jogos como mandante. Cores oficiais com detalhes sutis.</div>
+                  <div className="palette">
+                    <span className="sw" style={{ background: themePrimary }}></span>
+                    <span className="sw" style={{ background: themeSecondary }}></span>
+                    <span className="sw" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.1)" }}></span>
+                  </div>
+                </div>
+              </article>
+
+              <article className="kit-card">
+                <div className="vis">
+                  <svg className="kit-shirt" viewBox="0 0 200 240">
+                    <path d="M40 30 L80 10 Q100 30 120 10 L160 30 L180 60 L160 80 L160 220 L40 220 L40 80 L20 60 Z" fill="#ffffff" stroke={themePrimary} strokeWidth="2"/>
+                    <path d="M40 30 L80 10 Q100 30 120 10 L160 30" fill="rgba(0,0,0,0.02)"/>
+                    <text x="100" y="140" textAnchor="middle" fill={themePrimary} className="font-serif font-black" fontSize="40">{clubInitials}</text>
+                    <text x="100" y="180" textAnchor="middle" fill={themePrimary} className="font-mono font-bold" fontSize="14">23</text>
+                  </svg>
+                </div>
+                <div className="meta">
+                  <span className="lab">02 / Manto reserva · away</span>
+                  <div className="n">Manto Visitante</div>
+                  <div className="text-[13px] text-[var(--text-2)]">Camisa clássica reserva, ideal para confrontos externos de alto contraste.</div>
+                  <div className="palette">
+                    <span className="sw" style={{ background: "#ffffff", border: "1px solid rgba(0,0,0,0.1)" }}></span>
+                    <span className="sw" style={{ background: themePrimary }}></span>
+                    <span className="sw" style={{ background: "var(--ink)" }}></span>
+                  </div>
+                </div>
+              </article>
+
+              <article className="kit-card">
+                <div className="vis">
+                  <svg className="kit-shirt" viewBox="0 0 200 240">
+                    <path d="M40 30 L80 10 Q100 30 120 10 L160 30 L180 60 L160 80 L160 220 L40 220 L40 80 L20 60 Z" fill="var(--ink)" stroke="rgba(255,255,255,0.08)" strokeWidth="2"/>
+                    <path d="M40 30 L80 10 Q100 30 120 10 L160 30" fill="rgba(255,255,255,0.05)"/>
+                    <text x="100" y="140" textAnchor="middle" fill={themeSecondary} className="font-serif font-black" fontSize="40">{clubInitials}</text>
+                    <text x="100" y="180" textAnchor="middle" fill={themeSecondary} className="font-mono font-bold" fontSize="14">01</text>
+                  </svg>
+                </div>
+                <div className="meta">
+                  <span className="lab">03 / Manto de goleiro</span>
+                  <div className="n">Manto do Paredão</div>
+                  <div className="text-[13px] text-[var(--text-2)]">Camisa exclusiva do arqueiro. Alta elegância e contraste nas arenas.</div>
+                  <div className="palette">
+                    <span className="sw" style={{ background: "var(--ink)" }}></span>
+                    <span className="sw" style={{ background: themeSecondary }}></span>
+                    <span className="sw" style={{ background: "rgba(255,255,255,0.1)" }}></span>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+        </div>
+
+        {/* ── CADERNO 3: SECRETARIA ── */}
+        <div id="content-secretaria" className="space-y-16 animate-fade-in px-4">
           
-          {/* Friendly Request Form Card */}
-          <div className="rounded-none border-2 border-slate-800 bg-[#0b0f11] p-6 sm:p-8 flex flex-col space-y-6 shadow-[6px_6px_0px_0px_#000]">
-            <div className="space-y-3">
-              <span className="inline-flex rounded-none bg-black border-2 border-[var(--brand)] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-[var(--brand)] font-mono">
-                [DESAFIO AMISTOSO]
-              </span>
-              <h2 className="text-3xl font-black uppercase text-white tracking-tight mt-2 font-mono">
-                Desafie o {team.name}
-              </h2>
-              <p className="text-xs leading-relaxed text-slate-400 font-semibold tracking-wide uppercase">
-                Representa outra equipe e quer agendar um confronto contra o {team.name}? Envie os detalhes do local, horário e proposta e nossa comissão responderá!
-              </p>
-            </div>
-            
-            {selectedSlot && (
-              <div className="rounded-none border-2 border-[var(--team-primary)] bg-black px-4 py-3 text-xs text-[var(--brand)] font-black animate-fade-in uppercase tracking-wider font-mono">
-                [HORÁRIO SELECIONADO] Agendando proposta com base no horário aberto de {selectedSlotDateText}.
+          {/* Disponibilidade de arena */}
+          {(team.openMatchSlots.length > 0 || hasDiscoveryInfo) && (
+            <section className="scroll-mt-24 rounded border border-[var(--border)] bg-[var(--surface-2)] p-6 md:p-8 space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-5">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--primary)] font-mono">[Disponibilidade de arena]</p>
+                  <h2 className="font-serif text-2xl font-bold uppercase text-[var(--ink)] mt-1">Datas para amistosos.</h2>
+                </div>
+                {team.openMatchSlots.length > 0 && (
+                  <span className="rounded bg-[var(--primary)] text-[var(--text-inv)] text-[10px] px-3 py-1 font-mono uppercase font-bold tracking-wider">
+                    {team.openMatchSlots.length} vaga(s) de jogo
+                  </span>
+                )}
               </div>
-            )}
+
+              {team.openMatchSlots.length > 0 ? (
+                <div className="grid gap-5 sm:grid-cols-2 pt-2">
+                  {team.openMatchSlots.map((slot) => (
+                    <article key={slot.id} className="rounded border border-[var(--border)] bg-[var(--surface)] p-6 flex flex-col justify-between hover:border-[var(--primary)] transition-all duration-200 group">
+                      <div className="space-y-2">
+                        <p className="text-base font-serif font-bold text-[var(--ink)]">
+                          {new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(slot.date)}
+                        </p>
+                        <p className="text-xs font-mono text-[var(--text-2)] uppercase tracking-wider">
+                          {(slot.timeLabel || "HORÁRIO A DEFINIR") + " • " + (slot.venueLabel || "LOCAL A DEFINIR")}
+                        </p>
+                        {slot.notes && (
+                          <p className="text-[10.5px] text-[var(--text-3)] font-mono border-t border-[var(--border)] pt-2 mt-2">
+                            [Nota]: {slot.notes}
+                          </p>
+                        )}
+                      </div>
+                      <Link
+                        href={`/${team.slug}?slot=${slot.id}#amistoso`}
+                        className="mt-6 inline-flex min-h-10 items-center justify-center rounded border border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)] hover:text-[var(--text-inv)] text-[10.5px] font-mono uppercase font-bold tracking-wider px-6 transition-all duration-150"
+                      >
+                        Propor jogo neste horário
+                      </Link>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-[var(--text-2)] font-mono leading-relaxed">// Nenhuma vaga pré-agendada no momento. Sugira um local e data abaixo.</p>
+              )}
+            </section>
+          )}
+
+          {/* Form Split */}
+          <section id="amistoso" className="scroll-mt-24 grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
             
-            <FriendlyRequestForm 
-              teamSlug={team.slug}
-              initialSuggestedDates={suggestedDatesInitialValue}
-              initialSuggestedVenue={suggestedVenueInitialValue}
-            />
-          </div>
-
-          {/* Recruitment Form Card */}
-          <div className="rounded-none border-2 border-slate-800 bg-[#0b0f11] p-6 sm:p-8 flex flex-col space-y-6 shadow-[6px_6px_0px_0px_#000]">
-            <div className="space-y-3">
-              <span className="inline-flex rounded-none bg-black border-2 border-cyan-500 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-cyan-400 font-mono">
-                [RECRUTAMENTO ATLETAS]
-              </span>
-              <h2 className="text-3xl font-black uppercase text-white tracking-tight mt-2 font-mono">
-                Faça Parte do Elenco
-              </h2>
-              <p className="text-xs leading-relaxed text-slate-400 font-semibold tracking-wide uppercase">
-                {team.publicDirectoryOptIn 
-                  ? `Quer vestir a camisa do ${team.name} e mostrar seu futebol? Deixe seus dados abaixo para a comissão técnica avaliar!`
-                  : `O recrutamento público está atualmente fechado para esta equipe no momento.`
-                }
-              </p>
-            </div>
-
-            {team.publicDirectoryOptIn ? (
-              <RecruitmentForm teamSlug={team.slug} />
-            ) : (
-              <div className="rounded-none border border-slate-800 bg-black/40 p-8 text-center text-slate-400 flex flex-col justify-center items-center min-h-[280px] shadow-[4px_4px_0px_0px_#000]">
-                <IconLock className="w-10 h-10 mb-4 text-slate-600" />
-                <p className="text-sm font-black text-white uppercase tracking-wider font-mono">[RECRUTAMENTO FECHADO]</p>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-2 max-w-xs mx-auto">
-                  Esta equipe optou por não aceitar novas candidaturas de recrutamento público no momento.
+            {/* Solicitar Amistoso Column */}
+            <div className="form-info bg-[var(--surface)] border border-[var(--border)] rounded p-6 flex flex-col justify-between">
+              <div>
+                <div className="head flex justify-between text-[11px] font-mono text-[var(--text-3)] uppercase mb-4">
+                  <span className="lab font-bold">▸ Desafio amistoso</span>
+                  <span>Disponibilidade</span>
+                </div>
+                <h3 className="font-serif text-xl font-bold text-[var(--ink)]">Desafie o {team.name}</h3>
+                <p className="text-[13px] text-[var(--text-2)] leading-relaxed mt-3">
+                  Quer marcar um amistoso contra a nossa equipe? Preencha as datas e horários de preferência no formulário ao lado. Nossa diretoria responderá em até 24h úteis.
                 </p>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 mt-6 text-xs font-mono border-t border-[var(--border)] pt-6">
+                  <div>
+                    <dt className="text-[var(--text-3)] uppercase">Cidade</dt>
+                    <dd className="font-bold text-[var(--ink)] mt-0.5">{team.city || "Fortaleza/CE"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--text-3)] uppercase">Região</dt>
+                    <dd className="font-bold text-[var(--ink)] mt-0.5">{team.region || "Antônio Bezerra"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--text-3)] uppercase">Superfície</dt>
+                    <dd className="font-bold text-[var(--ink)] mt-0.5">{team.fieldType ? fieldTypeLabels[team.fieldType] : "Sintética"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-[var(--text-3)] uppercase">Nível</dt>
+                    <dd className="font-bold text-[var(--ink)] mt-0.5">{team.competitiveLevel ? competitiveLevelLabels[team.competitiveLevel].split("/")[0] : "Amador"}</dd>
+                  </div>
+                </dl>
               </div>
-            )}
-          </div>
-        </section>
 
-        {/* Identity Details */}
-        {(team.primaryColor || team.secondaryColor) && (
-          <section className="text-center pt-4 space-y-6">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 font-mono">[IDENTIDADE VISUAL E CORES]</p>
-            <div className="flex justify-center flex-wrap gap-6">
-              {team.primaryColor && (
-                <div className="flex items-center gap-3 bg-[#0b0f11] border-2 border-slate-800 rounded-none px-5 py-2.5 shadow-[4px_4px_0px_0px_#000]">
-                  <div className="h-6 w-6 rounded-none border-2 border-black" style={{ backgroundColor: team.primaryColor }} />
-                  <span className="text-[10px] font-black uppercase text-white tracking-widest font-mono">Manto Principal</span>
+              {selectedSlot && (
+                <div className="rounded border border-[var(--primary)] bg-[var(--primary-tint)] px-4 py-3 text-xs text-[var(--primary)] font-bold uppercase tracking-wider font-mono mt-8">
+                  [VAGA DE ARENA PREFEITA] Selecionamos a data: {selectedSlotDateText}.
                 </div>
               )}
-              {team.secondaryColor && (
-                <div className="flex items-center gap-3 bg-[#0b0f11] border-2 border-slate-800 rounded-none px-5 py-2.5 shadow-[4px_4px_0px_0px_#000]">
-                  <div className="h-6 w-6 rounded-none border-2 border-black" style={{ backgroundColor: team.secondaryColor }} />
-                  <span className="text-[10px] font-black uppercase text-white tracking-widest font-mono">Manto Reserva</span>
+
+              <div className="mt-8">
+                <FriendlyRequestForm
+                  teamSlug={team.slug}
+                  initialSuggestedDates={suggestedDatesInitialValue}
+                  initialSuggestedVenue={suggestedVenueInitialValue}
+                />
+              </div>
+            </div>
+
+            {/* Recrutamento Column */}
+            <div id="recrutamento" className="form-info bg-[var(--surface)] border border-[var(--border)] rounded p-6 flex flex-col justify-between">
+              <div>
+                <div className="head flex justify-between text-[11px] font-mono text-[var(--text-3)] uppercase mb-4">
+                  <span className="lab font-bold">▸ Recrutamento</span>
+                  <span>Faça parte</span>
+                </div>
+                <h3 className="font-serif text-xl font-bold text-[var(--ink)]">Seja um Guerreiro</h3>
+                <p className="text-[13px] text-[var(--text-2)] leading-relaxed mt-3">
+                  Acha que tem nível para jogar no elenco do {team.name}? Candidate-se agora enviando seus dados. A comissão técnica avalia periodicamente novos atletas.
+                </p>
+                
+                {team.publicDirectoryOptIn ? (
+                  <div className="mt-8">
+                    <RecruitmentForm teamSlug={team.slug} />
+                  </div>
+                ) : (
+                  <div className="rounded border border-[var(--border)] bg-[var(--surface-2)] p-12 text-center text-[var(--text-3)] flex flex-col justify-center items-center mt-8">
+                    <svg className="w-12 h-12 text-[var(--text-3)] opacity-60 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <p className="text-sm font-bold text-[var(--ink)] uppercase tracking-wider font-mono">[Recrutamento Inativo]</p>
+                    <p className="text-[11px] text-[var(--text-2)] mt-2 max-w-xs mx-auto">Esta equipe optou por fechar as candidaturas de recrutamento público no momento.</p>
+                  </div>
+                )}
+              </div>
+
+              {team.publicDirectoryOptIn && (
+                <div className="pipeline-steps border-t border-[var(--border)] pt-6 mt-8 font-mono text-[12px]">
+                  <h4 className="font-sans font-bold text-[13px] text-[var(--ink)] mb-4">Pipeline de avaliação:</h4>
+                  <ol className="space-y-4">
+                    <li className="flex gap-3">
+                      <span className="text-[var(--primary)] font-bold font-mono">01</span>
+                      <div>
+                        <div className="font-bold text-[var(--ink)]">Triagem inicial</div>
+                        <div className="text-[11px] text-[var(--text-3)] mt-0.5">Análise das características e posições de necessidade pela comissão.</div>
+                      </div>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="text-[var(--primary)] font-bold font-mono">02</span>
+                      <div>
+                        <div className="font-bold text-[var(--ink)]">Contato rápido</div>
+                        <div className="text-[11px] text-[var(--text-3)] mt-0.5">Chamada curta para esclarecimento de regras, custos e compromissos.</div>
+                      </div>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="text-[var(--primary)] font-bold font-mono">03</span>
+                      <div>
+                        <div className="font-bold text-[var(--ink)]">Treino aberto</div>
+                        <div className="text-[11px] text-[var(--text-3)] mt-0.5">Avaliação em campo no Antônio Bezerra com o time titular.</div>
+                      </div>
+                    </li>
+                  </ol>
                 </div>
               )}
             </div>
           </section>
-        )}
-      </div>
-    </main>
+        </div>
+      </main>
 
-      {/* Footer */}
-      <footer className="mx-auto max-w-6xl mt-24 border-t border-[rgba(255,255,255,0.06)] px-4 pt-10 text-center text-xs font-semibold text-slate-500 sm:px-6 lg:px-8 space-y-2">
-        <p>&copy; {new Date().getFullYear()} {team.name}. Todos os direitos reservados.</p>
-        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold font-mono">Plataforma de Gestão Esportiva VARzea</p>
+      {/* ── footer ── */}
+      <footer className="site mt-24">
+        <div className="wrap">
+          <div className="top">
+            <div className="brand-col col-span-2">
+              <Link href={`/${team.slug}`} className="brand">
+                <ClubCrest variant="footer" initials={clubInitials} />
+                <div className="txt">
+                  <div className="top">Fundado em {team.foundedYear || 2026}</div>
+                  <div className="name text-white">{team.name}</div>
+                </div>
+              </Link>
+              <p className="mt-4 max-w-xs text-xs opacity-75 leading-relaxed">
+                Aqui a paixão não é cobrada em bilheteria — e o suor pesa mais que qualquer contrato milionário.
+              </p>
+            </div>
+            <div>
+              <h4>Clube</h4>
+              <ul>
+                <li><a href="#elenco">Elenco</a></li>
+                <li><a href="#desempenho">Desempenho</a></li>
+                <li><a href="#tatica">Tática</a></li>
+                <li><a href="#identidade">Identidade</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4>Calendário</h4>
+              <ul>
+                <li><a href="#calendario">Histórico</a></li>
+                <li><a href="#calendario">Agenda</a></li>
+                <li><a href="#ranking">Classificação</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4>Atendimento</h4>
+              <ul>
+                <li><a href="#solicitar-amistoso">Solicitar Amistoso</a></li>
+                <li><a href="#recrutamento">Quero jogar</a></li>
+                <li><Link href="/dashboard">Console Restrito ↗</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="bottom flex flex-col md:flex-row justify-between items-center pt-8 border-t border-[rgba(255,255,255,0.06)] mt-8 text-[11px] opacity-60 font-mono">
+            <div>&copy; {new Date().getFullYear()} {team.name}. Todos os direitos reservados.</div>
+            <div className="powered flex gap-2 items-center mt-4 md:mt-0">
+              <span>Operado por</span>
+              <span className="vmark w-4 h-4 bg-white text-black rounded flex items-center justify-center font-bold text-[8px]">V/</span>
+              <span className="text-white font-bold">VARzea</span>
+              <span>· br-ne-1</span>
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
   );

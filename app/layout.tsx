@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope, Space_Grotesk } from "next/font/google";
+import { Manrope, Space_Grotesk, IBM_Plex_Sans, IBM_Plex_Serif, JetBrains_Mono } from "next/font/google";
 import { PwaInit } from "@/components/pwa/PwaInit";
 import { AuthSessionProvider } from "@/components/providers/AuthSessionProvider";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -13,6 +13,24 @@ const manrope = Manrope({
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
   subsets: ["latin"],
+});
+
+const ibmPlexSans = IBM_Plex_Sans({
+  variable: "--font-sans",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+});
+
+const ibmPlexSerif = IBM_Plex_Serif({
+  variable: "--font-serif",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -34,7 +52,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${manrope.variable} ${spaceGrotesk.variable} h-full antialiased`}
+      className={`${manrope.variable} ${spaceGrotesk.variable} ${ibmPlexSans.variable} ${ibmPlexSerif.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body suppressHydrationWarning className="min-h-full flex flex-col">
         <AuthSessionProvider>
