@@ -1017,7 +1017,7 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
             </span>
             {nextMatch && (
               <span className="ticker">
-                // PRÓXIMO JOGO · {new Date(nextMatch.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} · {new Date(nextMatch.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} · vs {nextMatch.opponent}
+                // PRÓXIMO JOGO · {new Date(nextMatch.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", timeZone: "America/Sao_Paulo" })} · {new Date(nextMatch.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })} · vs {nextMatch.opponent}
               </span>
             )}
           </div>
@@ -1182,11 +1182,11 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
                   <div className="meta grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-[var(--border)] font-mono text-center">
                     <div>
                       <div className="l text-[8px] text-[var(--text-3)] uppercase">Data</div>
-                      <div className="v text-xs font-bold mt-0.5">{new Date(nextMatch.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</div>
+                      <div className="v text-xs font-bold mt-0.5">{new Date(nextMatch.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", timeZone: "America/Sao_Paulo" })}</div>
                     </div>
                     <div>
                       <div className="l text-[8px] text-[var(--text-3)] uppercase">Horário</div>
-                      <div className="v text-xs font-bold mt-0.5">{new Date(nextMatch.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div>
+                      <div className="v text-xs font-bold mt-0.5">{new Date(nextMatch.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}</div>
                     </div>
                     <div>
                       <div className="l text-[8px] text-[var(--text-3)] uppercase">Local</div>
@@ -1415,8 +1415,8 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
                       return (
                         <div key={match.id} className="match-row py-3.5 flex items-center justify-between gap-4 font-mono">
                           <div className="date text-[11px] text-[var(--text-3)] leading-none uppercase shrink-0">
-                            <b>{new Date(match.date).toLocaleDateString("pt-BR", { day: "2-digit" })}</b>
-                            <span className="block text-[9px] mt-0.5">{new Date(match.date).toLocaleDateString("pt-BR", { month: "short" }).substring(0,3)}</span>
+                            <b>{new Date(match.date).toLocaleDateString("pt-BR", { day: "2-digit", timeZone: "America/Sao_Paulo" })}</b>
+                            <span className="block text-[9px] mt-0.5">{new Date(match.date).toLocaleDateString("pt-BR", { month: "short", timeZone: "America/Sao_Paulo" }).substring(0,3)}</span>
                           </div>
                           <div>
                             <span className={`tag text-[9px] ${match.type === "CHAMPIONSHIP" ? "info" : ""}`}>
@@ -1464,8 +1464,8 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
                     {scheduledMatches.slice(0, 5).map((match) => (
                       <div key={match.id} className="fixture-row py-3.5 flex items-center justify-between gap-4 font-mono">
                         <div className="day text-[11px] text-[var(--text-3)] leading-none uppercase shrink-0">
-                          <b>{new Date(match.date).toLocaleDateString("pt-BR", { day: "2-digit" })}</b>
-                          <span className="block text-[9px] mt-0.5">{new Date(match.date).toLocaleDateString("pt-BR", { month: "short" }).substring(0,3)}</span>
+                          <b>{new Date(match.date).toLocaleDateString("pt-BR", { day: "2-digit", timeZone: "America/Sao_Paulo" })}</b>
+                          <span className="block text-[9px] mt-0.5">{new Date(match.date).toLocaleDateString("pt-BR", { month: "short", timeZone: "America/Sao_Paulo" }).substring(0,3)}</span>
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="opp font-sans font-semibold text-[13.5px] text-[var(--ink)] truncate">
@@ -1477,7 +1477,7 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
                         </div>
                         <div className="when text-right shrink-0">
                           <div className="h font-bold text-xs text-[var(--ink)]">
-                            {new Date(match.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                            {new Date(match.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
                           </div>
                           <div className="t mt-1">
                             <span className="tag success text-[8px] py-0.5 px-1.5">CONFIRMADO</span>
