@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import Link from "next/link";
+
+export const dynamic = "force-dynamic";
 import { getSession } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { FriendlyRequestForm } from "@/app/FriendlyRequestForm";

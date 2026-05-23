@@ -44,6 +44,7 @@ const BLOCKED_HOSTS_RE =
   /^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|\[::1\]|0\.0\.0\.0)/i;
 
 export function isSafeUrl(value: string): boolean {
+  if (!value) return true;
   if (value.startsWith("/uploads/")) return true;
   if (!value.startsWith("https://")) return false;
 
