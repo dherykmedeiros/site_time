@@ -247,25 +247,44 @@ function getTacticalPositions(starters: any[]) {
     };
   });
 
-  const coordinateCounts: Record<string, number[]> = {};
+  // Group by initial coordinates to prevent overlapping
+  const positionGroups: Record<string, number[]> = {};
   mapped.forEach((player, idx) => {
-    const key = `${player.y}`;
-    if (!coordinateCounts[key]) {
-      coordinateCounts[key] = [];
+    const key = `${player.x}-${player.y}`;
+    if (!positionGroups[key]) {
+      positionGroups[key] = [];
     }
-    coordinateCounts[key].push(idx);
+    positionGroups[key].push(idx);
   });
 
-  Object.keys(coordinateCounts).forEach((key) => {
-    const indices = coordinateCounts[key];
+  Object.keys(positionGroups).forEach((key) => {
+    const indices = positionGroups[key];
     if (indices.length > 1) {
-      const step = 64 / (indices.length - 1 || 1);
-      indices.forEach((idx, offsetIdx) => {
-        const customX = indices.length === 1 ? 50 : 18 + offsetIdx * step;
-        if (mapped[idx].x === 50) {
-          mapped[idx].x = Math.round(customX);
+      // Symmetrical distribution around the center vertical axis if y is 50
+      const firstPlayer = mapped[indices[0]];
+      if (firstPlayer.y === 50) {
+        if (indices.length === 2) {
+          mapped[indices[0]].y = 38;
+          mapped[indices[1]].y = 62;
+        } else if (indices.length === 3) {
+          mapped[indices[0]].y = 32;
+          mapped[indices[1]].y = 50;
+          mapped[indices[2]].y = 68;
+        } else {
+          const step = 40 / (indices.length - 1);
+          indices.forEach((idx, offsetIdx) => {
+            mapped[idx].y = Math.round(30 + offsetIdx * step);
+          });
         }
-      });
+      } else {
+        // Otherwise, shift them slightly in diagonal so they do not overlap
+        indices.forEach((idx, offsetIdx) => {
+          if (offsetIdx > 0) {
+            mapped[idx].x = Math.min(94, mapped[idx].x + offsetIdx * 6);
+            mapped[idx].y = Math.min(94, mapped[idx].y + offsetIdx * 6);
+          }
+        });
+      }
     }
   });
 
@@ -721,29 +740,42 @@ export default async function HomePage({
   const remainingScheduled = scheduledMatches.slice(1);
 
   let startersData: any[] = [];
-  if (nextMatch) {
-    if (nextMatch.lineupSelections && nextMatch.lineupSelections.length > 0) {
-      startersData = nextMatch.lineupSelections.filter((l: any) => l.role === "STARTER");
-    } else {
-      const goalkeepers = team.players.filter((p: any) => p.position === "GOALKEEPER");
-      const defenders = team.players.filter((p: any) => ["DEFENDER", "LEFT_BACK", "RIGHT_BACK"].includes(p.position));
-      const midfielders = team.players.filter((p: any) => ["MIDFIELDER", "DEFENSIVE_MIDFIELDER"].includes(p.position));
-      const forwards = team.players.filter((p: any) => ["FORWARD", "LEFT_WINGER", "RIGHT_WINGER"].includes(p.position));
-      
-      const selectedGK = goalkeepers.slice(0, 1);
-      const selectedDEF = defenders.slice(0, 4);
-      const selectedMID = midfielders.slice(0, 3);
-      const selectedFWD = forwards.slice(0, 3);
-      
-      const suggestedPlayers = [...selectedGK, ...selectedDEF, ...selectedMID, ...selectedFWD];
-      startersData = suggestedPlayers.map((p: any) => ({
-        id: `suggested-${p.id}`,
-        role: "STARTER",
-        fieldX: null,
-        fieldY: null,
-        player: p
-      }));
-    }
+  if (nextMatch && nextMatch.lineupSelections && nextMatch.lineupSelections.length > 0) {
+    startersData = nextMatch.lineupSelections.filter((l: any) => l.role === "STARTER");
+  } else {
+    const matchCounts = new Map<string, number>();
+    stats.ranking.forEach((r) => {
+      matchCounts.set(r.playerId, r.matches);
+    });
+    const getMatchCount = (playerId: string) => matchCounts.get(playerId) || 0;
+    const sortByMatchesDesc = (a: any, b: any) => getMatchCount(b.id) - getMatchCount(a.id);
+
+    const goalkeepers = team.players
+      .filter((p: any) => p.position === "GOALKEEPER")
+      .sort(sortByMatchesDesc);
+    const defenders = team.players
+      .filter((p: any) => ["DEFENDER", "LEFT_BACK", "RIGHT_BACK"].includes(p.position))
+      .sort(sortByMatchesDesc);
+    const midfielders = team.players
+      .filter((p: any) => ["MIDFIELDER", "DEFENSIVE_MIDFIELDER"].includes(p.position))
+      .sort(sortByMatchesDesc);
+    const forwards = team.players
+      .filter((p: any) => ["FORWARD", "LEFT_WINGER", "RIGHT_WINGER"].includes(p.position))
+      .sort(sortByMatchesDesc);
+    
+    const selectedGK = goalkeepers.slice(0, 1);
+    const selectedDEF = defenders.slice(0, 4);
+    const selectedMID = midfielders.slice(0, 3);
+    const selectedFWD = forwards.slice(0, 3);
+    
+    const suggestedPlayers = [...selectedGK, ...selectedDEF, ...selectedMID, ...selectedFWD];
+    startersData = suggestedPlayers.map((p: any) => ({
+      id: `suggested-${p.id}`,
+      role: "STARTER",
+      fieldX: null,
+      fieldY: null,
+      player: p
+    }));
   }
   const tacticalPlayers = getTacticalPositions(startersData);
 
