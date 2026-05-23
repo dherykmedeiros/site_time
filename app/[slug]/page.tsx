@@ -162,13 +162,59 @@ function ClubCrest({
   );
 }
 
+const FIELD_ZONES = [
+  { key: "build", label: "Saída", left: "8%", width: "16%" },
+  { key: "defense", label: "Defesa", left: "24%", width: "20%" },
+  { key: "midfield", label: "Meio", left: "44%", width: "22%" },
+  { key: "attack", label: "Ataque", left: "66%", width: "18%" },
+] as const;
+
+function getPlayerMarkerClasses(position: string) {
+  const p = position.toUpperCase();
+
+  if (p === "GOALKEEPER") {
+    return {
+      ring: "border-[#d2f0ff]/95",
+      surface: "bg-[linear-gradient(180deg,rgba(21,57,76,0.80)_0%,rgba(9,25,35,0.88)_100%)]",
+      name: "bg-[rgba(12,36,46,0.72)]",
+    };
+  }
+
+  if (["DEFENDER", "LEFT_BACK", "RIGHT_BACK"].includes(p)) {
+    return {
+      ring: "border-[#d9fff0]/90",
+      surface: "bg-[linear-gradient(180deg,rgba(18,63,46,0.82)_0%,rgba(8,29,22,0.90)_100%)]",
+      name: "bg-[rgba(8,30,22,0.68)]",
+    };
+  }
+
+  if (["MIDFIELDER", "DEFENSIVE_MIDFIELDER"].includes(p)) {
+    return {
+      ring: "border-[#fff0c4]/90",
+      surface: "bg-[linear-gradient(180deg,rgba(71,58,19,0.78)_0%,rgba(31,24,7,0.90)_100%)]",
+      name: "bg-[rgba(33,26,8,0.68)]",
+    };
+  }
+
+  return {
+    ring: "border-[#ffe1d5]/90",
+    surface: "bg-[linear-gradient(180deg,rgba(82,36,28,0.78)_0%,rgba(32,12,8,0.90)_100%)]",
+    name: "bg-[rgba(34,14,9,0.68)]",
+  };
+}
+
 function getTacticalPositions(starters: any[]) {
   const mapped = starters.map((s) => {
     const p = s.player;
     let x = s.fieldX;
     let y = s.fieldY;
     
-    if (x == null || y == null) {
+    if (x != null && y != null) {
+      const displayX = y;
+      const displayY = x;
+      x = displayX;
+      y = displayY;
+    } else {
       if (p.position === "GOALKEEPER") {
         x = 10; y = 50;
       } else if (p.position === "LEFT_BACK") {
@@ -1270,30 +1316,60 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
             </div>
 
             <div className="pitch-wrap grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-              <div className="pitch col-span-1 md:col-span-2 relative aspect-[4/3] rounded overflow-hidden border border-[var(--border)] bg-gradient-to-b from-[var(--primary-deep)] to-[rgba(10,88,75,0.95)]">
-                <div className="lines absolute inset-0 m-4 border border-white/10"></div>
-                <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 border-l border-dashed border-white/10"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full border border-white/10"></div>
-                <div className="box left absolute left-4 top-1/4 bottom-1/4 w-28 border-y border-r border-white/10"></div>
-                <div className="box right absolute right-4 top-1/4 bottom-1/4 w-28 border-y border-l border-white/10"></div>
+              <div className="pitch col-span-1 md:col-span-2 relative aspect-[3/2] w-full overflow-hidden rounded-[28px] border border-white/15 bg-[linear-gradient(180deg,#2f8f59_0%,#276e48_42%,#1a4e35_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_12px_28px_rgba(0,0,0,0.16)]">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_30%,transparent_55%)] pointer-events-none" />
+                <div className="absolute inset-0 bg-[repeating-linear-gradient(90deg,rgba(255,255,255,0.024)_0,rgba(255,255,255,0.024)_27px,rgba(0,0,0,0.022)_27px,rgba(0,0,0,0.022)_54px)] pointer-events-none" />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,transparent_18%,transparent_82%,rgba(0,0,0,0.16)_100%)] pointer-events-none" />
                 
-                {tacticalPlayers.map((player) => (
+                {FIELD_ZONES.map((zone) => (
                   <div
-                    key={player.id}
-                    className="spot animate-fade-in"
-                    style={{
-                      left: `${player.x}%`,
-                      top: `${player.y}%`,
-                    }}
+                    key={zone.key}
+                    className="pointer-events-none absolute top-[8%] bottom-[8%] rounded-[18px] border border-white/6 bg-white/[0.025]"
+                    style={{ left: zone.left, width: zone.width }}
                   >
-                    <div className="ring bg-white border border-[var(--primary)] text-[var(--primary)] w-9 h-9 rounded-full flex items-center justify-center font-mono font-bold text-xs shadow-md">
-                      {player.shirtNumber || "—"}
-                    </div>
-                    <div className="label bg-[var(--ink)] text-[var(--text-inv)] text-[8px] font-mono tracking-wider font-bold py-0.5 px-2 uppercase rounded-none mt-1">
-                      {player.name.split(" ")[0]}
-                    </div>
+                    <span className="absolute left-3 top-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-white/28">
+                      {zone.label}
+                    </span>
                   </div>
                 ))}
+                
+                <div className="absolute inset-4 rounded-[24px] border-2 border-white/70 pointer-events-none" />
+                <div className="absolute left-[4%] top-[21%] h-[58%] w-[15.7%] rounded-r-[18px] border-2 border-l-0 border-white/70 pointer-events-none" />
+                <div className="absolute left-[4%] top-[36%] h-[28%] w-[5.2%] rounded-r-[12px] border-2 border-l-0 border-white/70 pointer-events-none" />
+                <div className="absolute right-[4%] top-[21%] h-[58%] w-[15.7%] rounded-l-[18px] border-2 border-r-0 border-white/70 pointer-events-none" />
+                <div className="absolute right-[4%] top-[36%] h-[28%] w-[5.2%] rounded-l-[12px] border-2 border-r-0 border-white/70 pointer-events-none" />
+                <div className="absolute left-1/2 top-[11%] bottom-[11%] w-px -translate-x-1/2 bg-white/70 pointer-events-none" />
+                <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/70 pointer-events-none" />
+                <div className="absolute left-[14.5%] top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80 pointer-events-none" />
+                <div className="absolute right-[14.5%] top-1/2 h-3 w-3 translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80 pointer-events-none" />
+                
+                {tacticalPlayers.map((player) => {
+                  const marker = getPlayerMarkerClasses(player.position);
+                  return (
+                    <div
+                      key={player.id}
+                      className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center select-none spot animate-fade-in"
+                      style={{
+                        left: `${player.x}%`,
+                        top: `${player.y}%`,
+                      }}
+                    >
+                      <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full border border-white/16 bg-white/8 p-0.5 shadow-[0_6px_14px_rgba(0,0,0,0.3)] backdrop-blur-[2px] transition-transform duration-150 hover:scale-[1.05]">
+                        <div className={`flex h-full w-full flex-col items-center justify-center rounded-full border ${marker.ring} ${marker.surface} text-white`}>
+                          <span className="text-[11px] font-black tracking-tighter leading-none">{player.shirtNumber || "—"}</span>
+                          <span className="text-[6.5px] font-bold tracking-wider opacity-85 uppercase mt-0.5 leading-none">
+                            {shortRoles[player.position] || "N/A"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="pointer-events-none mt-1 rounded-[4px] border border-white/10 px-1.5 py-0.5 text-center text-[8.5px] font-bold leading-none text-white shadow-sm backdrop-blur-[2px]"
+                        style={{ backgroundColor: marker.name }}
+                      >
+                        <span className="block truncate max-w-[68px]">{player.name.split(" ")[0]}</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="lineup-list bg-[var(--surface)] border border-[var(--border)] rounded p-6 flex flex-col justify-between">
