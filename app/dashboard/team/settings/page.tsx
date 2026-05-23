@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { TeamForm } from "@/components/forms/TeamForm";
+import { DefaultLineupCard } from "@/components/dashboard/DefaultLineupCard";
 
 interface TeamData {
   id?: string;
@@ -313,6 +314,10 @@ export default function TeamSettingsPage() {
           />
         </CardContent>
       </Card>
+
+      {hasTeam && (
+        <DefaultLineupCard />
+      )}
 
       {team?.slug && (
         <Card className="rounded-[18px]">

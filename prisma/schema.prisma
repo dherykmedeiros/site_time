@@ -201,6 +201,10 @@ model Team {
   photos           MatchPhoto[]
   recruitmentRequests RecruitmentRequest[]
 
+  defaultFormation   MatchLineupFormation?
+  defaultBlockPreset MatchLineupBlockPreset?
+  defaultLineup      DefaultLineupSelection[]
+
   @@map("teams")
 }
 
@@ -222,6 +226,7 @@ model Player {
   availabilityRules PlayerAvailabilityRule[]
   attendances  MatchAttendance[]
   lineupSelections MatchLineupSelection[]
+  defaultLineupSelections DefaultLineupSelection[]
   matchStats   MatchStats[]
   inviteTokens InviteToken[]
   membershipPayments MembershipPayment[]
@@ -763,3 +768,23 @@ model RecruitmentRequest {
   @@index([teamId])
   @@map("recruitment_requests")
 }
+
+model DefaultLineupSelection {
+  id         String          @id @default(cuid())
+  teamId     String
+  playerId   String
+  role       MatchLineupRole @default(STARTER)
+  sortOrder  Int
+  fieldX     Int?
+  fieldY     Int?
+  team       Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  player     Player          @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@unique([teamId, playerId])
+  @@index([teamId, role, sortOrder])
+  @@index([playerId])
+  @@map("default_lineup_selections")
+}
+

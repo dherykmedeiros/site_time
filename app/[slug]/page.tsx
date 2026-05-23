@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { parseFormation, inferBestFormation } from "@/lib/formations";
 
 export const dynamic = "force-dynamic";
 import { getSession } from "@/lib/auth";
@@ -481,6 +482,14 @@ async function getTeamData(slug: string) {
   return prisma.team.findUnique({
     where: { slug },
     include: {
+      defaultLineup: {
+        orderBy: {
+          sortOrder: "asc",
+        },
+        include: {
+          player: true,
+        },
+      },
       openMatchSlots: {
         where: { status: "OPEN" },
         orderBy: { date: "asc" },
@@ -849,7 +858,9 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
   const remainingScheduled = scheduledMatches.slice(1);
 
   let startersData: any[] = [];
-  if (nextMatch && nextMatch.lineupSelections && nextMatch.lineupSelections.length > 0) {
+  if (team.defaultLineup && team.defaultLineup.length > 0) {
+    startersData = team.defaultLineup.filter((l: any) => l.role === "STARTER");
+  } else if (nextMatch && nextMatch.lineupSelections && nextMatch.lineupSelections.length > 0) {
     startersData = nextMatch.lineupSelections.filter((l: any) => l.role === "STARTER");
   } else {
     const matchCounts = new Map<string, number>();
@@ -886,6 +897,32 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
       player: p
     }));
   }
+  const getFormationLabel = () => {
+    if (team.defaultLineup && team.defaultLineup.length > 0) {
+      if (team.defaultFormation) {
+        return parseFormation(team.defaultFormation) || "4-3-3";
+      }
+      return inferBestFormation(startersData.map((s: any) => ({
+        playerId: s.player.id,
+        playerName: s.player.name,
+        position: s.player.position,
+        reason: "",
+      }))) || "4-3-3";
+    }
+    if (nextMatch && nextMatch.lineupSelections && nextMatch.lineupSelections.length > 0) {
+      if (nextMatch.lineupFormation) {
+        return parseFormation(nextMatch.lineupFormation) || "4-3-3";
+      }
+      return inferBestFormation(startersData.map((s: any) => ({
+        playerId: s.player.id,
+        playerName: s.player.name,
+        position: s.player.position,
+        reason: "",
+      }))) || "4-3-3";
+    }
+    return "4-3-3";
+  };
+  const activeFormationLabel = getFormationLabel();
   const tacticalPlayers = getTacticalPositions(startersData);
 
   const finishedMatches = team.matches
@@ -1463,7 +1500,7 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
                 <p className="text-[13px] text-[var(--text-2)] mt-1">Formação base utilizada nos últimos confrontos e escalada de início.</p>
               </div>
               <div className="right">
-                <span className="pill">Formação: 4-3-3</span>
+                <span className="pill">Formação: {activeFormationLabel}</span>
               </div>
             </div>
 
