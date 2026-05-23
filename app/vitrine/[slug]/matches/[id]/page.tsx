@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
+
+export const dynamic = "force-dynamic";
 import { RecapShareActions } from "@/components/dashboard/RecapShareActions";
 import { TeamRecapWidget } from "@/components/dashboard/TeamRecapWidget";
 
