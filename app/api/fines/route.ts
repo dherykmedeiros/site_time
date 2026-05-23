@@ -40,6 +40,7 @@ export const GET = withErrorHandler(async (request: Request) => {
           title: true,
         },
       },
+      punishmentType: true,
     },
   });
 
@@ -74,7 +75,7 @@ export const POST = withErrorHandler(async (request: Request) => {
     );
   }
 
-  const { playerId, ruleId, description, severity, matchesSuspended, status = "ACTIVE", date } = parsed.data;
+  const { playerId, ruleId, punishmentTypeId, description, severity, matchesSuspended, status = "ACTIVE", date } = parsed.data;
 
   // Verify the player belongs to this team
   const playerExists = await prisma.player.findFirst({
@@ -97,11 +98,50 @@ export const POST = withErrorHandler(async (request: Request) => {
 
   const teamId = session.user.teamId;
 
+  // 1. Resolve punishmentTypeId
+  let resolvedTypeId = punishmentTypeId || null;
+  if (!resolvedTypeId) {
+    const targetName = severity === "WARNING" ? "Advertência" : "Suspensão";
+    let pType = await prisma.punishmentType.findFirst({
+      where: {
+        teamId,
+        name: { equals: targetName, mode: "insensitive" }
+      }
+    });
+
+    if (!pType) {
+      pType = await prisma.punishmentType.findFirst({
+        where: { teamId, severity }
+      });
+    }
+
+    if (!pType) {
+      pType = await prisma.punishmentType.create({
+        data: {
+          teamId,
+          name: targetName,
+          severity,
+          description: `${targetName} padrão`
+        }
+      });
+    }
+    resolvedTypeId = pType.id;
+  } else {
+    const typeExists = await prisma.punishmentType.findFirst({
+      where: { id: resolvedTypeId, teamId }
+    });
+    if (!typeExists) {
+      return NextResponse.json({ error: "Tipo de punição não encontrado no time" }, { status: 404 });
+    }
+  }
+
+  // 2. Create the initial fine
   const fine = await prisma.fine.create({
     data: {
       teamId,
       playerId,
       ruleId: ruleId || null,
+      punishmentTypeId: resolvedTypeId,
       description,
       severity,
       matchesSuspended: severity === "SUSPENSION" ? matchesSuspended : null,
@@ -122,8 +162,82 @@ export const POST = withErrorHandler(async (request: Request) => {
           title: true,
         },
       },
+      punishmentType: true,
     },
   });
 
-  return NextResponse.json({ fine }, { status: 201 });
+  // 3. Accumulation / Escalation logic
+  let escalatedFine = null;
+  if (status === "ACTIVE") {
+    const rule = await prisma.punishmentAccumulationRule.findFirst({
+      where: { teamId, sourceTypeId: resolvedTypeId }
+    });
+
+    if (rule) {
+      // Find all active fines of this player for this source punishment type
+      const activeFines = await prisma.fine.findMany({
+        where: {
+          teamId,
+          playerId,
+          punishmentTypeId: resolvedTypeId,
+          status: "ACTIVE",
+          ...(rule.expiryDays ? {
+            date: {
+              gte: new Date(new Date(date).getTime() - rule.expiryDays * 24 * 60 * 60 * 1000)
+            }
+          } : {})
+        },
+        orderBy: { date: "asc" }
+      });
+
+      if (activeFines.length >= rule.accumulateCount) {
+        // Mark the oldest accumulateCount active fines as accumulated/served
+        const idsToUpdate = activeFines.slice(0, rule.accumulateCount).map(f => f.id);
+        
+        await prisma.fine.updateMany({
+          where: { id: { in: idsToUpdate } },
+          data: { status: "SERVED" }
+        });
+
+        // Find target type to create escalated fine
+        const targetType = await prisma.punishmentType.findUnique({
+          where: { id: rule.targetTypeId }
+        });
+
+        if (targetType) {
+          const sourceType = await prisma.punishmentType.findUnique({
+            where: { id: resolvedTypeId }
+          });
+          const sourceName = sourceType?.name || "Advertência";
+          const escalatedDescription = `Acúmulo de ${rule.accumulateCount}x ${sourceName} dentro da janela de acúmulo.`;
+
+          escalatedFine = await prisma.fine.create({
+            data: {
+              teamId,
+              playerId,
+              ruleId: null,
+              punishmentTypeId: targetType.id,
+              description: escalatedDescription,
+              severity: targetType.severity,
+              matchesSuspended: targetType.severity === "SUSPENSION" ? (rule.targetMatches || 1) : null,
+              status: "ACTIVE",
+              date: new Date(date),
+            },
+            include: {
+              player: {
+                select: {
+                  id: true,
+                  name: true,
+                  shirtNumber: true,
+                },
+              },
+              punishmentType: true,
+            }
+          });
+        }
+      }
+    }
+  }
+
+  return NextResponse.json({ fine, escalatedFine, escalated: !!escalatedFine }, { status: 201 });
 });

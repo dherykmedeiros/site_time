@@ -35,7 +35,7 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
     );
   }
 
-  const { playerId, ruleId, description, severity, matchesSuspended, status = "ACTIVE", date } = parsed.data;
+  const { playerId, ruleId, punishmentTypeId, description, severity, matchesSuspended, status = "ACTIVE", date } = parsed.data;
 
   // Verify the player belongs to this team
   const playerExists = await prisma.player.findFirst({
@@ -56,11 +56,22 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
     }
   }
 
+  // If punishmentTypeId is provided, verify it belongs to this team
+  if (punishmentTypeId) {
+    const typeExists = await prisma.punishmentType.findFirst({
+      where: { id: punishmentTypeId, teamId: session.user.teamId },
+    });
+    if (!typeExists) {
+      return NextResponse.json({ error: "Tipo de punição não encontrado no time" }, { status: 404 });
+    }
+  }
+
   const fine = await prisma.fine.update({
     where: { id },
     data: {
       playerId,
       ruleId: ruleId || null,
+      punishmentTypeId: punishmentTypeId || null,
       description,
       severity,
       matchesSuspended: severity === "SUSPENSION" ? matchesSuspended : null,
@@ -81,6 +92,7 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
           title: true,
         },
       },
+      punishmentType: true,
     },
   });
 

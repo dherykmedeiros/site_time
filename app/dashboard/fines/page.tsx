@@ -66,6 +66,8 @@ export default function FinesPage() {
 
   const [playerId, setPlayerId] = useState("");
   const [ruleId, setRuleId] = useState("");
+  const [punishmentTypes, setPunishmentTypes] = useState<any[]>([]);
+  const [punishmentTypeId, setPunishmentTypeId] = useState("");
   const [description, setDescription] = useState("");
   const [severity, setSeverity] = useState<"WARNING" | "SUSPENSION">("WARNING");
   const [matchesSuspended, setMatchesSuspended] = useState("1");
@@ -85,10 +87,11 @@ export default function FinesPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const [finesRes, playersRes, rulesRes] = await Promise.all([
+      const [finesRes, playersRes, rulesRes, typesRes] = await Promise.all([
         fetch("/api/fines"),
         fetch("/api/players?status=ACTIVE"),
         fetch("/api/rules"),
+        fetch("/api/teams/punishment-types"),
       ]);
 
       if (finesRes.ok) {
@@ -102,6 +105,10 @@ export default function FinesPage() {
       if (rulesRes.ok) {
         const data = await rulesRes.json();
         setRules(data.rules || []);
+      }
+      if (typesRes.ok) {
+        const data = await typesRes.json();
+        setPunishmentTypes(data.punishmentTypes || []);
       }
     } catch {
       toast("Erro ao carregar dados");
@@ -124,6 +131,7 @@ export default function FinesPage() {
     if (selectedRule) {
       setDescription(selectedRule.title);
       setSeverity(selectedRule.severity);
+      setPunishmentTypeId((selectedRule as any).punishmentTypeId || "");
       setMatchesSuspended(selectedRule.defaultMatches !== null ? String(selectedRule.defaultMatches) : "1");
     }
   }
@@ -134,6 +142,7 @@ export default function FinesPage() {
     setRuleId("");
     setDescription("");
     setSeverity("WARNING");
+    setPunishmentTypeId("");
     setMatchesSuspended("1");
     setStatus("ACTIVE");
     setDate(new Date().toISOString().substring(0, 10));
@@ -147,6 +156,7 @@ export default function FinesPage() {
     setRuleId(fine.ruleId || "");
     setDescription(fine.description);
     setSeverity(fine.severity);
+    setPunishmentTypeId((fine as any).punishmentTypeId || "");
     setMatchesSuspended(fine.matchesSuspended !== null ? String(fine.matchesSuspended) : "1");
     setStatus(fine.status);
     setDate(new Date(fine.date).toISOString().substring(0, 10));
@@ -162,6 +172,7 @@ export default function FinesPage() {
     const body = {
       playerId,
       ruleId: ruleId || null,
+      punishmentTypeId: punishmentTypeId || null,
       description,
       severity,
       matchesSuspended: severity === "SUSPENSION" ? parseInt(matchesSuspended) : null,
@@ -285,9 +296,10 @@ export default function FinesPage() {
     }).format(new Date(isoString));
   }
 
-  function getSeverityLabel(sev: "WARNING" | "SUSPENSION", matches: number | null) {
-    if (sev === "WARNING") return "Advertência";
-    return `Suspensão: ${matches} ${matches === 1 ? "jogo" : "jogos"}`;
+  function getSeverityLabel(fine: Fine) {
+    const typeName = (fine as any).punishmentType?.name || (fine.severity === "WARNING" ? "Advertência" : "Suspensão");
+    if (fine.severity === "WARNING") return typeName;
+    return `${typeName}: ${fine.matchesSuspended} ${fine.matchesSuspended === 1 ? "jogo" : "jogos"}`;
   }
 
   function getStatusBadge(status: "ACTIVE" | "SERVED" | "CANCELLED") {
@@ -437,6 +449,11 @@ export default function FinesPage() {
                         #{fine.player.shirtNumber}
                       </span>
                     )}
+                    {(fine as any).punishmentType && (
+                      <span className="rounded-full border border-[#34d399]/20 bg-[#34d399]/5 px-2.5 py-0.5 text-[0.68rem] font-bold text-[#34d399] uppercase">
+                        {(fine as any).punishmentType.name}
+                      </span>
+                    )}
                     {fine.rule && (
                       <span className="rounded-full border border-white/5 bg-white/5 px-2.5 py-0.5 text-[0.68rem] font-medium text-[var(--text-subtle)] uppercase">
                         Template: {fine.rule.title}
@@ -455,7 +472,7 @@ export default function FinesPage() {
               <div className="flex flex-wrap sm:flex-nowrap items-center gap-4 justify-between sm:justify-end">
                 <div className="text-left sm:text-right">
                   <p className="text-sm font-bold text-white">
-                    {getSeverityLabel(fine.severity, fine.matchesSuspended)}
+                    {getSeverityLabel(fine)}
                   </p>
                   <div className="mt-1">
                     {getStatusBadge(fine.status)}
@@ -547,15 +564,27 @@ export default function FinesPage() {
 
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-subtle)]">
-              Gravidade / Tipo de Punição *
+              Tipo de Punição / Gravidade *
             </label>
             <select
-              value={severity}
-              onChange={(e) => setSeverity(e.target.value as "WARNING" | "SUSPENSION")}
+              value={punishmentTypeId}
+              onChange={(e) => {
+                const typeId = e.target.value;
+                setPunishmentTypeId(typeId);
+                const selectedType = punishmentTypes.find((t) => t.id === typeId);
+                if (selectedType) {
+                  setSeverity(selectedType.severity);
+                }
+              }}
+              required
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
             >
-              <option value="WARNING">Advertência</option>
-              <option value="SUSPENSION">Suspensão por jogos</option>
+              <option value="">— Selecione o Tipo de Punição —</option>
+              {punishmentTypes.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name} ({t.severity === "SUSPENSION" ? "Suspensão" : "Advertência"})
+                </option>
+              ))}
             </select>
           </div>
 

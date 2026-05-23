@@ -194,6 +194,8 @@ model Team {
   openMatchSlots   OpenMatchSlot[]
   rules            Rule[]
   fines            Fine[]
+  punishmentTypes  PunishmentType[]
+  punishmentAccumulationRules PunishmentAccumulationRule[]
   evaluations      PlayerEvaluation[]
   equipments       Equipment[]
   messages         TeamMessage[]
@@ -552,6 +554,8 @@ model Rule {
   teamId         String
   team           Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   fines          Fine[]
+  punishmentTypeId String?
+  punishmentType   PunishmentType? @relation(fields: [punishmentTypeId], references: [id], onDelete: SetNull)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -572,6 +576,8 @@ model Fine {
   date             DateTime
   teamId           String
   team             Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  punishmentTypeId String?
+  punishmentType   PunishmentType? @relation(fields: [punishmentTypeId], references: [id], onDelete: SetNull)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -786,5 +792,51 @@ model DefaultLineupSelection {
   @@index([teamId, role, sortOrder])
   @@index([playerId])
   @@map("default_lineup_selections")
+}
+
+model PunishmentType {
+  id                  String                      @id @default(cuid())
+  name                String                      // Nome da punição (ex: "Advertência", "Suspensão", "Multa de R$ 50")
+  description         String?
+  severity            String                      @default("WARNING") // WARNING ou SUSPENSION (para compatibilidade retroativa)
+  teamId              String
+  team                Team                        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  rules               Rule[]
+  fines               Fine[]
+  
+  // Relações com as regras de acúmulo
+  sourceAccumulations PunishmentAccumulationRule[] @relation("SourceAccumulation")
+  targetAccumulations PunishmentAccumulationRule[] @relation("TargetAccumulation")
+
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+
+  @@unique([teamId, name])
+  @@index([teamId])
+  @@map("punishment_types")
+}
+
+model PunishmentAccumulationRule {
+  id              String         @id @default(cuid())
+  teamId          String
+  team            Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  
+  sourceTypeId    String
+  sourceType      PunishmentType @relation("SourceAccumulation", fields: [sourceTypeId], references: [id], onDelete: Cascade)
+  
+  accumulateCount Int            // Quantidade acumulada para acionar (ex: 3)
+  
+  targetTypeId    String
+  targetType      PunishmentType @relation("TargetAccumulation", fields: [targetTypeId], references: [id], onDelete: Cascade)
+  
+  targetMatches   Int?           // Qtd de jogos suspensos caso o tipo de destino seja de suspensão (ex: 1)
+  expiryDays      Int?           // Janela de expiração em dias (ex: 30), nulo se nunca expirar
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([teamId, sourceTypeId])
+  @@index([teamId])
+  @@map("punishment_accumulation_rules")
 }
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 export const fineSchema = z.object({
   playerId: z.string().min(1, "Selecione o jogador"),
   ruleId: z.string().optional().nullable(),
+  punishmentTypeId: z.string().optional().nullable(),
   description: z
     .string()
     .trim()

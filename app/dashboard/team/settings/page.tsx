@@ -92,6 +92,153 @@ export default function TeamSettingsPage() {
   const [slotVenueLabel, setSlotVenueLabel] = useState("");
   const [slotNotes, setSlotNotes] = useState("");
 
+  // Configurações Disciplinares e Acúmulos state
+  const [punishmentTypes, setPunishmentTypes] = useState<any[]>([]);
+  const [accumulationRules, setAccumulationRules] = useState<any[]>([]);
+  const [newTypeName, setNewTypeName] = useState("");
+  const [newTypeDesc, setNewTypeDesc] = useState("");
+  const [newTypeSeverity, setNewTypeSeverity] = useState<"WARNING" | "SUSPENSION">("WARNING");
+  const [typeSaving, setTypeSaving] = useState(false);
+
+  const [ruleSourceTypeId, setRuleSourceTypeId] = useState("");
+  const [ruleAccumulateCount, setRuleAccumulateCount] = useState("3");
+  const [ruleTargetTypeId, setRuleTargetTypeId] = useState("");
+  const [ruleTargetMatches, setRuleTargetMatches] = useState("1");
+  const [ruleExpiryDays, setRuleExpiryDays] = useState("30");
+  const [ruleSaving, setRuleSaving] = useState(false);
+
+  async function loadDisciplinarySettings() {
+    try {
+      const [typesRes, rulesRes] = await Promise.all([
+        fetch("/api/teams/punishment-types"),
+        fetch("/api/teams/accumulation-rules")
+      ]);
+
+      if (typesRes.ok) {
+        const data = await typesRes.json();
+        setPunishmentTypes(data.punishmentTypes || []);
+      }
+      if (rulesRes.ok) {
+        const data = await rulesRes.json();
+        setAccumulationRules(data.accumulationRules || []);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar configuracoes disciplinares", err);
+    }
+  }
+
+  async function handleCreateType() {
+    if (!newTypeName.trim()) {
+      setFeedback("Informe o nome do tipo de punição.");
+      return;
+    }
+    setTypeSaving(true);
+    setFeedback(null);
+    try {
+      const res = await fetch("/api/teams/punishment-types", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newTypeName,
+          description: newTypeDesc || null,
+          severity: newTypeSeverity
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Erro ao criar tipo de punição.");
+      }
+      setFeedback(`Tipo de punição "${newTypeName}" criado com sucesso!`);
+      setNewTypeName("");
+      setNewTypeDesc("");
+      setNewTypeSeverity("WARNING");
+      await loadDisciplinarySettings();
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Erro ao salvar tipo de punição.");
+    } finally {
+      setTypeSaving(false);
+    }
+  }
+
+  async function handleDeleteType(id: string) {
+    if (!confirm("Tem certeza que deseja excluir este tipo de punição?")) return;
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/teams/punishment-types/${id}`, {
+        method: "DELETE"
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Erro ao excluir tipo de punição.");
+      }
+      setFeedback("Tipo de punição excluído com sucesso!");
+      await loadDisciplinarySettings();
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Erro ao excluir tipo de punição.");
+    }
+  }
+
+  async function handleSaveRule() {
+    if (!ruleSourceTypeId || !ruleTargetTypeId) {
+      setFeedback("Selecione os tipos de punição de origem e destino.");
+      return;
+    }
+    setRuleSaving(true);
+    setFeedback(null);
+    try {
+      const res = await fetch("/api/teams/accumulation-rules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sourceTypeId: ruleSourceTypeId,
+          accumulateCount: parseInt(ruleAccumulateCount, 10),
+          targetTypeId: ruleTargetTypeId,
+          targetMatches: ruleTargetMatches ? parseInt(ruleTargetMatches, 10) : null,
+          expiryDays: ruleExpiryDays ? parseInt(ruleExpiryDays, 10) : null
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Erro ao salvar regra de acúmulo.");
+      }
+      setFeedback("Regra de acúmulo salva com sucesso!");
+      setRuleSourceTypeId("");
+      setRuleTargetTypeId("");
+      setRuleAccumulateCount("3");
+      setRuleTargetMatches("1");
+      setRuleExpiryDays("30");
+      await loadDisciplinarySettings();
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Erro ao salvar regra de acúmulo.");
+    } finally {
+      setRuleSaving(false);
+    }
+  }
+
+  async function handleDeleteRule(id: string) {
+    if (!confirm("Tem certeza que deseja excluir esta regra de acúmulo?")) return;
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/teams/accumulation-rules/${id}`, {
+        method: "DELETE"
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Erro ao excluir regra de acúmulo.");
+      }
+      setFeedback("Regra de acúmulo excluída!");
+      await loadDisciplinarySettings();
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Erro ao excluir regra de acúmulo.");
+    }
+  }
+
+  useEffect(() => {
+    if (hasTeam && isAdmin) {
+      loadDisciplinarySettings();
+    }
+  }, [hasTeam, isAdmin]);
+
   async function loadTeam() {
     try {
       const res = await fetch("/api/teams");
@@ -317,6 +464,208 @@ export default function TeamSettingsPage() {
 
       {hasTeam && (
         <DefaultLineupCard />
+      )}
+
+      {hasTeam && (
+        <Card className="rounded-[18px]">
+          <CardHeader>
+            <h2 className="text-lg font-semibold text-[var(--text)]">⚖️ Regulamento e Acúmulo de Punições</h2>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            
+            {/* Seção de Tipos de Punições */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold uppercase tracking-[0.1em] text-[#34d399]">
+                1. Tipos de Punições / Multas
+              </h3>
+              <p className="text-xs text-[var(--text-muted)]">
+                Cadastre as punições da equipe. "Advertência" e "Suspensão" são criados por padrão.
+              </p>
+
+              {/* Lista de tipos existentes */}
+              <div className="grid gap-2">
+                {punishmentTypes.map((type) => (
+                  <div
+                    key={type.id}
+                    className="flex flex-col gap-2 rounded-[12px] border border-white/5 bg-white/[0.03] p-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm text-white">{type.name}</span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                            type.severity === "SUSPENSION"
+                              ? "bg-red-500/10 border border-red-500/20 text-red-400"
+                              : "bg-amber-500/10 border border-amber-500/20 text-amber-400"
+                          }`}
+                        >
+                          {type.severity === "SUSPENSION" ? "Suspensão" : "Advertência"}
+                        </span>
+                      </div>
+                      {type.description && (
+                        <p className="text-xs text-[var(--text-muted)] mt-1">{type.description}</p>
+                      )}
+                    </div>
+                    {type.name !== "Advertência" && type.name !== "Suspensão" && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="self-end sm:self-auto border-red-500/20 text-red-400 hover:bg-red-500/10"
+                        onClick={() => handleDeleteType(type.id)}
+                      >
+                        Excluir
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Formulário para novo tipo */}
+              <div className="rounded-[14px] border border-white/5 bg-white/[0.02] p-4 space-y-3">
+                <p className="text-xs font-bold text-white uppercase tracking-wider">Novo Tipo de Punição</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input
+                    label="Nome da Punição"
+                    value={newTypeName}
+                    onChange={(e) => setNewTypeName(e.target.value)}
+                    placeholder="Ex: Multa de Atraso"
+                  />
+                  <Select
+                    label="Gravidade / Categoria"
+                    options={[
+                      { value: "WARNING", label: "Advertência" },
+                      { value: "SUSPENSION", label: "Suspensão" },
+                    ]}
+                    value={newTypeSeverity}
+                    onChange={(e) => setNewTypeSeverity(e.target.value as "WARNING" | "SUSPENSION")}
+                  />
+                </div>
+                <Input
+                  label="Descrição (Opcional)"
+                  value={newTypeDesc}
+                  onChange={(e) => setNewTypeDesc(e.target.value)}
+                  placeholder="Ex: Aplicado a jogadores que se atrasarem para a preleção"
+                />
+                <Button size="sm" onClick={handleCreateType} loading={typeSaving}>
+                  Adicionar Tipo
+                </Button>
+              </div>
+            </div>
+
+            <hr className="border-white/5" />
+
+            {/* Seção de Regras de Acúmulo */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold uppercase tracking-[0.1em] text-[#34d399]">
+                2. Regras de Conversão e Acúmulo
+              </h3>
+              <p className="text-xs text-[var(--text-muted)]">
+                Defina como as punições acumulam para gerar outra de forma automática.
+              </p>
+
+              {/* Lista de regras atuais */}
+              <div className="grid gap-2">
+                {accumulationRules.length === 0 ? (
+                  <p className="text-xs text-[var(--text-muted)] italic">Nenhuma regra de acúmulo configurada.</p>
+                ) : (
+                  accumulationRules.map((rule) => (
+                    <div
+                      key={rule.id}
+                      className="flex flex-col gap-2 rounded-[12px] border border-white/5 bg-white/[0.03] p-3 sm:flex-row sm:items-center sm:justify-between text-xs text-white"
+                    >
+                      <div className="space-y-1">
+                        <div>
+                          A cada <strong className="text-[#34d399]">{rule.accumulateCount}x</strong> punições do tipo{" "}
+                          <strong className="text-amber-400">"{rule.sourceType?.name}"</strong>, o jogador receberá automaticamente 1x{" "}
+                          <strong className="text-red-400">"{rule.targetType?.name}"</strong>
+                          {rule.targetType?.severity === "SUSPENSION" && rule.targetMatches && (
+                            <span> (Suspensão de <strong>{rule.targetMatches} jogo(s)</strong>)</span>
+                          )}.
+                        </div>
+                        <div className="text-[10px] text-[var(--text-muted)]">
+                          {rule.expiryDays ? (
+                            <span>O acúmulo expira após <strong>{rule.expiryDays} dias</strong> a partir de cada infração.</span>
+                          ) : (
+                            <span>O acúmulo nunca expira (histórico vitalício).</span>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="border-red-500/20 text-red-400 hover:bg-red-500/10"
+                        onClick={() => handleDeleteRule(rule.id)}
+                      >
+                        Remover Regra
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Formulário para nova regra */}
+              <div className="rounded-[14px] border border-white/5 bg-white/[0.02] p-4 space-y-3">
+                <p className="text-xs font-bold text-white uppercase tracking-wider">Configurar Regra de Acúmulo</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Select
+                    label="Quando o jogador acumular..."
+                    options={[
+                      { value: "", label: "Selecione o tipo de origem" },
+                      ...punishmentTypes.map(t => ({ value: t.id, label: t.name })),
+                    ]}
+                    value={ruleSourceTypeId}
+                    onChange={(e) => setRuleSourceTypeId(e.target.value)}
+                  />
+                  <Input
+                    label="Quantidade necessária"
+                    type="number"
+                    min="1"
+                    value={ruleAccumulateCount}
+                    onChange={(e) => setRuleAccumulateCount(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Select
+                    label="Converterá automaticamente em..."
+                    options={[
+                      { value: "", label: "Selecione o tipo de destino" },
+                      ...punishmentTypes.map(t => ({ value: t.id, label: t.name })),
+                    ]}
+                    value={ruleTargetTypeId}
+                    onChange={(e) => setRuleTargetTypeId(e.target.value)}
+                  />
+                  <Input
+                    label="Janela de expiração (dias)"
+                    type="number"
+                    min="1"
+                    value={ruleExpiryDays}
+                    onChange={(e) => setRuleExpiryDays(e.target.value)}
+                    placeholder="Deixe em branco para nunca expirar"
+                  />
+                </div>
+
+                {/* Se o tipo selecionado for suspensão, permite configurar número de jogos */}
+                {punishmentTypes.find(t => t.id === ruleTargetTypeId)?.severity === "SUSPENSION" && (
+                  <div className="w-1/2 pr-1.5">
+                    <Input
+                      label="Jogos de suspensão aplicados"
+                      type="number"
+                      min="1"
+                      value={ruleTargetMatches}
+                      onChange={(e) => setRuleTargetMatches(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                <Button size="sm" onClick={handleSaveRule} loading={ruleSaving}>
+                  Salvar Regra de Acúmulo
+                </Button>
+              </div>
+            </div>
+
+          </CardContent>
+        </Card>
       )}
 
       {team?.slug && (
