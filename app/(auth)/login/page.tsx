@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 import { Button } from "@/components/ui/Button";
@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/Card";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -37,7 +38,20 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    const callbackUrl = searchParams.get("callbackUrl");
+    const safeCallbackPath = (() => {
+      if (!callbackUrl) return "/dashboard";
+
+      try {
+        const url = new URL(callbackUrl, window.location.origin);
+        if (url.origin !== window.location.origin) return "/dashboard";
+        return `${url.pathname}${url.search}${url.hash}`;
+      } catch {
+        return "/dashboard";
+      }
+    })();
+
+    router.push(safeCallbackPath);
     router.refresh();
   }
 

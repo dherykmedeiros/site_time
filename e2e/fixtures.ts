@@ -16,8 +16,7 @@ export async function login(page: Page, email = ADMIN_EMAIL, password = ADMIN_PA
   await page.getByLabel("E-mail").fill(email);
   await page.getByLabel("Senha").fill(password);
   await page.getByRole("button", { name: "Entrar" }).click();
-  // Wait for redirect — "/" redirects authenticated users to "/squad" or "/team/settings"
-  await page.waitForURL(/\/(squad|team|$)/, { timeout: 15_000 });
+  await page.waitForURL(/\/dashboard(?:\/.*)?$/, { timeout: 15_000 });
 }
 
 /* ── Extended test fixture ────────────────────────── */
@@ -27,6 +26,7 @@ export const test = base.extend<{ adminPage: Page }>({
     if (fs.existsSync(AUTH_FILE)) {
       const ctx = await browser.newContext({ storageState: AUTH_FILE });
       const page = await ctx.newPage();
+      // eslint-disable-next-line react-hooks/rules-of-hooks
       await use(page);
       await ctx.close();
     } else {
@@ -34,6 +34,7 @@ export const test = base.extend<{ adminPage: Page }>({
       const page = await ctx.newPage();
       await login(page);
       await ctx.storageState({ path: AUTH_FILE });
+      // eslint-disable-next-line react-hooks/rules-of-hooks
       await use(page);
       await ctx.close();
     }

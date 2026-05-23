@@ -31,7 +31,7 @@ test.describe("Auth — Login", () => {
     await page.getByLabel("E-mail").fill(ADMIN_EMAIL);
     await page.getByLabel("Senha").fill(ADMIN_PASSWORD);
     await page.getByRole("button", { name: "Entrar" }).click();
-    await page.waitForURL(/\/(squad|team|$)/, { timeout: 15_000 });
+    await page.waitForURL(/\/dashboard$/, { timeout: 15_000 });
     // Dashboard should be visible — use heading to avoid strict mode
     await expect(page.getByRole("link", { name: /Painel/i }).first()).toBeVisible();
   });
@@ -57,11 +57,9 @@ test.describe("Auth — Route Protection", () => {
   test("unauthenticated user visiting dashboard is redirected to login", async ({ page }) => {
     // Clear any session state
     await page.context().clearCookies();
-    await page.goto("/");
-    // Should show landing page or login — unauthenticated user cannot see dashboard nav
-    await expect(
-      page.getByText(/Entrar|VARzea|Explorar vitrine/i).first()
-    ).toBeVisible({ timeout: 10_000 });
+    await page.goto("/dashboard");
+    await expect(page).toHaveURL(/\/login/);
+    await expect(page.getByRole("heading", { name: "Entrar" })).toBeVisible();
     // Dashboard sidebar should NOT be visible
     await expect(page.getByRole("link", { name: "Elenco" })).not.toBeVisible();
   });
