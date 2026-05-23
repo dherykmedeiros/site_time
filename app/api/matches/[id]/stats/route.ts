@@ -170,16 +170,38 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 
-  // Batch create stats
-  await prisma.matchStats.createMany({
-    data: stats.map((s) => ({
-      playerId: s.playerId,
-      matchId,
-      goals: s.goals,
-      assists: s.assists,
-      yellowCards: s.yellowCards,
-      redCards: s.redCards,
-    })),
+  // Batch create stats and ensure match attendance is marked as present
+  await prisma.$transaction(async (tx) => {
+    await tx.matchStats.createMany({
+      data: stats.map((s) => ({
+        playerId: s.playerId,
+        matchId,
+        goals: s.goals,
+        assists: s.assists,
+        yellowCards: s.yellowCards,
+        redCards: s.redCards,
+      })),
+    });
+
+    for (const s of stats) {
+      await tx.matchAttendance.upsert({
+        where: {
+          matchId_playerId: {
+            matchId,
+            playerId: s.playerId,
+          },
+        },
+        create: {
+          matchId,
+          playerId: s.playerId,
+          present: true,
+          checkedInAt: new Date(),
+        },
+        update: {
+          present: true,
+        },
+      });
+    }
   });
 
   // Fetch created stats to return
@@ -316,6 +338,27 @@ export async function PUT(request: Request, { params }: RouteParams) {
         redCards: s.redCards,
       })),
     });
+
+    // Ensure attendance is marked as present for all these players
+    for (const s of stats) {
+      await tx.matchAttendance.upsert({
+        where: {
+          matchId_playerId: {
+            matchId,
+            playerId: s.playerId,
+          },
+        },
+        create: {
+          matchId,
+          playerId: s.playerId,
+          present: true,
+          checkedInAt: new Date(),
+        },
+        update: {
+          present: true,
+        },
+      });
+    }
   });
 
   const updatedStats = await prisma.matchStats.findMany({

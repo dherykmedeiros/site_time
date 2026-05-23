@@ -202,41 +202,25 @@ function getPlayerMarkerClasses(position: string) {
   };
 }
 
+const positionOrder: Record<string, number> = {
+  GOALKEEPER: 1,
+  RIGHT_BACK: 2,
+  DEFENDER: 3,
+  LEFT_BACK: 4,
+  MIDFIELDER: 5,
+  DEFENSIVE_MIDFIELDER: 6,
+  RIGHT_WINGER: 7,
+  FORWARD: 8,
+  LEFT_WINGER: 9,
+};
+
 function getTacticalPositions(starters: any[]) {
-  const mapped = starters.map((s) => {
+  // Separate players into custom placement (database coords) and automatic placement
+  const customPlacements = starters.filter(s => s.fieldX != null && s.fieldY != null).map(s => {
     const p = s.player;
-    let x = s.fieldX;
-    let y = s.fieldY;
-    
-    if (x != null && y != null) {
-      const displayX = y;
-      const displayY = x;
-      x = displayX;
-      y = displayY;
-    } else {
-      if (p.position === "GOALKEEPER") {
-        x = 10; y = 50;
-      } else if (p.position === "LEFT_BACK") {
-        x = 24; y = 82;
-      } else if (p.position === "RIGHT_BACK") {
-        x = 24; y = 18;
-      } else if (p.position === "DEFENDER") {
-        x = 22; y = 50;
-      } else if (p.position === "DEFENSIVE_MIDFIELDER") {
-        x = 46; y = 50;
-      } else if (p.position === "MIDFIELDER") {
-        x = 42; y = 30;
-      } else if (p.position === "LEFT_WINGER") {
-        x = 74; y = 78;
-      } else if (p.position === "RIGHT_WINGER") {
-        x = 74; y = 22;
-      } else if (p.position === "FORWARD") {
-        x = 84; y = 50;
-      } else {
-        x = 46; y = 50;
-      }
-    }
-    
+    // Swapped for horizontal screen display
+    const x = s.fieldY;
+    const y = s.fieldX;
     return {
       id: s.id,
       name: p.name,
@@ -247,48 +231,184 @@ function getTacticalPositions(starters: any[]) {
     };
   });
 
-  // Group by initial coordinates to prevent overlapping
-  const positionGroups: Record<string, number[]> = {};
-  mapped.forEach((player, idx) => {
-    const key = `${player.x}-${player.y}`;
-    if (!positionGroups[key]) {
-      positionGroups[key] = [];
-    }
-    positionGroups[key].push(idx);
-  });
+  const autoPlacements = starters.filter(s => s.fieldX == null || s.fieldY == null);
 
-  Object.keys(positionGroups).forEach((key) => {
-    const indices = positionGroups[key];
-    if (indices.length > 1) {
-      // Symmetrical distribution around the center vertical axis if y is 50
-      const firstPlayer = mapped[indices[0]];
-      if (firstPlayer.y === 50) {
-        if (indices.length === 2) {
-          mapped[indices[0]].y = 38;
-          mapped[indices[1]].y = 62;
-        } else if (indices.length === 3) {
-          mapped[indices[0]].y = 32;
-          mapped[indices[1]].y = 50;
-          mapped[indices[2]].y = 68;
-        } else {
-          const step = 40 / (indices.length - 1);
-          indices.forEach((idx, offsetIdx) => {
-            mapped[idx].y = Math.round(30 + offsetIdx * step);
-          });
-        }
-      } else {
-        // Otherwise, shift them slightly in diagonal so they do not overlap
-        indices.forEach((idx, offsetIdx) => {
-          if (offsetIdx > 0) {
-            mapped[idx].x = Math.min(94, mapped[idx].x + offsetIdx * 6);
-            mapped[idx].y = Math.min(94, mapped[idx].y + offsetIdx * 6);
-          }
-        });
-      }
+  // Group auto placements by group type
+  const gks: any[] = [];
+  const defs: any[] = [];
+  const mids: any[] = [];
+  const fwds: any[] = [];
+
+  autoPlacements.forEach((s) => {
+    const p = s.player;
+    const pos = p.position.toUpperCase();
+    if (pos === "GOALKEEPER") {
+      gks.push(s);
+    } else if (["DEFENDER", "LEFT_BACK", "RIGHT_BACK"].includes(pos)) {
+      defs.push(s);
+    } else if (["MIDFIELDER", "DEFENSIVE_MIDFIELDER"].includes(pos)) {
+      mids.push(s);
+    } else {
+      fwds.push(s);
     }
   });
 
-  return mapped;
+  // Sort each group by natural vertical order (top-to-bottom on screen)
+  const sortByPosition = (a: any, b: any) => {
+    const orderA = positionOrder[a.player.position] || 99;
+    const orderB = positionOrder[b.player.position] || 99;
+    return orderA - orderB;
+  };
+
+  gks.sort(sortByPosition);
+  defs.sort(sortByPosition);
+  mids.sort(sortByPosition);
+  fwds.sort(sortByPosition);
+
+  const mappedAuto: any[] = [];
+
+  // 1. Goalkeepers
+  gks.forEach((s) => {
+    mappedAuto.push({
+      id: s.id,
+      name: s.player.name,
+      shirtNumber: s.player.shirtNumber,
+      position: s.player.position,
+      x: 12,
+      y: 50,
+    });
+  });
+
+  // 2. Defenders
+  const D = defs.length;
+  defs.forEach((s, idx) => {
+    let px = 22;
+    let py = 50;
+    if (D === 4) {
+      const spots = [
+        { x: 24, y: 18 }, // RB / LD
+        { x: 22, y: 38 }, // CB1 / ZAG
+        { x: 22, y: 62 }, // CB2 / ZAG
+        { x: 24, y: 82 }, // LB / LE
+      ];
+      px = spots[idx].x;
+      py = spots[idx].y;
+    } else if (D === 3) {
+      const spots = [
+        { x: 24, y: 22 },
+        { x: 22, y: 50 },
+        { x: 24, y: 78 },
+      ];
+      px = spots[idx].x;
+      py = spots[idx].y;
+    } else if (D === 5) {
+      const spots = [
+        { x: 24, y: 15 },
+        { x: 22, y: 32 },
+        { x: 20, y: 50 },
+        { x: 22, y: 68 },
+        { x: 24, y: 85 },
+      ];
+      px = spots[idx].x;
+      py = spots[idx].y;
+    } else if (D > 0) {
+      const step = 64 / (D - 1 || 1);
+      px = 22;
+      py = Math.round(18 + idx * step);
+    }
+    mappedAuto.push({
+      id: s.id,
+      name: s.player.name,
+      shirtNumber: s.player.shirtNumber,
+      position: s.player.position,
+      x: px,
+      y: py,
+    });
+  });
+
+  // 3. Midfielders
+  const M = mids.length;
+  mids.forEach((s, idx) => {
+    let px = 44;
+    let py = 50;
+    if (M === 3) {
+      const spots = [
+        { x: 42, y: 25 },
+        { x: 48, y: 50 },
+        { x: 42, y: 75 },
+      ];
+      px = spots[idx].x;
+      py = spots[idx].y;
+    } else if (M === 4) {
+      const spots = [
+        { x: 42, y: 20 },
+        { x: 46, y: 40 },
+        { x: 46, y: 60 },
+        { x: 42, y: 80 },
+      ];
+      px = spots[idx].x;
+      py = spots[idx].y;
+    } else if (M === 2) {
+      const spots = [
+        { x: 44, y: 33 },
+        { x: 44, y: 67 },
+      ];
+      px = spots[idx].x;
+      py = spots[idx].y;
+    } else if (M > 0) {
+      const step = 60 / (M - 1 || 1);
+      px = 44;
+      py = Math.round(20 + idx * step);
+    }
+    mappedAuto.push({
+      id: s.id,
+      name: s.player.name,
+      shirtNumber: s.player.shirtNumber,
+      position: s.player.position,
+      x: px,
+      y: py,
+    });
+  });
+
+  // 4. Forwards
+  const F = fwds.length;
+  fwds.forEach((s, idx) => {
+    let px = 80;
+    let py = 50;
+    if (F === 3) {
+      const spots = [
+        { x: 74, y: 22 }, // RW
+        { x: 84, y: 50 }, // CF
+        { x: 74, y: 78 }, // LW
+      ];
+      px = spots[idx].x;
+      py = spots[idx].y;
+    } else if (F === 2) {
+      const spots = [
+        { x: 80, y: 33 },
+        { x: 80, y: 67 },
+      ];
+      px = spots[idx].x;
+      py = spots[idx].y;
+    } else if (F === 1) {
+      px = 84;
+      py = 50;
+    } else if (F > 0) {
+      const step = 60 / (F - 1 || 1);
+      px = 78;
+      py = Math.round(20 + idx * step);
+    }
+    mappedAuto.push({
+      id: s.id,
+      name: s.player.name,
+      shirtNumber: s.player.shirtNumber,
+      position: s.player.position,
+      x: px,
+      y: py,
+    });
+  });
+
+  return [...customPlacements, ...mappedAuto];
 }
 
 function getPlayerStamp(player: any, stats: any) {
