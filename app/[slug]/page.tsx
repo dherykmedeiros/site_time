@@ -116,12 +116,24 @@ function hexToRgb(hex: string): string {
 function ClubCrest({
   className = "w-9 h-[42px] shrink-0",
   variant = "normal",
-  initials = "MC"
+  initials = "MC",
+  badgeUrl = null
 }: {
   className?: string;
   variant?: "normal" | "white" | "footer";
   initials?: string;
+  badgeUrl?: string | null;
 }) {
+  if (badgeUrl) {
+    return (
+      <img
+        src={badgeUrl}
+        alt={`Escudo ${initials}`}
+        className={`${className} object-contain`}
+      />
+    );
+  }
+
   let fill = "var(--primary)";
   let stroke = "var(--ink)";
   let textFill = "var(--text-inv)";
@@ -786,9 +798,9 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
       <header className="site">
         <div className="wrap">
           <Link href={`/${team.slug}`} className="brand">
-            <ClubCrest initials={clubInitials} />
+            <ClubCrest initials={clubInitials} badgeUrl={team.badgeUrl} />
             <div className="txt">
-              <div className="top">Fundado em {team.foundedYear || 2026} · {team.city || "Fortaleza"}/{team.region || "CE"}</div>
+              <div className="top">Fundado em {(team as any).foundedYear || 2026} · {team.city || "Fortaleza"}/{team.region || "CE"}</div>
               <div className="name">{team.name}</div>
             </div>
           </Link>
@@ -832,7 +844,7 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
                 {team.description || `"Sempre em frente." — Desde a fundação, o que move o time é a nossa comunidade.`}
               </p>
               <div className="since font-mono text-[11px] text-[var(--text-3)] flex gap-4 uppercase mt-6 border-b border-[var(--border)] pb-6">
-                <span>FUND. <b>{team.foundedYear || 2026}</b></span>
+                <span>FUND. <b>{(team as any).foundedYear || 2026}</b></span>
                 <span>·</span>
                 <span>SEDE <b>{team.city || "Fortaleza"} · {team.region || "Ceará"}</b></span>
                 <span>·</span>
@@ -843,7 +855,7 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
               <div className="manifesto mt-8 p-6 bg-[var(--surface-2)] border-l-4 border-[var(--primary)] relative">
                 <div className="tag-row flex justify-between text-[11px] font-mono text-[var(--text-3)] uppercase tracking-wide mb-3">
                   <span className="lab font-bold">▸ Manifesto de vestiário</span>
-                  <span>{team.foundedYear || 2026} · revisão I</span>
+                  <span>{(team as any).foundedYear || 2026} · revisão I</span>
                 </div>
                 <blockquote className="font-serif text-[15px] italic text-[var(--text-2)] leading-relaxed">
                   Aqui a paixão não é cobrada em bilheteria e o suor pesa mais que qualquer contrato milionário. Cada capítulo da nossa história é escrito no terrão ou no sintético, jogo a jogo, pela honra da comunidade.
@@ -885,7 +897,7 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
                   <span>Campanha Ativa</span>
                 </div>
                 <div className="body flex items-center gap-6 py-4">
-                  <ClubCrest variant="white" initials={clubInitials} className="w-[84px] h-[98px]" />
+                  <ClubCrest variant="white" initials={clubInitials} className="w-[84px] h-[98px]" badgeUrl={team.badgeUrl} />
                   <div className="who">
                     <div className="lab text-[9px] font-mono opacity-65 uppercase tracking-wider">Clube oficial</div>
                     <div className="t font-serif font-bold text-2xl tracking-tight leading-none mt-1">{team.name}</div>
@@ -1681,9 +1693,9 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
           <div className="top">
             <div className="brand-col col-span-2">
               <Link href={`/${team.slug}`} className="brand">
-                <ClubCrest variant="footer" initials={clubInitials} />
+                <ClubCrest variant="footer" initials={clubInitials} badgeUrl={team.badgeUrl} />
                 <div className="txt">
-                  <div className="top">Fundado em {team.foundedYear || 2026}</div>
+                  <div className="top">Fundado em {(team as any).foundedYear || 2026}</div>
                   <div className="name text-white">{team.name}</div>
                 </div>
               </Link>
