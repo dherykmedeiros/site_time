@@ -29,6 +29,11 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
     where: { id, teamId: session.user.teamId },
     include: {
       rsvps: {
+        where: {
+          player: {
+            status: "ACTIVE"
+          }
+        },
         include: {
           player: { select: { name: true } },
         },
@@ -209,6 +214,11 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
       data: { status: "CANCELLED" },
       include: {
         rsvps: {
+          where: {
+            player: {
+              status: "ACTIVE"
+            }
+          },
           include: { player: { select: { name: true } } },
         },
         matchStats: {
@@ -252,6 +262,11 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
       },
       include: {
         rsvps: {
+          where: {
+            player: {
+              status: "ACTIVE"
+            }
+          },
           include: { player: { select: { name: true } } },
         },
         matchStats: {
@@ -300,6 +315,11 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
       data: updateData,
       include: {
         rsvps: {
+          where: {
+            player: {
+              status: "ACTIVE"
+            }
+          },
           include: { player: { select: { name: true } } },
         },
         matchStats: {
