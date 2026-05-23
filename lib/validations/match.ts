@@ -123,6 +123,7 @@ export const lineupFormationSchema = z.enum([
   "3-4-3",
   "5-3-2",
   "4-1-4-1",
+  "5-4-1",
 ]);
 export const lineupBlockPresetSchema = z.enum(["DEEP", "BALANCED", "HIGH"]);
 

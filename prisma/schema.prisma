@@ -68,6 +68,7 @@ enum MatchLineupFormation {
   THREE_FOUR_THREE
   FIVE_THREE_TWO
   FOUR_ONE_FOUR_ONE
+  FIVE_FOUR_ONE
 }
 
 enum MatchLineupBlockPreset {

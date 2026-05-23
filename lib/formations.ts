@@ -12,7 +12,8 @@ export type FormationName =
   | "3-5-2"
   | "3-4-3"
   | "5-3-2"
-  | "4-1-4-1";
+  | "4-1-4-1"
+  | "5-4-1";
 
 export type BlockPreset = "DEEP" | "BALANCED" | "HIGH";
 
@@ -171,6 +172,25 @@ const FORMATIONS: Record<FormationName, FormationDefinition> = {
       { x: 50, y: 81, positions: ["FORWARD", "RIGHT_WINGER", "LEFT_WINGER"] },
     ],
   },
+  "5-4-1": {
+    label: "5-4-1",
+    slots: [
+      { x: 50, y: 14, positions: ["GOALKEEPER"] },
+      // Five defenders (wingbacks + CBs)
+      { x: 86, y: 41, positions: ["RIGHT_BACK", "RIGHT_WINGER", "MIDFIELDER"] },
+      { x: 68, y: 32, positions: ["DEFENDER", "RIGHT_BACK"] },
+      { x: 50, y: 30, positions: ["DEFENDER"] },
+      { x: 32, y: 32, positions: ["DEFENDER", "LEFT_BACK"] },
+      { x: 14, y: 41, positions: ["LEFT_BACK", "LEFT_WINGER", "MIDFIELDER"] },
+      // Four midfielders
+      { x: 80, y: 56, positions: ["RIGHT_WINGER", "MIDFIELDER", "RIGHT_BACK"] },
+      { x: 61, y: 57, positions: ["MIDFIELDER", "DEFENSIVE_MIDFIELDER", "RIGHT_WINGER"] },
+      { x: 39, y: 57, positions: ["MIDFIELDER", "DEFENSIVE_MIDFIELDER", "LEFT_WINGER"] },
+      { x: 20, y: 56, positions: ["LEFT_WINGER", "MIDFIELDER", "LEFT_BACK"] },
+      // Lone striker
+      { x: 50, y: 81, positions: ["FORWARD", "RIGHT_WINGER", "LEFT_WINGER"] },
+    ],
+  },
 };
 
 function getPreferenceScore(slot: FormationSlot, position: SuggestedLineupEntry["position"]) {
@@ -237,6 +257,7 @@ export const FORMATION_NAMES: FormationName[] = [
   "3-4-3",
   "5-3-2",
   "4-1-4-1",
+  "5-4-1",
 ];
 
 const FORMATION_TO_DB: Record<FormationName, string> = {
@@ -247,6 +268,7 @@ const FORMATION_TO_DB: Record<FormationName, string> = {
   "3-4-3": "THREE_FOUR_THREE",
   "5-3-2": "FIVE_THREE_TWO",
   "4-1-4-1": "FOUR_ONE_FOUR_ONE",
+  "5-4-1": "FIVE_FOUR_ONE",
 };
 
 const DB_TO_FORMATION: Record<string, FormationName> = Object.fromEntries(
