@@ -203,6 +203,7 @@ export default function MatchDetailPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "ADMIN";
+  const isCoachOrAdmin = isAdmin || session?.user?.role === "COACH";
   const [match, setMatch] = useState<MatchDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -299,7 +300,7 @@ export default function MatchDetailPage() {
   }, [fetchMatch]);
 
   const fetchLineup = useCallback(async (options?: { refresh?: boolean }) => {
-    if (!isAdmin || !match || match.status !== "SCHEDULED") {
+    if (!isCoachOrAdmin || !match || match.status !== "SCHEDULED") {
       setLineupData(null);
       setLineupError(null);
       return;
@@ -328,7 +329,7 @@ export default function MatchDetailPage() {
       setLineupLoading(false);
       setLineupRefreshing(false);
     }
-  }, [id, isAdmin, match]);
+  }, [id, isCoachOrAdmin, match]);
 
   useEffect(() => {
     if (!match) {
@@ -438,8 +439,12 @@ export default function MatchDetailPage() {
   useEffect(() => {
     const allowedSections: ScheduledWorkspaceSection[] = ["overview", "presence", "gallery"];
 
+    if (isCoachOrAdmin && match?.status === "SCHEDULED") {
+      allowedSections.push("lineup");
+    }
+
     if (isAdmin && match?.status === "SCHEDULED") {
-      allowedSections.push("lineup", "operations");
+      allowedSections.push("operations");
     }
 
     if ((isAdmin && match?.canSubmitPostGame) || match?.status === "COMPLETED") {
@@ -449,7 +454,7 @@ export default function MatchDetailPage() {
     if (!allowedSections.includes(activeSection)) {
       setActiveSection("overview");
     }
-  }, [activeSection, isAdmin, match?.status]);
+  }, [activeSection, isAdmin, isCoachOrAdmin, match?.canSubmitPostGame, match?.status]);
 
   function toggleChecklistItem(index: number) {
     setBordereauData((current) => {
@@ -913,7 +918,7 @@ export default function MatchDetailPage() {
   const declined = match.rsvps.filter((r) => r.status === "DECLINED").length;
   const pending = match.rsvps.filter((r) => r.status === "PENDING").length;
   const isScheduled = match.status === "SCHEDULED";
-  const canSeeLineup = isAdmin && isScheduled;
+  const canSeeLineup = isCoachOrAdmin && isScheduled;
   const canSeeOperations = isAdmin && isScheduled;
   const canSeePostGame = (isAdmin && match.canSubmitPostGame) || match.status === "COMPLETED";
   const sections: Array<{

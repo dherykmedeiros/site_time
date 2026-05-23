@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { MatchLineupBlockPreset, MatchLineupFormation, Prisma } from "@prisma/client";
 import { serializeBlockPreset, serializeFormation } from "@/lib/formations";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireCoachOrAdmin } from "@/lib/auth";
 import { buildMatchLineupSnapshot } from "@/lib/match-lineup";
 import { trackOperationalEvent } from "@/lib/telemetry";
 import { patchMatchLineupSchema } from "@/lib/validations/match";
@@ -109,7 +109,7 @@ function buildLineupResponse(match: NonNullable<Awaited<ReturnType<typeof loadMa
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireCoachOrAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {
@@ -133,7 +133,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 }
 
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireCoachOrAdmin();
   if (error) return error;
 
   const ip = extractClientIp(request);
@@ -285,7 +285,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(request: Request, { params }: RouteParams) {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireCoachOrAdmin();
   if (error) return error;
 
   if (!session.user.teamId) {
