@@ -18,6 +18,9 @@ export const GET = withErrorHandler(async () => {
   const rules = await prisma.rule.findMany({
     where: { teamId: session.user.teamId },
     orderBy: { createdAt: "desc" },
+    include: {
+      punishmentType: true,
+    },
   });
 
   return NextResponse.json({ rules });
@@ -51,7 +54,18 @@ export const POST = withErrorHandler(async (request: Request) => {
     );
   }
 
-  const { title, description, severity, defaultMatches } = parsed.data;
+  const { title, description, severity, punishmentTypeId, defaultMatches } = parsed.data;
+
+  // Verify the punishmentTypeId belongs to the team if provided
+  let resolvedTypeId = punishmentTypeId || null;
+  if (resolvedTypeId) {
+    const typeExists = await prisma.punishmentType.findFirst({
+      where: { id: resolvedTypeId, teamId: session.user.teamId },
+    });
+    if (!typeExists) {
+      return NextResponse.json({ error: "Tipo de punição não encontrado no time" }, { status: 404 });
+    }
+  }
 
   const rule = await prisma.rule.create({
     data: {
@@ -59,7 +73,11 @@ export const POST = withErrorHandler(async (request: Request) => {
       title,
       description,
       severity,
+      punishmentTypeId: resolvedTypeId,
       defaultMatches: severity === "SUSPENSION" && defaultMatches !== undefined && defaultMatches !== null ? defaultMatches : null,
+    },
+    include: {
+      punishmentType: true,
     },
   });
 

@@ -31,6 +31,8 @@ export default function RulesPage() {
   // Form states
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [punishmentTypes, setPunishmentTypes] = useState<any[]>([]);
+  const [punishmentTypeId, setPunishmentTypeId] = useState("");
   const [severity, setSeverity] = useState<"WARNING" | "SUSPENSION">("WARNING");
   const [defaultMatches, setDefaultMatches] = useState("1");
   const [saving, setSaving] = useState(false);
@@ -47,10 +49,18 @@ export default function RulesPage() {
   async function loadRules() {
     setLoading(true);
     try {
-      const res = await fetch("/api/rules");
-      if (res.ok) {
-        const data = await res.json();
+      const [rulesRes, typesRes] = await Promise.all([
+        fetch("/api/rules"),
+        fetch("/api/teams/punishment-types"),
+      ]);
+
+      if (rulesRes.ok) {
+        const data = await rulesRes.json();
         setRules(data.rules || []);
+      }
+      if (typesRes.ok) {
+        const data = await typesRes.json();
+        setPunishmentTypes(data.punishmentTypes || []);
       }
     } catch {
       toast("Erro ao carregar regras");
@@ -68,6 +78,7 @@ export default function RulesPage() {
     setTitle("");
     setDescription("");
     setSeverity("WARNING");
+    setPunishmentTypeId("");
     setDefaultMatches("1");
     setFormError("");
     setShowModal(true);
@@ -78,6 +89,7 @@ export default function RulesPage() {
     setTitle(rule.title);
     setDescription(rule.description);
     setSeverity(rule.severity);
+    setPunishmentTypeId((rule as any).punishmentTypeId || "");
     setDefaultMatches(rule.defaultMatches !== null ? String(rule.defaultMatches) : "1");
     setFormError("");
     setShowModal(true);
@@ -92,6 +104,7 @@ export default function RulesPage() {
       title,
       description,
       severity,
+      punishmentTypeId: punishmentTypeId || null,
       defaultMatches: severity === "SUSPENSION" ? parseInt(defaultMatches) : null,
     };
 
@@ -208,11 +221,11 @@ export default function RulesPage() {
                 <div>
                   {rule.severity === "SUSPENSION" ? (
                     <Badge variant="danger" className="bg-red-500/10 text-red-400 border-red-500/20 px-3 py-1 font-semibold text-xs rounded-full">
-                      Suspensão: {rule.defaultMatches} {rule.defaultMatches === 1 ? "jogo" : "jogos"}
+                      {(rule as any).punishmentType?.name || "Suspensão"}: {rule.defaultMatches} {rule.defaultMatches === 1 ? "jogo" : "jogos"}
                     </Badge>
                   ) : (
                     <Badge variant="warning" className="bg-amber-500/10 text-amber-400 border-amber-500/20 px-3 py-1 font-semibold text-xs rounded-full">
-                      Advertência
+                      {(rule as any).punishmentType?.name || "Advertência"}
                     </Badge>
                   )}
                 </div>
@@ -272,15 +285,27 @@ export default function RulesPage() {
 
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-subtle)]">
-              Gravidade / Tipo de Punição *
+              Tipo de Punição / Gravidade *
             </label>
             <select
-              value={severity}
-              onChange={(e) => setSeverity(e.target.value as "WARNING" | "SUSPENSION")}
+              value={punishmentTypeId}
+              onChange={(e) => {
+                const typeId = e.target.value;
+                setPunishmentTypeId(typeId);
+                const selectedType = punishmentTypes.find((t) => t.id === typeId);
+                if (selectedType) {
+                  setSeverity(selectedType.severity);
+                }
+              }}
+              required
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
             >
-              <option value="WARNING">Advertência</option>
-              <option value="SUSPENSION">Suspensão por jogos</option>
+              <option value="">— Selecione o Tipo de Punição —</option>
+              {punishmentTypes.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name} ({t.severity === "SUSPENSION" ? "Suspensão" : "Advertência"})
+                </option>
+              ))}
             </select>
           </div>
 

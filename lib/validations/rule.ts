@@ -14,6 +14,7 @@ export const ruleSchema = z.object({
   severity: z.enum(["WARNING", "SUSPENSION"], {
     message: "Gravidade inválida. Escolha Advertência ou Suspensão.",
   }),
+  punishmentTypeId: z.string().optional().nullable(),
   defaultMatches: z.coerce
     .number()
     .int("Deve ser um número inteiro")

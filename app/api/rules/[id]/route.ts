@@ -35,7 +35,18 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
     );
   }
 
-  const { title, description, severity, defaultMatches } = parsed.data;
+  const { title, description, severity, punishmentTypeId, defaultMatches } = parsed.data;
+
+  // Verify the punishmentTypeId belongs to the team if provided
+  let resolvedTypeId = punishmentTypeId || null;
+  if (resolvedTypeId) {
+    const typeExists = await prisma.punishmentType.findFirst({
+      where: { id: resolvedTypeId, teamId: session.user.teamId },
+    });
+    if (!typeExists) {
+      return NextResponse.json({ error: "Tipo de punição não encontrado no time" }, { status: 404 });
+    }
+  }
 
   const rule = await prisma.rule.update({
     where: { id },
@@ -43,7 +54,11 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
       title,
       description,
       severity,
+      punishmentTypeId: resolvedTypeId,
       defaultMatches: severity === "SUSPENSION" && defaultMatches !== undefined && defaultMatches !== null ? defaultMatches : null,
+    },
+    include: {
+      punishmentType: true,
     },
   });
 
