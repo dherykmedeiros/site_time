@@ -688,7 +688,6 @@ async function getTeamStats(teamId: string) {
       where: {
         teamId,
         seasonId: activeSeason.id,
-        type: "CHAMPIONSHIP",
         status: "COMPLETED",
         homeScore: { not: null },
         awayScore: { not: null },

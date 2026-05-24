@@ -43,12 +43,11 @@ export const GET = withErrorHandler(async (_request: Request, context: RouteCont
     return NextResponse.json({ error: "Temporada não encontrada" }, { status: 404 });
   }
 
-  // Only CHAMPIONSHIP matches with scores for real standings (team-level)
+  // Matches with scores for real standings (team-level)
   const matches = await prisma.match.findMany({
     where: {
       seasonId: id,
       teamId: session.user.teamId,
-      type: "CHAMPIONSHIP",
       status: "COMPLETED",
       homeScore: { not: null },
       awayScore: { not: null },
