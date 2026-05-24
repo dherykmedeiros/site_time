@@ -732,6 +732,19 @@ body:not(.mcfc-portal-body) ::-webkit-scrollbar-thumb:hover {
     flex: 1 1 50%;
     min-width: 0;
   }
+  .mcfc-portal-body .statusbar .wrap {
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    text-align: center;
+  }
+  .mcfc-portal-body .statusbar .left,
+  .mcfc-portal-body .statusbar .right {
+    justify-content: center;
+    width: 100%;
+    gap: 12px;
+  }
 }
 
 @media (max-width: 560px) {
@@ -793,5 +806,8 @@ body:not(.mcfc-portal-body) ::-webkit-scrollbar-thumb:hover {
   .mcfc-portal-body footer.site .top {
     grid-template-columns: 1fr !important;
     gap: 24px;
+  }
+  .mcfc-portal-body .brand .txt .top {
+    display: none !important;
   }
 }
