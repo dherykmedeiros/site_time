@@ -598,6 +598,20 @@ async function getTeamStats(teamId: string) {
     },
   });
 
+  const attendanceStats = await prisma.matchAttendance.groupBy({
+    by: ["playerId"],
+    where: {
+      present: true,
+      match: { teamId, status: "COMPLETED" },
+    },
+    _count: {
+      matchId: true,
+    },
+  });
+  const presenceMap = new Map<string, number>(
+    attendanceStats.map((a) => [a.playerId, a._count.matchId])
+  );
+
   const ratingsAgg = await prisma.matchPlayerRating.groupBy({
     by: ["ratedId"],
     where: { match: { teamId } },
@@ -608,21 +622,25 @@ async function getTeamStats(teamId: string) {
     ratingsAgg.map((r) => [r.ratedId, { avg: r._avg.stars ?? 0, count: r._count.stars }])
   );
 
-  const ranking = playerStats.map((s) => {
-    const player = playerMap.get(s.playerId);
-    const ratingInfo = ratingsMap.get(s.playerId);
+  const playerStatsMap = new Map(playerStats.map((s) => [s.playerId, s]));
+
+  const ranking = players.map((player) => {
+    const s = playerStatsMap.get(player.id);
+    const ratingInfo = ratingsMap.get(player.id);
+    const playedMatches = presenceMap.get(player.id) ?? 0;
+
     return {
-      playerId: s.playerId,
-      playerName: player?.name ?? "Desconhecido",
-      photoUrl: player?.photoUrl ?? null,
-      shirtNumber: player?.shirtNumber ?? 0,
-      position: player?.position ?? "FORWARD",
-      status: player?.status ?? "ACTIVE",
-      goals: s._sum.goals ?? 0,
-      assists: s._sum.assists ?? 0,
-      yellowCards: s._sum.yellowCards ?? 0,
-      redCards: s._sum.redCards ?? 0,
-      matches: s._count.matchId,
+      playerId: player.id,
+      playerName: player.name,
+      photoUrl: player.photoUrl,
+      shirtNumber: player.shirtNumber,
+      position: player.position,
+      status: player.status,
+      goals: s?._sum.goals ?? 0,
+      assists: s?._sum.assists ?? 0,
+      yellowCards: s?._sum.yellowCards ?? 0,
+      redCards: s?._sum.redCards ?? 0,
+      matches: playedMatches,
       averageStars: ratingInfo ? Number(ratingInfo.avg.toFixed(1)) : null,
       totalRatings: ratingInfo?.count ?? 0,
     };
@@ -679,7 +697,8 @@ async function getTeamStats(teamId: string) {
         homeScore: true,
         awayScore: true,
         isHome: true,
-        matchStats: {
+        attendances: {
+          where: { present: true },
           select: {
             playerId: true,
             player: { select: { name: true, shirtNumber: true } },
@@ -712,12 +731,12 @@ async function getTeamStats(teamId: string) {
       const drawn = teamGoalsFor === teamGoalsAgainst;
       const lost = teamGoalsFor < teamGoalsAgainst;
 
-      for (const stat of match.matchStats) {
-        if (!standingMap[stat.playerId]) {
-          standingMap[stat.playerId] = {
-            playerId: stat.playerId,
-            playerName: stat.player.name,
-            shirtNumber: stat.player.shirtNumber,
+      for (const attendance of match.attendances) {
+        if (!standingMap[attendance.playerId]) {
+          standingMap[attendance.playerId] = {
+            playerId: attendance.playerId,
+            playerName: attendance.player.name,
+            shirtNumber: attendance.player.shirtNumber,
             points: 0,
             played: 0,
             won: 0,
@@ -729,7 +748,7 @@ async function getTeamStats(teamId: string) {
           };
         }
 
-        const row = standingMap[stat.playerId];
+        const row = standingMap[attendance.playerId];
         row.played += 1;
         row.goalsFor += teamGoalsFor;
         row.goalsAgainst += teamGoalsAgainst;
