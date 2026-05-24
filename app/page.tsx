@@ -978,6 +978,7 @@ export default async function HomePage({
         "--accent": themeSecondary,
       } as React.CSSProperties}
     >
+      <input type="checkbox" id="mobile-menu-toggle" className="hidden" />
       <input type="radio" id="caderno-esportes" name="cadernos" className="hidden" defaultChecked={isEsportes} />
       <input type="radio" id="caderno-album" name="cadernos" className="hidden" defaultChecked={isAlbum} />
       <input type="radio" id="caderno-secretaria" name="cadernos" className="hidden" defaultChecked={isSecretaria} />
@@ -1062,6 +1063,46 @@ export default async function HomePage({
             <ThemeToggle />
             <a href="?tab=secretaria#amistoso" className="btn secondary hidden md:inline-flex">Desafiar equipe</a>
             <a href="?tab=album#elenco" className="btn green hidden md:inline-flex">Conhecer elenco <span className="btn-arr">→</span></a>
+            <label htmlFor="mobile-menu-toggle" className="mobile-menu-btn md:hidden flex items-center justify-center p-2 rounded cursor-pointer text-[var(--ink)] hover:bg-[var(--surface-2)]">
+              <svg className="open-icon w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              <svg className="close-icon w-6 h-6 hidden" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </label>
+          </div>
+        </div>
+
+        {/* Mobile Menu Drawer */}
+        <div className="mobile-menu absolute top-[68px] left-0 right-0 bg-[var(--surface)] border-b border-[var(--border)] shadow-lg z-40 p-6 md:hidden transition-all duration-300 transform -translate-y-2 opacity-0 pointer-events-none hidden">
+          <nav className="flex flex-col gap-4 text-sm font-bold uppercase tracking-wider text-[var(--text-2)] font-mono">
+            <label htmlFor="mobile-menu-toggle" className="flex items-center gap-2 cursor-pointer py-1">
+              <a href="?tab=album#elenco" className="w-full">👥 Elenco</a>
+            </label>
+            <label htmlFor="mobile-menu-toggle" className="flex items-center gap-2 cursor-pointer py-1">
+              <a href="?tab=esportes#desempenho" className="w-full">📊 Desempenho</a>
+            </label>
+            <label htmlFor="mobile-menu-toggle" className="flex items-center gap-2 cursor-pointer py-1">
+              <a href="?tab=esportes#calendario" className="w-full">📅 Calendário</a>
+            </label>
+            <label htmlFor="mobile-menu-toggle" className="flex items-center gap-2 cursor-pointer py-1">
+              <a href="?tab=esportes#tatica" className="w-full">📋 Tática</a>
+            </label>
+            <label htmlFor="mobile-menu-toggle" className="flex items-center gap-2 cursor-pointer py-1">
+              <a href="?tab=secretaria#amistoso" className="w-full">⚽ Amistosos</a>
+            </label>
+            <label htmlFor="mobile-menu-toggle" className="flex items-center gap-2 cursor-pointer py-1">
+              <a href="?tab=album#identidade" className="w-full">🎨 Identidade</a>
+            </label>
+          </nav>
+          <div className="mt-6 pt-6 border-t border-[var(--border)] flex flex-col gap-3">
+            <label htmlFor="mobile-menu-toggle" className="w-full">
+              <a href="?tab=secretaria#amistoso" className="btn secondary w-full justify-center text-xs py-2.5">Desafiar equipe</a>
+            </label>
+            <label htmlFor="mobile-menu-toggle" className="w-full">
+              <a href="?tab=album#elenco" className="btn green w-full justify-center text-xs py-2.5">Conhecer elenco <span className="btn-arr">→</span></a>
+            </label>
           </div>
         </div>
       </header>
