@@ -1066,7 +1066,7 @@ export default async function HomePage({
           <Link href="/" className="brand">
             <ClubCrest initials={clubInitials} badgeUrl={team.badgeUrl} />
             <div className="txt">
-              <div className="top">Fundado em {(team as any).foundedYear || 2026} · {team.city || "Fortaleza"}/{team.region || "CE"}</div>
+              <div className="top">Fundado em {team.foundedYear || new Date(team.createdAt).getFullYear()} · {team.city || "Fortaleza"}/{team.region || "CE"}</div>
               <div className="name">{team.name}</div>
             </div>
           </Link>
@@ -1800,12 +1800,20 @@ export default async function HomePage({
             <div className="kits-grid">
               <article className="kit-card">
                 <div className="vis">
-                  <svg className="kit-shirt" viewBox="0 0 200 240">
-                    <path d="M40 30 L80 10 Q100 30 120 10 L160 30 L180 60 L160 80 L160 220 L40 220 L40 80 L20 60 Z" fill={themePrimary} stroke="rgba(0,0,0,0.15)" strokeWidth="2"/>
-                    <path d="M40 30 L80 10 Q100 30 120 10 L160 30" fill="rgba(0,0,0,0.08)"/>
-                    <text x="100" y="140" textAnchor="middle" fill="#fff" className="font-serif font-black" fontSize="40">{clubInitials}</text>
-                    <text x="100" y="180" textAnchor="middle" fill="#fff" className="font-mono font-bold" fontSize="14">10</text>
-                  </svg>
+                  {team.kitHomeUrl ? (
+                    <img 
+                      src={team.kitHomeUrl} 
+                      alt="Manto Titular" 
+                      className="w-full h-full object-contain p-4 transition-transform hover:scale-105 duration-300"
+                    />
+                  ) : (
+                    <svg className="kit-shirt" viewBox="0 0 200 240">
+                      <path d="M40 30 L80 10 Q100 30 120 10 L160 30 L180 60 L160 80 L160 220 L40 220 L40 80 L20 60 Z" fill={themePrimary} stroke="rgba(0,0,0,0.15)" strokeWidth="2"/>
+                      <path d="M40 30 L80 10 Q100 30 120 10 L160 30" fill="rgba(0,0,0,0.08)"/>
+                      <text x="100" y="140" textAnchor="middle" fill="#fff" className="font-serif font-black" fontSize="40">{clubInitials}</text>
+                      <text x="100" y="180" textAnchor="middle" fill="#fff" className="font-mono font-bold" fontSize="14">10</text>
+                    </svg>
+                  )}
                 </div>
                 <div className="meta">
                   <span className="lab">01 / Manto principal · home</span>
@@ -1821,12 +1829,20 @@ export default async function HomePage({
 
               <article className="kit-card">
                 <div className="vis">
-                  <svg className="kit-shirt" viewBox="0 0 200 240">
-                    <path d="M40 30 L80 10 Q100 30 120 10 L160 30 L180 60 L160 80 L160 220 L40 220 L40 80 L20 60 Z" fill="#ffffff" stroke={themePrimary} strokeWidth="2"/>
-                    <path d="M40 30 L80 10 Q100 30 120 10 L160 30" fill="rgba(0,0,0,0.02)"/>
-                    <text x="100" y="140" textAnchor="middle" fill={themePrimary} className="font-serif font-black" fontSize="40">{clubInitials}</text>
-                    <text x="100" y="180" textAnchor="middle" fill={themePrimary} className="font-mono font-bold" fontSize="14">23</text>
-                  </svg>
+                  {team.kitAwayUrl ? (
+                    <img 
+                      src={team.kitAwayUrl} 
+                      alt="Manto Visitante" 
+                      className="w-full h-full object-contain p-4 transition-transform hover:scale-105 duration-300"
+                    />
+                  ) : (
+                    <svg className="kit-shirt" viewBox="0 0 200 240">
+                      <path d="M40 30 L80 10 Q100 30 120 10 L160 30 L180 60 L160 80 L160 220 L40 220 L40 80 L20 60 Z" fill="#ffffff" stroke={themePrimary} strokeWidth="2"/>
+                      <path d="M40 30 L80 10 Q100 30 120 10 L160 30" fill="rgba(0,0,0,0.02)"/>
+                      <text x="100" y="140" textAnchor="middle" fill={themePrimary} className="font-serif font-black" fontSize="40">{clubInitials}</text>
+                      <text x="100" y="180" textAnchor="middle" fill={themePrimary} className="font-mono font-bold" fontSize="14">23</text>
+                    </svg>
+                  )}
                 </div>
                 <div className="meta">
                   <span className="lab">02 / Manto reserva · away</span>
@@ -1842,12 +1858,20 @@ export default async function HomePage({
 
               <article className="kit-card">
                 <div className="vis">
-                  <svg className="kit-shirt" viewBox="0 0 200 240">
-                    <path d="M40 30 L80 10 Q100 30 120 10 L160 30 L180 60 L160 80 L160 220 L40 220 L40 80 L20 60 Z" fill="var(--ink)" stroke="rgba(255,255,255,0.08)" strokeWidth="2"/>
-                    <path d="M40 30 L80 10 Q100 30 120 10 L160 30" fill="rgba(255,255,255,0.05)"/>
-                    <text x="100" y="140" textAnchor="middle" fill={themeSecondary} className="font-serif font-black" fontSize="40">{clubInitials}</text>
-                    <text x="100" y="180" textAnchor="middle" fill={themeSecondary} className="font-mono font-bold" fontSize="14">01</text>
-                  </svg>
+                  {team.kitGkUrl ? (
+                    <img 
+                      src={team.kitGkUrl} 
+                      alt="Manto do Goleiro" 
+                      className="w-full h-full object-contain p-4 transition-transform hover:scale-105 duration-300"
+                    />
+                  ) : (
+                    <svg className="kit-shirt" viewBox="0 0 200 240">
+                      <path d="M40 30 L80 10 Q100 30 120 10 L160 30 L180 60 L160 80 L160 220 L40 220 L40 80 L20 60 Z" fill="var(--ink)" stroke="rgba(255,255,255,0.08)" strokeWidth="2"/>
+                      <path d="M40 30 L80 10 Q100 30 120 10 L160 30" fill="rgba(255,255,255,0.05)"/>
+                      <text x="100" y="140" textAnchor="middle" fill={themeSecondary} className="font-serif font-black" fontSize="40">{clubInitials}</text>
+                      <text x="100" y="180" textAnchor="middle" fill={themeSecondary} className="font-mono font-bold" fontSize="14">01</text>
+                    </svg>
+                  )}
                 </div>
                 <div className="meta">
                   <span className="lab">03 / Manto de goleiro</span>
@@ -2031,7 +2055,7 @@ export default async function HomePage({
               <Link href="/" className="brand">
                 <ClubCrest variant="footer" initials={clubInitials} badgeUrl={team.badgeUrl} />
                 <div className="txt">
-                  <div className="top">Fundado em {(team as any).foundedYear || 2026}</div>
+                  <div className="top">Fundado em {team.foundedYear || new Date(team.createdAt).getFullYear()}</div>
                   <div className="name text-white">{team.name}</div>
                 </div>
               </Link>

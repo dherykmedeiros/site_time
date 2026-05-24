@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { name, shortName, description, primaryColor, secondaryColor, defaultVenue, badgeUrl } =
+  const { name, shortName, description, primaryColor, secondaryColor, defaultVenue, badgeUrl, foundedYear, kitHomeUrl, kitAwayUrl, kitGkUrl } =
     parsed.data;
 
   const slug = generateSlug(name);
@@ -77,6 +77,10 @@ export async function POST(request: Request) {
         secondaryColor: secondaryColor ?? null,
         defaultVenue: defaultVenue ?? null,
         badgeUrl: badgeUrl ?? null,
+        foundedYear: foundedYear ?? null,
+        kitHomeUrl: kitHomeUrl ?? null,
+        kitAwayUrl: kitAwayUrl ?? null,
+        kitGkUrl: kitGkUrl ?? null,
       },
     });
 
@@ -99,6 +103,10 @@ export async function POST(request: Request) {
       secondaryColor: team.secondaryColor,
       defaultVenue: team.defaultVenue,
       badgeUrl: team.badgeUrl,
+      foundedYear: team.foundedYear,
+      kitHomeUrl: team.kitHomeUrl,
+      kitAwayUrl: team.kitAwayUrl,
+      kitGkUrl: team.kitGkUrl,
       createdAt: team.createdAt.toISOString(),
     },
     { status: 201 }
@@ -146,6 +154,10 @@ export async function GET() {
     primaryColor: team.primaryColor,
     secondaryColor: team.secondaryColor,
     defaultVenue: team.defaultVenue,
+    foundedYear: team.foundedYear,
+    kitHomeUrl: team.kitHomeUrl,
+    kitAwayUrl: team.kitAwayUrl,
+    kitGkUrl: team.kitGkUrl,
     createdAt: team.createdAt.toISOString(),
     updatedAt: team.updatedAt.toISOString(),
     _count: team._count,
@@ -205,6 +217,10 @@ export async function PATCH(request: Request) {
   if (data.secondaryColor !== undefined) updateData.secondaryColor = data.secondaryColor;
   if (data.defaultVenue !== undefined) updateData.defaultVenue = data.defaultVenue;
   if (data.badgeUrl !== undefined) updateData.badgeUrl = data.badgeUrl;
+  if (data.foundedYear !== undefined) updateData.foundedYear = data.foundedYear;
+  if (data.kitHomeUrl !== undefined) updateData.kitHomeUrl = data.kitHomeUrl;
+  if (data.kitAwayUrl !== undefined) updateData.kitAwayUrl = data.kitAwayUrl;
+  if (data.kitGkUrl !== undefined) updateData.kitGkUrl = data.kitGkUrl;
 
   // If name changed, regenerate slug and check uniqueness
   if (data.name) {
@@ -246,6 +262,10 @@ export async function PATCH(request: Request) {
     primaryColor: team.primaryColor,
     secondaryColor: team.secondaryColor,
     defaultVenue: team.defaultVenue,
+    foundedYear: team.foundedYear,
+    kitHomeUrl: team.kitHomeUrl,
+    kitAwayUrl: team.kitAwayUrl,
+    kitGkUrl: team.kitGkUrl,
     createdAt: team.createdAt.toISOString(),
     updatedAt: team.updatedAt.toISOString(),
     _count: team._count,

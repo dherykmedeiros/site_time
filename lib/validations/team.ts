@@ -10,6 +10,23 @@ const badgeUrlSchema = z
     "URL do escudo inválida"
   );
 
+const kitUrlSchema = z
+  .string()
+  .max(2048, "URL do uniforme muito longa")
+  .refine(
+    (value) => !value || isSafeUrl(value),
+    "URL do uniforme inválida"
+  );
+
+const foundedYearSchema = z.preprocess(
+  (val) => {
+    if (val === "" || val === undefined || val === null) return null;
+    const parsed = Number(val);
+    return isNaN(parsed) ? undefined : parsed;
+  },
+  z.number().int().min(1800, "Ano de fundação inválido (mínimo 1800)").max(2100, "Ano de fundação inválido (máximo 2100)").nullable().optional()
+);
+
 export const createTeamSchema = z.object({
   name: z
     .string()
@@ -40,6 +57,10 @@ export const createTeamSchema = z.object({
     .max(200, "Local padrão deve ter no máximo 200 caracteres")
     .optional(),
   badgeUrl: badgeUrlSchema.optional(),
+  foundedYear: foundedYearSchema,
+  kitHomeUrl: kitUrlSchema.optional().nullable(),
+  kitAwayUrl: kitUrlSchema.optional().nullable(),
+  kitGkUrl: kitUrlSchema.optional().nullable(),
 });
 
 export const updateTeamSchema = z.object({
@@ -74,6 +95,10 @@ export const updateTeamSchema = z.object({
     .max(200, "Local padrão deve ter no máximo 200 caracteres")
     .optional(),
   badgeUrl: badgeUrlSchema.optional().nullable(),
+  foundedYear: foundedYearSchema,
+  kitHomeUrl: kitUrlSchema.optional().nullable(),
+  kitAwayUrl: kitUrlSchema.optional().nullable(),
+  kitGkUrl: kitUrlSchema.optional().nullable(),
 });
 
 export type CreateTeamInput = z.infer<typeof createTeamSchema>;

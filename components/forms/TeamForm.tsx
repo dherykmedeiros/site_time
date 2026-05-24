@@ -17,6 +17,10 @@ interface TeamFormProps {
     secondaryColor?: string;
     defaultVenue?: string;
     badgeUrl?: string;
+    foundedYear?: number | null;
+    kitHomeUrl?: string | null;
+    kitAwayUrl?: string | null;
+    kitGkUrl?: string | null;
   };
   onSuccess?: () => void;
   isCreating?: boolean;
@@ -31,6 +35,21 @@ export function TeamForm({ defaultValues, onSuccess, isCreating = false }: TeamF
   );
   const [uploadingBadge, setUploadingBadge] = useState(false);
 
+  // Kits Previews & Uploading states
+  const [kitHomePreview, setKitHomePreview] = useState<string | null>(
+    defaultValues?.kitHomeUrl || null
+  );
+  const [kitAwayPreview, setKitAwayPreview] = useState<string | null>(
+    defaultValues?.kitAwayUrl || null
+  );
+  const [kitGkPreview, setKitGkPreview] = useState<string | null>(
+    defaultValues?.kitGkUrl || null
+  );
+
+  const [uploadingKitHome, setUploadingKitHome] = useState(false);
+  const [uploadingKitAway, setUploadingKitAway] = useState(false);
+  const [uploadingKitGk, setUploadingKitGk] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -41,9 +60,10 @@ export function TeamForm({ defaultValues, onSuccess, isCreating = false }: TeamF
       name: defaultValues?.name || "",
       shortName: defaultValues?.shortName || "",
       description: defaultValues?.description || "",
-      primaryColor: defaultValues?.primaryColor || "#0000FF",
-      secondaryColor: defaultValues?.secondaryColor || "#FFFFFF",
+      primaryColor: defaultValues?.primaryColor || "#0c6f5d",
+      secondaryColor: defaultValues?.secondaryColor || "#f6f8f5",
       defaultVenue: defaultValues?.defaultVenue || "",
+      foundedYear: defaultValues?.foundedYear ?? undefined,
     },
   });
 
@@ -92,6 +112,60 @@ export function TeamForm({ defaultValues, onSuccess, isCreating = false }: TeamF
     }
   }
 
+  async function handleKitUpload(e: React.ChangeEvent<HTMLInputElement>, kitType: "Home" | "Away" | "Gk") {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (kitType === "Home") setUploadingKitHome(true);
+    else if (kitType === "Away") setUploadingKitAway(true);
+    else setUploadingKitGk(true);
+
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.error || "Erro ao enviar imagem");
+        return;
+      }
+
+      if (kitType === "Home") setKitHomePreview(data.url);
+      else if (kitType === "Away") setKitAwayPreview(data.url);
+      else setKitGkPreview(data.url);
+
+      if (isCreating) {
+        setSuccessMsg(`Uniforme ${kitType === "Home" ? "Titular" : kitType === "Away" ? "Visitante" : "Goleiro"} enviado. Salve o time para concluir.`);
+      } else {
+        const fieldName = kitType === "Home" ? "kitHomeUrl" : kitType === "Away" ? "kitAwayUrl" : "kitGkUrl";
+        const patchRes = await fetch("/api/teams", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ [fieldName]: data.url }),
+        });
+
+        const patchData = await patchRes.json().catch(() => ({}));
+        if (!patchRes.ok) {
+          setErrorMsg(patchData.error || "Imagem enviada, mas não foi possível salvar no time");
+          return;
+        }
+
+        setSuccessMsg(`Uniforme ${kitType === "Home" ? "Titular" : kitType === "Away" ? "Visitante" : "Goleiro"} atualizado!`);
+      }
+    } catch {
+      setErrorMsg("Erro ao enviar imagem");
+    } finally {
+      if (kitType === "Home") setUploadingKitHome(false);
+      else if (kitType === "Away") setUploadingKitAway(false);
+      else setUploadingKitGk(false);
+    }
+  }
+
   async function onSubmit(data: UpdateTeamInput) {
     setLoading(true);
     setErrorMsg("");
@@ -110,6 +184,9 @@ export function TeamForm({ defaultValues, onSuccess, isCreating = false }: TeamF
               ? undefined
               : null,
           badgeUrl: badgePreview ?? undefined,
+          kitHomeUrl: kitHomePreview ?? undefined,
+          kitAwayUrl: kitAwayPreview ?? undefined,
+          kitGkUrl: kitGkPreview ?? undefined,
         }),
       });
 
@@ -221,9 +298,114 @@ export function TeamForm({ defaultValues, onSuccess, isCreating = false }: TeamF
         placeholder="Ex: Quadra do Parque Central"
       />
 
+      <Input
+        label="Ano de Fundação"
+        type="number"
+        {...register("foundedYear")}
+        error={errors.foundedYear?.message}
+        placeholder="Ex: 1995"
+      />
+
+      {/* Kit Uploads */}
+      <div className="space-y-4 rounded-xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] p-6">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-subtle)]">
+          👕 Imagens dos Uniformes (Opcional)
+        </h3>
+        <p className="text-xs text-[var(--text-subtle)]">
+          Selecione fotos reais ou mockups dos mantos do seu clube. Se deixado em branco, o portal continuará desenhando os mantos dinâmicos em SVG.
+        </p>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {/* Home Kit */}
+          <div className="space-y-2 flex flex-col items-center text-center">
+            <span className="text-xs font-semibold text-[var(--text)]">Manto Titular</span>
+            <div className="relative group overflow-hidden h-32 w-28 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] flex items-center justify-center">
+              {kitHomePreview ? (
+                <img
+                  src={kitHomePreview}
+                  alt="Manto Titular"
+                  className="h-full w-full object-contain p-2"
+                />
+              ) : (
+                <span className="text-3xl text-[var(--text-subtle)] opacity-40">👕</span>
+              )}
+            </div>
+            <label className="cursor-pointer mt-1">
+              <span className="inline-flex items-center rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-2.5 py-1.5 text-xs font-medium text-[var(--text)] hover:bg-white/[0.08] transition-colors">
+                {uploadingKitHome ? "Enviando..." : "Upload"}
+              </span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => handleKitUpload(e, "Home")}
+                disabled={uploadingKitHome}
+              />
+            </label>
+          </div>
+
+          {/* Away Kit */}
+          <div className="space-y-2 flex flex-col items-center text-center">
+            <span className="text-xs font-semibold text-[var(--text)]">Manto Visitante</span>
+            <div className="relative group overflow-hidden h-32 w-28 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] flex items-center justify-center">
+              {kitAwayPreview ? (
+                <img
+                  src={kitAwayPreview}
+                  alt="Manto Visitante"
+                  className="h-full w-full object-contain p-2"
+                />
+              ) : (
+                <span className="text-3xl text-[var(--text-subtle)] opacity-40">👕</span>
+              )}
+            </div>
+            <label className="cursor-pointer mt-1">
+              <span className="inline-flex items-center rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-2.5 py-1.5 text-xs font-medium text-[var(--text)] hover:bg-white/[0.08] transition-colors">
+                {uploadingKitAway ? "Enviando..." : "Upload"}
+              </span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => handleKitUpload(e, "Away")}
+                disabled={uploadingKitAway}
+              />
+            </label>
+          </div>
+
+          {/* Gk Kit */}
+          <div className="space-y-2 flex flex-col items-center text-center">
+            <span className="text-xs font-semibold text-[var(--text)]">Manto do Goleiro</span>
+            <div className="relative group overflow-hidden h-32 w-28 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] flex items-center justify-center">
+              {kitGkPreview ? (
+                <img
+                  src={kitGkPreview}
+                  alt="Manto do Goleiro"
+                  className="h-full w-full object-contain p-2"
+                />
+              ) : (
+                <span className="text-3xl text-[var(--text-subtle)] opacity-40">🧤</span>
+              )}
+            </div>
+            <label className="cursor-pointer mt-1">
+              <span className="inline-flex items-center rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-2.5 py-1.5 text-xs font-medium text-[var(--text)] hover:bg-white/[0.08] transition-colors">
+                {uploadingKitGk ? "Enviando..." : "Upload"}
+              </span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => handleKitUpload(e, "Gk")}
+                disabled={uploadingKitGk}
+              />
+            </label>
+          </div>
+        </div>
+      </div>
+
       <Button type="submit" loading={loading} className="w-full">
         {isCreating ? "Criar Time" : "Salvar Configurações"}
       </Button>
     </form>
   );
 }
+

@@ -451,6 +451,10 @@ export default function TeamSettingsPage() {
                     secondaryColor: team.secondaryColor || "#f6f8f5",
                     defaultVenue: team.defaultVenue || "",
                     badgeUrl: team.badgeUrl || "",
+                    foundedYear: team.foundedYear ?? null,
+                    kitHomeUrl: team.kitHomeUrl ?? null,
+                    kitAwayUrl: team.kitAwayUrl ?? null,
+                    kitGkUrl: team.kitGkUrl ?? null,
                   }
                 : undefined
             }
