@@ -11,28 +11,28 @@ interface StatsCardProps {
 export function StatsCard({ label, value, icon, color = "blue", sublabel }: StatsCardProps) {
   const colorClasses: Record<string, { value: string; bubble: string }> = {
     blue: {
-      value: "text-[#67e8f9]",
-      bubble: "bg-[rgba(6,182,212,0.15)] text-[#67e8f9]",
+      value: "text-[var(--badge-info-text)]",
+      bubble: "bg-[var(--badge-info-bg)] text-[var(--badge-info-text)] border border-[var(--badge-info-border)]",
     },
     green: {
-      value: "text-[#6ee7b7]",
-      bubble: "bg-[rgba(16,185,129,0.15)] text-[#6ee7b7]",
+      value: "text-[var(--badge-success-text)]",
+      bubble: "bg-[var(--badge-success-bg)] text-[var(--badge-success-text)] border border-[var(--badge-success-border)]",
     },
     red: {
-      value: "text-[#fca5a5]",
-      bubble: "bg-[rgba(239,68,68,0.15)] text-[#fca5a5]",
+      value: "text-[var(--badge-danger-text)]",
+      bubble: "bg-[var(--badge-danger-bg)] text-[var(--badge-danger-text)] border border-[var(--badge-danger-border)]",
     },
     yellow: {
-      value: "text-[#fcd34d]",
-      bubble: "bg-[rgba(245,158,11,0.15)] text-[#fcd34d]",
+      value: "text-[var(--badge-warning-text)]",
+      bubble: "bg-[var(--badge-warning-bg)] text-[var(--badge-warning-text)] border border-[var(--badge-warning-border)]",
     },
     purple: {
-      value: "text-[#c4b5fd]",
-      bubble: "bg-[rgba(139,92,246,0.15)] text-[#c4b5fd]",
+      value: "text-[var(--brand)]",
+      bubble: "bg-[var(--brand-soft)] text-[var(--brand)] border border-[var(--brand)]/15",
     },
     gray: {
       value: "text-[var(--text-muted)]",
-      bubble: "bg-white/[0.07] text-[var(--text-muted)]",
+      bubble: "bg-[var(--badge-default-bg)] text-[var(--badge-default-text)] border border-[var(--badge-default-border)]",
     },
   };
 

@@ -139,12 +139,12 @@ export default function NotificationCenter() {
       {/* Bell Icon Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/5 bg-white/[0.04] text-xl text-[#8fa39b] hover:bg-white/[0.08] hover:text-[#34d399] transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#10b981]/50"
+        className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] text-xl text-[var(--text-muted)] hover:bg-[var(--brand-soft)] hover:text-[var(--brand)] transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--brand)]/50"
         title="Central de Notificações"
       >
         <span>🔔</span>
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#ef4444] px-1 text-[9px] font-black text-white animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]">
+          <span className="absolute -top-1 -right-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[var(--danger)] px-1 text-[9px] font-black text-[var(--bg)] animate-pulse shadow-sm">
             {unreadCount}
           </span>
         )}
@@ -152,16 +152,16 @@ export default function NotificationCenter() {
 
       {/* Floating Glassmorphic Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 sm:w-96 max-h-[500px] flex flex-col z-[999] bg-[rgba(10,20,18,0.96)] border border-[rgba(16,185,129,0.18)] shadow-2xl rounded-2xl overflow-hidden backdrop-blur-2xl animate-in fade-in slide-in-from-top-3 duration-200">
+        <div className="absolute right-0 mt-3 w-80 sm:w-96 max-h-[500px] flex flex-col z-[999] bg-[var(--bg-card)] border border-[var(--border-active)] shadow-2xl rounded-2xl overflow-hidden backdrop-blur-2xl animate-in fade-in slide-in-from-top-3 duration-200">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/5 bg-[rgba(16,185,129,0.04)]">
-            <span className="text-xs font-black uppercase tracking-[0.15em] text-[#34d399] flex items-center gap-1.5">
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--border)] bg-[var(--brand-soft)]/20">
+            <span className="text-xs font-black uppercase tracking-[0.15em] text-[var(--brand)] flex items-center gap-1.5 font-serif">
               <span>🔔</span> Notificações
             </span>
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="text-[10px] font-bold text-[#8fa39b] hover:text-[#34d399] transition-all cursor-pointer bg-transparent border-none"
+                className="text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--brand)] transition-all cursor-pointer bg-transparent border-none"
               >
                 Limpar todas
               </button>
@@ -169,48 +169,48 @@ export default function NotificationCenter() {
           </div>
 
           {/* List Content */}
-          <div className="flex-1 overflow-y-auto divide-y divide-white/5 max-h-[380px] scrollbar-thin">
+          <div className="flex-1 overflow-y-auto divide-y divide-[var(--border)] max-h-[380px] scrollbar-thin">
             {notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
                 <span className="text-3xl mb-2 opacity-40">📭</span>
-                <p className="text-xs font-semibold text-[#8fa39b]">Tudo limpo por aqui!</p>
-                <p className="text-[10px] text-[#8fa39b]/60 mt-1">Você não possui notificações no momento.</p>
+                <p className="text-xs font-semibold text-[var(--text-muted)]">Tudo limpo por aqui!</p>
+                <p className="text-[10px] text-[var(--text-subtle)] mt-1">Você não possui notificações no momento.</p>
               </div>
             ) : (
               notifications.map((n) => (
                 <div
                   key={n.id}
                   onClick={() => handleNotificationClick(n)}
-                  className={`flex gap-3.5 p-4 text-left transition-all duration-200 cursor-pointer hover:bg-white/[0.03] relative group ${
-                    !n.read ? "bg-[rgba(16,185,129,0.02)]" : ""
+                  className={`flex gap-3.5 p-4 text-left transition-all duration-200 cursor-pointer hover:bg-[var(--bg-elevated)] relative group ${
+                    !n.read ? "bg-[var(--brand-soft)]/5" : ""
                   }`}
                 >
                   {/* Unread indicator */}
                   {!n.read && (
-                    <span className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-[#10b981] rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                    <span className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-[var(--brand)] rounded-full shadow-[0_0_8px_var(--brand)]" />
                   )}
 
                   {/* Icon */}
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/5 bg-white/[0.02] group-hover:scale-105 transition-all text-base">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] group-hover:scale-105 transition-all text-base">
                     {getIconForType(n.type)}
                   </span>
 
                   {/* Body details */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-1">
-                      <p className={`text-xs font-bold leading-tight truncate ${!n.read ? "text-white" : "text-[#8fa39b]"}`}>
+                      <p className={`text-xs font-bold leading-tight truncate ${!n.read ? "text-[var(--text)] font-serif" : "text-[var(--text-muted)]"}`}>
                         {n.title}
                       </p>
-                      <span className="text-[9px] text-[#8fa39b]/60 shrink-0 font-medium whitespace-nowrap">
+                      <span className="text-[9px] text-[var(--text-subtle)] shrink-0 font-medium whitespace-nowrap">
                         {getRelativeTime(n.createdAt)}
                       </span>
                     </div>
-                    <p className="text-[11px] text-[#8fa39b] mt-1 font-medium leading-relaxed break-words">
+                    <p className="text-[11px] text-[var(--text-muted)] mt-1 font-medium leading-relaxed break-words">
                       {n.body}
                     </p>
 
                     {n.link && (
-                      <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[#34d399] mt-1.5 group-hover:underline">
+                      <span className="inline-flex items-center gap-1 text-[9px] font-bold text-[var(--brand)] mt-1.5 group-hover:underline">
                         Visualizar detalhe ➔
                       </span>
                     )}

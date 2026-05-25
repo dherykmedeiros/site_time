@@ -1,44 +1,81 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #030708;
-  --bg-elevated: #070a0c;
-  --bg-card: #090d0f;
-  --text: #f0f7f4;
-  --text-muted: #94a3b8;
-  --text-subtle: #64748b;
-  --border: #1e293b;
-  --border-active: #334155;
-  --brand: #10b981;
-  --brand-strong: #059669;
-  --brand-soft: rgba(16, 185, 129, 0.1);
-  --brand-neon: #34d399;
-  --danger: #ef4444;
-  --danger-soft: rgba(239, 68, 68, 0.1);
+  --bg: #f6f5f2;
+  --bg-elevated: #faf9f6;
+  --bg-card: #ffffff;
+  --text: #161412;
+  --text-muted: #4b4742;
+  --text-subtle: #8a857c;
+  --border: #e6e2d8;
+  --border-active: #d4cfc1;
+  --brand: #0a584b;
+  --brand-strong: #0d6e5e;
+  --brand-soft: #e6efed;
+  --brand-neon: #2fa791;
+  --danger: #a8341e;
+  --danger-soft: #f3e1dd;
   
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
 
-  --badge-default-bg: #1e293b;
-  --badge-default-text: #e2e8f0;
-  --badge-default-border: #334155;
+  --badge-default-bg: #e6e2d8;
+  --badge-default-text: #4b4742;
+  --badge-default-border: #d4cfc1;
   
-  --badge-success-bg: rgba(16, 185, 129, 0.15);
-  --badge-success-text: #34d399;
-  --badge-success-border: #059669;
+  --badge-success-bg: rgba(47, 107, 60, 0.1);
+  --badge-success-text: #2f6b3c;
+  --badge-success-border: rgba(47, 107, 60, 0.3);
   
-  --badge-warning-bg: rgba(245, 158, 11, 0.15);
-  --badge-warning-text: #fbbf24;
-  --badge-warning-border: #d97706;
+  --badge-warning-bg: rgba(168, 122, 26, 0.1);
+  --badge-warning-text: #a87a1a;
+  --badge-warning-border: rgba(168, 122, 26, 0.3);
   
-  --badge-danger-bg: rgba(239, 68, 68, 0.15);
-  --badge-danger-text: #f87171;
-  --badge-danger-border: #dc2626;
+  --badge-danger-bg: rgba(168, 52, 30, 0.1);
+  --badge-danger-text: #a8341e;
+  --badge-danger-border: rgba(168, 52, 30, 0.3);
 
-  --badge-info-bg: rgba(6, 182, 212, 0.15);
-  --badge-info-text: #22d3ee;
-  --badge-info-border: #0891b2;
+  --badge-info-bg: rgba(43, 85, 134, 0.1);
+  --badge-info-text: #2b5586;
+  --badge-info-border: rgba(43, 85, 134, 0.3);
+}
+
+[data-theme="dark"] {
+  --bg: #0d0b09;
+  --bg-elevated: #1c1815;
+  --bg-card: #16130f;
+  --text: #ece8df;
+  --text-muted: #b8b1a4;
+  --text-subtle: #7d7972;
+  --border: #2a2622;
+  --border-active: #3a342e;
+  --brand: #2fa791;
+  --brand-strong: #36c2a8;
+  --brand-soft: #143b33;
+  --brand-neon: #36c2a8;
+  --danger: #d05a3e;
+  --danger-soft: #3a201c;
+
+  --badge-default-bg: #2a2622;
+  --badge-default-text: #b8b1a4;
+  --badge-default-border: #3a342e;
+  
+  --badge-success-bg: rgba(76, 163, 90, 0.15);
+  --badge-success-text: #4ca35a;
+  --badge-success-border: rgba(76, 163, 90, 0.3);
+  
+  --badge-warning-bg: rgba(200, 152, 50, 0.15);
+  --badge-warning-text: #e0b14a;
+  --badge-warning-border: rgba(200, 152, 50, 0.3);
+  
+  --badge-danger-bg: rgba(208, 90, 62, 0.15);
+  --badge-danger-text: #d05a3e;
+  --badge-danger-border: rgba(208, 90, 62, 0.3);
+
+  --badge-info-bg: rgba(88, 130, 184, 0.15);
+  --badge-info-text: #5882b8;
+  --badge-info-border: rgba(88, 130, 184, 0.3);
 }
 
 @theme inline {
@@ -49,46 +86,38 @@
 }
 
 /* ==========================================================================
-   BRUTALIST FANZINE THEME - Scoped to non-portal pages (Dashboard, Admin, etc.)
+   EDITORIAL UNIFIED SYSTEM - Dashboard, Admin, and Operations
    ========================================================================== */
 
-/* Base Body Style - Printed Sports Journal (Brutalist) */
+/* Base Body Style - Printed Sports Journal (Editorial Layout) */
 body:not(.mcfc-portal-body) {
   background-color: var(--bg);
-  background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.01) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
-  background-size: 20px 20px;
   color: var(--text);
   font-family: var(--font-manrope), "Segoe UI", sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Custom Selection */
+/* Selection */
 body:not(.mcfc-portal-body) ::selection {
   background: var(--brand);
-  color: #030708;
+  color: var(--bg);
 }
 
-/* Headings with heavy brutalist impact */
+/* Headings with editorial serif impact */
 body:not(.mcfc-portal-body) h1, 
 body:not(.mcfc-portal-body) h2, 
 body:not(.mcfc-portal-body) h3, 
 body:not(.mcfc-portal-body) h4, 
 body:not(.mcfc-portal-body) h5, 
 body:not(.mcfc-portal-body) h6 {
-  font-family: var(--font-space-grotesk), "Segoe UI", sans-serif;
-  letter-spacing: -0.03em;
-  font-weight: 900;
+  font-family: var(--font-serif), Georgia, 'Times New Roman', serif;
+  letter-spacing: -0.02em;
+  font-weight: 600;
 }
 
-/* Force rounded corners out globally for brutalism, EXCEPT for the MCFC public portal */
-body:not(.mcfc-portal-body) *,
-body:not(.mcfc-portal-body) ::after,
-body:not(.mcfc-portal-body) ::before {
-  border-radius: 0px !important;
-}
+/* Rounded corners are permitted and managed globally based on layout preferences */
 
 /* Sharp focus styles */
 body:not(.mcfc-portal-body) a:focus-visible,
@@ -100,32 +129,34 @@ body:not(.mcfc-portal-body) select:focus-visible {
   outline-offset: 2px !important;
 }
 
-/* Solid Editorial Surface Cards - High Contrast, Sharp Borders, Flat Offset Shadows */
+/* Editorial Surface Cards - High Contrast, Sharp Borders, Flat Offset Shadows */
 body:not(.mcfc-portal-body) .app-surface {
-  border: 2px solid var(--border-active) !important;
-  background-color: var(--bg-elevated) !important;
-  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.9) !important;
-  transition: all 0.15s ease-in-out;
+  border: 1px solid var(--border) !important;
+  background-color: var(--bg-card) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 body:not(.mcfc-portal-body) .app-surface:hover {
-  border-color: var(--brand) !important;
-  box-shadow: 4px 4px 0px 0px var(--brand) !important;
-  transform: translate(-2px, -2px);
+  border-color: var(--border-active) !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.12) !important;
+  transform: translateY(-2px);
 }
 
 /* Match Ticket - Physical voucher style with punch holes and block shadow */
 body:not(.mcfc-portal-body) .match-ticket {
   position: relative;
-  background-color: var(--bg-elevated);
-  border: 2px solid var(--border-active);
-  box-shadow: 6px 6px 0px 0px rgba(0, 0, 0, 0.9);
-  transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 body:not(.mcfc-portal-body) .match-ticket:hover {
-  transform: translate(-3px, -3px);
-  box-shadow: 9px 9px 0px 0px var(--brand);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.08);
   border-color: var(--brand);
 }
 
@@ -133,24 +164,25 @@ body:not(.mcfc-portal-body) .match-ticket:hover {
 body:not(.mcfc-portal-body) .athlete-card {
   position: relative;
   background-color: var(--bg-card);
-  border: 2px solid var(--border-active);
-  box-shadow: 5px 5px 0px 0px rgba(0, 0, 0, 0.9);
+  border: 1px solid var(--border);
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
 }
 
 body:not(.mcfc-portal-body) .athlete-card:hover {
-  transform: translate(-4px, -4px);
+  transform: translateY(-4px);
   border-color: var(--brand);
-  box-shadow: 9px 9px 0px 0px var(--brand);
+  box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.08);
 }
 
 body:not(.mcfc-portal-body) .athlete-card .athlete-img-container {
   position: relative;
   width: 100%;
   height: 250px;
-  background-color: #0b0f11;
-  border-bottom: 2px solid var(--border-active);
+  background-color: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
   overflow: hidden;
 }
 
@@ -162,12 +194,10 @@ body:not(.mcfc-portal-body) .athlete-card .athlete-img-container img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: grayscale(20%);
   transition: filter 0.2s ease, transform 0.2s ease;
 }
 
 body:not(.mcfc-portal-body) .athlete-card:hover .athlete-img-container img {
-  filter: grayscale(0%);
   transform: scale(1.02);
 }
 
@@ -175,10 +205,11 @@ body:not(.mcfc-portal-body) .athlete-card:hover .athlete-img-container img {
 body:not(.mcfc-portal-body) input,
 body:not(.mcfc-portal-body) textarea,
 body:not(.mcfc-portal-body) select {
-  border: 2px solid var(--border-active) !important;
-  background-color: #070a0c !important;
-  color: #f0f7f4 !important;
-  font-family: var(--font-space-grotesk), monospace !important;
+  border: 1px solid var(--border-active) !important;
+  background-color: var(--bg-elevated) !important;
+  color: var(--text) !important;
+  border-radius: 6px !important;
+  font-family: var(--font-sans), "Segoe UI", sans-serif !important;
   transition: all 0.15s ease-in-out !important;
 }
 
@@ -186,8 +217,8 @@ body:not(.mcfc-portal-body) input:focus,
 body:not(.mcfc-portal-body) textarea:focus,
 body:not(.mcfc-portal-body) select:focus {
   border-color: var(--brand) !important;
-  box-shadow: 3px 3px 0px 0px var(--brand) !important;
-  background-color: #090d0f !important;
+  box-shadow: 0 0 0 3px var(--brand-soft) !important;
+  background-color: var(--bg-card) !important;
 }
 
 /* Custom Scrollbar */
@@ -196,12 +227,12 @@ body:not(.mcfc-portal-body) ::-webkit-scrollbar {
   height: 8px;
 }
 body:not(.mcfc-portal-body) ::-webkit-scrollbar-track {
-  background: #030708;
+  background: var(--bg);
   border-left: 1px solid var(--border);
 }
 body:not(.mcfc-portal-body) ::-webkit-scrollbar-thumb {
   background: var(--border-active);
-  border: 2px solid #030708;
+  border: 2px solid var(--bg);
 }
 body:not(.mcfc-portal-body) ::-webkit-scrollbar-thumb:hover {
   background: var(--brand);

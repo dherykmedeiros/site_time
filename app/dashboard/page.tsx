@@ -108,14 +108,14 @@ export default function DashboardHomePage() {
 
   if (!hasTeam || !team) {
     return (
-      <div className="mx-auto max-w-2xl rounded-[26px] border border-[rgba(16,185,129,0.2)] bg-[rgba(10,20,18,0.75)] px-8 py-14 text-center shadow-2xl backdrop-blur-xl space-y-6">
+      <div className="mx-auto max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)]/90 px-8 py-14 text-center shadow-xl backdrop-blur-xl space-y-6">
         <span className="text-4xl animate-bounce inline-block">⚽</span>
-        <h1 className="text-3xl font-black uppercase text-white tracking-tight">Bem-vindo à VARzea</h1>
-        <p className="max-w-md mx-auto text-sm text-[#8fa39b] leading-relaxed">
+        <h1 className="text-3xl font-bold uppercase text-[var(--text)] tracking-tight font-serif">Bem-vindo à VARzea</h1>
+        <p className="max-w-md mx-auto text-sm text-[var(--text-muted)] leading-relaxed">
           Você ainda não possui um time vinculado. Crie a identidade e as cores oficiais do seu primeiro time para acessar todos os recursos do painel administrativo.
         </p>
         <Link href="/dashboard/team/settings" className="inline-block pt-2">
-          <Button className="min-h-11 rounded-full px-8 uppercase tracking-widest font-black text-xs text-[#010403] bg-[#10b981] hover:bg-[#34d399] shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+          <Button className="min-h-11 rounded-xl px-8 uppercase tracking-wider font-bold text-xs">
             Configurar Primeiro Time
           </Button>
         </Link>
@@ -165,10 +165,10 @@ export default function DashboardHomePage() {
 
   return (
     <div className="space-y-8">
-      {/* Team Hub Banner (Holográfico) */}
-      <section className="relative overflow-hidden rounded-[26px] border border-[rgba(16,185,129,0.2)] bg-[rgba(10,24,20,0.45)] backdrop-blur-xl p-6 shadow-xl sm:p-8">
-        <div className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#10b981] opacity-5 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#34d399] to-transparent opacity-40 animate-pulse" />
+      {/* Team Hub Banner (Editorial Layout) */}
+      <section className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)]/60 backdrop-blur-xl p-6 shadow-sm sm:p-8">
+        <div className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[var(--brand)] opacity-5 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[var(--brand)] to-transparent opacity-40 animate-pulse" />
 
         <div className="relative grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-center">
           <div className="space-y-6">
@@ -177,24 +177,24 @@ export default function DashboardHomePage() {
                 <img
                   src={team.badgeUrl}
                   alt={`Escudo ${team.name}`}
-                  className="h-16 w-16 rounded-2xl border border-[rgba(16,185,129,0.3)] object-cover shadow-md"
+                  className="h-16 w-16 rounded-2xl border border-[var(--border)] object-cover shadow-sm"
                 />
               ) : (
                 <div
-                  className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[rgba(16,185,129,0.3)] text-3xl text-white shadow-md bg-[rgba(16,185,129,0.06)]"
+                  className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--border)] text-3xl text-[var(--brand)] shadow-sm bg-[var(--brand-soft)]"
                 >
                   ⚽
                 </div>
               )}
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#34d399]">
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[var(--brand)]">
                   Painel de Controle
                 </p>
-                <h1 className="text-3xl font-black text-white tracking-tight uppercase">{team.name}</h1>
+                <h1 className="text-3xl font-bold text-[var(--text)] tracking-tight uppercase font-serif">{team.name}</h1>
               </div>
             </div>
 
-            <p className="max-w-xl text-sm leading-relaxed text-[#8fa39b] font-medium">
+            <p className="max-w-xl text-sm leading-relaxed text-[var(--text-muted)] font-medium">
               Bem-vindo ao centro operacional do seu time. Acompanhe a saúde financeira, o desempenho técnico dos atletas e responda aos desafios de amistosos recebidos da comunidade.
             </p>
 
@@ -203,40 +203,40 @@ export default function DashboardHomePage() {
                 href="/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition-all duration-150"
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] hover:bg-[var(--brand-soft)]/20 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-[var(--text)] transition-all duration-150"
               >
                 Acessar Portal Público &rarr;
               </a>
               <Link href="/dashboard/matches">
-                <Button className="rounded-xl px-5 py-2.5 text-xs uppercase tracking-wider font-bold text-[#010403] bg-[#10b981] hover:bg-[#34d399] transition-all">
+                <Button className="rounded-xl px-5 py-2.5 text-xs uppercase tracking-wider font-bold">
                   Registrar Jogo
                 </Button>
               </Link>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-5 shadow-inner space-y-4">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#8fa39b] border-b border-white/5 pb-2">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)]/40 p-5 shadow-sm space-y-4">
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--text-subtle)] border-b border-[var(--border)] pb-2">
               Resumo Operacional
             </p>
             <dl className="space-y-3.5 text-xs font-semibold">
               <div className="flex items-center justify-between">
-                <dt className="text-[#8fa39b]">Jogadores no Elenco</dt>
-                <dd className="text-white font-extrabold">{playersCount}</dd>
+                <dt className="text-[var(--text-muted)]">Jogadores no Elenco</dt>
+                <dd className="text-[var(--text)] font-bold">{playersCount}</dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt className="text-[#8fa39b]">Total de Partidas</dt>
-                <dd className="text-white font-extrabold">{matchesCount}</dd>
+                <dt className="text-[var(--text-muted)]">Total de Partidas</dt>
+                <dd className="text-[var(--text)] font-bold">{matchesCount}</dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt className="text-[#8fa39b]">Caixa do Time</dt>
-                <dd className={`font-black ${balance != null && balance >= 0 ? "text-[#34d399]" : "text-[#f87171]"}`}>
+                <dt className="text-[var(--text-muted)]">Caixa do Time</dt>
+                <dd className={`font-black ${balance != null && balance >= 0 ? "text-[var(--badge-success-text)]" : "text-[var(--danger)]"}`}>
                   {balance != null ? formatCurrency(balance) : "—"}
                 </dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt className="text-[#8fa39b]">Aproveitamento Técnico</dt>
-                <dd className="text-white font-black">{record ? `${record.winRate}%` : "—"}</dd>
+                <dt className="text-[var(--text-muted)]">Aproveitamento Técnico</dt>
+                <dd className="text-[var(--text)] font-bold">{record ? `${record.winRate}%` : "—"}</dd>
               </div>
             </dl>
           </div>
@@ -278,33 +278,33 @@ export default function DashboardHomePage() {
 
       {/* Retrospect Panel */}
       {record && record.totalMatches > 0 && (
-        <section className="app-surface p-6 sm:p-8 space-y-6 border-white/5 bg-[rgba(10,24,20,0.25)]">
-          <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        <section className="app-surface p-6 sm:p-8 space-y-6 bg-[var(--bg-elevated)]/40">
+          <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
             <div>
-              <h2 className="text-lg font-black uppercase text-white tracking-tight">Retrospecto Detalhado</h2>
-              <p className="text-xs text-[#8fa39b] mt-0.5">Indicadores e gols na temporada oficial</p>
+              <h2 className="text-lg font-bold uppercase text-[var(--text)] tracking-tight font-serif">Retrospecto Detalhado</h2>
+              <p className="text-xs text-[var(--text-subtle)] mt-0.5">Indicadores e gols na temporada oficial</p>
             </div>
-            <span className="text-xs font-black uppercase tracking-wider text-[#10b981]">Saldo Geral</span>
+            <span className="text-xs font-black uppercase tracking-wider text-[var(--brand)]">Saldo Geral</span>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border border-[rgba(16,185,129,0.15)] bg-[rgba(16,185,129,0.06)] p-4 text-center">
-              <p className="text-2xl font-black text-[#34d399]">{record.wins}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#34d399] mt-1">Vitórias</p>
+            <div className="rounded-xl border border-[var(--badge-success-border)] bg-[var(--badge-success-bg)] p-4 text-center">
+              <p className="text-2xl font-black text-[var(--badge-success-text)]">{record.wins}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--badge-success-text)] mt-1">Vitórias</p>
             </div>
-            <div className="rounded-xl border border-[rgba(245,158,11,0.15)] bg-[rgba(245,158,11,0.06)] p-4 text-center">
-              <p className="text-2xl font-black text-[#fbbf24]">{record.draws}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#fbbf24] mt-1">Empates</p>
+            <div className="rounded-xl border border-[var(--badge-warning-border)] bg-[var(--badge-warning-bg)] p-4 text-center">
+              <p className="text-2xl font-black text-[var(--badge-warning-text)]">{record.draws}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--badge-warning-text)] mt-1">Empates</p>
             </div>
-            <div className="rounded-xl border border-[rgba(239,68,68,0.15)] bg-[rgba(239,68,68,0.06)] p-4 text-center">
-              <p className="text-2xl font-black text-[#f87171]">{record.losses}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#f87171] mt-1">Derrotas</p>
+            <div className="rounded-xl border border-[var(--badge-danger-border)] bg-[var(--badge-danger-bg)] p-4 text-center">
+              <p className="text-2xl font-black text-[var(--badge-danger-text)]">{record.losses}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--badge-danger-text)] mt-1">Derrotas</p>
             </div>
-            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 text-center">
-              <p className="text-2xl font-black text-white">
-                {record.goalsScored} <span className="text-xs font-semibold text-[#8fa39b]">x</span> {record.goalsConceded}
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)]/20 p-4 text-center">
+              <p className="text-2xl font-black text-[var(--text)]">
+                {record.goalsScored} <span className="text-xs font-semibold text-[var(--text-subtle)]">x</span> {record.goalsConceded}
               </p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#8fa39b] mt-1">Gols Pró : Contra</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-1">Gols Pró : Contra</p>
             </div>
           </div>
         </section>
@@ -312,21 +312,21 @@ export default function DashboardHomePage() {
 
       {/* Rankings Section (Abas Animadas Interativas!) */}
       {rankings && (
-        <section className="app-surface p-6 sm:p-8 space-y-6 border-white/5 bg-[rgba(10,24,20,0.25)]">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-white/5 pb-4">
+        <section className="app-surface p-6 sm:p-8 space-y-6 bg-[var(--bg-elevated)]/40">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border)] pb-4">
             <div>
-              <h2 className="text-lg font-black uppercase text-white tracking-tight">Desempenho de Atletas</h2>
-              <p className="text-xs text-[#8fa39b] mt-0.5">Estatísticas acumuladas individuais do elenco</p>
+              <h2 className="text-lg font-bold uppercase text-[var(--text)] tracking-tight font-serif">Desempenho de Atletas</h2>
+              <p className="text-xs text-[var(--text-subtle)] mt-0.5">Estatísticas acumuladas individuais do elenco</p>
             </div>
 
             {/* Tab Controller Buttons */}
-            <div className="flex rounded-lg bg-white/[0.03] p-1 border border-white/5">
+            <div className="flex rounded-lg bg-[var(--bg-elevated)]/80 p-1 border border-[var(--border)]">
               <button
                 onClick={() => setActiveTab("scorers")}
                 className={`rounded-md px-3.5 py-1.5 text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                   activeTab === "scorers"
-                    ? "bg-[#10b981] text-[#010403] shadow-[0_0_10px_rgba(16,185,129,0.25)]"
-                    : "text-[#8fa39b] hover:text-white"
+                    ? "bg-[var(--brand)] text-[var(--bg)] shadow-sm"
+                    : "text-[var(--text-muted)] hover:text-[var(--text)]"
                 }`}
               >
                 ⚽ Artilharia
@@ -335,8 +335,8 @@ export default function DashboardHomePage() {
                 onClick={() => setActiveTab("assisters")}
                 className={`rounded-md px-3.5 py-1.5 text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                   activeTab === "assisters"
-                    ? "bg-[#10b981] text-[#010403] shadow-[0_0_10px_rgba(16,185,129,0.25)]"
-                    : "text-[#8fa39b] hover:text-white"
+                    ? "bg-[var(--brand)] text-[var(--bg)] shadow-sm"
+                    : "text-[var(--text-muted)] hover:text-[var(--text)]"
                 }`}
               >
                 🅰️ Assistências
@@ -345,8 +345,8 @@ export default function DashboardHomePage() {
                 onClick={() => setActiveTab("cards")}
                 className={`rounded-md px-3.5 py-1.5 text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                   activeTab === "cards"
-                    ? "bg-[#10b981] text-[#010403] shadow-[0_0_10px_rgba(16,185,129,0.25)]"
-                    : "text-[#8fa39b] hover:text-white"
+                    ? "bg-[var(--brand)] text-[var(--bg)] shadow-sm"
+                    : "text-[var(--text-muted)] hover:text-[var(--text)]"
                 }`}
               >
                 🟨 Cartões
@@ -452,27 +452,27 @@ export default function DashboardHomePage() {
       <PushSubscriptionCard />
 
       {/* Shortcuts grid */}
-      <section className="app-surface p-6 sm:p-8 space-y-6 border-white/5 bg-[rgba(10,24,20,0.25)]">
+      <section className="app-surface p-6 sm:p-8 space-y-6 bg-[var(--bg-elevated)]/40">
         <div>
-          <h2 className="text-lg font-black uppercase text-white tracking-tight">Atalhos Operacionais</h2>
-          <p className="text-xs text-[#8fa39b] mt-0.5">Gerenciamento direto dos módulos do portal</p>
+          <h2 className="text-lg font-bold uppercase text-[var(--text)] tracking-tight font-serif">Atalhos Operacionais</h2>
+          <p className="text-xs text-[var(--text-subtle)] mt-0.5">Gerenciamento direto dos módulos do portal</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {quickActions.map((action) => (
             <Link
               key={action.href}
               href={action.href}
-              className="group relative overflow-hidden rounded-2xl border border-white/5 bg-white/[0.01] p-5 transition-all duration-300 hover:border-[#10b981]/40 hover:bg-[#10b981]/5 card-hover shadow-lg"
+              className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5 transition-all duration-300 hover:border-[var(--brand)]/40 hover:bg-[var(--brand-soft)]/20 shadow-sm hover:shadow-md"
             >
               <div className="flex items-start gap-4">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-xl shadow-inner transition-transform group-hover:scale-110 duration-200">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)] text-xl transition-transform group-hover:scale-110 duration-200">
                   {action.icon}
                 </span>
                 <div className="space-y-1">
-                  <p className="text-sm font-black text-white uppercase group-hover:text-[#10b981] transition-colors duration-150 tracking-tight">
+                  <p className="text-sm font-bold text-[var(--text)] uppercase group-hover:text-[var(--brand)] font-serif transition-colors duration-150 tracking-tight">
                     {action.title}
                   </p>
-                  <p className="text-xs text-[#8fa39b] leading-relaxed font-semibold">{action.description}</p>
+                  <p className="text-xs text-[var(--text-muted)] leading-relaxed font-semibold">{action.description}</p>
                 </div>
               </div>
             </Link>

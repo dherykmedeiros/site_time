@@ -178,12 +178,12 @@ export default function DashboardLayout({
               title={isCollapsed ? item.label : undefined}
               className={`group flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold transition-all duration-200 ${
                 isActive
-                  ? "bg-[rgba(16,185,129,0.14)] text-[#6ee7b7] border-l-4 border-[#10b981]"
-                  : "text-[var(--text-muted)] hover:bg-white/[0.05] hover:text-white"
+                  ? "bg-[var(--brand-soft)] text-[var(--brand)] border-l-4 border-[var(--brand)] font-serif"
+                  : "text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text)]"
               } ${isCollapsed ? "justify-center px-2" : ""} ${mobile ? "text-base" : ""}`}
               onClick={mobile ? () => setMobileMenuOpen(false) : undefined}
             >
-              <span className={`inline-flex h-6 w-6 items-center justify-center rounded-md text-sm shrink-0 transition-transform group-hover:scale-110 duration-200 ${isActive ? "text-[#6ee7b7]" : "text-[var(--text-muted)] group-hover:text-white"}`}>
+              <span className={`inline-flex h-6 w-6 items-center justify-center rounded-md text-sm shrink-0 transition-transform group-hover:scale-110 duration-200 ${isActive ? "text-[var(--brand)]" : "text-[var(--text-muted)] group-hover:text-[var(--text)]"}`}>
                 {item.icon}
               </span>
               {!isCollapsed && <span className="flex-1 transition-opacity duration-300 tracking-tight">{item.label}</span>}
@@ -203,40 +203,40 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#030708] text-[#f0f7f4]">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-200">
       {/* Premium Top-Loading Progress Bar */}
       {transitioning && (
         <div
-          className="fixed top-0 left-0 z-[9999] h-[3.5px] bg-gradient-to-r from-[#10b981] via-[#34d399] to-[#fbbf24] transition-all duration-200 ease-out pointer-events-none shadow-[0_1px_10px_rgba(52,211,153,0.5)]"
+          className="fixed top-0 left-0 z-[9999] h-[3.5px] bg-gradient-to-r from-[var(--brand)] via-[var(--brand-strong)] to-[var(--brand-neon)] transition-all duration-200 ease-out pointer-events-none shadow-[0_1px_10px_var(--brand)]"
           style={{ width: `${progress}%` }}
         />
       )}
       <a
         href="#dashboard-main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-[#10b981] focus:px-3 focus:py-2 focus:text-xs focus:font-black focus:text-[#010403]"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-[var(--brand)] focus:px-3 focus:py-2 focus:text-xs focus:font-black focus:text-[var(--bg)]"
       >
         Ir para o conteúdo principal
       </a>
 
       {/* Decorative Glow Elements */}
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#10b981] opacity-5 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[var(--brand)] opacity-5 rounded-full blur-[130px] pointer-events-none" />
 
       <div className="flex min-h-screen">
         {/* Desktop Sidebar (Translúcida com borda neon fina) */}
         <aside
-          className={`hidden h-screen flex-shrink-0 border-r border-[rgba(16,185,129,0.15)] bg-[rgba(10,20,18,0.85)] backdrop-blur-2xl md:sticky md:top-0 md:flex md:flex-col transition-all duration-300 ease-in-out shadow-2xl ${
+          className={`hidden h-screen flex-shrink-0 border-r border-[var(--border)] bg-[var(--bg-elevated)]/90 backdrop-blur-2xl md:sticky md:top-0 md:flex md:flex-col transition-all duration-300 ease-in-out shadow-lg ${
             collapsed ? "w-20" : "w-80"
           }`}
         >
-          <div className="border-b border-white/5 px-5 py-6 flex items-center justify-between">
-            <Link href="/dashboard" prefetch={false} className="inline-flex items-center gap-3 text-white overflow-hidden">
-              <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-[rgba(16,185,129,0.25)] bg-[rgba(16,185,129,0.08)] text-xl shrink-0 animate-pulse">
+          <div className="border-b border-[var(--border)] px-5 py-6 flex items-center justify-between">
+            <Link href="/dashboard" prefetch={false} className="inline-flex items-center gap-3 text-[var(--text)] overflow-hidden">
+              <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--brand)]/20 bg-[var(--brand-soft)] text-xl shrink-0">
                 ⚽
               </span>
               {!collapsed && (
                 <span className="transition-all duration-300 whitespace-nowrap">
-                  <strong className="block text-lg font-black tracking-tight uppercase bg-gradient-to-r from-white to-[#34d399] bg-clip-text text-transparent">VARzea</strong>
-                  <span className="text-[9px] font-black uppercase tracking-[0.25em] text-[#8fa39b]">
+                  <strong className="block text-lg font-black tracking-tight uppercase bg-gradient-to-r from-[var(--text)] to-[var(--brand)] bg-clip-text text-transparent">VARzea</strong>
+                  <span className="text-[9px] font-black uppercase tracking-[0.25em] text-[var(--text-subtle)]">
                     DIRETORIA DE ELITE
                   </span>
                 </span>
@@ -244,7 +244,7 @@ export default function DashboardLayout({
             </Link>
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg border border-white/5 bg-white/5 hover:bg-white/10 hover:border-[#10b981]/30 text-[#8fa39b] hover:text-white transition-all cursor-pointer"
+              className="hidden md:flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] hover:bg-[var(--brand-soft)]/50 hover:border-[var(--brand)]/30 text-[var(--text-muted)] hover:text-[var(--text)] transition-all cursor-pointer"
               title={collapsed ? "Expandir menu" : "Recolher menu"}
             >
               {collapsed ? "»" : "«"}
@@ -253,7 +253,7 @@ export default function DashboardLayout({
 
           <div className="flex-1 overflow-y-auto px-3.5 py-6">
             {!collapsed && (
-              <p className="px-3.5 text-[9px] font-black uppercase tracking-[0.25em] text-[#8fa39b] transition-opacity duration-300">
+              <p className="px-3.5 text-[9px] font-black uppercase tracking-[0.25em] text-[var(--text-subtle)] transition-opacity duration-300">
                 Menu de Operações
               </p>
             )}
@@ -262,15 +262,15 @@ export default function DashboardLayout({
             </nav>
           </div>
 
-          <div className="border-t border-white/5 px-4 py-4">
+          <div className="border-t border-[var(--border)] px-4 py-4">
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
-              className={`flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-3.5 py-3 text-sm font-semibold text-[#f87171] hover:text-white transition-all hover:bg-red-500/10 hover:border-red-500/20 cursor-pointer ${
+              className={`flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-3.5 py-3 text-sm font-semibold text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-all cursor-pointer ${
                 collapsed ? "w-full justify-center px-2" : "w-full"
               }`}
               title={collapsed ? "Sair" : undefined}
             >
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-black/15 text-xs shrink-0">🚪</span>
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-black/5 text-xs shrink-0">🚪</span>
               {!collapsed && <span className="tracking-tight">Sair da Sessão</span>}
             </button>
           </div>
@@ -286,21 +286,21 @@ export default function DashboardLayout({
 
         {/* Mobile sidebar drawer */}
         <aside
-          className={`fixed inset-y-0 left-0 z-50 w-72 transform border-r border-[rgba(16,185,129,0.15)] bg-[rgba(5,12,10,0.98)] backdrop-blur-3xl transition-transform duration-250 ease-out md:hidden ${
+          className={`fixed inset-y-0 left-0 z-50 w-72 transform border-r border-[var(--border)] bg-[var(--bg-elevated)] backdrop-blur-3xl transition-transform duration-250 ease-out md:hidden ${
             mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <div className="flex h-20 items-center justify-between border-b border-white/5 px-6">
-            <span className="text-xl font-black uppercase tracking-wider text-white">VARzea</span>
+          <div className="flex h-20 items-center justify-between border-b border-[var(--border)] px-6">
+            <span className="text-xl font-black uppercase tracking-wider text-[var(--text)]">VARzea</span>
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="text-[#8fa39b] hover:text-white text-lg cursor-pointer"
+              className="text-[var(--text-muted)] hover:text-[var(--text)] text-lg cursor-pointer"
               aria-label="Fechar menu"
             >
               ✕
             </button>
           </div>
-          <p className="px-6 pt-6 text-[9px] font-black uppercase tracking-[0.25em] text-[#8fa39b]">
+          <p className="px-6 pt-6 text-[9px] font-black uppercase tracking-[0.25em] text-[var(--text-subtle)]">
             Navegação Geral
           </p>
           <nav className="mt-4 space-y-1 px-3">
@@ -309,9 +309,9 @@ export default function DashboardLayout({
           <div className="absolute bottom-4 left-3 right-3">
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
-              className="flex w-full items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-3.5 py-3 text-sm font-semibold text-[#f87171] hover:bg-red-500/10 hover:border-red-500/20 transition-all cursor-pointer"
+              className="flex w-full items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-3.5 py-3 text-sm font-semibold text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-all cursor-pointer"
             >
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-black/15 text-xs">🚪</span>
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-black/5 text-xs">🚪</span>
               Sair da Sessão
             </button>
           </div>
@@ -320,10 +320,10 @@ export default function DashboardLayout({
         {/* Main area */}
         <div className="flex flex-1 flex-col overflow-hidden">
           {/* Mobile header */}
-          <header className="flex h-16 items-center justify-between border-b border-white/5 bg-[rgba(10,20,18,0.7)] px-4 backdrop-blur-xl md:hidden">
+          <header className="flex h-16 items-center justify-between border-b border-[var(--border)] bg-[var(--bg-elevated)]/90 px-4 backdrop-blur-xl md:hidden">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="rounded-lg p-1.5 text-white hover:bg-white/5"
+              className="rounded-lg p-1.5 text-[var(--text)] hover:bg-[var(--bg-elevated)]"
               aria-label="Abrir menu"
             >
               <svg
@@ -340,22 +340,22 @@ export default function DashboardLayout({
                 />
               </svg>
             </button>
-            <span className="text-base font-black uppercase tracking-widest text-[#10b981]">VARzea</span>
+            <span className="text-base font-black uppercase tracking-widest text-[var(--brand)] font-serif">VARzea</span>
             <NotificationCenter />
           </header>
 
           {/* Desktop page header */}
-          <header className="hidden border-b border-white/5 bg-[rgba(10,20,18,0.45)] px-8 py-5.5 backdrop-blur-md md:block">
+          <header className="hidden border-b border-[var(--border)] bg-[var(--bg-elevated)]/60 px-8 py-5.5 backdrop-blur-md md:block">
             <div className="mx-auto flex w-full max-w-7xl items-center justify-between">
               <div>
-                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#8fa39b]">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--text-subtle)]">
                   {todayLabel}
                 </p>
-                <h1 className="mt-1 text-2xl font-black uppercase tracking-tight text-white">{activeItem.label}</h1>
+                <h1 className="mt-1 text-2xl font-black uppercase tracking-tight text-[var(--text)] font-serif">{activeItem.label}</h1>
               </div>
               <div className="flex items-center gap-4">
                 <NotificationCenter />
-                <div className="rounded-xl border border-[rgba(16,185,129,0.2)] bg-[rgba(16,185,129,0.06)] px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.2em] text-[#34d399]">
+                <div className="rounded-xl border border-[var(--brand)]/20 bg-[var(--brand-soft)] px-4 py-2.5 text-[9px] font-black uppercase tracking-[0.2em] text-[var(--brand)]">
                   Operação de Elite VARzea
                 </div>
               </div>

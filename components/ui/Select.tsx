@@ -24,7 +24,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           id={selectId}
           aria-invalid={error ? true : undefined}
           aria-describedby={errorId}
-          className={`block w-full rounded-[12px] border bg-[#090f0c] px-3 py-2 text-sm text-[var(--text)] shadow-sm transition-colors focus:outline-none ${
+          className={`block w-full rounded-[12px] border bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--text)] shadow-sm transition-colors focus:outline-none ${
             error
               ? "border-[rgba(239,68,68,0.55)] focus:border-[var(--danger)]"
               : "border-[var(--border)] focus:border-[var(--brand)]"
@@ -32,10 +32,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           {...props}
         >
           {placeholder && (
-            <option value="" className="bg-[#090f0c] text-[var(--text)]">{placeholder}</option>
+            <option value="" className="bg-[var(--bg-card)] text-[var(--text)]">{placeholder}</option>
           )}
           {options.map((opt) => (
-            <option key={opt.value} value={opt.value} className="bg-[#090f0c] text-[var(--text)]">
+            <option key={opt.value} value={opt.value} className="bg-[var(--bg-card)] text-[var(--text)]">
               {opt.label}
             </option>
           ))}
