@@ -203,7 +203,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-200">
+    <div data-theme="dark" className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-200">
       {/* Premium Top-Loading Progress Bar */}
       {transitioning && (
         <div
