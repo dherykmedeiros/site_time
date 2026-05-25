@@ -214,10 +214,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     );
   }
 
-  if (match.status !== "SCHEDULED") {
+  if (match.status !== "SCHEDULED" && match.status !== "COMPLETED") {
     return NextResponse.json(
       {
-        error: "O bordero so pode ser alterado em partidas agendadas",
+        error: "O bordero so pode ser alterado em partidas agendadas ou finalizadas",
         code: "INVALID_MATCH_STATUS",
       },
       { status: 409 }

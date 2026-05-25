@@ -340,7 +340,7 @@ export default function MatchDetailPage() {
   }, [match, fetchLineup]);
 
   const fetchBordereau = useCallback(async () => {
-    if (!isAdmin || !match || match.status !== "SCHEDULED") {
+    if (!isAdmin || !match || (match.status !== "SCHEDULED" && match.status !== "COMPLETED")) {
       setBordereauData(null);
       setBordereauError(null);
       return;
@@ -443,7 +443,7 @@ export default function MatchDetailPage() {
       allowedSections.push("lineup");
     }
 
-    if (isAdmin && match?.status === "SCHEDULED") {
+    if (isAdmin && (match?.status === "SCHEDULED" || match?.status === "COMPLETED")) {
       allowedSections.push("operations");
     }
 
@@ -919,7 +919,7 @@ export default function MatchDetailPage() {
   const pending = match.rsvps.filter((r) => r.status === "PENDING").length;
   const isScheduled = match.status === "SCHEDULED";
   const canSeeLineup = isCoachOrAdmin && isScheduled;
-  const canSeeOperations = isAdmin && isScheduled;
+  const canSeeOperations = isAdmin && (isScheduled || match.status === "COMPLETED");
   const canSeePostGame = (isAdmin && match.canSubmitPostGame) || match.status === "COMPLETED";
   const sections: Array<{
     id: ScheduledWorkspaceSection;
