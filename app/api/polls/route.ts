@@ -105,6 +105,18 @@ export async function POST(request: Request) {
       return d;
     });
 
+    if (matchId) {
+      const matchExists = await prisma.match.findFirst({
+        where: { id: matchId, teamId },
+      });
+      if (!matchExists) {
+        return NextResponse.json(
+          { error: "A partida informada não pertence ao seu time." },
+          { status: 400 }
+        );
+      }
+    }
+
     // Create the poll and its options in a transaction
     const newPoll = await prisma.datePoll.create({
       data: {
