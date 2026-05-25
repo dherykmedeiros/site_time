@@ -61,6 +61,7 @@ export const createTeamSchema = z.object({
   kitHomeUrl: kitUrlSchema.optional().nullable(),
   kitAwayUrl: kitUrlSchema.optional().nullable(),
   kitGkUrl: kitUrlSchema.optional().nullable(),
+  monthlyFeesEnabled: z.boolean().optional(),
 });
 
 export const updateTeamSchema = z.object({
@@ -99,6 +100,7 @@ export const updateTeamSchema = z.object({
   kitHomeUrl: kitUrlSchema.optional().nullable(),
   kitAwayUrl: kitUrlSchema.optional().nullable(),
   kitGkUrl: kitUrlSchema.optional().nullable(),
+  monthlyFeesEnabled: z.boolean().optional(),
 });
 
 export type CreateTeamInput = z.infer<typeof createTeamSchema>;

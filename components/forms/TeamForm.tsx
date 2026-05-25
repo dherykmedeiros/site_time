@@ -53,8 +53,8 @@ export function TeamForm({ defaultValues, onSuccess, isCreating = false }: TeamF
   const {
     register,
     handleSubmit,
-    formState: { errors },
-  } = useForm<UpdateTeamInput>({
+    formState,
+  } = useForm<any>({
     resolver: zodResolver(isCreating ? createTeamSchema : updateTeamSchema),
     defaultValues: {
       name: defaultValues?.name || "",
@@ -66,6 +66,7 @@ export function TeamForm({ defaultValues, onSuccess, isCreating = false }: TeamF
       foundedYear: defaultValues?.foundedYear ?? undefined,
     },
   });
+  const errors = formState.errors as any;
 
   async function handleBadgeUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

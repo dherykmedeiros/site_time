@@ -158,6 +158,7 @@ export async function GET() {
     kitHomeUrl: team.kitHomeUrl,
     kitAwayUrl: team.kitAwayUrl,
     kitGkUrl: team.kitGkUrl,
+    monthlyFeesEnabled: team.monthlyFeesEnabled,
     createdAt: team.createdAt.toISOString(),
     updatedAt: team.updatedAt.toISOString(),
     _count: team._count,
@@ -221,6 +222,7 @@ export async function PATCH(request: Request) {
   if (data.kitHomeUrl !== undefined) updateData.kitHomeUrl = data.kitHomeUrl;
   if (data.kitAwayUrl !== undefined) updateData.kitAwayUrl = data.kitAwayUrl;
   if (data.kitGkUrl !== undefined) updateData.kitGkUrl = data.kitGkUrl;
+  if (data.monthlyFeesEnabled !== undefined) updateData.monthlyFeesEnabled = data.monthlyFeesEnabled;
 
   // If name changed, regenerate slug and check uniqueness
   if (data.name) {
@@ -266,6 +268,7 @@ export async function PATCH(request: Request) {
     kitHomeUrl: team.kitHomeUrl,
     kitAwayUrl: team.kitAwayUrl,
     kitGkUrl: team.kitGkUrl,
+    monthlyFeesEnabled: team.monthlyFeesEnabled,
     createdAt: team.createdAt.toISOString(),
     updatedAt: team.updatedAt.toISOString(),
     _count: team._count,

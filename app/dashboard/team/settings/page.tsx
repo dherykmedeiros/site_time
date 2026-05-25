@@ -20,6 +20,11 @@ interface TeamData {
   secondaryColor: string | null;
   defaultVenue: string | null;
   badgeUrl: string | null;
+  foundedYear?: number | null;
+  kitHomeUrl?: string | null;
+  kitAwayUrl?: string | null;
+  kitGkUrl?: string | null;
+  monthlyFeesEnabled?: boolean;
 }
 
 interface TeamDiscoverySettings {
@@ -258,6 +263,26 @@ export default function TeamSettingsPage() {
     }
   }
 
+  async function handleToggleMonthlyFees(enabled: boolean) {
+    if (!team) return;
+    setFeedback(null);
+    try {
+      const res = await fetch("/api/teams", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ monthlyFeesEnabled: enabled }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Erro ao salvar configuração.");
+      }
+      setTeam((prev) => prev ? { ...prev, monthlyFeesEnabled: enabled } : null);
+      setFeedback(`Controle de mensalidades ${enabled ? "ativado" : "desativado"} com sucesso!`);
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Erro ao salvar configuração.");
+    }
+  }
+
   useEffect(() => {
     loadTeam();
   }, []);
@@ -468,6 +493,36 @@ export default function TeamSettingsPage() {
 
       {hasTeam && (
         <DefaultLineupCard />
+      )}
+
+      {hasTeam && (
+        <Card className="rounded-[18px]">
+          <CardHeader>
+            <h2 className="text-lg font-semibold text-[var(--text)]">⚙️ Módulos Ativos</h2>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-[var(--text-muted)]">
+              Ative ou desative os recursos opcionais do VARzea de acordo com a necessidade da sua comissão técnica.
+            </p>
+            <div className="flex items-center justify-between rounded-[12px] border border-white/5 bg-white/[0.02] p-4">
+              <div>
+                <p className="text-sm font-semibold text-white">💰 Controle de Mensalidades</p>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                  Gerenciar mensalistas, pagamentos mensais recorrentes dos atletas e caixinha do clube.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={team?.monthlyFeesEnabled ?? true}
+                  onChange={(e) => handleToggleMonthlyFees(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand)]"></div>
+              </label>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {hasTeam && (

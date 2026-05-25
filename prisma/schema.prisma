@@ -97,6 +97,7 @@ enum TransactionType {
 enum TransactionCategory {
   MEMBERSHIP
   FRIENDLY_FEE
+  MATCH_FEE
   VENUE_RENTAL
   REFEREE
   EQUIPMENT
@@ -195,7 +196,9 @@ model Team {
   transactions     Transaction[]
   inviteTokens     InviteToken[]
   membershipPayments MembershipPayment[]
+  matchPayments    MatchPayment[]
   seasons          Season[]
+  monthlyFeesEnabled Boolean         @default(true)
   openMatchSlots   OpenMatchSlot[]
   rules            Rule[]
   fines            Fine[]
@@ -237,6 +240,7 @@ model Player {
   matchStats   MatchStats[]
   inviteTokens InviteToken[]
   membershipPayments MembershipPayment[]
+  matchPayments MatchPayment[]
   achievements Achievement[]
   fines        Fine[]
   evaluations  PlayerEvaluation[]
@@ -294,6 +298,9 @@ model Match {
   seasonId   String?
   season     Season?     @relation(fields: [seasonId], references: [id])
   achievements Achievement[]
+  hasCharge    Boolean     @default(false)
+  chargeAmount Decimal?    @db.Decimal(10, 2)
+  matchPayments MatchPayment[]
   datePoll     DatePoll?
   photos       MatchPhoto[]
   playerRatings MatchPlayerRating[]
@@ -424,6 +431,7 @@ model Transaction {
   team        Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
   match       Match?              @relation(fields: [matchId], references: [id], onDelete: SetNull)
   membershipPayment MembershipPayment?
+  matchPayment MatchPayment?
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
 
@@ -501,6 +509,28 @@ model MembershipPayment {
   @@index([playerId, teamId])
   @@index([year, month])
   @@map("membership_payments")
+}
+
+model MatchPayment {
+  id            String       @id @default(cuid())
+  playerId      String
+  matchId       String
+  teamId        String
+  amount        Decimal      @db.Decimal(10, 2)
+  paidAt        DateTime     @default(now())
+  transactionId String?      @unique
+  player        Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  match         Match        @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  team          Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @default(now()) @updatedAt
+
+  @@unique([playerId, matchId])
+  @@index([matchId])
+  @@index([teamId])
+  @@index([playerId])
+  @@map("match_payments")
 }
 
 model Achievement {

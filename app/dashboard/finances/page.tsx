@@ -52,6 +52,7 @@ interface MonthlySummary {
 const categoryLabels: Record<string, string> = {
   MEMBERSHIP: "Mensalidade",
   FRIENDLY_FEE: "Cota de Amistoso",
+  MATCH_FEE: "Taxa de Jogo",
   VENUE_RENTAL: "Aluguel de Quadra",
   REFEREE: "Arbitragem",
   EQUIPMENT: "Material Esportivo",
@@ -68,6 +69,7 @@ const categoryFilterOptions = [
   { value: "", label: "Todas" },
   { value: "MEMBERSHIP", label: "Mensalidade" },
   { value: "FRIENDLY_FEE", label: "Cota de Amistoso" },
+  { value: "MATCH_FEE", label: "Taxa de Jogo" },
   { value: "VENUE_RENTAL", label: "Aluguel de Quadra" },
   { value: "REFEREE", label: "Arbitragem" },
   { value: "EQUIPMENT", label: "Material Esportivo" },
@@ -94,8 +96,8 @@ export default function FinancesPage() {
   const [typeFilter, setTypeFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
 
-  // Tab: "list" | "summary"
-  const [activeTab, setActiveTab] = useState<"list" | "summary">("list");
+  // Tab: "list" | "summary" | "charges"
+  const [activeTab, setActiveTab] = useState<"list" | "summary" | "charges">("list");
 
   // Summary state
   const [summary, setSummary] = useState<MonthlySummary | null>(null);
@@ -106,6 +108,19 @@ export default function FinancesPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Match Charges state
+  const [matches, setMatches] = useState<any[]>([]);
+  const [matchesLoading, setMatchesLoading] = useState(false);
+  const [chargeTargetMatch, setChargeTargetMatch] = useState<any | null>(null);
+  const [chargeAmount, setChargeAmount] = useState("");
+  const [chargeSaving, setChargeSaving] = useState(false);
+
+  // Match Payment Checklist state
+  const [checklistTargetMatch, setChecklistTargetMatch] = useState<any | null>(null);
+  const [checklistPlayers, setChecklistPlayers] = useState<any[]>([]);
+  const [checklistLoading, setChecklistLoading] = useState(false);
+  const [togglingPlayerId, setTogglingPlayerId] = useState<string | null>(null);
 
   async function loadTransactions(page = 1) {
     setLoading(true);
@@ -160,6 +175,97 @@ export default function FinancesPage() {
     setDeleteLoading(false);
   }
 
+  async function loadMatches() {
+    setMatchesLoading(true);
+    try {
+      const res = await fetch("/api/matches");
+      if (res.ok) {
+        const data = await res.json();
+        // Sort by date descending
+        const sorted = (data.matches || []).sort((a: any, b: any) => b.date.localeCompare(a.date));
+        setMatches(sorted);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar partidas para cobrancas", err);
+    } finally {
+      setMatchesLoading(false);
+    }
+  }
+
+  async function loadChecklistPlayers(matchId: string) {
+    setChecklistLoading(true);
+    try {
+      const res = await fetch(`/api/matches/${matchId}/charges`);
+      if (res.ok) {
+        const data = await res.json();
+        setChecklistPlayers(data.players || []);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar checklist", err);
+    } finally {
+      setChecklistLoading(false);
+    }
+  }
+
+  async function handleTogglePayment(playerId: string, isPaid: boolean) {
+    if (!checklistTargetMatch) return;
+    setTogglingPlayerId(playerId);
+    setActionError(null);
+    try {
+      const method = isPaid ? "POST" : "DELETE";
+      const res = await fetch(`/api/matches/${checklistTargetMatch.id}/charges/${playerId}`, {
+        method,
+      });
+      if (res.ok) {
+        setChecklistPlayers((prev) =>
+          prev.map((p) => {
+            if (p.id === playerId) {
+              return {
+                ...p,
+                payment: isPaid ? { amount: checklistTargetMatch.chargeAmount } : null,
+              };
+            }
+            return p;
+          })
+        );
+        loadTransactions(pagination.page);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setActionError(data.error || "Erro ao atualizar pagamento");
+      }
+    } catch (err) {
+      setActionError("Erro de conexão");
+    } finally {
+      setTogglingPlayerId(null);
+    }
+  }
+
+  async function handleSaveCharge() {
+    if (!chargeTargetMatch || !chargeAmount) return;
+    setChargeSaving(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/matches/${chargeTargetMatch.id}/charges`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: parseFloat(chargeAmount) }),
+      });
+      if (res.ok) {
+        setChargeTargetMatch(null);
+        setChargeAmount("");
+        setFeedback("Cobrança gerada com sucesso!");
+        await loadMatches();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setActionError(data.error || "Erro ao gerar cobrança");
+      }
+    } catch (err) {
+      setActionError("Erro de conexão");
+    } finally {
+      setChargeSaving(false);
+    }
+  }
+
   useEffect(() => {
     loadTransactions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -168,6 +274,8 @@ export default function FinancesPage() {
   useEffect(() => {
     if (activeTab === "summary") {
       loadSummary();
+    } else if (activeTab === "charges") {
+      loadMatches();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, summaryMonth, summaryYear]);
@@ -257,6 +365,16 @@ export default function FinancesPage() {
           }`}
         >
           Resumo Mensal
+        </button>
+        <button
+          onClick={() => setActiveTab("charges")}
+          className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+            activeTab === "charges"
+              ? "bg-[var(--brand)] text-white"
+              : "text-[var(--text-muted)] hover:bg-[#eef2ee]"
+          }`}
+        >
+          Cobranças de Jogos
         </button>
       </div>
 
@@ -498,6 +616,207 @@ export default function FinancesPage() {
           )}
         </>
       )}
+      {activeTab === "charges" && (
+        <>
+          {matchesLoading ? (
+            <p className="text-center text-[var(--text-muted)]">Carregando partidas...</p>
+          ) : matches.length === 0 ? (
+            <Card className="rounded-[18px]">
+              <CardContent className="py-12 text-center">
+                <p className="text-[var(--text-muted)]">Nenhuma partida registrada no sistema.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {matches.map((m) => {
+                const matchDateStr = new Date(m.date).toLocaleDateString("pt-BR", {
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+                return (
+                  <Card key={m.id} className="rounded-[18px]">
+                    <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">⚽</span>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-white">
+                            vs {m.opponent}
+                          </p>
+                          <p className="text-xs text-[var(--text-muted)]">
+                            {matchDateStr} • {m.venue}
+                          </p>
+                          {m.hasCharge && m.chargeAmount && (
+                            <p className="mt-1 text-xs text-[#34d399] font-bold">
+                              Taxa definida: {formatCurrency(m.chargeAmount)} por atleta
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 pl-11 sm:pl-0">
+                        {m.hasCharge ? (
+                          <>
+                            <Badge variant="success">Cobrança Ativa</Badge>
+                            <Button
+                              onClick={() => {
+                                setChecklistTargetMatch(m);
+                                loadChecklistPlayers(m.id);
+                              }}
+                              className="rounded-xl px-3 py-1.5 text-xs font-bold bg-[#10b981] hover:bg-[#34d399] text-black"
+                            >
+                              Controlar Taxa
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Badge variant="warning">Sem Cobrança</Badge>
+                            <Button
+                              onClick={() => {
+                                setChargeTargetMatch(m);
+                                setChargeAmount("");
+                              }}
+                              variant="secondary"
+                              className="rounded-xl px-3 py-1.5 text-xs font-bold"
+                            >
+                              Gerar Cobrança
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Generate Charge Modal */}
+      <Modal
+        open={!!chargeTargetMatch}
+        onClose={() => setChargeTargetMatch(null)}
+        title={`Gerar Cobrança - vs ${chargeTargetMatch?.opponent}`}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--text-muted)]">
+            Defina o valor do rateio por atleta para a partida contra o <strong>{chargeTargetMatch?.opponent}</strong>.
+          </p>
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-[#8fa39b]">
+              Valor por jogador (R$)
+            </label>
+            <input
+              type="number"
+              min="1"
+              step="0.01"
+              value={chargeAmount}
+              onChange={(e) => setChargeAmount(e.target.value)}
+              placeholder="Ex.: 15.00"
+              className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#10b981]"
+            />
+          </div>
+          <div className="flex gap-3">
+            <Button
+              onClick={handleSaveCharge}
+              disabled={chargeSaving || !chargeAmount}
+            >
+              {chargeSaving ? "Gerando..." : "Gerar Taxa"}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setChargeTargetMatch(null)}
+              disabled={chargeSaving}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Match Payment Checklist Modal */}
+      <Modal
+        open={!!checklistTargetMatch}
+        onClose={() => setChecklistTargetMatch(null)}
+        title={`Controle de Pagamentos - vs ${checklistTargetMatch?.opponent}`}
+        className="w-[min(94vw,620px)]"
+      >
+        <div className="space-y-4">
+          <div className="flex flex-col justify-between gap-2 border-b border-white/5 pb-3 sm:flex-row sm:items-center">
+            <div>
+              <p className="text-xs text-[var(--text-muted)]">Valor definido por atleta</p>
+              <p className="text-lg font-black text-[#34d399]">
+                {checklistTargetMatch ? formatCurrency(checklistTargetMatch.chargeAmount) : ""}
+              </p>
+            </div>
+            <div className="text-right sm:text-left">
+              <p className="text-xs text-[var(--text-muted)]">Total Arrecadado</p>
+              <p className="text-lg font-black text-white">
+                {formatCurrency(
+                  checklistPlayers
+                    .filter((p) => p.payment)
+                    .reduce((sum, p) => sum + (checklistTargetMatch?.chargeAmount || 0), 0)
+                )}
+              </p>
+            </div>
+          </div>
+
+          {checklistLoading ? (
+            <p className="text-center py-4 text-[var(--text-muted)]">Carregando atletas...</p>
+          ) : checklistPlayers.length === 0 ? (
+            <p className="text-center py-4 text-[var(--text-muted)]">Nenhum jogador ativo no elenco.</p>
+          ) : (
+            <div className="max-h-[380px] overflow-y-auto space-y-2 pr-1">
+              {checklistPlayers.map((p) => {
+                const isPaid = !!p.payment;
+                const isToggling = togglingPlayerId === p.id;
+                
+                return (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-3 hover:bg-white/[0.04] transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--brand-soft)] text-xs font-black text-[var(--brand)]">
+                        {p.shirtNumber}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white">{p.name}</p>
+                        <div className="mt-0.5 flex gap-1">
+                          {p.present ? (
+                            <Badge variant="success" className="text-[9px] px-1 py-0 scale-95 origin-left">Presente</Badge>
+                          ) : p.rsvp === "CONFIRMED" ? (
+                            <Badge variant="info" className="text-[9px] px-1 py-0 scale-95 origin-left">Confirmado RSVP</Badge>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+
+                    <label className="relative inline-flex items-center cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={isPaid}
+                        disabled={isToggling}
+                        onChange={(e) => handleTogglePayment(p.id, e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand)]"></div>
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="flex justify-end pt-2 border-t border-white/5">
+            <Button variant="secondary" onClick={() => setChecklistTargetMatch(null)}>
+              Fechar
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Add Transaction Modal */}
       <Modal

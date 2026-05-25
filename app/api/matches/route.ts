@@ -91,6 +91,8 @@ export const GET = withErrorHandler(async (request: Request) => {
       shareToken: match.shareToken,
       positionLimits: match.positionLimits,
       rsvpSummary: { confirmed, declined, pending },
+      hasCharge: match.hasCharge,
+      chargeAmount: match.chargeAmount ? Number(match.chargeAmount) : null,
       createdAt: match.createdAt.toISOString(),
     };
   });

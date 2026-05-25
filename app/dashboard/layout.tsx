@@ -52,6 +52,7 @@ export default function DashboardLayout({
     pendingRequests: 0,
     upcomingMatches: 0,
   });
+  const [monthlyFeesEnabled, setMonthlyFeesEnabled] = useState(true);
 
   const [transitioning, setTransitioning] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -121,10 +122,31 @@ export default function DashboardLayout({
   }, [session]);
 
   useEffect(() => {
+    if (!session) return;
+    async function loadTeamConfig() {
+      try {
+        const res = await fetch("/api/teams");
+        if (res.ok) {
+          const data = await res.json();
+          if (data && typeof data.monthlyFeesEnabled === "boolean") {
+            setMonthlyFeesEnabled(data.monthlyFeesEnabled);
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao carregar configuracao do time na sidebar", err);
+      }
+    }
+    loadTeamConfig();
+  }, [session, pathname]);
+
+  useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
 
   const visibleNavItems = navItems.filter((item) => {
+    if (item.href === "/dashboard/squad/mensalidade" && !monthlyFeesEnabled) {
+      return false;
+    }
     if (item.href === "/dashboard/finances") {
       return role === "ADMIN" || role === "MATERIAL_DIRECTOR";
     }

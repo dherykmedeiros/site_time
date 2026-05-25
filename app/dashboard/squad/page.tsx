@@ -69,6 +69,7 @@ export default function SquadPage() {
   const [actionPlayer, setActionPlayer] = useState<Player | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<"ADMIN" | "COACH" | "MATERIAL_DIRECTOR" | "PLAYER">("PLAYER");
+  const [monthlyFeesEnabled, setMonthlyFeesEnabled] = useState(true);
 
   const roleLabels: Record<string, { label: string; variant: "success" | "warning" | "danger" | "info" | "default" }> = {
     ADMIN: { label: "Admin", variant: "danger" },
@@ -117,6 +118,23 @@ export default function SquadPage() {
     return () => {
       active = false;
     };
+  }, []);
+
+  useEffect(() => {
+    async function loadTeamConfig() {
+      try {
+        const res = await fetch("/api/teams");
+        if (res.ok) {
+          const data = await res.json();
+          if (data && typeof data.monthlyFeesEnabled === "boolean") {
+            setMonthlyFeesEnabled(data.monthlyFeesEnabled);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+    loadTeamConfig();
   }, []);
 
   async function handleDelete(player: Player) {
@@ -213,12 +231,14 @@ export default function SquadPage() {
         <div className="flex flex-wrap gap-2">
           {isCoachOrAdmin && (
             <>
-              <Link
-                href="/dashboard/squad/mensalidade"
-                className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-white/10"
-              >
-                💰 Mensalidade
-              </Link>
+              {monthlyFeesEnabled && (
+                <Link
+                  href="/dashboard/squad/mensalidade"
+                  className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-white/10"
+                >
+                  💰 Mensalidade
+                </Link>
+              )}
               <Button onClick={() => setShowAddModal(true)} className="rounded-xl px-4 py-2.5 text-xs font-black uppercase tracking-wider text-[#010403] bg-[#10b981] hover:bg-[#34d399]">
                 + Adicionar Jogador
               </Button>
