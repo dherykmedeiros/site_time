@@ -51,7 +51,10 @@ export default function FinesPage() {
   const [fines, setFines] = useState<Fine[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [rules, setRules] = useState<Rule[]>([]);
+  const [accumulationRules, setAccumulationRules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareText, setShareText] = useState("");
 
   // Filters
   const [filterPlayer, setFilterPlayer] = useState("");
@@ -87,11 +90,12 @@ export default function FinesPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const [finesRes, playersRes, rulesRes, typesRes] = await Promise.all([
+      const [finesRes, playersRes, rulesRes, typesRes, accumulationRes] = await Promise.all([
         fetch("/api/fines"),
         fetch("/api/players?status=ACTIVE"),
         fetch("/api/rules"),
         fetch("/api/teams/punishment-types"),
+        fetch("/api/teams/accumulation-rules"),
       ]);
 
       if (finesRes.ok) {
@@ -110,6 +114,10 @@ export default function FinesPage() {
         const data = await typesRes.json();
         setPunishmentTypes(data.punishmentTypes || []);
       }
+      if (accumulationRes.ok) {
+        const data = await accumulationRes.json();
+        setAccumulationRules(data.accumulationRules || []);
+      }
     } catch {
       toast("Erro ao carregar dados");
     } finally {
@@ -120,6 +128,88 @@ export default function FinesPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  function handleGenerateWhatsappText() {
+    const activeFines = fines.filter((f) => f.status === "ACTIVE");
+    if (activeFines.length === 0) {
+      toast("Nenhuma punição ativa no momento para compartilhar!");
+      return;
+    }
+
+    // Group active fines by player
+    const playerFinesMap = new Map<string, Fine[]>();
+    activeFines.forEach((fine) => {
+      const list = playerFinesMap.get(fine.playerId) || [];
+      list.push(fine);
+      playerFinesMap.set(fine.playerId, list);
+    });
+
+    const teamName = session?.user?.name ? `${session.user.name}` : "Nosso Time";
+    
+    let text = `📋 *RELATÓRIO DISCIPLINAR - ${teamName.toUpperCase()}* 📋\n\n`;
+    text += `Abaixo estão os atletas com punições ativas no momento:\n\n`;
+
+    let suspensionsText = "";
+    let warningsText = "";
+
+    playerFinesMap.forEach((playerFines, playerId) => {
+      const player = playerFines[0].player;
+      const playerLabel = player.shirtNumber ? `*${player.name}* (#${player.shirtNumber})` : `*${player.name}*`;
+
+      const playerSuspensions = playerFines.filter((f) => f.severity === "SUSPENSION");
+      const playerWarnings = playerFines.filter((f) => f.severity === "WARNING");
+
+      if (playerSuspensions.length > 0) {
+        suspensionsText += `• ${playerLabel}:\n`;
+        playerSuspensions.forEach((s) => {
+          const typeName = (s as any).punishmentType?.name || "Suspensão";
+          const matches = s.matchesSuspended ? `${s.matchesSuspended} ${s.matchesSuspended === 1 ? "jogo" : "jogos"}` : "1 jogo";
+          suspensionsText += `  ↳ 🟥 *${typeName}* (${matches}): ${s.description}\n`;
+        });
+        suspensionsText += `\n`;
+      }
+
+      if (playerWarnings.length > 0) {
+        warningsText += `• ${playerLabel}:\n`;
+        playerWarnings.forEach((w) => {
+          const typeName = (w as any).punishmentType?.name || "Advertência";
+          warningsText += `  ↳ 🟨 *${typeName}*: ${w.description}\n`;
+
+          const typeId = (w as any).punishmentTypeId || (w as any).punishmentType?.id;
+          if (typeId) {
+            const rule = accumulationRules.find((r) => r.sourceTypeId === typeId);
+            if (rule) {
+              const activeFinesOfType = fines.filter((f) => 
+                f.playerId === playerId && 
+                ((f as any).punishmentTypeId === typeId || (f as any).punishmentType?.id === typeId) && 
+                f.status === "ACTIVE" &&
+                (!rule.expiryDays || new Date(f.date).getTime() >= new Date().getTime() - rule.expiryDays * 24 * 60 * 60 * 1000)
+              );
+              const currentCount = activeFinesOfType.length;
+              const remaining = Math.max(0, rule.accumulateCount - currentCount);
+              const targetName = rule.targetType?.name || "Suspensão";
+              
+              warningsText += `    _↳ Acúmulo: possui ${currentCount} de ${rule.accumulateCount} (falta ${remaining} para ${targetName})_\n`;
+            }
+          }
+        });
+        warningsText += `\n`;
+      }
+    });
+
+    if (suspensionsText) {
+      text += `🟥 *SUSPENSÕES ATIVAS* 🟥\n${suspensionsText}`;
+    }
+
+    if (warningsText) {
+      text += `🟨 *ADVERTÊNCIAS & ACÚMULOS* 🟨\n${warningsText}`;
+    }
+
+    text += `⚠️ _Mantenham a disciplina para evitar maiores prejuízos ao elenco!_`;
+
+    setShareText(text);
+    setShowShareModal(true);
+  }
 
   // Handle auto-completion of fine description based on rule template selection
   function handleRuleChange(selectedRuleId: string) {
@@ -335,14 +425,22 @@ export default function FinesPage() {
             Aplicação e acompanhamento de advertências e suspensões do elenco
           </p>
         </div>
-        {isAdmin && (
+        <div className="flex flex-wrap items-center gap-3">
           <button
-            onClick={handleOpenCreate}
-            className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[var(--brand)] px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:opacity-90 cursor-pointer"
+            onClick={handleGenerateWhatsappText}
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-5 py-2 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/25 transition cursor-pointer shadow-sm"
           >
-            + Aplicar Punição
+            📱 Compartilhar Punições
           </button>
-        )}
+          {isAdmin && (
+            <button
+              onClick={handleOpenCreate}
+              className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[var(--brand)] px-5 py-2 text-sm font-semibold text-white shadow-md transition hover:opacity-90 cursor-pointer"
+            >
+              + Aplicar Punição
+            </button>
+          )}
+        </div>
       </div>
 
       {/* KPI summaries */}
@@ -676,6 +774,45 @@ export default function FinesPage() {
           >
             {confirmModal.actionType === "DELETE" ? "Confirmar Exclusão" : "Confirmar"}
           </Button>
+        </div>
+      </Modal>
+
+      {/* WhatsApp Share Preview Modal */}
+      <Modal
+        open={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title="Enviar Relatório Disciplinar para WhatsApp"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--text-subtle)] leading-relaxed">
+            Revise ou edite o relatório disciplinar abaixo antes de enviar para o grupo do WhatsApp:
+          </p>
+          <textarea
+            className="min-h-[260px] w-full rounded-xl border border-[var(--border)] bg-[#090f0c] p-4 font-sans text-sm text-[var(--text)] placeholder:text-[var(--text-subtle)] focus:border-[var(--brand)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)]"
+            value={shareText}
+            onChange={(e) => setShareText(e.target.value)}
+            aria-label="Texto de compartilhamento do relatório disciplinar"
+          />
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowShareModal(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(shareText);
+                toast("Texto copiado para a área de transferência!");
+                window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank", "noopener,noreferrer");
+                setShowShareModal(false);
+              }}
+            >
+              📋 Copiar e Abrir WhatsApp
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>
