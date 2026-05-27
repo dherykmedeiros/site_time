@@ -453,6 +453,14 @@ export default function MatchDetailPage() {
       allowedSections.push("postgame");
     }
 
+    if (isAdmin) {
+      allowedSections.push("live");
+    }
+
+    if (isCoachOrAdmin) {
+      allowedSections.push("guests");
+    }
+
     if (!allowedSections.includes(activeSection)) {
       setActiveSection("overview");
     }
