@@ -13,7 +13,7 @@ import {
 
 interface LiveEvent {
   id: string;
-  type: "GOAL" | "ASSIST" | "YELLOW_CARD" | "RED_CARD";
+  type: "GOAL" | "ASSIST" | "YELLOW_CARD" | "RED_CARD" | "SUBSTITUTION";
   minute: number;
   half: number;
   playerId: string | null;
@@ -138,6 +138,7 @@ export function LiveMatchView({ matchId, initialMatch, initialLive }: LiveMatchV
       case "ASSIST": return "👟";
       case "YELLOW_CARD": return "🟨";
       case "RED_CARD": return "🟥";
+      case "SUBSTITUTION": return "🔁";
       default: return "📢";
     }
   };
@@ -148,6 +149,7 @@ export function LiveMatchView({ matchId, initialMatch, initialLive }: LiveMatchV
       case "ASSIST": return "Assistência";
       case "YELLOW_CARD": return "Cartão Amarelo";
       case "RED_CARD": return "Cartão Vermelho";
+      case "SUBSTITUTION": return "Substituição";
       default: return "Evento";
     }
   };

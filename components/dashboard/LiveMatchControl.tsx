@@ -21,7 +21,7 @@ import {
 
 interface LiveEvent {
   id: string;
-  type: "GOAL" | "ASSIST" | "YELLOW_CARD" | "RED_CARD";
+  type: "GOAL" | "ASSIST" | "YELLOW_CARD" | "RED_CARD" | "SUBSTITUTION";
   minute: number;
   half: number;
   playerId: string | null;
@@ -85,8 +85,9 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
   const [secondHalfSeconds, setSecondHalfSeconds] = useState(0);
 
   // Event Form State
-  const [eventType, setEventType] = useState<"GOAL" | "ASSIST" | "YELLOW_CARD" | "RED_CARD">("GOAL");
+  const [eventType, setEventType] = useState<"GOAL" | "ASSIST" | "YELLOW_CARD" | "RED_CARD" | "SUBSTITUTION">("GOAL");
   const [selectedPlayerKey, setSelectedPlayerKey] = useState(""); // format: "player_ID" or "guest_ID" or ""
+  const [selectedPlayerInKey, setSelectedPlayerInKey] = useState(""); // format: "player_ID" or "guest_ID" or ""
   const [eventDescription, setEventDescription] = useState("");
 
   useEffect(() => {
@@ -196,6 +197,19 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
     setSubmitting(true);
     setError(null);
 
+    if (eventType === "SUBSTITUTION") {
+      if (!selectedPlayerKey) {
+        setError("Selecione o jogador que está saindo (Quem Sai).");
+        setSubmitting(false);
+        return;
+      }
+      if (!selectedPlayerInKey) {
+        setError("Selecione o jogador que está entrando (Quem Entra).");
+        setSubmitting(false);
+        return;
+      }
+    }
+
     let playerId: string | null = null;
     let guestPlayerId: string | null = null;
 
@@ -203,6 +217,23 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
       playerId = selectedPlayerKey.replace("player_", "");
     } else if (selectedPlayerKey.startsWith("guest_")) {
       guestPlayerId = selectedPlayerKey.replace("guest_", "");
+    }
+
+    let finalDescription = eventDescription.trim() || null;
+
+    if (eventType === "SUBSTITUTION") {
+      let playerInName = "";
+      if (selectedPlayerInKey.startsWith("player_")) {
+        const id = selectedPlayerInKey.replace("player_", "");
+        const p = players.find((x) => x.id === id);
+        if (p) playerInName = `${p.name} #${p.shirtNumber}`;
+      } else if (selectedPlayerInKey.startsWith("guest_")) {
+        const id = selectedPlayerInKey.replace("guest_", "");
+        const g = guests.find((x) => x.id === id);
+        if (g) playerInName = `${g.name} (Convidado)${g.shirtNumber ? ` #${g.shirtNumber}` : ""}`;
+      }
+      
+      finalDescription = playerInName ? `Entrou: ${playerInName}` : "Entrou: Outro jogador";
     }
 
     try {
@@ -213,7 +244,7 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
           type: eventType,
           playerId,
           guestPlayerId,
-          description: eventDescription.trim() || null,
+          description: finalDescription,
         }),
       });
 
@@ -221,6 +252,7 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
       if (!res.ok) throw new Error(data.error || "Erro ao registrar evento");
 
       setSelectedPlayerKey("");
+      setSelectedPlayerInKey("");
       setEventDescription("");
       await refreshLiveState();
     } catch (err: any) {
@@ -288,6 +320,7 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
     ASSIST: "Assistência",
     YELLOW_CARD: "Cartão Amarelo",
     RED_CARD: "Cartão Vermelho",
+    SUBSTITUTION: "Substituição",
   };
 
   const getEventEmoji = (type: string) => {
@@ -296,6 +329,7 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
       case "ASSIST": return "👟";
       case "YELLOW_CARD": return "🟨";
       case "RED_CARD": return "🟥";
+      case "SUBSTITUTION": return "🔁";
       default: return "📢";
     }
   };
@@ -541,29 +575,67 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
                       >
                         🟥 Vermelho
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setEventType("SUBSTITUTION")}
+                        className={`py-2 px-3 text-sm font-bold rounded-xl border flex items-center justify-center gap-2 transition-all col-span-2 ${
+                          eventType === "SUBSTITUTION"
+                            ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
+                            : "border-white/10 bg-white/[0.02] text-[var(--text-muted)] hover:bg-white/[0.05]"
+                        }`}
+                      >
+                        🔁 Substituição
+                      </button>
                     </div>
 
-                    {/* Player Dropdown */}
-                    <div>
-                      <Select
-                        label="Quem participou?"
-                        options={playerOptions}
-                        value={selectedPlayerKey}
-                        onChange={(e) => setSelectedPlayerKey(e.target.value)}
-                        placeholder="Nenhum / Gol do adversário..."
-                      />
-                    </div>
+                    {eventType !== "SUBSTITUTION" ? (
+                      <>
+                        {/* Player Dropdown */}
+                        <div>
+                          <Select
+                            label="Quem participou?"
+                            options={playerOptions}
+                            value={selectedPlayerKey}
+                            onChange={(e) => setSelectedPlayerKey(e.target.value)}
+                            placeholder="Nenhum / Gol do adversário..."
+                          />
+                        </div>
 
-                    {/* Optional description */}
-                    <div>
-                      <Input
-                        label="Detalhes (Opcional)"
-                        placeholder="Ex: de fora da área, de cabeça..."
-                        value={eventDescription}
-                        onChange={(e) => setEventDescription(e.target.value)}
-                        maxLength={150}
-                      />
-                    </div>
+                        {/* Optional description */}
+                        <div>
+                          <Input
+                            label="Detalhes (Opcional)"
+                            placeholder="Ex: de fora da área, de cabeça..."
+                            value={eventDescription}
+                            onChange={(e) => setEventDescription(e.target.value)}
+                            maxLength={150}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* Substituição: Quem Sai & Quem Entra */}
+                        <div>
+                          <Select
+                            label="Quem sai? (Saindo de campo)"
+                            options={playerOptions.filter((opt) => opt.value !== "")}
+                            value={selectedPlayerKey}
+                            onChange={(e) => setSelectedPlayerKey(e.target.value)}
+                            placeholder="Selecione quem sai..."
+                          />
+                        </div>
+
+                        <div>
+                          <Select
+                            label="Quem entra? (Entrando em campo)"
+                            options={playerOptions.filter((opt) => opt.value !== "")}
+                            value={selectedPlayerInKey}
+                            onChange={(e) => setSelectedPlayerInKey(e.target.value)}
+                            placeholder="Selecione quem entra..."
+                          />
+                        </div>
+                      </>
+                    )}
 
                     <Button
                       type="submit"

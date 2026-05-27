@@ -303,7 +303,7 @@ export const liveActionSchema = z.object({
 });
 
 export const liveEventSchema = z.object({
-  type: z.enum(["GOAL", "ASSIST", "YELLOW_CARD", "RED_CARD"], {
+  type: z.enum(["GOAL", "ASSIST", "YELLOW_CARD", "RED_CARD", "SUBSTITUTION"], {
     message: "Tipo de evento inválido",
   }),
   playerId: z.string().min(1).optional().nullable(),
