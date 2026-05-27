@@ -183,64 +183,82 @@ export async function GET(request: Request, context: RouteContext) {
         </div>`;
     } else {
       content = `
-        <div class="card card-padded" style="padding:${isStories ? "30px 28px" : "28px 34px"};gap:0">
-          <div class="glow-line"></div>
+        <div class="card" style="margin:0;border-radius:0;border:none;width:100%;height:100%;display:flex;flex-direction:row;background:#0d0d0d;position:relative;padding:0">
+          
+          <!-- Atmospheric noise & crumpled overlay -->
+          <div style="position:absolute;inset:0;opacity:0.04;background-image:url('data:image/svg+xml,%3Csvg viewBox=\"0 0 200 200\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cfilter id=\"n\"%3E%3CfeTurbulence type=\"fractalNoise\" baseFrequency=\"0.04\" numOctaves=\"3\" stitchTiles=\"stitch\"/%3E%3C/filter%3E%3Crect width=\"100%25\" height=\"100%25\" filter=\"url(%23n)\"/%3E%3C/svg%3E');mix-blend-mode:overlay;pointer-events:none"></div>
+          <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.015) 0%,rgba(0,0,0,0.15) 50%,rgba(255,255,255,0.015) 100%),linear-gradient(220deg,rgba(255,255,255,0.01) 0%,rgba(0,0,0,0.2) 60%,rgba(255,255,255,0.01) 100%);mix-blend-mode:overlay;pointer-events:none"></div>
 
-          <!-- Header row -->
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:0">
-              <div class="tracking-wide text-muted" style="font-size:13px;font-weight:600">MATCHDAY RECAP</div>
-              <div class="font-black" style="font-size:${titleSize}px;line-height:1;letter-spacing:-0.02em">${esc(teamLabel)}</div>
-              <div class="text-muted font-medium" style="font-size:${subtitleSize}px;margin-top:2px">vs ${esc(fitTeamName(awayName))}  ·  ${esc(dateLabel)}</div>
-            </div>
-            <div class="result-pill-${resultClass} pill" style="font-size:14px;font-weight:800;padding:10px 20px;letter-spacing:0.06em;margin-top:4px">
-              ${esc(resultLabel)}
-            </div>
-          </div>
-
-          <!-- Scoreboard -->
-          <div style="display:flex;align-items:center;justify-content:center;gap:0;margin:6px 0 2px">
-            <!-- Home side -->
-            <div style="display:flex;flex-direction:column;align-items:center;width:38%;gap:6px">
-              <div class="badge" style="width:110px;height:110px;border-width:3px;box-shadow:0 16px 48px rgba(0,0,0,0.4),0 0 60px ${primary}18">${badgeHtml(homeBadge, homeName)}</div>
-              <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.85;text-align:center;line-height:1.2">${esc(homeDisplayName)}</div>
-              <div class="mono font-black tabular" style="font-size:68px;line-height:0.85;text-shadow:0 6px 32px rgba(0,0,0,0.5)">${recap.match.homeScore}</div>
-            </div>
-
-            <!-- Separator -->
-            <div style="display:flex;flex-direction:column;align-items:center;width:24%;gap:4px">
-              <div style="width:1px;height:28px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.15),transparent)"></div>
-              <div style="width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);font-size:18px;font-weight:800;opacity:0.5">×</div>
-              <div style="width:1px;height:28px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.15),transparent)"></div>
-            </div>
-
-            <!-- Away side -->
-            <div style="display:flex;flex-direction:column;align-items:center;width:38%;gap:6px">
-              <div class="badge" style="width:110px;height:110px;border-width:3px;box-shadow:0 16px 48px rgba(0,0,0,0.4),0 0 60px ${primary}18">${badgeHtml(awayBadge, awayName)}</div>
-              <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.85;text-align:center;line-height:1.2">${esc(awayDisplayName)}</div>
-              <div class="mono font-black tabular" style="font-size:68px;line-height:0.85;text-shadow:0 6px 32px rgba(0,0,0,0.5)">${recap.match.awayScore}</div>
-            </div>
-          </div>
-
-          <div class="divider"></div>
-
-          <!-- Stats row + leaders -->
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <div class="stat-tile" style="flex:1;padding:12px 14px">
-              <div class="label">Artilheiro</div>
-              <div class="font-bold" style="font-size:20px;margin-top:2px">${esc(cut(topScorerLabel, 28))}</div>
-            </div>
-            <div class="stat-tile" style="flex:1;padding:12px 14px">
-              <div class="label">Assistências</div>
-              <div class="font-bold" style="font-size:20px;margin-top:2px">${esc(cut(topAssistantLabel, 28))}</div>
-            </div>
-            ${stats.map((s) => `
-              <div class="stat-tile" style="width:92px;flex-shrink:0;padding:12px 14px">
-                <div class="label">${esc(s.label)}</div>
-                <div class="font-extrabold mono" style="font-size:26px;margin-top:2px">${s.value}</div>
+          <!-- Left Column (50% width) -->
+          <div style="width:50%;display:flex;flex-direction:column;justify-content:space-between;padding:48px 40px;border-right:1px solid rgba(255,255,255,0.06);z-index:2">
+            
+            <!-- Stacked FIM DE JOGO in outline -->
+            <div style="display:flex;flex-direction:column;align-items:flex-start;width:100%;gap:4px">
+              <div style="font-family:'Inter',sans-serif;font-size:74px;font-weight:900;color:transparent;-webkit-text-stroke:2px white;letter-spacing:0.06em;line-height:0.85;text-transform:uppercase">
+                FIM DE
               </div>
-            `).join("")}
+              <div style="font-family:'Inter',sans-serif;font-size:74px;font-weight:900;color:transparent;-webkit-text-stroke:2px white;letter-spacing:0.06em;line-height:0.85;text-transform:uppercase">
+                JOGO
+              </div>
+            </div>
+
+            <!-- Badges and Score Center Scoreboard -->
+            <div style="display:flex;align-items:center;justify-content:flex-start;gap:24px;width:100%;margin:24px 0">
+              <!-- Home badge container with white background frame -->
+              <div style="width:110px;height:110px;border-radius:50%;background:white;box-shadow:0 8px 24px rgba(0,0,0,0.4);padding:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                ${badgeHtml(homeBadge, homeName)}
+              </div>
+
+              <!-- Score outline centered -->
+              <div style="font-family:'Roboto Mono',monospace;font-size:110px;font-weight:900;color:transparent;-webkit-text-stroke:3px white;letter-spacing:-0.05em;line-height:0.9;text-align:center;text-shadow:0 6px 24px rgba(0,0,0,0.5)">
+                ${recap.match.homeScore}-${recap.match.awayScore}
+              </div>
+
+              <!-- Away badge container with white background frame -->
+              <div style="width:110px;height:110px;border-radius:50%;background:white;box-shadow:0 8px 24px rgba(0,0,0,0.4);padding:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                ${badgeHtml(awayBadge, awayName)}
+              </div>
+            </div>
+
+            <!-- Date -->
+            <div style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.5);letter-spacing:0.05em;text-transform:uppercase">
+              📅 ${esc(dateLabel)}
+            </div>
+
           </div>
+
+          <!-- Right Column (50% width) -->
+          <div style="width:50%;display:flex;flex-direction:column;justify-content:space-between;padding:48px;z-index:2">
+            
+            <!-- Scorers list aligned to the left, floating on background -->
+            ${teamScorers.length > 0 ? `
+              <div style="display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-top:10px">
+                <div style="font-size:11px;font-weight:800;color:rgba(255,255,255,0.4);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">Artilheiros do Jogo</div>
+                ${scorersHtml}
+              </div>
+            ` : `
+              <div style="display:flex;align-items:center;justify-content:center;flex:1;font-size:20px;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.05em">
+                Sem gols registrados
+              </div>
+            `}
+
+            <!-- Instagram footer info centered at bottom of right column -->
+            <div style="display:flex;align-items:center;gap:12px;margin-top:auto;width:100%">
+              <!-- Instagram logo colorful icon -->
+              <div style="display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:12px;background:radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%,#d6249f 60%,#285AEB 90%);box-shadow:0 6px 16px rgba(214,36,159,0.3)">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+              </div>
+              <div style="font-size:26px;font-weight:900;color:white;letter-spacing:0.06em;text-transform:uppercase;opacity:0.9">
+                @${esc(recap.team.slug.toUpperCase())}FC
+              </div>
+            </div>
+
+          </div>
+
         </div>`;
     }
 

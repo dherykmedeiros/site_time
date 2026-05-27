@@ -181,68 +181,115 @@ export async function GET(request: Request, context: RouteContext) {
 
         </div>`;
     } else {
+      const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(recap.match.date).toUpperCase();
+      const dayMonth = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short" }).format(recap.match.date).toUpperCase().replace(".", "");
+      const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(recap.match.date);
+      const headerDateText = `${dayMonth} | ${weekday} | ${time}H`;
+
       content = `
-        <div class="card card-padded" style="padding:${isStories ? "30px 28px" : "28px 34px"};gap:0">
-          <div class="glow-line"></div>
+        <div class="card" style="margin:0;border-radius:0;border:none;width:100%;height:100%;display:flex;flex-direction:row;background:#f7f7f7;position:relative;padding:0">
+          
+          <!-- Textured white overlay and crumpled creases -->
+          <div style="position:absolute;inset:0;opacity:0.04;background-image:url('data:image/svg+xml,%3Csvg viewBox=\"0 0 200 200\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cfilter id=\"n\"%3E%3CfeTurbulence type=\"fractalNoise\" baseFrequency=\"0.04\" numOctaves=\"3\" stitchTiles=\"stitch\"/%3E%3C/filter%3E%3Crect width=\"100%25\" height=\"100%25\" filter=\"url(%23n)\"/%3E%3C/svg%3E');mix-blend-mode:multiply;pointer-events:none"></div>
+          <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,0,0,0.015) 0%,rgba(255,255,255,0.4) 50%,rgba(0,0,0,0.015) 100%),linear-gradient(220deg,rgba(0,0,0,0.01) 0%,rgba(255,255,255,0.3) 60%,rgba(0,0,0,0.01) 100%);mix-blend-mode:overlay;pointer-events:none"></div>
 
-          <!-- Header row -->
-          <div style="display:flex;justify-content:space-between;align-items:flex-start">
-            <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:0">
-              <div class="tracking-wide text-muted" style="font-size:13px;font-weight:600;color:#34d399;font-weight:700">MATCHDAY PREVIEW</div>
-              <div class="font-black" style="font-size:${titleSize}px;line-height:1;letter-spacing:-0.02em">${esc(teamLabel)}</div>
-              <div class="text-muted font-medium" style="font-size:${subtitleSize}px;margin-top:2px">vs ${esc(fitTeamName(opponentLabel))}</div>
-            </div>
-            <div class="result-pill-win pill" style="font-size:14px;font-weight:800;padding:10px 20px;letter-spacing:0.06em;margin-top:4px;background:rgba(52,211,153,0.1);border-color:rgba(52,211,153,0.3);color:#6ee7b7">
-              PRÉ-JOGO
-            </div>
+          <!-- Giant Faded Team Watermark Logo in center -->
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:400px;height:400px;opacity:0.04;pointer-events:none;display:flex;align-items:center;justify-content:center">
+            ${badgeHtml(teamBadgeUrl, teamLabel)}
           </div>
 
-          <!-- Details & Match Info Row -->
-          <div style="display:flex;gap:24px;margin:18px 0 10px;align-items:center;justify-content:center">
-            <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
-              <div class="badge" style="width:110px;height:110px;border-width:3px;box-shadow:0 16px 48px rgba(0,0,0,0.4),0 0 60px ${primary}18">${badgeHtml(homeBadge, homeName)}</div>
-              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.85;text-align:center;line-height:1.2;margin-top:4px">${esc(homeDisplayName)}</div>
-            </div>
-
-            <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
-              <div style="font-size:16px;font-weight:800;color:var(--text-muted)">VS</div>
-              <div style="width:1px;height:40px;background:linear-gradient(180deg,transparent,rgba(255,255,255,0.15),transparent)"></div>
-            </div>
-
-            <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
-              <div class="badge" style="width:110px;height:110px;border-width:3px;box-shadow:0 16px 48px rgba(0,0,0,0.4),0 0 60px ${primary}18">${badgeHtml(awayBadge, awayName)}</div>
-              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.85;text-align:center;line-height:1.2;margin-top:4px">${esc(awayDisplayName)}</div>
-            </div>
-          </div>
-
-          <div class="divider"></div>
-
-          <!-- Main Info Columns -->
-          <div style="display:flex;gap:16px;margin-top:12px;flex:1">
-            <!-- Left Col: Details -->
-            <div style="flex:1.2;display:flex;flex-direction:column;gap:10px">
-              <div class="stat-tile" style="flex:1;padding:16px 20px;justify-content:center">
-                <div class="label" style="text-transform:uppercase;font-size:11px;letter-spacing:0.05em">Informações da Partida</div>
-                <div class="font-bold" style="font-size:18px;margin-top:8px;color:white">📍 ${esc(cut(recap.match.venue, 32))}</div>
-                <div class="font-semibold" style="font-size:16px;margin-top:6px;color:var(--text-muted)">📅 ${esc(dateLabel)}</div>
-                <div class="font-semibold" style="font-size:15px;margin-top:6px;color:var(--text-muted)">🏆 ${recap.match.type === "FRIENDLY" ? "Jogo Amistoso" : "Jogo de Campeonato"}</div>
+          <!-- Left Column (46% width) -->
+          <div style="width:46%;display:flex;flex-direction:column;justify-content:space-between;padding:48px 40px;border-right:1px solid rgba(0,0,0,0.06);z-index:2">
+            
+            <!-- Date & Header block -->
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:16px;font-weight:700;color:rgba(0,0,0,0.5);letter-spacing:0.08em;text-transform:uppercase">
+                ${esc(headerDateText)}
+              </div>
+              
+              <div style="font-size:42px;font-weight:900;letter-spacing:-0.02em;text-transform:uppercase;line-height:1.1;margin-top:6px;font-family:'Inter',sans-serif">
+                ${recap.match.isHome ? `
+                  <div style="color:#e11d48;font-weight:900">${esc(teamLabel.toUpperCase())} X</div>
+                  <div style="color:black;font-weight:900;margin-top:4px">${esc(opponentLabel.toUpperCase())}</div>
+                ` : `
+                  <div style="color:black;font-weight:900">${esc(opponentLabel.toUpperCase())} X</div>
+                  <div style="color:#e11d48;font-weight:900;margin-top:4px">${esc(teamLabel.toUpperCase())}</div>
+                `}
               </div>
             </div>
 
-            <!-- Right Col: Form & Team Highlight -->
-            <div style="flex:1;display:flex;flex-direction:column;gap:10px">
-              <div class="stat-tile" style="flex:1;padding:12px 16px">
-                <div class="label" style="text-transform:uppercase;font-size:11px;letter-spacing:0.05em">Últimos Resultados</div>
-                <div class="font-extrabold" style="font-size:22px;margin-top:4px;color:#6ee7b7">${recentFormLabel}</div>
-                <div class="label" style="font-size:12px;margin-top:2px">${recap.recentForm.goalsFor} gols marcados / ${recap.recentForm.goalsAgainst} sofridos</div>
+            <!-- Outlined watermarks with red banner -->
+            <div style="display:flex;flex-direction:column;align-items:center;width:100%;position:relative;margin:24px 0">
+              
+              <!-- Giant AVANTE Watermark -->
+              <div style="font-family:'Inter',sans-serif;font-size:72px;font-weight:900;color:transparent;-webkit-text-stroke:1.5px rgba(0,0,0,0.06);letter-spacing:0.1em;text-align:center;text-transform:uppercase;width:100%;margin-bottom:-30px;line-height:1">
+                AVANTE
               </div>
 
-              <div class="stat-tile" style="flex:1;padding:12px 16px">
-                <div class="label" style="text-transform:uppercase;font-size:11px;letter-spacing:0.05em">Destaque do Time</div>
-                <div class="font-extrabold" style="font-size:18px;margin-top:4px;color:#fbbf24">⚽ ${esc(cut(topScorerText, 26))}</div>
+              <!-- Red Cutting Bar -->
+              <div style="background:#e11d48;width:115%;padding:12px 0;display:flex;justify-content:center;align-items:center;z-index:2;box-shadow:0 6px 16px rgba(225,29,72,0.2)">
+                <div style="font-size:20px;font-weight:900;color:black;letter-spacing:0.4em;text-transform:uppercase;text-align:center;padding-left:0.4em;font-family:'Inter',sans-serif">
+                  ${recap.match.type === "FRIENDLY" ? "AMISTOSO" : "CAMPEONATO"}
+                </div>
+              </div>
+
+              <!-- Giant MCFC Watermark -->
+              <div style="font-family:'Inter',sans-serif;font-size:72px;font-weight:900;color:transparent;-webkit-text-stroke:1.5px rgba(0,0,0,0.06);letter-spacing:0.1em;text-align:center;text-transform:uppercase;width:100%;margin-top:-30px;line-height:1">
+                ${esc(recap.team.shortName || "MCFC")}
+              </div>
+
+            </div>
+
+            <!-- Venue -->
+            <div style="font-size:20px;font-weight:900;color:black;text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:center;gap:8px">
+              📍 ${esc(cut(recap.match.venue.toUpperCase(), 32))}
+            </div>
+
+          </div>
+
+          <!-- Right Column (54% width) -->
+          <div style="width:54%;display:flex;flex-direction:column;justify-content:space-between;padding:48px;z-index:2">
+            
+            <!-- Badges Center Scoreboard -->
+            <div style="display:flex;align-items:center;justify-content:center;gap:32px;width:100%;margin-top:10px">
+              <!-- Home badge container with clean light frame -->
+              <div style="width:130px;height:130px;border-radius:50%;background:white;box-shadow:0 8px 24px rgba(0,0,0,0.08);padding:4px;display:flex;align-items:center;justify-content:center;">
+                ${badgeHtml(homeBadge, homeName)}
+              </div>
+
+              <!-- Center thin VS -->
+              <div style="font-size:32px;font-weight:300;color:rgba(0,0,0,0.4);font-family:'Inter',sans-serif">VS</div>
+
+              <!-- Away badge container with clean light frame -->
+              <div style="width:130px;height:130px;border-radius:50%;background:white;box-shadow:0 8px 24px rgba(0,0,0,0.08);padding:4px;display:flex;align-items:center;justify-content:center;">
+                ${badgeHtml(awayBadge, awayName)}
               </div>
             </div>
+
+            <!-- Tiles section (Form & Featured Player) -->
+            <div style="display:flex;flex-direction:column;gap:12px;width:100%;margin-top:20px">
+              
+              <!-- Recent Form Tile -->
+              <div style="background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.05);padding:16px 20px;border-radius:18px;display:flex;flex-direction:column;gap:4px">
+                <div style="font-size:11px;font-weight:700;color:rgba(0,0,0,0.4);letter-spacing:0.05em;text-transform:uppercase">Últimos Resultados</div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;width:100%">
+                  <span style="font-size:24px;font-weight:900;color:#059669">${recentFormLabel}</span>
+                  <span style="font-size:12px;font-weight:600;color:rgba(0,0,0,0.5)">${recap.recentForm.goalsFor} GP / ${recap.recentForm.goalsAgainst} GC</span>
+                </div>
+              </div>
+
+              <!-- Top Scorer Tile -->
+              <div style="background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.05);padding:16px 20px;border-radius:18px;display:flex;flex-direction:column;gap:4px">
+                <div style="font-size:11px;font-weight:700;color:rgba(0,0,0,0.4);letter-spacing:0.05em;text-transform:uppercase">Destaque do Time</div>
+                <div style="font-size:20px;font-weight:900;color:#d97706">
+                  ⚽ ${esc(cut(topScorerText, 40))}
+                </div>
+              </div>
+
+            </div>
+
           </div>
+
         </div>`;
     }
 
