@@ -144,6 +144,26 @@ const statusLabels: Record<string, string> = {
   CANCELLED: "Cancelada",
 };
 
+function isColorLight(hexColor: string | null): boolean {
+  if (!hexColor) return false;
+  const cleanHex = hexColor.replace("#", "").trim();
+  if (cleanHex.length !== 6 && cleanHex.length !== 3) return false;
+  
+  let r = 0, g = 0, b = 0;
+  if (cleanHex.length === 6) {
+    r = parseInt(cleanHex.substring(0, 2), 16);
+    g = parseInt(cleanHex.substring(2, 4), 16);
+    b = parseInt(cleanHex.substring(4, 6), 16);
+  } else {
+    r = parseInt(cleanHex.substring(0, 1) + cleanHex.substring(0, 1), 16);
+    g = parseInt(cleanHex.substring(1, 2) + cleanHex.substring(1, 2), 16);
+    b = parseInt(cleanHex.substring(2, 3) + cleanHex.substring(2, 3), 16);
+  }
+  
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 128;
+}
+
 export default async function PublicMatchPage({
   searchParams,
   params,
@@ -167,22 +187,32 @@ export default async function PublicMatchPage({
   const confirmed = match.rsvps.filter((r) => r.status === "CONFIRMED").length;
   const declined = match.rsvps.filter((r) => r.status === "DECLINED").length;
   const pending = match.rsvps.filter((r) => r.status === "PENDING").length;
-  const statusBadgeClass =
-    match.status === "COMPLETED"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+
+  const isLightBackground = isColorLight(team.primaryColor);
+
+  const statusBadgeClass = isLightBackground
+    ? match.status === "COMPLETED"
+      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800"
       : match.status === "CANCELLED"
-        ? "border-rose-200 bg-rose-50 text-rose-700"
-        : "border-amber-200 bg-amber-50 text-amber-700";
+        ? "border-rose-500/30 bg-rose-500/10 text-rose-800"
+        : "border-amber-500/30 bg-amber-500/10 text-amber-800"
+    : match.status === "COMPLETED"
+      ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-200"
+      : match.status === "CANCELLED"
+        ? "border-rose-500/30 bg-rose-500/20 text-rose-200"
+        : "border-amber-500/30 bg-amber-500/20 text-amber-200";
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_12%_18%,rgba(12,111,93,0.03),transparent_40%),linear-gradient(180deg,var(--bg)_0%,var(--bg)_100%)] pb-16 font-sans antialiased text-[var(--text)] transition-colors duration-300">
       <PublicNavbar teamName={team.name} badgeUrl={team.badgeUrl} />
 
       <header
-        className="relative overflow-hidden px-4 pb-20 pt-14 text-white"
+        className={`relative overflow-hidden px-4 pb-20 pt-14 transition-colors duration-300 ${isLightBackground ? "text-slate-900" : "text-white"}`}
         style={{ 
           backgroundColor: team.primaryColor || "#0a584b",
-          backgroundImage: "linear-gradient(to bottom, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.55))"
+          backgroundImage: isLightBackground
+            ? "linear-gradient(to bottom, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.08))"
+            : "linear-gradient(to bottom, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.55))"
         }}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,255,255,0.18),transparent_35%),radial-gradient(circle_at_85%_0%,rgba(244,221,183,0.22),transparent_32%)]" />
@@ -193,16 +223,16 @@ export default async function PublicMatchPage({
             <img
               src={team.badgeUrl}
               alt={team.name}
-              className="mx-auto h-20 w-20 rounded-2xl border border-white/20 object-cover shadow-[0_18px_38px_rgba(0,0,0,0.25)] hover:scale-105 transition-transform duration-200"
+              className={`mx-auto h-20 w-20 rounded-2xl border object-cover shadow-[0_18px_38px_rgba(0,0,0,0.25)] hover:scale-105 transition-transform duration-200 ${isLightBackground ? "border-slate-900/10" : "border-white/20"}`}
             />
           )}
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/80 pt-2">
+          <p className={`text-[10px] font-bold uppercase tracking-[0.2em] pt-2 ${isLightBackground ? "text-slate-500" : "text-white/80"}`}>
             Resumo de Partida Oficial
           </p>
           <h1 className="text-balance font-display text-4xl font-extrabold sm:text-5xl drop-shadow-sm leading-none pt-1">
-            {team.name} <span className="text-white/60 font-medium">x</span> {match.opponent}
+            {team.name} <span className={isLightBackground ? "text-slate-400 font-medium" : "text-white/60 font-medium"}>x</span> {match.opponent}
           </h1>
-          <p className="text-sm text-white/85 sm:text-base font-semibold">{formattedDate}</p>
+          <p className={`text-sm sm:text-base font-semibold ${isLightBackground ? "text-slate-700" : "text-white/85"}`}>{formattedDate}</p>
           <span
             className={`inline-flex rounded-full border px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] shadow-sm backdrop-blur-sm ${statusBadgeClass}`}
           >
