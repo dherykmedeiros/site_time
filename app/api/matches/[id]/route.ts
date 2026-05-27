@@ -42,6 +42,7 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
       matchStats: {
         include: {
           player: { select: { name: true } },
+          guestPlayer: { select: { name: true } },
         },
       },
       positionLimits: {
@@ -87,8 +88,9 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
       respondedAt: rsvp.respondedAt?.toISOString() ?? null,
     })),
     stats: match.matchStats.map((stat) => ({
-      playerId: stat.playerId,
-      playerName: stat.player.name,
+      playerId: stat.playerId || stat.guestPlayerId,
+      guestPlayerId: stat.guestPlayerId,
+      playerName: stat.player?.name ?? stat.guestPlayer?.name ?? "Convidado",
       goals: stat.goals,
       assists: stat.assists,
       yellowCards: stat.yellowCards,
@@ -222,7 +224,10 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
           include: { player: { select: { name: true } } },
         },
         matchStats: {
-          include: { player: { select: { name: true } } },
+          include: {
+            player: { select: { name: true } },
+            guestPlayer: { select: { name: true } },
+          },
         },
         positionLimits: {
           select: { position: true, maxPlayers: true },
@@ -270,7 +275,10 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
           include: { player: { select: { name: true } } },
         },
         matchStats: {
-          include: { player: { select: { name: true } } },
+          include: {
+            player: { select: { name: true } },
+            guestPlayer: { select: { name: true } },
+          },
         },
         positionLimits: {
           select: { position: true, maxPlayers: true },
@@ -323,7 +331,10 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
           include: { player: { select: { name: true } } },
         },
         matchStats: {
-          include: { player: { select: { name: true } } },
+          include: {
+            player: { select: { name: true } },
+            guestPlayer: { select: { name: true } },
+          },
         },
         positionLimits: {
           select: { position: true, maxPlayers: true },
@@ -415,8 +426,10 @@ function buildMatchDetailResponse(
       respondedAt: Date | null;
     }>;
     matchStats: Array<{
-      playerId: string;
-      player: { name: string };
+      playerId: string | null;
+      guestPlayerId: string | null;
+      player: { name: string } | null;
+      guestPlayer: { name: string } | null;
       goals: number;
       assists: number;
       yellowCards: number;
@@ -451,8 +464,9 @@ function buildMatchDetailResponse(
       respondedAt: rsvp.respondedAt?.toISOString() ?? null,
     })),
     stats: match.matchStats.map((stat) => ({
-      playerId: stat.playerId,
-      playerName: stat.player.name,
+      playerId: stat.playerId || stat.guestPlayerId,
+      guestPlayerId: stat.guestPlayerId,
+      playerName: stat.player?.name ?? stat.guestPlayer?.name ?? "Convidado",
       goals: stat.goals,
       assists: stat.assists,
       yellowCards: stat.yellowCards,

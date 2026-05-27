@@ -21,8 +21,8 @@ export async function buildPlayerMatchRecap(playerId: string, matchId: string) {
         },
       },
     }),
-    prisma.matchStats.findUnique({
-      where: { playerId_matchId: { playerId, matchId } },
+    prisma.matchStats.findFirst({
+      where: { playerId, matchId },
       select: {
         goals: true,
         assists: true,

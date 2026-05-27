@@ -34,6 +34,12 @@ export async function buildTeamRecap(matchId: string) {
               name: true,
             },
           },
+          guestPlayer: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
       },
     },
@@ -121,15 +127,15 @@ export async function buildTeamRecap(matchId: string) {
     leaders: {
       topScorer: topScorer
         ? {
-            playerId: topScorer.player.id,
-            playerName: topScorer.player.name,
+            playerId: topScorer.player?.id ?? topScorer.guestPlayer?.id ?? "guest",
+            playerName: topScorer.player?.name ?? topScorer.guestPlayer?.name ?? "Convidado",
             goals: topScorer.goals,
           }
         : null,
       topAssistant: topAssistant
         ? {
-            playerId: topAssistant.player.id,
-            playerName: topAssistant.player.name,
+            playerId: topAssistant.player?.id ?? topAssistant.guestPlayer?.id ?? "guest",
+            playerName: topAssistant.player?.name ?? topAssistant.guestPlayer?.name ?? "Convidado",
             assists: topAssistant.assists,
           }
         : null,
@@ -236,6 +242,7 @@ export async function buildTeamPregameRecap(matchId: string) {
     by: ["playerId"],
     where: {
       player: { teamId: match.team.id },
+      playerId: { not: null },
     },
     _sum: {
       goals: true,

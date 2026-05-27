@@ -228,7 +228,8 @@ export const createMatchStatsSchema = z.object({
   stats: z
     .array(
       z.object({
-        playerId: z.string().min(1, "ID do jogador obrigatório"),
+        playerId: z.string().min(1, "ID do jogador obrigatório").optional().nullable(),
+        guestPlayerId: z.string().min(1, "ID do convidado obrigatório").optional().nullable(),
         goals: z.number().int().min(0, "Gols deve ser >= 0"),
         assists: z.number().int().min(0, "Assistências deve ser >= 0"),
         yellowCards: z
@@ -242,6 +243,13 @@ export const createMatchStatsSchema = z.object({
           .min(0, "Cartões vermelhos deve ser >= 0")
           .max(1, "Máximo 1 cartão vermelho"),
       })
+      .refine(
+        (data) => (data.playerId && !data.guestPlayerId) || (!data.playerId && data.guestPlayerId),
+        {
+          message: "Informe o jogador OU o convidado, mas não ambos",
+          path: ["playerId"],
+        }
+      )
     )
     .min(1, "Pelo menos 1 jogador é necessário"),
 });
@@ -278,3 +286,66 @@ export type LineupBlockPreset = z.infer<typeof lineupBlockPresetSchema>;
 export type BordereauResponse = z.infer<typeof bordereauResponseSchema>;
 export type PatchMatchBordereauInput = z.infer<typeof patchMatchBordereauSchema>;
 export type PatchMatchLineupInput = z.infer<typeof patchMatchLineupSchema>;
+
+// ─── Ao Vivo (Live Match) ──────────────────────────────
+
+export const liveActionSchema = z.object({
+  action: z.enum([
+    "start_first_half",
+    "end_first_half",
+    "start_second_half",
+    "end_second_half",
+    "increment_home",
+    "decrement_home",
+    "increment_away",
+    "decrement_away",
+  ], { message: "Ação inválida" }),
+});
+
+export const liveEventSchema = z.object({
+  type: z.enum(["GOAL", "ASSIST", "YELLOW_CARD", "RED_CARD"], {
+    message: "Tipo de evento inválido",
+  }),
+  playerId: z.string().min(1).optional().nullable(),
+  guestPlayerId: z.string().min(1).optional().nullable(),
+  description: z
+    .string()
+    .max(200, "Descrição deve ter no máximo 200 caracteres")
+    .optional()
+    .nullable(),
+}).refine(
+  (data) => !(data.playerId && data.guestPlayerId),
+  {
+    message: "Informe playerId OU guestPlayerId, mas não ambos",
+    path: ["playerId"],
+  }
+);
+
+export const deleteLiveEventSchema = z.object({
+  eventId: z.string().min(1, "ID do evento obrigatório"),
+});
+
+// ─── Jogadores Convidados ──────────────────────────────
+
+export const guestPlayerSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Nome deve ter no mínimo 2 caracteres")
+    .max(100, "Nome deve ter no máximo 100 caracteres"),
+  shirtNumber: z.coerce
+    .number()
+    .int("Número deve ser inteiro")
+    .min(1, "Número deve ser >= 1")
+    .max(99, "Número deve ser <= 99")
+    .optional()
+    .nullable(),
+  position: z
+    .enum(playerPositions, { message: "Posição inválida" })
+    .optional()
+    .nullable(),
+});
+
+export type LiveActionInput = z.infer<typeof liveActionSchema>;
+export type LiveEventInput = z.infer<typeof liveEventSchema>;
+export type GuestPlayerInput = z.infer<typeof guestPlayerSchema>;

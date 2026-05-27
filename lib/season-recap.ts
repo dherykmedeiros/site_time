@@ -24,6 +24,7 @@ export async function buildSeasonRecap(seasonId: string) {
               yellowCards: true,
               redCards: true,
               player: { select: { id: true, name: true } },
+              guestPlayer: { select: { id: true, name: true } },
             },
           },
         },
@@ -55,9 +56,10 @@ export async function buildSeasonRecap(seasonId: string) {
     for (const stat of match.matchStats) {
       totalYellow += stat.yellowCards;
       totalRed += stat.redCards;
-      const key = stat.player.id;
+      const key = stat.player?.id ?? stat.guestPlayer?.id ?? "guest";
+      const name = stat.player?.name ?? stat.guestPlayer?.name ?? "Convidado";
       if (!playerGoals[key]) {
-        playerGoals[key] = { name: stat.player.name, goals: 0, assists: 0 };
+        playerGoals[key] = { name, goals: 0, assists: 0 };
       }
       playerGoals[key].goals += stat.goals;
       playerGoals[key].assists += stat.assists;

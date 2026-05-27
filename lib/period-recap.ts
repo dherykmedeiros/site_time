@@ -32,6 +32,7 @@ export async function buildPeriodRecap(teamId: string, days: 7 | 30) {
           goals: true,
           assists: true,
           player: { select: { id: true, name: true } },
+          guestPlayer: { select: { id: true, name: true } },
         },
       },
     },
@@ -57,8 +58,9 @@ export async function buildPeriodRecap(teamId: string, days: 7 | 30) {
     else draws++;
 
     for (const stat of match.matchStats) {
-      const key = stat.player.id;
-      if (!playerGoals[key]) playerGoals[key] = { name: stat.player.name, goals: 0, assists: 0 };
+      const key = stat.player?.id ?? stat.guestPlayer?.id ?? "guest";
+      const name = stat.player?.name ?? stat.guestPlayer?.name ?? "Convidado";
+      if (!playerGoals[key]) playerGoals[key] = { name, goals: 0, assists: 0 };
       playerGoals[key].goals += stat.goals;
       playerGoals[key].assists += stat.assists;
     }

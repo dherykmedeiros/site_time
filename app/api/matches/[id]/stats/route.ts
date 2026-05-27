@@ -42,6 +42,9 @@ export async function GET(request: Request, { params }: RouteParams) {
       player: {
         select: { name: true, position: true },
       },
+      guestPlayer: {
+        select: { name: true, position: true },
+      },
     },
   });
 
@@ -50,14 +53,73 @@ export async function GET(request: Request, { params }: RouteParams) {
     stats: stats.map((stat) => ({
       id: stat.id,
       playerId: stat.playerId,
-      playerName: stat.player.name,
-      playerPosition: stat.player.position,
+      guestPlayerId: stat.guestPlayerId,
+      playerName: stat.player?.name ?? stat.guestPlayer?.name ?? "Convidado",
+      playerPosition: stat.player?.position ?? stat.guestPlayer?.position ?? null,
       goals: stat.goals,
       assists: stat.assists,
       yellowCards: stat.yellowCards,
       redCards: stat.redCards,
     })),
   });
+}
+
+// Helper to validate and extract player and guest IDs
+async function validateStatsPlayers(
+  stats: { playerId?: string | null; guestPlayerId?: string | null }[],
+  teamId: string,
+  matchId: string
+) {
+  const playerIds = stats.map((s) => s.playerId).filter(Boolean) as string[];
+  const guestPlayerIds = stats.map((s) => s.guestPlayerId).filter(Boolean) as string[];
+
+  // Verify unique regular players in payload
+  const uniquePlayerIds = Array.from(new Set(playerIds));
+  if (uniquePlayerIds.length !== playerIds.length) {
+    return { error: "Jogadores duplicados na lista de estatísticas", status: 400 };
+  }
+
+  // Verify unique guest players in payload
+  const uniqueGuestIds = Array.from(new Set(guestPlayerIds));
+  if (uniqueGuestIds.length !== guestPlayerIds.length) {
+    return { error: "Jogadores convidados duplicados na lista de estatísticas", status: 400 };
+  }
+
+  // Validate regular players exist on the team
+  if (playerIds.length > 0) {
+    const players = await prisma.player.findMany({
+      where: { id: { in: playerIds }, teamId },
+      select: { id: true },
+    });
+    const validPlayerIds = new Set(players.map((p) => p.id));
+    const invalidPlayerIds = playerIds.filter((id) => !validPlayerIds.has(id));
+    if (invalidPlayerIds.length > 0) {
+      return {
+        error: "Jogadores não encontrados no time",
+        invalidPlayerIds,
+        status: 404,
+      };
+    }
+  }
+
+  // Validate guest players belong to this match and team
+  if (guestPlayerIds.length > 0) {
+    const guests = await prisma.guestPlayer.findMany({
+      where: { id: { in: guestPlayerIds }, matchId, teamId },
+      select: { id: true },
+    });
+    const validGuestIds = new Set(guests.map((g) => g.id));
+    const invalidGuestIds = guestPlayerIds.filter((id) => !validGuestIds.has(id));
+    if (invalidGuestIds.length > 0) {
+      return {
+        error: "Jogadores convidados não encontrados nesta partida",
+        invalidGuestIds,
+        status: 404,
+      };
+    }
+  }
+
+  return { success: true };
 }
 
 // POST /api/matches/:id/stats — Batch create stats (ADMIN only)
@@ -129,34 +191,27 @@ export async function POST(request: Request, { params }: RouteParams) {
 
   const { stats } = parsed.data;
 
-  // Validate all playerIds belong to the team
-  const playerIds = stats.map((s) => s.playerId);
-  const players = await prisma.player.findMany({
-    where: { id: { in: playerIds }, teamId: session.user.teamId },
-    select: { id: true },
-  });
-
-  const validPlayerIds = new Set(players.map((p) => p.id));
-  const invalidPlayerIds = playerIds.filter((id) => !validPlayerIds.has(id));
-
-  if (invalidPlayerIds.length > 0) {
+  // Validate players
+  const validationResult = await validateStatsPlayers(stats, session.user.teamId, matchId);
+  if ("error" in validationResult) {
     return NextResponse.json(
-      {
-        error: "Jogadores não encontrados no time",
-        code: "PLAYER_NOT_FOUND",
-        invalidPlayerIds,
-      },
-      { status: 404 }
+      { error: validationResult.error, invalidIds: (validationResult as any).invalidPlayerIds || (validationResult as any).invalidGuestIds },
+      { status: validationResult.status }
     );
   }
 
-  // Check for existing stats for these players in this match
+  // Check for existing stats in database
+  const playerIds = stats.map((s) => s.playerId).filter(Boolean) as string[];
+  const guestPlayerIds = stats.map((s) => s.guestPlayerId).filter(Boolean) as string[];
+
   const existingStats = await prisma.matchStats.findMany({
     where: {
       matchId,
-      playerId: { in: playerIds },
+      OR: [
+        { playerId: { in: playerIds.length > 0 ? playerIds : [""] } },
+        { guestPlayerId: { in: guestPlayerIds.length > 0 ? guestPlayerIds : [""] } },
+      ],
     },
-    select: { playerId: true },
   });
 
   if (existingStats.length > 0) {
@@ -164,7 +219,8 @@ export async function POST(request: Request, { params }: RouteParams) {
       {
         error: "Stats já registrados para jogadores nesta partida",
         code: "STATS_ALREADY_EXIST",
-        duplicatePlayerIds: existingStats.map((s) => s.playerId),
+        duplicatePlayerIds: existingStats.map((s) => s.playerId).filter(Boolean),
+        duplicateGuestIds: existingStats.map((s) => s.guestPlayerId).filter(Boolean),
       },
       { status: 400 }
     );
@@ -174,7 +230,8 @@ export async function POST(request: Request, { params }: RouteParams) {
   await prisma.$transaction(async (tx) => {
     await tx.matchStats.createMany({
       data: stats.map((s) => ({
-        playerId: s.playerId,
+        playerId: s.playerId || null,
+        guestPlayerId: s.guestPlayerId || null,
         matchId,
         goals: s.goals,
         assists: s.assists,
@@ -184,39 +241,36 @@ export async function POST(request: Request, { params }: RouteParams) {
     });
 
     for (const s of stats) {
-      await tx.matchAttendance.upsert({
-        where: {
-          matchId_playerId: {
+      if (s.playerId) {
+        await tx.matchAttendance.upsert({
+          where: {
+            matchId_playerId: {
+              matchId,
+              playerId: s.playerId,
+            },
+          },
+          create: {
             matchId,
             playerId: s.playerId,
+            present: true,
+            checkedInAt: new Date(),
           },
-        },
-        create: {
-          matchId,
-          playerId: s.playerId,
-          present: true,
-          checkedInAt: new Date(),
-        },
-        update: {
-          present: true,
-        },
-      });
+          update: {
+            present: true,
+          },
+        });
+      }
     }
   });
 
   // Fetch created stats to return
   const createdStats = await prisma.matchStats.findMany({
-    where: { matchId, playerId: { in: playerIds } },
+    where: { matchId },
   });
 
-  // F-004: award badges asynchronously (non-blocking)
-  awardAchievements(matchId).catch(() => {/* silent — badges are bonus, not critical */});
-
-  try {
-    await notifyMatchResultPosted(matchId);
-  } catch (err) {
-    console.error("Failed to notify match result", err);
-  }
+  // award badges asynchronously
+  awardAchievements(matchId).catch(() => {});
+  notifyMatchResultPosted(matchId).catch(() => {});
 
   return NextResponse.json(
     {
@@ -225,6 +279,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       stats: createdStats.map((s) => ({
         id: s.id,
         playerId: s.playerId,
+        guestPlayerId: s.guestPlayerId,
         goals: s.goals,
         assists: s.assists,
         yellowCards: s.yellowCards,
@@ -293,35 +348,13 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 
   const { stats } = parsed.data;
-  const playerIds = stats.map((s) => s.playerId);
-  const uniquePlayerIds = Array.from(new Set(playerIds));
 
-  if (uniquePlayerIds.length !== playerIds.length) {
+  // Validate players
+  const validationResult = await validateStatsPlayers(stats, session.user.teamId, matchId);
+  if ("error" in validationResult) {
     return NextResponse.json(
-      {
-        error: "Jogadores duplicados na lista de estatísticas",
-        code: "DUPLICATE_PLAYER_STATS",
-      },
-      { status: 400 }
-    );
-  }
-
-  const players = await prisma.player.findMany({
-    where: { id: { in: uniquePlayerIds }, teamId: session.user.teamId },
-    select: { id: true },
-  });
-
-  const validPlayerIds = new Set(players.map((p) => p.id));
-  const invalidPlayerIds = uniquePlayerIds.filter((id) => !validPlayerIds.has(id));
-
-  if (invalidPlayerIds.length > 0) {
-    return NextResponse.json(
-      {
-        error: "Jogadores não encontrados no time",
-        code: "PLAYER_NOT_FOUND",
-        invalidPlayerIds,
-      },
-      { status: 404 }
+      { error: validationResult.error, invalidIds: (validationResult as any).invalidPlayerIds || (validationResult as any).invalidGuestIds },
+      { status: validationResult.status }
     );
   }
 
@@ -330,7 +363,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     await tx.matchStats.createMany({
       data: stats.map((s) => ({
-        playerId: s.playerId,
+        playerId: s.playerId || null,
+        guestPlayerId: s.guestPlayerId || null,
         matchId,
         goals: s.goals,
         assists: s.assists,
@@ -341,23 +375,25 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     // Ensure attendance is marked as present for all these players
     for (const s of stats) {
-      await tx.matchAttendance.upsert({
-        where: {
-          matchId_playerId: {
+      if (s.playerId) {
+        await tx.matchAttendance.upsert({
+          where: {
+            matchId_playerId: {
+              matchId,
+              playerId: s.playerId,
+            },
+          },
+          create: {
             matchId,
             playerId: s.playerId,
+            present: true,
+            checkedInAt: new Date(),
           },
-        },
-        create: {
-          matchId,
-          playerId: s.playerId,
-          present: true,
-          checkedInAt: new Date(),
-        },
-        update: {
-          present: true,
-        },
-      });
+          update: {
+            present: true,
+          },
+        });
+      }
     }
   });
 
@@ -371,6 +407,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     stats: updatedStats.map((s) => ({
       id: s.id,
       playerId: s.playerId,
+      guestPlayerId: s.guestPlayerId,
       goals: s.goals,
       assists: s.assists,
       yellowCards: s.yellowCards,

@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
  */
 export async function awardAchievements(matchId: string): Promise<void> {
   const stats = await prisma.matchStats.findMany({
-    where: { matchId },
+    where: { matchId, playerId: { not: null } },
     include: { player: { select: { id: true } } },
   });
 
@@ -24,24 +24,26 @@ export async function awardAchievements(matchId: string): Promise<void> {
   const topScorers = maxGoals > 0 ? stats.filter((s) => s.goals === maxGoals) : [];
 
   for (const stat of stats) {
+    const pId = stat.playerId as string;
+    
     // HAT_TRICK: 3+ goals in a single match
     if (stat.goals >= 3) {
-      toCreate.push({ playerId: stat.playerId, type: "HAT_TRICK", matchId });
+      toCreate.push({ playerId: pId, type: "HAT_TRICK", matchId });
     }
 
     // TOP_SCORER_ROUND: most goals in this match
-    if (topScorers.some((s) => s.playerId === stat.playerId)) {
-      toCreate.push({ playerId: stat.playerId, type: "TOP_SCORER_ROUND", matchId });
+    if (topScorers.some((s) => s.playerId === pId)) {
+      toCreate.push({ playerId: pId, type: "TOP_SCORER_ROUND", matchId });
     }
 
     // ASSIST_MASTER: 3+ assists in a single match
     if (stat.assists >= 3) {
-      toCreate.push({ playerId: stat.playerId, type: "ASSIST_MASTER", matchId });
+      toCreate.push({ playerId: pId, type: "ASSIST_MASTER", matchId });
     }
   }
 
-  // VETERAN: players reaching 50 total match appearances (career milestone — fire once)
-  const playerIds = stats.map((s) => s.playerId);
+  // VENDERAN: players reaching 50 total match appearances (career milestone — fire once)
+  const playerIds = stats.map((s) => s.playerId).filter(Boolean) as string[];
   const careerCounts = await prisma.matchStats.groupBy({
     by: ["playerId"],
     where: { playerId: { in: playerIds } },
@@ -49,13 +51,14 @@ export async function awardAchievements(matchId: string): Promise<void> {
   });
 
   for (const entry of careerCounts) {
+    const pId = entry.playerId as string;
     if ((entry._count.id) >= 50) {
       // Only award once — check existing
       const existing = await prisma.achievement.findFirst({
-        where: { playerId: entry.playerId, type: "VETERAN" },
+        where: { playerId: pId, type: "VETERAN" },
       });
       if (!existing) {
-        toCreate.push({ playerId: entry.playerId, type: "VETERAN", matchId });
+        toCreate.push({ playerId: pId, type: "VETERAN", matchId });
       }
     }
   }

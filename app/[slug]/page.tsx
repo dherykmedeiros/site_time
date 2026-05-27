@@ -528,6 +528,7 @@ async function getTeamData(slug: string) {
               player: true,
             },
           },
+          matchLive: true,
         },
       },
       _count: {
@@ -1535,12 +1536,24 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
                           </div>
                         </div>
                         <div className="when text-right shrink-0">
-                          <div className="h font-bold text-xs text-[var(--ink)]">
-                            {new Date(match.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
-                          </div>
-                          <div className="t mt-1">
-                            <span className="tag success text-[8px] py-0.5 px-1.5">CONFIRMADO</span>
-                          </div>
+                          {match.matchLive && (match.matchLive.liveStatus === "FIRST_HALF" || match.matchLive.liveStatus === "SECOND_HALF" || match.matchLive.liveStatus === "HALF_TIME") ? (
+                            <Link
+                              href={`/matches/${match.id}?t=${match.shareToken}`}
+                              className="inline-flex items-center gap-1.5 rounded bg-red-500/10 border border-red-500/20 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-red-500 animate-pulse hover:scale-105 transition-transform"
+                            >
+                              <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                              AO VIVO
+                            </Link>
+                          ) : (
+                            <>
+                              <div className="h font-bold text-xs text-[var(--ink)]">
+                                {new Date(match.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
+                              </div>
+                              <div className="t mt-1">
+                                <span className="tag success text-[8px] py-0.5 px-1.5">CONFIRMADO</span>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}

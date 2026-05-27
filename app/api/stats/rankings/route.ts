@@ -22,13 +22,13 @@ export async function GET(request: Request) {
   // Top scorers
   const topScorers = await prisma.matchStats.groupBy({
     by: ["playerId"],
-    where: { match: { teamId } },
+    where: { match: { teamId }, playerId: { not: null } },
     _sum: { goals: true },
     orderBy: { _sum: { goals: "desc" } },
     take: limit,
   });
 
-  const scorerPlayerIds = topScorers.map((s) => s.playerId);
+  const scorerPlayerIds = topScorers.map((s) => s.playerId).filter(Boolean) as string[];
   const scorerPlayers = await prisma.player.findMany({
     where: { id: { in: scorerPlayerIds } },
     select: { id: true, name: true },
@@ -38,13 +38,13 @@ export async function GET(request: Request) {
   // Top assisters
   const topAssisters = await prisma.matchStats.groupBy({
     by: ["playerId"],
-    where: { match: { teamId } },
+    where: { match: { teamId }, playerId: { not: null } },
     _sum: { assists: true },
     orderBy: { _sum: { assists: "desc" } },
     take: limit,
   });
 
-  const assisterPlayerIds = topAssisters.map((s) => s.playerId);
+  const assisterPlayerIds = topAssisters.map((s) => s.playerId).filter(Boolean) as string[];
   const assisterPlayers = await prisma.player.findMany({
     where: { id: { in: assisterPlayerIds } },
     select: { id: true, name: true },
@@ -54,13 +54,13 @@ export async function GET(request: Request) {
   // Most cards
   const mostCards = await prisma.matchStats.groupBy({
     by: ["playerId"],
-    where: { match: { teamId } },
+    where: { match: { teamId }, playerId: { not: null } },
     _sum: { yellowCards: true, redCards: true },
     orderBy: [{ _sum: { redCards: "desc" } }, { _sum: { yellowCards: "desc" } }],
     take: limit,
   });
 
-  const cardPlayerIds = mostCards.map((s) => s.playerId);
+  const cardPlayerIds = mostCards.map((s) => s.playerId).filter(Boolean) as string[];
   const cardPlayers = await prisma.player.findMany({
     where: { id: { in: cardPlayerIds } },
     select: { id: true, name: true },
@@ -98,21 +98,27 @@ export async function GET(request: Request) {
   if (!type || type === "goals") {
     rankings.topScorers = topScorers
       .filter((s) => (s._sum.goals ?? 0) > 0)
-      .map((s) => ({
-        playerId: s.playerId,
-        playerName: scorerMap.get(s.playerId) || "Desconhecido",
-        total: s._sum.goals ?? 0,
-      }));
+      .map((s) => {
+        const pId = s.playerId as string;
+        return {
+          playerId: pId,
+          playerName: scorerMap.get(pId) || "Desconhecido",
+          total: s._sum.goals ?? 0,
+        };
+      });
   }
 
   if (!type || type === "assists") {
     rankings.topAssisters = topAssisters
       .filter((s) => (s._sum.assists ?? 0) > 0)
-      .map((s) => ({
-        playerId: s.playerId,
-        playerName: assisterMap.get(s.playerId) || "Desconhecido",
-        total: s._sum.assists ?? 0,
-      }));
+      .map((s) => {
+        const pId = s.playerId as string;
+        return {
+          playerId: pId,
+          playerName: assisterMap.get(pId) || "Desconhecido",
+          total: s._sum.assists ?? 0,
+        };
+      });
   }
 
   if (!type || type === "yellow_cards" || type === "red_cards") {
@@ -120,12 +126,15 @@ export async function GET(request: Request) {
       .filter(
         (s) => (s._sum.yellowCards ?? 0) > 0 || (s._sum.redCards ?? 0) > 0
       )
-      .map((s) => ({
-        playerId: s.playerId,
-        playerName: cardMap.get(s.playerId) || "Desconhecido",
-        yellowCards: s._sum.yellowCards ?? 0,
-        redCards: s._sum.redCards ?? 0,
-      }));
+      .map((s) => {
+        const pId = s.playerId as string;
+        return {
+          playerId: pId,
+          playerName: cardMap.get(pId) || "Desconhecido",
+          yellowCards: s._sum.yellowCards ?? 0,
+          redCards: s._sum.redCards ?? 0,
+        };
+      });
   }
 
   return NextResponse.json({

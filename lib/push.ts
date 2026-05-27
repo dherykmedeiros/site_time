@@ -175,7 +175,7 @@ export async function notifyMatchResultPosted(matchId: string): Promise<{ sent: 
 
   const notifications = match.matchStats
     .map((stat: (typeof match.matchStats)[number]) => {
-      const userId = stat.player.user?.id;
+      const userId = stat.player?.user?.id;
       if (!userId) return null;
 
       const performanceBits: string[] = [];

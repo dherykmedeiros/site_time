@@ -37,7 +37,10 @@ export async function GET(request: Request, context: RouteContext) {
       },
       matchStats: {
         where: { goals: { gt: 0 } },
-        include: { player: { select: { name: true } } },
+        include: {
+          player: { select: { name: true } },
+          guestPlayer: { select: { name: true } },
+        },
         orderBy: { goals: "desc" },
         take: 3,
       },
@@ -75,7 +78,7 @@ export async function GET(request: Request, context: RouteContext) {
         : resultLabel === "EMPATE" ? "draw"
           : "draw";
 
-  const scorers = match.matchStats.map((s) => `${s.player.name} (${s.goals})`).join("  ·  ");
+  const scorers = match.matchStats.map((s) => `${s.player?.name ?? s.guestPlayer?.name ?? "Convidado"} (${s.goals})`).join("  ·  ");
   const dateStr = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(match.date);
 
   const content = `

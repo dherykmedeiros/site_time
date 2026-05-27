@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   // Aggregate MatchStats per player
   const stats = await prisma.matchStats.groupBy({
     by: ["playerId"],
-    where: { match: matchWhere },
+    where: { match: matchWhere, playerId: { not: null } },
     _sum: {
       goals: true,
       assists: true,
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
   });
 
   // Fetch player details
-  const playerIds = stats.map((s) => s.playerId);
+  const playerIds = stats.map((s) => s.playerId).filter(Boolean) as string[];
   const players = await prisma.player.findMany({
     where: { id: { in: playerIds } },
     select: {
@@ -67,11 +67,12 @@ export async function GET(request: Request) {
   );
 
   const ranking = stats.map((s, idx) => {
-    const player = playerMap.get(s.playerId);
-    const ratingInfo = ratingsMap.get(s.playerId);
+    const pId = s.playerId as string;
+    const player = playerMap.get(pId);
+    const ratingInfo = ratingsMap.get(pId);
     return {
       rank: idx + 1,
-      playerId: s.playerId,
+      playerId: pId,
       playerName: player?.name ?? "Desconhecido",
       photoUrl: player?.photoUrl ?? null,
       shirtNumber: player?.shirtNumber ?? 0,

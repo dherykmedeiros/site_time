@@ -7,6 +7,7 @@ import Link from "next/link";
 import { RecapShareActions } from "@/components/dashboard/RecapShareActions";
 import { TeamRecapWidget } from "@/components/dashboard/TeamRecapWidget";
 import { PublicNavbar } from "@/components/PublicNavbar";
+import { LiveMatchView } from "@/components/portal/LiveMatchView";
 
 interface PublicMatchPageProps {
   params: Promise<{ id: string }>;
@@ -37,6 +38,36 @@ async function getMatchData(matchId: string, token?: string) {
       matchStats: {
         include: {
           player: { select: { name: true, position: true } },
+          guestPlayer: { select: { name: true, position: true } },
+        },
+      },
+      matchLive: {
+        include: {
+          events: {
+            orderBy: [
+              { half: "asc" },
+              { minute: "asc" },
+              { createdAt: "asc" },
+            ],
+            include: {
+              player: {
+                select: {
+                  id: true,
+                  name: true,
+                  position: true,
+                  shirtNumber: true,
+                },
+              },
+              guestPlayer: {
+                select: {
+                  id: true,
+                  name: true,
+                  position: true,
+                  shirtNumber: true,
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -178,6 +209,14 @@ export default async function PublicMatchPage({
       </header>
 
       <main className="mx-auto -mt-9 max-w-5xl space-y-6 px-4">
+        {match.status === "SCHEDULED" && match.matchLive && (
+          <LiveMatchView
+            matchId={match.id}
+            initialMatch={match as any}
+            initialLive={match.matchLive as any}
+          />
+        )}
+
         <section className="app-surface p-6 shadow-sm sm:p-8">
           <h2 className="text-xl font-bold text-[var(--text)]">
             Informações da Partida
@@ -259,7 +298,7 @@ export default async function PublicMatchPage({
           </section>
         )}
 
-        {match.status === "SCHEDULED" && (
+        {match.status === "SCHEDULED" && !match.matchLive && (
           <section className="app-surface p-6 shadow-sm sm:p-8 space-y-5">
             <h2 className="text-xl font-bold text-[var(--text)]">
               Confirmações de Presença
@@ -304,19 +343,22 @@ export default async function PublicMatchPage({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border)] bg-[var(--bg-elevated)]">
-                  {match.matchStats.map((stat) => (
-                    <tr key={stat.playerId} className="hover:bg-[var(--bg)] transition-colors duration-150">
-                      <td className="px-5 py-4 font-bold text-[var(--text)]">{stat.player.name}</td>
-                      <td className="px-5 py-4 text-[var(--text-muted)] font-medium">
-                        {positionLabels[stat.player.position] ||
-                          stat.player.position}
-                      </td>
-                      <td className="px-4 py-4 text-center font-black text-[var(--text)]">{stat.goals}</td>
-                      <td className="px-4 py-4 text-center font-black text-[var(--text)]">{stat.assists}</td>
-                      <td className="px-4 py-4 text-center font-black text-amber-600">{stat.yellowCards}</td>
-                      <td className="px-4 py-4 text-center font-black text-rose-500">{stat.redCards}</td>
-                    </tr>
-                  ))}
+                  {match.matchStats.map((stat) => {
+                    const playerName = stat.player?.name ?? stat.guestPlayer?.name ?? "Convidado";
+                    const playerPosition = stat.player?.position ?? stat.guestPlayer?.position ?? null;
+                    return (
+                      <tr key={stat.id} className="hover:bg-[var(--bg)] transition-colors duration-150">
+                        <td className="px-5 py-4 font-bold text-[var(--text)]">{playerName}</td>
+                        <td className="px-5 py-4 text-[var(--text-muted)] font-medium">
+                          {playerPosition ? (positionLabels[playerPosition] || playerPosition) : "-"}
+                        </td>
+                        <td className="px-4 py-4 text-center font-black text-[var(--text)]">{stat.goals}</td>
+                        <td className="px-4 py-4 text-center font-black text-[var(--text)]">{stat.assists}</td>
+                        <td className="px-4 py-4 text-center font-black text-amber-600">{stat.yellowCards}</td>
+                        <td className="px-4 py-4 text-center font-black text-rose-500">{stat.redCards}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -83,6 +83,7 @@ export const GET = withErrorHandler(async (_request: Request, context: RouteCont
     const lost = teamGoalsFor < teamGoalsAgainst;
 
     for (const stat of match.matchStats) {
+      if (!stat.playerId || !stat.player) continue;
       if (!rows[stat.playerId]) {
         rows[stat.playerId] = {
           playerId: stat.playerId,

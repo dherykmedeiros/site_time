@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { BordereauCard } from "@/components/dashboard/BordereauCard";
+import { LiveMatchControl } from "@/components/dashboard/LiveMatchControl";
+import { GuestPlayersManager } from "@/components/dashboard/GuestPlayersManager";
 import { SuggestedLineupCard } from "@/components/dashboard/SuggestedLineupCard";
 import { TeamRecapWidget } from "@/components/dashboard/TeamRecapWidget";
 import { MatchPhotosGallery } from "@/components/dashboard/MatchPhotosGallery";
@@ -164,7 +166,7 @@ interface MatchLineupResponse {
   lineup: SuggestedLineupResponse;
 }
 
-type ScheduledWorkspaceSection = "overview" | "presence" | "lineup" | "operations" | "postgame" | "gallery";
+type ScheduledWorkspaceSection = "overview" | "presence" | "lineup" | "operations" | "postgame" | "gallery" | "live" | "guests";
 
 const statusLabels: Record<string, string> = {
   SCHEDULED: "Agendada",
@@ -921,6 +923,8 @@ export default function MatchDetailPage() {
   const canSeeLineup = isCoachOrAdmin && isScheduled;
   const canSeeOperations = isAdmin && (isScheduled || match.status === "COMPLETED");
   const canSeePostGame = (isAdmin && match.canSubmitPostGame) || match.status === "COMPLETED";
+  const canSeeLive = isAdmin;
+  const canSeeGuests = isCoachOrAdmin;
   const sections: Array<{
     id: ScheduledWorkspaceSection;
     label: string;
@@ -929,6 +933,12 @@ export default function MatchDetailPage() {
     { id: "overview", label: "Resumo", helper: "Visao rapida da partida" },
     { id: "presence", label: "Presenca", helper: "RSVP e lista de respostas" },
     { id: "gallery", label: "Galeria", helper: "Fotos da partida" },
+    ...(canSeeLive
+      ? [{ id: "live" as const, label: "Ao Vivo", helper: "Placar e cronômetro em tempo real" }]
+      : []),
+    ...(canSeeGuests
+      ? [{ id: "guests" as const, label: "Convidados", helper: "Jogadores convidados do jogo" }]
+      : []),
     ...(canSeeLineup
       ? [{ id: "lineup" as const, label: "Escalacao", helper: "Sugestao inicial do jogo" }]
       : []),
@@ -1514,6 +1524,14 @@ export default function MatchDetailPage() {
           saveLoading={lineupSaving}
           imageUrl={lineupData?.imageUrl ?? null}
         />
+      )}
+
+      {canSeeLive && activeSection === "live" && (
+        <LiveMatchControl matchId={match.id} />
+      )}
+
+      {canSeeGuests && activeSection === "guests" && (
+        <GuestPlayersManager matchId={match.id} />
       )}
 
       {activeSection === "gallery" && (

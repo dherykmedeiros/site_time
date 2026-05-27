@@ -49,6 +49,14 @@ async function getMatchByIdOrToken(idOrToken: string) {
               shirtNumber: true,
             },
           },
+          guestPlayer: {
+            select: {
+              id: true,
+              name: true,
+              position: true,
+              shirtNumber: true,
+            },
+          },
         },
         orderBy: {
           goals: "desc",
@@ -369,26 +377,37 @@ export default async function PublicRecapPage({ params }: PageProps) {
               <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-[#8fa39b]">Artilharia</h4>
               {scorers.length > 0 ? (
                 <div className="space-y-2">
-                  {scorers.map((stat) => (
-                    <div key={stat.id} className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full border border-white/10 overflow-hidden bg-white/5 flex items-center justify-center text-xs font-bold text-white">
-                          {stat.player.photoUrl ? (
-                            <img src={stat.player.photoUrl} alt={stat.player.name} className="w-full h-full object-cover" />
-                          ) : (
-                            stat.player.name.substring(0, 2).toUpperCase()
-                          )}
+                  {scorers.map((stat) => {
+                    const playerName = stat.player?.name ?? stat.guestPlayer?.name ?? "Convidado";
+                    const playerPhoto = stat.player?.photoUrl ?? null;
+                    const playerPosition = stat.player?.position ?? stat.guestPlayer?.position ?? null;
+                    const playerShirt = stat.player?.shirtNumber ?? stat.guestPlayer?.shirtNumber ?? null;
+                    return (
+                      <div key={stat.id} className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full border border-white/10 overflow-hidden bg-white/5 flex items-center justify-center text-xs font-bold text-white">
+                            {playerPhoto ? (
+                              <img src={playerPhoto} alt={playerName} className="w-full h-full object-cover" />
+                            ) : (
+                              playerName.substring(0, 2).toUpperCase()
+                            )}
+                          </div>
+                          <div className="text-left">
+                            <p className="text-xs font-bold text-white leading-none">
+                              {playerName}
+                              {playerShirt && <span className="text-[10px] text-[#8fa39b] font-medium ml-1">#{playerShirt}</span>}
+                            </p>
+                            <span className="text-[9px] text-[#8fa39b] font-medium">
+                              {playerPosition ? (positionLabels[playerPosition] || playerPosition) : "-"}
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-left">
-                          <p className="text-xs font-bold text-white leading-none">{stat.player.name}</p>
-                          <span className="text-[9px] text-[#8fa39b] font-medium">{positionLabels[stat.player.position] || stat.player.position}</span>
-                        </div>
+                        <span className="text-xs font-black text-[#10b981] bg-[#10b981]/10 px-2 py-0.5 rounded">
+                          {stat.goals} {stat.goals === 1 ? "Gol" : "Gols"}
+                        </span>
                       </div>
-                      <span className="text-xs font-black text-[#10b981] bg-[#10b981]/10 px-2 py-0.5 rounded">
-                        {stat.goals} {stat.goals === 1 ? "Gol" : "Gols"}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-xs text-[#8fa39b] italic">Nenhum gol registrado.</p>
@@ -400,26 +419,37 @@ export default async function PublicRecapPage({ params }: PageProps) {
               <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-[#8fa39b]">Garçons</h4>
               {assistants.length > 0 ? (
                 <div className="space-y-2">
-                  {assistants.map((stat) => (
-                    <div key={stat.id} className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full border border-white/10 overflow-hidden bg-white/5 flex items-center justify-center text-xs font-bold text-white">
-                          {stat.player.photoUrl ? (
-                            <img src={stat.player.photoUrl} alt={stat.player.name} className="w-full h-full object-cover" />
-                          ) : (
-                            stat.player.name.substring(0, 2).toUpperCase()
-                          )}
+                  {assistants.map((stat) => {
+                    const playerName = stat.player?.name ?? stat.guestPlayer?.name ?? "Convidado";
+                    const playerPhoto = stat.player?.photoUrl ?? null;
+                    const playerPosition = stat.player?.position ?? stat.guestPlayer?.position ?? null;
+                    const playerShirt = stat.player?.shirtNumber ?? stat.guestPlayer?.shirtNumber ?? null;
+                    return (
+                      <div key={stat.id} className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full border border-white/10 overflow-hidden bg-white/5 flex items-center justify-center text-xs font-bold text-white">
+                            {playerPhoto ? (
+                              <img src={playerPhoto} alt={playerName} className="w-full h-full object-cover" />
+                            ) : (
+                              playerName.substring(0, 2).toUpperCase()
+                            )}
+                          </div>
+                          <div className="text-left">
+                            <p className="text-xs font-bold text-white leading-none">
+                              {playerName}
+                              {playerShirt && <span className="text-[10px] text-[#8fa39b] font-medium ml-1">#{playerShirt}</span>}
+                            </p>
+                            <span className="text-[9px] text-[#8fa39b] font-medium">
+                              {playerPosition ? (positionLabels[playerPosition] || playerPosition) : "-"}
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-left">
-                          <p className="text-xs font-bold text-white leading-none">{stat.player.name}</p>
-                          <span className="text-[9px] text-[#8fa39b] font-medium">{positionLabels[stat.player.position] || stat.player.position}</span>
-                        </div>
+                        <span className="text-xs font-black text-[#34d399] bg-[#34d399]/10 px-2 py-0.5 rounded">
+                          {stat.assists} {stat.assists === 1 ? "Assis." : "Assis."}
+                        </span>
                       </div>
-                      <span className="text-xs font-black text-[#34d399] bg-[#34d399]/10 px-2 py-0.5 rounded">
-                        {stat.assists} {stat.assists === 1 ? "Assis." : "Assis."}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-xs text-[#8fa39b] italic">Nenhuma assistência registrada.</p>

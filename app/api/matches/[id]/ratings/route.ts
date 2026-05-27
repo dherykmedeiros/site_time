@@ -62,12 +62,10 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
     });
     const isPresent = attendance?.present === true;
 
-    const stats = await prisma.matchStats.findUnique({
+    const stats = await prisma.matchStats.findFirst({
       where: {
-        playerId_matchId: {
-          playerId: session.user.playerId,
-          matchId: id,
-        },
+        playerId: session.user.playerId,
+        matchId: id,
       },
     });
     const hasStats = stats !== null;
@@ -148,12 +146,10 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
     });
     const isPresent = attendance?.present === true;
 
-    const stats = await prisma.matchStats.findUnique({
+    const stats = await prisma.matchStats.findFirst({
       where: {
-        playerId_matchId: {
-          playerId: session.user.playerId,
-          matchId: id,
-        },
+        playerId: session.user.playerId,
+        matchId: id,
       },
     });
     const hasStats = stats !== null;

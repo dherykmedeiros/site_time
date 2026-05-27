@@ -143,6 +143,21 @@ enum OpenMatchSlotStatus {
   CLOSED
 }
 
+enum MatchLiveStatus {
+  NOT_STARTED
+  FIRST_HALF
+  HALF_TIME
+  SECOND_HALF
+  FINISHED
+}
+
+enum LiveEventType {
+  GOAL
+  ASSIST
+  YELLOW_CARD
+  RED_CARD
+}
+
 // ─── Models ───────────────────────────────────────────────
 
 model User {
@@ -210,6 +225,7 @@ model Team {
   datePolls        DatePoll[]
   photos           MatchPhoto[]
   recruitmentRequests RecruitmentRequest[]
+  guestPlayers       GuestPlayer[]
 
   defaultFormation   MatchLineupFormation?
   defaultBlockPreset MatchLineupBlockPreset?
@@ -246,6 +262,7 @@ model Player {
   evaluations  PlayerEvaluation[]
   receivedRatings MatchPlayerRating[]
   pollVotes    DatePollVote[]
+  liveEvents   MatchLiveEvent[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -304,6 +321,8 @@ model Match {
   datePoll     DatePoll?
   photos       MatchPhoto[]
   playerRatings MatchPlayerRating[]
+  matchLive    MatchLive?
+  guestPlayers GuestPlayer[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
@@ -368,17 +387,20 @@ model MatchStats {
   goals       Int      @default(0)
   assists     Int      @default(0)
   yellowCards Int      @default(0)
-  redCards    Int      @default(0)
-  playerId    String
-  player      Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  matchId     String
-  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  redCards      Int          @default(0)
+  guestPlayerId String?
+  guestPlayer   GuestPlayer? @relation(fields: [guestPlayerId], references: [id], onDelete: SetNull)
+  playerId      String?
+  player        Player?      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  matchId       String
+  match         Match        @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @default(now()) @updatedAt
 
-  @@unique([playerId, matchId])
+  @@unique([playerId, matchId, guestPlayerId])
   @@index([matchId])
   @@index([playerId])
+  @@index([guestPlayerId])
   @@map("match_stats")
 }
 
@@ -875,3 +897,61 @@ model PunishmentAccumulationRule {
   @@map("punishment_accumulation_rules")
 }
 
+model MatchLive {
+  id              String          @id @default(cuid())
+  matchId         String          @unique
+  match           Match           @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  liveStatus      MatchLiveStatus @default(NOT_STARTED)
+  homeScore       Int             @default(0)
+  awayScore       Int             @default(0)
+  firstHalfStart  DateTime?
+  firstHalfEnd    DateTime?
+  secondHalfStart DateTime?
+  secondHalfEnd   DateTime?
+  events          MatchLiveEvent[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([matchId])
+  @@map("match_lives")
+}
+
+model MatchLiveEvent {
+  id            String        @id @default(cuid())
+  matchLiveId   String
+  matchLive     MatchLive     @relation(fields: [matchLiveId], references: [id], onDelete: Cascade)
+  type          LiveEventType
+  minute        Int
+  half          Int           // 1 ou 2
+  playerId      String?
+  player        Player?       @relation(fields: [playerId], references: [id], onDelete: SetNull)
+  guestPlayerId String?
+  guestPlayer   GuestPlayer?  @relation(fields: [guestPlayerId], references: [id], onDelete: SetNull)
+  description   String?
+  createdAt     DateTime      @default(now())
+
+  @@index([matchLiveId])
+  @@index([playerId])
+  @@index([guestPlayerId])
+  @@map("match_live_events")
+}
+
+model GuestPlayer {
+  id          String           @id @default(cuid())
+  name        String
+  shirtNumber Int?
+  position    PlayerPosition?
+  matchId     String
+  match       Match            @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  teamId      String
+  team        Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  liveEvents  MatchLiveEvent[]
+  matchStats  MatchStats[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([matchId, name])
+  @@index([matchId])
+  @@index([teamId])
+  @@map("guest_players")
+}
