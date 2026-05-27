@@ -14,8 +14,7 @@ export const createPlayerSchema = z.object({
   shirtNumber: z
     .number()
     .int("Número deve ser inteiro")
-    .min(1, "Número da camisa deve ser entre 1 e 99")
-    .max(99, "Número da camisa deve ser entre 1 e 99"),
+    .optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]).optional().default("ACTIVE"),
 });
 
@@ -34,8 +33,6 @@ export const updatePlayerSchema = z.object({
   shirtNumber: z
     .number()
     .int("Número deve ser inteiro")
-    .min(1, "Número da camisa deve ser entre 1 e 99")
-    .max(99, "Número da camisa deve ser entre 1 e 99")
     .optional(),
   status: z.enum(["ACTIVE", "INACTIVE"]).optional(),
 });

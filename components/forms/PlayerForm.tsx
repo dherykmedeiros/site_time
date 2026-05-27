@@ -127,22 +127,7 @@ export function PlayerForm({ defaultValues, onSuccess, onCancel }: PlayerFormPro
         )}
       </div>
 
-      <div>
-        <label htmlFor="shirtNumber" className="mb-1 block text-sm font-medium text-gray-700">
-          Número da Camisa
-        </label>
-        <Input
-          id="shirtNumber"
-          type="number"
-          min={1}
-          max={99}
-          placeholder="1-99"
-          {...register("shirtNumber", { valueAsNumber: true })}
-        />
-        {errors.shirtNumber && (
-          <p className="mt-1 text-sm text-red-600">{errors.shirtNumber.message}</p>
-        )}
-      </div>
+
 
       {isEditing && (
         <div>

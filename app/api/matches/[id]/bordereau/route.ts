@@ -138,7 +138,7 @@ async function buildBordereauResponse(matchId: string, teamId: string) {
         rsvpStatus: rsvpMap.get(player.id) ?? "PENDING",
         present: attendance?.present ?? false,
         checkedInAt: attendance?.checkedInAt?.toISOString() ?? null,
-        shirtNumber: attendance?.shirtNumber ?? player.shirtNumber ?? null,
+        shirtNumber: 0,
       };
     }),
     expenses: expenseRows.map((expense) => ({

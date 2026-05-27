@@ -180,7 +180,7 @@ export const bordereauChecklistItemSchema = z.object({
 export const bordereauAttendanceItemSchema = z.object({
   playerId: z.string().cuid("Jogador inválido"),
   present: z.boolean(),
-  shirtNumber: z.number().int().min(1).max(99).nullable().optional(),
+  shirtNumber: z.number().int().nullable().optional(),
 });
 
 export const patchMatchBordereauSchema = z

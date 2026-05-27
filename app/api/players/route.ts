@@ -96,12 +96,22 @@ export async function POST(request: Request) {
 
   const { name, position, shirtNumber, status } = parsed.data;
 
+  let finalShirtNumber = shirtNumber;
+  if (finalShirtNumber === undefined || finalShirtNumber === null) {
+    const maxPlayer = await prisma.player.findFirst({
+      where: { teamId: session.user.teamId },
+      orderBy: { shirtNumber: "desc" },
+      select: { shirtNumber: true },
+    });
+    finalShirtNumber = (maxPlayer?.shirtNumber ?? 0) + 1;
+  }
+
   // Check shirtNumber uniqueness within the team
   const existing = await prisma.player.findUnique({
     where: {
       teamId_shirtNumber: {
         teamId: session.user.teamId,
-        shirtNumber,
+        shirtNumber: finalShirtNumber,
       },
     },
   });
@@ -117,7 +127,7 @@ export async function POST(request: Request) {
     data: {
       name,
       position,
-      shirtNumber,
+      shirtNumber: finalShirtNumber,
       status,
       teamId: session.user.teamId,
     },
