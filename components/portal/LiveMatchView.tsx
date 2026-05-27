@@ -212,7 +212,7 @@ export function LiveMatchView({ matchId, initialMatch, initialLive }: LiveMatchV
                 {match.isHome ? teamName : opponentName}
               </span>
               <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                {match.isHome ? "Mandante" : "Visitante"}
+                Mandante
               </span>
             </div>
 
@@ -229,7 +229,7 @@ export function LiveMatchView({ matchId, initialMatch, initialLive }: LiveMatchV
                 {match.isHome ? opponentName : teamName}
               </span>
               <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                {match.isHome ? "Visitante" : "Mandante"}
+                Visitante
               </span>
             </div>
 

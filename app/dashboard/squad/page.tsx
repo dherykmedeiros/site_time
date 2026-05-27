@@ -215,8 +215,7 @@ export default function SquadPage() {
   }
 
   const filteredPlayers = players.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.shirtNumber.toString().includes(search)
+    p.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -279,7 +278,7 @@ export default function SquadPage() {
         <div className="relative max-w-xs w-full">
           <input
             type="text"
-            placeholder="Buscar por nome ou camisa..."
+            placeholder="Buscar por nome..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-full border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2 pl-9 text-xs font-bold text-[var(--text)] outline-none focus:border-[var(--brand)] transition-colors shadow-sm"
@@ -321,16 +320,13 @@ export default function SquadPage() {
                       className="h-12 w-12 flex-shrink-0 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[var(--brand)] text-lg font-bold text-white">
-                      {player.shirtNumber}
+                    <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[var(--brand)] text-lg font-bold text-white uppercase">
+                      {player.name.charAt(0)}
                     </div>
                   )}
                   <div className="min-w-0">
                     <p className="font-semibold text-[var(--text)]">
-                      {player.name}{" "}
-                      <span className="text-sm font-normal text-[var(--text-muted)]">
-                        #{player.shirtNumber}
-                      </span>
+                      {player.name}
                     </p>
                     <p className="text-sm text-[var(--text-muted)]">
                       {positionLabels[player.position] || player.position}

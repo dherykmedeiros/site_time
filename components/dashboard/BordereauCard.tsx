@@ -117,13 +117,31 @@ export function BordereauCard({
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-4">
 
-                          <label className="flex items-center gap-2 text-sm text-[var(--text)] cursor-pointer">
+                        <div className="flex items-center gap-4">
+                          {item.present && onShirtNumberChange && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs text-[var(--text-subtle)] font-medium">Camisa:</span>
+                              <input
+                                type="number"
+                                min="0"
+                                max="999"
+                                placeholder="--"
+                                value={item.shirtNumber ?? ""}
+                                onChange={(e) => {
+                                  const val = e.target.value === "" ? null : parseInt(e.target.value, 10);
+                                  onShirtNumberChange(item.playerId, val);
+                                }}
+                                className="w-14 rounded-[8px] border border-white/10 bg-white/[0.05] px-2 py-1 text-center text-sm font-semibold text-[var(--text)] focus:border-[#2a6f60] focus:ring-1 focus:ring-[#2a6f60] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              />
+                            </div>
+                          )}
+                          <label className="flex items-center gap-2 text-sm text-[var(--text)] cursor-pointer font-medium">
                             <input
                               type="checkbox"
                               checked={item.present}
                               onChange={() => onAttendanceToggle(item.playerId)}
+                              className="rounded border-white/10 bg-white/[0.05] text-[#2a6f60] focus:ring-[#2a6f60]"
                             />
                             Presente
                           </label>

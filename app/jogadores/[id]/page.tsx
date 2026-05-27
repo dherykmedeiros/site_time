@@ -277,22 +277,16 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
               />
             ) : (
               <div className="w-full h-full flex flex-col justify-center items-center bg-[#070a0c] relative overflow-hidden">
-                <span className="font-mono text-[9rem] font-black text-white/5 tracking-tighter select-none">
-                  {player.shirtNumber}
+                <span className="font-mono text-[9rem] font-black text-white/5 tracking-tighter select-none uppercase">
+                  {player.name.charAt(0)}
                 </span>
                 <span className="absolute bottom-6 font-mono text-[9px] font-black uppercase tracking-widest text-[#94a3b8] border border-slate-800 bg-[#090d0f] px-3 py-1">
                   FICHA TÉCNICA
                 </span>
               </div>
             )}
-            
-            {/* Jersey Badge over Photo */}
-            <div className="absolute top-4 right-4 h-10 w-10 bg-[#030708] border-2 border-slate-800 flex items-center justify-center font-mono font-black text-white shadow-lg">
-              #{player.shirtNumber}
-            </div>
           </div>
 
-          {/* Dossier Text Info */}
           <div className="space-y-4 text-center md:text-left">
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
               <span className="inline-flex border-2 border-slate-800 bg-slate-900 px-3 py-1 font-mono text-[10px] font-black uppercase tracking-widest text-[var(--team-primary)]">

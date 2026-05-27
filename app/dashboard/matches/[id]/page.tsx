@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { BordereauCard } from "@/components/dashboard/BordereauCard";
+import { MatchEquipmentCard } from "@/components/dashboard/MatchEquipmentCard";
 import { LiveMatchControl } from "@/components/dashboard/LiveMatchControl";
 import { GuestPlayersManager } from "@/components/dashboard/GuestPlayersManager";
 import { SuggestedLineupCard } from "@/components/dashboard/SuggestedLineupCard";
@@ -1547,17 +1548,20 @@ export default function MatchDetailPage() {
       )}
 
       {canSeeOperations && activeSection === "operations" && (
-        <BordereauCard
-          loading={bordereauLoading}
-          saving={bordereauSaving}
-          error={bordereauError}
-          data={bordereauData}
-          onChecklistToggle={toggleChecklistItem}
-          onAttendanceToggle={toggleAttendance}
-          onShirtNumberChange={handleShirtNumberChange}
-          onSave={handleSaveBordereau}
-          onOpenExpense={() => setExpenseModalOpen(true)}
-        />
+        <div className="space-y-6">
+          <BordereauCard
+            loading={bordereauLoading}
+            saving={bordereauSaving}
+            error={bordereauError}
+            data={bordereauData}
+            onChecklistToggle={toggleChecklistItem}
+            onAttendanceToggle={toggleAttendance}
+            onShirtNumberChange={handleShirtNumberChange}
+            onSave={handleSaveBordereau}
+            onOpenExpense={() => setExpenseModalOpen(true)}
+          />
+          <MatchEquipmentCard matchId={match.id} />
+        </div>
       )}
 
       {/* Post-game form (T042) — show when canSubmitPostGame is true */}

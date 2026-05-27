@@ -323,6 +323,7 @@ model Match {
   playerRatings MatchPlayerRating[]
   matchLive    MatchLive?
   guestPlayers GuestPlayer[]
+  matchEquipments MatchEquipment[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
@@ -703,6 +704,7 @@ model Equipment {
   notes        String?  @db.Text
   teamId       String
   team         Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  matchEquipments MatchEquipment[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -954,4 +956,23 @@ model GuestPlayer {
   @@index([matchId])
   @@index([teamId])
   @@map("guest_players")
+}
+
+model MatchEquipment {
+  id               String     @id @default(cuid())
+  matchId          String
+  match            Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  equipmentId      String?
+  equipment        Equipment? @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
+  name             String
+  quantitySent     Int        @default(0)
+  quantityReturned Int        @default(0)
+  returned         Boolean    @default(false)
+  notes            String?    @db.Text
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([matchId])
+  @@index([equipmentId])
+  @@map("match_equipments")
 }
