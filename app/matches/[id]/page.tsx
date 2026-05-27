@@ -180,7 +180,10 @@ export default async function PublicMatchPage({
 
       <header
         className="relative overflow-hidden px-4 pb-20 pt-14 text-white"
-        style={{ backgroundColor: team.primaryColor || "#0a584b" }}
+        style={{ 
+          backgroundColor: team.primaryColor || "#0a584b",
+          backgroundImage: "linear-gradient(to bottom, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.55))"
+        }}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,255,255,0.18),transparent_35%),radial-gradient(circle_at_85%_0%,rgba(244,221,183,0.22),transparent_32%)]" />
         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-[var(--bg)] opacity-90" />

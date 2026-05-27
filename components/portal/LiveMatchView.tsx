@@ -165,7 +165,7 @@ export function LiveMatchView({ matchId, initialMatch, initialLive }: LiveMatchV
         
         {/* Decorative dynamic neon blur lines */}
         {isMatchLive && (
-          <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[var(--brand)] to-transparent blur-[1px] animate-pulse" />
+          <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-emerald-500 to-transparent blur-[1px] animate-pulse" />
         )}
 
         <div className="px-6 py-10 flex flex-col items-center justify-center relative">
@@ -180,8 +180,8 @@ export function LiveMatchView({ matchId, initialMatch, initialLive }: LiveMatchV
 
           {/* Half Status & Clock Display */}
           <div className="flex flex-col items-center justify-center mb-6">
-            <span className="text-xs uppercase font-extrabold tracking-[0.2em] text-[var(--text-muted)] mb-1 flex items-center gap-1">
-              <Clock className="h-3 w-3 text-[var(--brand)]" />
+            <span className="text-xs uppercase font-extrabold tracking-[0.2em] text-white/50 mb-1 flex items-center gap-1">
+              <Clock className="h-3 w-3 text-emerald-400" />
               {live.liveStatus === "NOT_STARTED" && "Aguardando Início"}
               {live.liveStatus === "FIRST_HALF" && "1º Tempo"}
               {live.liveStatus === "HALF_TIME" && "Intervalo"}
@@ -199,7 +199,7 @@ export function LiveMatchView({ matchId, initialMatch, initialLive }: LiveMatchV
 
             {/* Total time tracker */}
             {live.liveStatus !== "NOT_STARTED" && (
-              <span className="text-xs text-[var(--text-muted)] mt-1.5 font-medium">
+              <span className="text-xs text-white/40 mt-1.5 font-medium">
                 Tempo de jogo somado: {formatTime(firstHalfSeconds + secondHalfSeconds)}
               </span>
             )}
@@ -213,7 +213,7 @@ export function LiveMatchView({ matchId, initialMatch, initialLive }: LiveMatchV
               <span className="font-black text-sm sm:text-base text-white tracking-wide text-balance leading-tight">
                 {match.isHome ? teamName : opponentName}
               </span>
-              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.14em] text-white/50">
                 Mandante
               </span>
             </div>
@@ -230,7 +230,7 @@ export function LiveMatchView({ matchId, initialMatch, initialLive }: LiveMatchV
               <span className="font-black text-sm sm:text-base text-white tracking-wide text-balance leading-tight">
                 {match.isHome ? opponentName : teamName}
               </span>
-              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.14em] text-white/50">
                 Visitante
               </span>
             </div>
@@ -239,7 +239,7 @@ export function LiveMatchView({ matchId, initialMatch, initialLive }: LiveMatchV
 
           {/* Small auto-update notifier */}
           {isMatchLive && (
-            <p className="text-[10px] text-[var(--text-muted)] font-medium mt-8 flex items-center gap-1 bg-white/[0.02] border border-white/5 rounded-full px-3 py-1 animate-pulse">
+            <p className="text-[10px] text-white/55 font-medium mt-8 flex items-center gap-1 bg-white/[0.02] border border-white/5 rounded-full px-3 py-1 animate-pulse">
               <Activity className="h-3 w-3 text-emerald-400" />
               Esta tela atualiza automaticamente a cada 15s
             </p>
@@ -251,18 +251,18 @@ export function LiveMatchView({ matchId, initialMatch, initialLive }: LiveMatchV
 
       {/* Public Timeline of Events */}
       {live.liveStatus !== "NOT_STARTED" && (
-        <Card className="rounded-[22px] border border-white/5 bg-white/[0.02] backdrop-blur-md overflow-hidden shadow-md">
-          <div className="px-6 py-5 border-b border-white/5">
+        <Card className="rounded-[22px] border border-white/10 bg-gradient-to-br from-[#0c1310] via-[#040807] to-[#0c1310] shadow-[0_20px_40px_rgba(0,0,0,0.55)] overflow-hidden">
+          <div className="px-6 py-5 border-b border-white/10">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Activity className="h-4 w-4 text-[var(--brand)]" />
+              <Activity className="h-4 w-4 text-emerald-400" />
               Lances e Acontecimentos
             </h2>
           </div>
           <CardContent className="p-6">
             {live.events.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-white/10 rounded-[12px] p-6 bg-white/[0.01]">
-                <p className="text-sm text-[var(--text-subtle)]">Nenhum lance registrado até agora.</p>
-                <p className="text-xs text-[var(--text-muted)] mt-1">Os gols, cartões e lances do jogo serão exibidos aqui à medida que acontecem.</p>
+                <p className="text-sm text-white/80">Nenhum lance registrado até agora.</p>
+                <p className="text-xs text-white/50 mt-1">Os gols, cartões e lances do jogo serão exibidos aqui à medida que acontecem.</p>
               </div>
             ) : (
               <div className="relative pl-6 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-white/10">
@@ -289,7 +289,7 @@ export function LiveMatchView({ matchId, initialMatch, initialLive }: LiveMatchV
                             <span className="text-lg" role="img" aria-label={event.type}>
                               {getEventEmoji(event.type)}
                             </span>
-                            <span className="text-xs font-black font-mono text-[var(--brand)] bg-[var(--brand-soft)] px-1.5 py-0.5 rounded">
+                            <span className="text-xs font-black font-mono text-emerald-450 bg-emerald-550/15 text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
                               {event.minute}' ({event.half}T)
                             </span>
                             <span className="font-bold text-sm text-white">
@@ -302,14 +302,14 @@ export function LiveMatchView({ matchId, initialMatch, initialLive }: LiveMatchV
                         <p className="mt-2 font-extrabold text-sm text-white">
                           {event.player?.name || event.guestPlayer?.name || "Adversário / Geral"}
                           {(event.player?.shirtNumber || event.guestPlayer?.shirtNumber) && (
-                            <span className="text-xs text-[var(--text-muted)] ml-1 font-semibold">
+                            <span className="text-xs text-white/50 ml-1 font-semibold">
                               #{event.player?.shirtNumber || event.guestPlayer?.shirtNumber}
                             </span>
                           )}
                         </p>
 
                         {event.description && (
-                          <p className="mt-1 text-xs text-[var(--text-muted)] italic leading-relaxed">
+                          <p className="mt-1 text-xs text-white/50 italic leading-relaxed">
                             "{event.description}"
                           </p>
                         )}
