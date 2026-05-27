@@ -11,10 +11,37 @@ interface RouteContext {
   params: Promise<{ playerId: string }>;
 }
 
-function photoHtml(url: string | null, name: string, large: boolean): string {
-  return url
-    ? `<img src="${esc(url)}" alt="${esc(name)}" style="width:100%;height:100%;object-fit:cover">`
-    : `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:${large ? 120 : 64}px;font-weight:800;opacity:0.86;color:var(--text-muted)">${esc(name.slice(0, 2).toUpperCase())}</div>`;
+function photoHtml(url: string | null, name: string, large: boolean, isFallbackBadge: boolean = false): string {
+  if (!url) {
+    return `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:${large ? 120 : 64}px;font-weight:800;opacity:0.86;color:var(--text-muted)">${esc(name.slice(0, 2).toUpperCase())}</div>`;
+  }
+  if (isFallbackBadge) {
+    return `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:radial-gradient(circle, #252e48 0%, #111625 100%);padding:${large ? "80px" : "30px"}">
+      <img src="${esc(url)}" alt="${esc(name)}" style="max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 16px 32px rgba(0,0,0,0.5))">
+    </div>`;
+  }
+  return `<img src="${esc(url)}" alt="${esc(name)}" style="width:100%;height:100%;object-fit:cover">`;
+}
+
+function storiesMetricsHtml(metrics: { label: string; value: number }[]): string {
+  return metrics
+    .map(
+      (m, idx) => `
+      <div class="stat-tile" style="
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 24px 28px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        ${idx === 4 ? "grid-column: span 1;" : ""}
+      ">
+        <div style="font-size: 18px; color: rgba(255, 255, 255, 0.5); font-weight: 600; letter-spacing: 0.03em;">${esc(m.label)}</div>
+        <div style="font-size: 54px; font-weight: 900; color: white; line-height: 1.1; font-family: 'Roboto Mono', monospace;">${m.value}</div>
+      </div>`
+    )
+    .join("");
 }
 
 function metricsHtml(metrics: { label: string; value: number }[], sizeClass: "lg" | "sm"): string {
@@ -91,21 +118,23 @@ export async function GET(request: Request, context: RouteContext) {
       let content: string;
       if (isStories) {
         content = `
-          <div class="card" style="overflow:hidden;gap:0">
+          <div class="card" style="overflow:hidden;gap:0;background:#111625;border-color:rgba(255,255,255,0.06);display:flex;flex-direction:column;justify-content:flex-start;height:100%;padding:0;">
             <!-- Photo with gradient overlay -->
-            <div style="position:relative;width:100%;height:42%;display:flex;align-items:center;justify-content:center;background:var(--accent);overflow:hidden">
-              ${photoHtml(photoUrl, matchRecap.player.name, true)}
-              <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,var(--card-bg) 100%)"></div>
+            <div style="position:relative;width:100%;height:52%;display:flex;align-items:center;justify-content:center;background:#1a2035;overflow:hidden">
+              ${photoHtml(photoUrl, matchRecap.player.name, true, !matchRecap.player.photoUrl)}
+              <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,#111625 100%)"></div>
             </div>
-            <div style="display:flex;flex-direction:column;padding:30px 36px;flex:1;justify-content:space-between;gap:8px">
-              <div style="display:flex;flex-direction:column;gap:6px">
-                <div class="glow-line" style="position:static;width:48px;height:3px;border-radius:2px;margin-bottom:4px"></div>
-                <div class="tracking-wide text-muted" style="font-size:18px;font-weight:600">MATCH RECAP</div>
-                <div class="font-black" style="font-size:56px;line-height:1;letter-spacing:-0.02em">${esc(cut(matchRecap.player.name, 26))}</div>
-                <div class="text-muted font-medium" style="font-size:26px">${esc(teamLabel)} vs ${esc(cut(matchRecap.match.opponent, 24))}</div>
+            <div style="display:flex;flex-direction:column;padding:28px 36px;flex:1;justify-content:flex-start;gap:20px;">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <div style="width:36px;height:3px;background:#ef4444;border-radius:2px;margin-bottom:6px"></div>
+                <div class="tracking-wide text-muted" style="font-size:24px;font-weight:700;color:#94a3b8;letter-spacing:0.18em">MATCH RECAP</div>
+                <div class="font-black" style="font-size:80px;line-height:1.1;letter-spacing:-0.03em;color:white;margin-top:2px">${esc(cut(matchRecap.player.name, 26))}</div>
+                <div style="font-size:32px;font-weight:700;color:#34d399;margin-top:2px">${esc(teamLabel)} vs ${esc(cut(matchRecap.match.opponent, 24))}</div>
                 ${infoRow}
               </div>
-              <div style="display:flex;flex-wrap:wrap;gap:12px">${metricsHtml(metrics, "lg")}</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;margin-top:auto;margin-bottom:24px;">
+                ${storiesMetricsHtml(metrics)}
+              </div>
             </div>
           </div>`;
       } else {
@@ -123,7 +152,7 @@ export async function GET(request: Request, context: RouteContext) {
               <div style="display:flex;gap:10px">${metricsHtml(metrics, "sm")}</div>
             </div>
             <div style="display:flex;width:260px;flex-shrink:0;border-radius:24px;align-items:center;justify-content:center;background:var(--accent);overflow:hidden;position:relative">
-              ${photoHtml(photoUrl, matchRecap.player.name, false)}
+              ${photoHtml(photoUrl, matchRecap.player.name, false, !matchRecap.player.photoUrl)}
               <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,0.4) 100%)"></div>
             </div>
           </div>`;
@@ -169,22 +198,30 @@ export async function GET(request: Request, context: RouteContext) {
 
     let content: string;
     if (isStories) {
+      const recentRowStories = `
+        <div style="display:flex;margin-top:10px;gap:14px;align-items:center">
+          <span class="pill" style="font-size:24px;padding:12px 24px;">${esc(cut(recentBadge, 44))}</span>
+          ${attendanceLabel ? `<span class="pill" style="font-size:24px;padding:12px 24px;">${esc(attendanceLabel)}</span>` : ""}
+        </div>`;
+
       content = `
-        <div class="card" style="overflow:hidden;gap:0">
+        <div class="card" style="overflow:hidden;gap:0;background:#111625;border-color:rgba(255,255,255,0.06);display:flex;flex-direction:column;justify-content:flex-start;height:100%;padding:0;">
           <!-- Photo with gradient overlay -->
-          <div style="position:relative;width:100%;height:40%;display:flex;align-items:center;justify-content:center;background:var(--accent);overflow:hidden">
-            ${photoHtml(photoUrl, recap.player.name, true)}
-            <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,var(--card-bg) 100%)"></div>
+          <div style="position:relative;width:100%;height:52%;display:flex;align-items:center;justify-content:center;background:#1a2035;overflow:hidden">
+            ${photoHtml(photoUrl, recap.player.name, true, !recap.player.photoUrl)}
+            <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,#111625 100%)"></div>
           </div>
-          <div style="display:flex;flex-direction:column;padding:30px 36px;flex:1;justify-content:space-between;gap:8px">
-            <div style="display:flex;flex-direction:column;gap:6px">
-              <div class="glow-line" style="position:static;width:48px;height:3px;border-radius:2px;margin-bottom:4px"></div>
-              <div class="tracking-wide text-muted" style="font-size:18px;font-weight:600">PLAYER RECAP</div>
-              <div class="font-black" style="font-size:56px;line-height:1;letter-spacing:-0.02em">${esc(cut(recap.player.name, 26))}</div>
-              <div class="text-muted font-medium" style="font-size:28px">${esc(teamLabel)}</div>
-              ${recentRow}
+          <div style="display:flex;flex-direction:column;padding:28px 36px;flex:1;justify-content:flex-start;gap:20px;">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="width:36px;height:3px;background:#ef4444;border-radius:2px;margin-bottom:6px"></div>
+              <div class="tracking-wide text-muted" style="font-size:24px;font-weight:700;color:#94a3b8;letter-spacing:0.18em">PLAYER RECAP</div>
+              <div class="font-black" style="font-size:80px;line-height:1.1;letter-spacing:-0.03em;color:white;margin-top:2px">${esc(cut(recap.player.name, 26))}</div>
+              <div style="font-size:32px;font-weight:700;color:#34d399;margin-top:2px">${esc(teamLabel)}</div>
+              ${recentRowStories}
             </div>
-            <div style="display:flex;flex-wrap:wrap;gap:12px">${metricsHtml(careerMetrics, "lg")}</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;margin-top:auto;margin-bottom:24px;">
+              ${storiesMetricsHtml(careerMetrics)}
+            </div>
           </div>
         </div>`;
     } else {
@@ -202,7 +239,7 @@ export async function GET(request: Request, context: RouteContext) {
             <div style="display:flex;gap:10px">${metricsHtml(careerMetrics, "sm")}</div>
           </div>
           <div style="display:flex;width:260px;flex-shrink:0;border-radius:24px;align-items:center;justify-content:center;background:var(--accent);overflow:hidden;position:relative">
-            ${photoHtml(photoUrl, recap.player.name, false)}
+            ${photoHtml(photoUrl, recap.player.name, false, !recap.player.photoUrl)}
             <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,0.4) 100%)"></div>
           </div>
         </div>`;

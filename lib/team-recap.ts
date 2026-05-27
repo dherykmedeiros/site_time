@@ -17,6 +17,7 @@ export async function buildTeamRecap(matchId: string) {
           id: true,
           name: true,
           shortName: true,
+          slug: true,
           primaryColor: true,
           secondaryColor: true,
           badgeUrl: true,
@@ -114,6 +115,7 @@ export async function buildTeamRecap(matchId: string) {
       opponentBadgeUrl: match.opponentBadgeUrl,
       homeScore: match.homeScore,
       awayScore: match.awayScore,
+      matchStats: match.matchStats,
     },
     team: match.team,
     totals: {
