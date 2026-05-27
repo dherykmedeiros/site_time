@@ -73,6 +73,14 @@ async function getMatchByIdOrToken(idOrToken: string) {
               shirtNumber: true,
             },
           },
+          guestPlayer: {
+            select: {
+              id: true,
+              name: true,
+              position: true,
+              shirtNumber: true,
+            },
+          },
         },
         orderBy: {
           sortOrder: "asc",
@@ -486,21 +494,24 @@ export default async function PublicRecapPage({ params }: PageProps) {
               {/* Starters overlay */}
               <div className="relative w-full h-full z-10">
                 {starters.map((sel) => {
+                  const p = sel.player || sel.guestPlayer;
+                  if (!p) return null;
+
                   // If coordinates are set in the database, use them. Otherwise, default to standard grid placements based on index or position type.
                   let posX = sel.fieldX ?? 50;
                   let posY = sel.fieldY ?? 50;
 
                   // Fallback positioning if coords are undefined
                   if (sel.fieldX == null || sel.fieldY == null) {
-                    if (sel.player.position === "GOALKEEPER") { posX = 50; posY = 88; }
-                    else if (sel.player.position === "LEFT_BACK") { posX = 15; posY = 65; }
-                    else if (sel.player.position === "RIGHT_BACK") { posX = 85; posY = 65; }
-                    else if (sel.player.position === "DEFENDER") { posX = 50; posY = 72; }
-                    else if (sel.player.position === "DEFENSIVE_MIDFIELDER") { posX = 50; posY = 48; }
-                    else if (sel.player.position === "MIDFIELDER") { posX = 50; posY = 35; }
-                    else if (sel.player.position === "LEFT_WINGER") { posX = 20; posY = 18; }
-                    else if (sel.player.position === "RIGHT_WINGER") { posX = 80; posY = 18; }
-                    else if (sel.player.position === "FORWARD") { posX = 50; posY = 15; }
+                    if (p.position === "GOALKEEPER") { posX = 50; posY = 88; }
+                    else if (p.position === "LEFT_BACK") { posX = 15; posY = 65; }
+                    else if (p.position === "RIGHT_BACK") { posX = 85; posY = 65; }
+                    else if (p.position === "DEFENDER") { posX = 50; posY = 72; }
+                    else if (p.position === "DEFENSIVE_MIDFIELDER") { posX = 50; posY = 48; }
+                    else if (p.position === "MIDFIELDER") { posX = 50; posY = 35; }
+                    else if (p.position === "LEFT_WINGER") { posX = 20; posY = 18; }
+                    else if (p.position === "RIGHT_WINGER") { posX = 80; posY = 18; }
+                    else if (p.position === "FORWARD") { posX = 50; posY = 15; }
                   }
 
                   return (
@@ -514,12 +525,12 @@ export default async function PublicRecapPage({ params }: PageProps) {
                     >
                       {/* Shirt circle */}
                       <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#10b981] border border-black text-black font-black text-[10px] sm:text-xs flex items-center justify-center shadow-lg relative group-hover:scale-110 group-hover:bg-[#34d399] transition-transform">
-                        {sel.player.shirtNumber}
+                        {p.shirtNumber ?? "—"}
                       </div>
                       
                       {/* Name tag */}
                       <div className="bg-black/80 px-2 py-0.5 rounded border border-white/10 text-[8px] sm:text-[9px] font-bold text-white max-w-[80px] truncate text-center shadow-sm">
-                        {sel.player.name}
+                        {p.name}
                       </div>
                     </div>
                   );
@@ -535,17 +546,21 @@ export default async function PublicRecapPage({ params }: PageProps) {
                   Titulares ({starters.length})
                 </h4>
                 <div className="divide-y divide-white/5">
-                  {starters.map((sel) => (
-                    <div key={sel.id} className="flex items-center justify-between py-2 text-xs">
-                      <div className="flex items-center gap-3">
-                        <span className="w-5 font-black text-[#8fa39b]">{sel.player.shirtNumber}</span>
-                        <span className="font-bold text-white">{sel.player.name}</span>
+                  {starters.map((sel) => {
+                    const p = sel.player || sel.guestPlayer;
+                    if (!p) return null;
+                    return (
+                      <div key={sel.id} className="flex items-center justify-between py-2 text-xs">
+                        <div className="flex items-center gap-3">
+                          <span className="w-5 font-black text-[#8fa39b]">{p.shirtNumber ?? "—"}</span>
+                          <span className="font-bold text-white">{p.name}</span>
+                        </div>
+                        <span className="text-[10px] uppercase font-bold text-[#8fa39b]">
+                          {(p.position && positionLabels[p.position]) || p.position || "FORWARD"}
+                        </span>
                       </div>
-                      <span className="text-[10px] uppercase font-bold text-[#8fa39b]">
-                        {positionLabels[sel.player.position] || sel.player.position}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -556,17 +571,21 @@ export default async function PublicRecapPage({ params }: PageProps) {
                 </h4>
                 {bench.length > 0 ? (
                   <div className="divide-y divide-white/5">
-                    {bench.map((sel) => (
-                      <div key={sel.id} className="flex items-center justify-between py-2 text-xs">
-                        <div className="flex items-center gap-3">
-                          <span className="w-5 font-black text-[#8fa39b]">{sel.player.shirtNumber}</span>
-                          <span className="font-bold text-white">{sel.player.name}</span>
+                    {bench.map((sel) => {
+                      const p = sel.player || sel.guestPlayer;
+                      if (!p) return null;
+                      return (
+                        <div key={sel.id} className="flex items-center justify-between py-2 text-xs">
+                          <div className="flex items-center gap-3">
+                            <span className="w-5 font-black text-[#8fa39b]">{p.shirtNumber ?? "—"}</span>
+                            <span className="font-bold text-white">{p.name}</span>
+                          </div>
+                          <span className="text-[10px] uppercase font-bold text-[#8fa39b]">
+                            {(p.position && positionLabels[p.position]) || p.position || "FORWARD"}
+                          </span>
                         </div>
-                        <span className="text-[10px] uppercase font-bold text-[#8fa39b]">
-                          {positionLabels[sel.player.position] || sel.player.position}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-xs text-[#8fa39b] italic">Nenhum jogador no banco de reservas.</p>

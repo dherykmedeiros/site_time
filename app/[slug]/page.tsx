@@ -219,15 +219,15 @@ const positionOrder: Record<string, number> = {
 function getTacticalPositions(starters: any[]) {
   // Separate players into custom placement (database coords) and automatic placement
   const customPlacements = starters.filter(s => s.fieldX != null && s.fieldY != null).map(s => {
-    const p = s.player;
+    const p = s.player || s.guestPlayer;
     // Swapped for horizontal screen display
     const x = s.fieldY;
     const y = s.fieldX;
     return {
       id: s.id,
-      name: p.name,
-      shirtNumber: p.shirtNumber,
-      position: p.position,
+      name: p?.name || "Convidado",
+      shirtNumber: p?.shirtNumber || 0,
+      position: p?.position || "FORWARD",
       x,
       y
     };
@@ -242,8 +242,8 @@ function getTacticalPositions(starters: any[]) {
   const fwds: any[] = [];
 
   autoPlacements.forEach((s) => {
-    const p = s.player;
-    const pos = p.position.toUpperCase();
+    const p = s.player || s.guestPlayer;
+    const pos = (p?.position || "FORWARD").toUpperCase();
     if (pos === "GOALKEEPER") {
       gks.push(s);
     } else if (["DEFENDER", "LEFT_BACK", "RIGHT_BACK"].includes(pos)) {
@@ -257,8 +257,10 @@ function getTacticalPositions(starters: any[]) {
 
   // Sort each group by natural vertical order (top-to-bottom on screen)
   const sortByPosition = (a: any, b: any) => {
-    const orderA = positionOrder[a.player.position] || 99;
-    const orderB = positionOrder[b.player.position] || 99;
+    const pA = a.player || a.guestPlayer;
+    const pB = b.player || b.guestPlayer;
+    const orderA = positionOrder[pA?.position || "FORWARD"] || 99;
+    const orderB = positionOrder[pB?.position || "FORWARD"] || 99;
     return orderA - orderB;
   };
 
@@ -271,11 +273,12 @@ function getTacticalPositions(starters: any[]) {
 
   // 1. Goalkeepers
   gks.forEach((s) => {
+    const p = s.player || s.guestPlayer;
     mappedAuto.push({
       id: s.id,
-      name: s.player.name,
-      shirtNumber: s.player.shirtNumber,
-      position: s.player.position,
+      name: p?.name || "Convidado",
+      shirtNumber: p?.shirtNumber || 0,
+      position: p?.position || "GOALKEEPER",
       x: 12,
       y: 50,
     });
@@ -284,6 +287,7 @@ function getTacticalPositions(starters: any[]) {
   // 2. Defenders
   const D = defs.length;
   defs.forEach((s, idx) => {
+    const p = s.player || s.guestPlayer;
     let px = 22;
     let py = 50;
     if (D === 4) {
@@ -320,9 +324,9 @@ function getTacticalPositions(starters: any[]) {
     }
     mappedAuto.push({
       id: s.id,
-      name: s.player.name,
-      shirtNumber: s.player.shirtNumber,
-      position: s.player.position,
+      name: p?.name || "Convidado",
+      shirtNumber: p?.shirtNumber || 0,
+      position: p?.position || "DEFENDER",
       x: px,
       y: py,
     });
@@ -331,6 +335,7 @@ function getTacticalPositions(starters: any[]) {
   // 3. Midfielders
   const M = mids.length;
   mids.forEach((s, idx) => {
+    const p = s.player || s.guestPlayer;
     let px = 44;
     let py = 50;
     if (M === 3) {
@@ -364,9 +369,9 @@ function getTacticalPositions(starters: any[]) {
     }
     mappedAuto.push({
       id: s.id,
-      name: s.player.name,
-      shirtNumber: s.player.shirtNumber,
-      position: s.player.position,
+      name: p?.name || "Convidado",
+      shirtNumber: p?.shirtNumber || 0,
+      position: p?.position || "MIDFIELDER",
       x: px,
       y: py,
     });
@@ -375,6 +380,7 @@ function getTacticalPositions(starters: any[]) {
   // 4. Forwards
   const F = fwds.length;
   fwds.forEach((s, idx) => {
+    const p = s.player || s.guestPlayer;
     let px = 80;
     let py = 50;
     if (F === 3) {
@@ -402,9 +408,9 @@ function getTacticalPositions(starters: any[]) {
     }
     mappedAuto.push({
       id: s.id,
-      name: s.player.name,
-      shirtNumber: s.player.shirtNumber,
-      position: s.player.position,
+      name: p?.name || "Convidado",
+      shirtNumber: p?.shirtNumber || 0,
+      position: p?.position || "FORWARD",
       x: px,
       y: py,
     });
@@ -518,6 +524,7 @@ async function getTeamData(slug: string) {
           lineupSelections: {
             include: {
               player: true,
+              guestPlayer: true,
             },
             orderBy: {
               sortOrder: "asc",

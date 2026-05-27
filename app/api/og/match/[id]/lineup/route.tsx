@@ -51,6 +51,15 @@ export async function GET(_request: Request, context: RouteContext) {
           },
         },
       },
+      guestPlayers: {
+        select: {
+          id: true,
+          name: true,
+          position: true,
+          shirtNumber: true,
+          createdAt: true,
+        },
+      },
       lineupSelections: {
         orderBy: [{ role: "asc" }, { sortOrder: "asc" }],
         select: {
@@ -59,7 +68,16 @@ export async function GET(_request: Request, context: RouteContext) {
           fieldX: true,
           fieldY: true,
           updatedAt: true,
+          playerId: true,
+          guestPlayerId: true,
           player: {
+            select: {
+              id: true,
+              name: true,
+              position: true,
+            },
+          },
+          guestPlayer: {
             select: {
               id: true,
               name: true,
@@ -77,15 +95,26 @@ export async function GET(_request: Request, context: RouteContext) {
 
   const snapshot = buildMatchLineupSnapshot({
     matchId: match.id,
-    confirmedPlayers: match.rsvps.map((rsvp) => ({
-      playerId: rsvp.player.id,
-      playerName: rsvp.player.name,
-      position: rsvp.player.position,
-      shirtNumber: rsvp.player.shirtNumber,
-      createdAt: rsvp.player.createdAt,
-      status: rsvp.player.status,
-      rsvpStatus: rsvp.status,
-    })),
+    confirmedPlayers: [
+      ...match.rsvps.map((rsvp) => ({
+        playerId: rsvp.player.id,
+        playerName: rsvp.player.name,
+        position: rsvp.player.position,
+        shirtNumber: rsvp.player.shirtNumber,
+        createdAt: rsvp.player.createdAt,
+        status: rsvp.player.status,
+        rsvpStatus: rsvp.status,
+      })),
+      ...match.guestPlayers.map((guest) => ({
+        playerId: guest.id,
+        playerName: guest.name,
+        position: guest.position || "FORWARD",
+        shirtNumber: guest.shirtNumber || 0,
+        createdAt: guest.createdAt,
+        status: "ACTIVE" as const,
+        rsvpStatus: "CONFIRMED" as const,
+      })),
+    ],
     positionLimits: match.positionLimits.map((limit) => ({
       position: limit.position,
       maxPlayers: limit.maxPlayers,
@@ -96,7 +125,13 @@ export async function GET(_request: Request, context: RouteContext) {
       fieldX: selection.fieldX,
       fieldY: selection.fieldY,
       updatedAt: selection.updatedAt,
-      player: selection.player,
+      player: selection.playerId 
+        ? selection.player! 
+        : {
+            id: selection.guestPlayer!.id,
+            name: selection.guestPlayer!.name,
+            position: selection.guestPlayer!.position || "FORWARD",
+          },
     })),
     savedFormation: match.lineupFormation,
     savedBlockPreset: match.lineupBlockPreset,

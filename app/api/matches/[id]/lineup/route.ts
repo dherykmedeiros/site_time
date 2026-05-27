@@ -45,6 +45,15 @@ async function loadMatchForLineup(matchId: string, teamId: string) {
           },
         },
       },
+      guestPlayers: {
+        select: {
+          id: true,
+          name: true,
+          position: true,
+          shirtNumber: true,
+          createdAt: true,
+        },
+      },
       lineupSelections: {
         orderBy: [
           { role: "asc" },
@@ -56,7 +65,16 @@ async function loadMatchForLineup(matchId: string, teamId: string) {
           fieldX: true,
           fieldY: true,
           updatedAt: true,
+          playerId: true,
+          guestPlayerId: true,
           player: {
+            select: {
+              id: true,
+              name: true,
+              position: true,
+            },
+          },
+          guestPlayer: {
             select: {
               id: true,
               name: true,
@@ -72,15 +90,26 @@ async function loadMatchForLineup(matchId: string, teamId: string) {
 function buildLineupResponse(match: NonNullable<Awaited<ReturnType<typeof loadMatchForLineup>>>, request: Request) {
   const snapshot = buildMatchLineupSnapshot({
     matchId: match.id,
-    confirmedPlayers: match.rsvps.map((rsvp: (typeof match.rsvps)[number]) => ({
-      playerId: rsvp.player.id,
-      playerName: rsvp.player.name,
-      position: rsvp.player.position,
-      shirtNumber: rsvp.player.shirtNumber,
-      createdAt: rsvp.player.createdAt,
-      status: rsvp.player.status,
-      rsvpStatus: rsvp.status,
-    })),
+    confirmedPlayers: [
+      ...match.rsvps.map((rsvp: (typeof match.rsvps)[number]) => ({
+        playerId: rsvp.player.id,
+        playerName: rsvp.player.name,
+        position: rsvp.player.position,
+        shirtNumber: rsvp.player.shirtNumber,
+        createdAt: rsvp.player.createdAt,
+        status: rsvp.player.status,
+        rsvpStatus: rsvp.status,
+      })),
+      ...match.guestPlayers.map((guest: (typeof match.guestPlayers)[number]) => ({
+        playerId: guest.id,
+        playerName: guest.name,
+        position: guest.position || "FORWARD",
+        shirtNumber: guest.shirtNumber || 0,
+        createdAt: guest.createdAt,
+        status: "ACTIVE" as const,
+        rsvpStatus: "CONFIRMED" as const,
+      })),
+    ],
     positionLimits: match.positionLimits.map((limit: (typeof match.positionLimits)[number]) => ({
       position: limit.position,
       maxPlayers: limit.maxPlayers,
@@ -91,7 +120,13 @@ function buildLineupResponse(match: NonNullable<Awaited<ReturnType<typeof loadMa
       fieldX: selection.fieldX,
       fieldY: selection.fieldY,
       updatedAt: selection.updatedAt,
-      player: selection.player,
+      player: selection.playerId 
+        ? selection.player! 
+        : {
+            id: selection.guestPlayer!.id,
+            name: selection.guestPlayer!.name,
+            position: selection.guestPlayer!.position || "FORWARD",
+          },
     })),
     savedFormation: match.lineupFormation,
     savedBlockPreset: match.lineupBlockPreset,
@@ -210,6 +245,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       .map((rsvp: (typeof match.rsvps)[number]) => rsvp.player.id)
   );
 
+  const guestIds = new Set(match.guestPlayers.map((guest: (typeof match.guestPlayers)[number]) => guest.id));
+
   const allPlayerIds = [...parsed.data.starters.map((entry: { playerId: string }) => entry.playerId), ...parsed.data.bench];
   const uniquePlayerIds = new Set(allPlayerIds);
   if (uniquePlayerIds.size !== allPlayerIds.length) {
@@ -222,11 +259,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     );
   }
 
-  const invalidPlayers = allPlayerIds.filter((playerId) => !eligibleIds.has(playerId));
+  const invalidPlayers = allPlayerIds.filter((playerId) => !eligibleIds.has(playerId) && !guestIds.has(playerId));
   if (invalidPlayers.length > 0) {
     return NextResponse.json(
       {
-        error: "A escalação só pode conter atletas ativos e confirmados",
+        error: "A escalação só pode conter atletas ativos, confirmados ou convidados da partida",
         code: "INVALID_LINEUP_PLAYER",
       },
       { status: 400 }
@@ -244,20 +281,28 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     });
 
     const data = [
-      ...parsed.data.starters.map((entry: { playerId: string; fieldX?: number | null; fieldY?: number | null }, index: number) => ({
-        matchId: id,
-        playerId: entry.playerId,
-        role: "STARTER" as const,
-        sortOrder: index,
-        fieldX: entry.fieldX ?? null,
-        fieldY: entry.fieldY ?? null,
-      })),
-      ...parsed.data.bench.map((playerId: string, index: number) => ({
-        matchId: id,
-        playerId,
-        role: "BENCH" as const,
-        sortOrder: index,
-      })),
+      ...parsed.data.starters.map((entry: { playerId: string; fieldX?: number | null; fieldY?: number | null }, index: number) => {
+        const isGuest = guestIds.has(entry.playerId);
+        return {
+          matchId: id,
+          playerId: isGuest ? null : entry.playerId,
+          guestPlayerId: isGuest ? entry.playerId : null,
+          role: "STARTER" as const,
+          sortOrder: index,
+          fieldX: entry.fieldX ?? null,
+          fieldY: entry.fieldY ?? null,
+        };
+      }),
+      ...parsed.data.bench.map((playerId: string, index: number) => {
+        const isGuest = guestIds.has(playerId);
+        return {
+          matchId: id,
+          playerId: isGuest ? null : playerId,
+          guestPlayerId: isGuest ? playerId : null,
+          role: "BENCH" as const,
+          sortOrder: index,
+        };
+      }),
     ];
 
     if (data.length > 0) {
