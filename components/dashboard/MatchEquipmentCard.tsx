@@ -14,7 +14,9 @@ import {
   RefreshCw, 
   FileText, 
   ShieldAlert,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Shirt,
+  Info
 } from "lucide-react";
 
 interface TeamEquipment {
@@ -35,6 +37,12 @@ interface MatchEquipment {
   notes: string | null;
 }
 
+interface PlayerJersey {
+  playerId: string;
+  playerName: string;
+  shirtNumber: number;
+}
+
 interface MatchEquipmentCardProps {
   matchId: string;
   onSaveSuccess?: () => void;
@@ -50,6 +58,8 @@ const CATEGORY_LABELS: Record<string, string> = {
 export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCardProps) {
   const [teamEquipments, setTeamEquipments] = useState<TeamEquipment[]>([]);
   const [matchEquipments, setMatchEquipments] = useState<MatchEquipment[]>([]);
+  const [playerJerseys, setPlayerJerseys] = useState<PlayerJersey[]>([]);
+  const [matchStatus, setMatchStatus] = useState<string>("SCHEDULED");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,8 +82,34 @@ export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCar
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao carregar materiais");
       
-      setTeamEquipments(data.teamEquipments || []);
-      setMatchEquipments(data.matchEquipments || []);
+      const teamEquips = data.teamEquipments || [];
+      const savedMatchEquips = data.matchEquipments || [];
+      const jerseys = data.playerJerseys || [];
+
+      // Generate synthesized items for any jersey that doesn't have a savedMatchEquips entry yet
+      const synthesizedEquips: MatchEquipment[] = [...savedMatchEquips];
+
+      jerseys.forEach((pj: PlayerJersey) => {
+        const uniformName = `Uniforme #${pj.shirtNumber} - ${pj.playerName}`;
+        const exists = savedMatchEquips.some(
+          (me: MatchEquipment) => me.equipmentId === null && me.name.toLowerCase() === uniformName.toLowerCase()
+        );
+        if (!exists) {
+          synthesizedEquips.push({
+            equipmentId: null,
+            name: uniformName,
+            quantitySent: 1,
+            quantityReturned: 0,
+            returned: false,
+            notes: null,
+          });
+        }
+      });
+
+      setTeamEquipments(teamEquips);
+      setMatchEquipments(synthesizedEquips);
+      setPlayerJerseys(jerseys);
+      setMatchStatus(data.matchStatus || "SCHEDULED");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -100,7 +136,7 @@ export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCar
 
     // Check if already in list
     const exists = matchEquipments.some(
-      (me) => (equipId && me.equipmentId === equipId) || (!equipId && me.name === name)
+      (me) => (equipId && me.equipmentId === equipId) || (!equipId && me.name.toLowerCase() === name.toLowerCase())
     );
 
     if (exists) {
@@ -123,29 +159,31 @@ export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCar
     setQtySent(1);
   }
 
-  function handleRemoveItem(index: number) {
-    setMatchEquipments((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  function handleUpdateQtyReturned(index: number, val: number) {
+  // Uniform return handlers
+  function handleToggleUniformReturned(name: string, checked: boolean) {
     setMatchEquipments((prev) =>
-      prev.map((item, i) => {
-        if (i !== index) return item;
-        const newQtyReturned = Math.max(0, val);
-        const isReturned = newQtyReturned >= item.quantitySent;
+      prev.map((item) => {
+        if (item.name !== name) return item;
         return {
           ...item,
-          quantityReturned: newQtyReturned,
-          returned: isReturned,
+          returned: checked,
+          quantityReturned: checked ? 1 : 0,
         };
       })
     );
   }
 
-  function handleUpdateQtySent(index: number, val: number) {
+  function handleUpdateUniformNotes(name: string, notesVal: string) {
     setMatchEquipments((prev) =>
-      prev.map((item, i) => {
-        if (i !== index) return item;
+      prev.map((item) => (item.name === name ? { ...item, notes: notesVal || null } : item))
+    );
+  }
+
+  // Team material return handlers
+  function handleUpdateTeamMaterialQtySent(name: string, val: number) {
+    setMatchEquipments((prev) =>
+      prev.map((item) => {
+        if (item.name !== name) return item;
         const newQtySent = Math.max(1, val);
         const isReturned = item.quantityReturned >= newQtySent;
         return {
@@ -157,10 +195,25 @@ export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCar
     );
   }
 
-  function handleToggleReturned(index: number, checked: boolean) {
+  function handleUpdateTeamMaterialQtyReturned(name: string, val: number) {
     setMatchEquipments((prev) =>
-      prev.map((item, i) => {
-        if (i !== index) return item;
+      prev.map((item) => {
+        if (item.name !== name) return item;
+        const newQtyReturned = Math.max(0, val);
+        const isReturned = newQtyReturned >= item.quantitySent;
+        return {
+          ...item,
+          quantityReturned: newQtyReturned,
+          returned: isReturned,
+        };
+      })
+    );
+  }
+
+  function handleToggleTeamMaterialReturned(name: string, checked: boolean) {
+    setMatchEquipments((prev) =>
+      prev.map((item) => {
+        if (item.name !== name) return item;
         return {
           ...item,
           returned: checked,
@@ -170,10 +223,14 @@ export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCar
     );
   }
 
-  function handleUpdateNotes(index: number, notesVal: string) {
+  function handleUpdateTeamMaterialNotes(name: string, notesVal: string) {
     setMatchEquipments((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, notes: notesVal || null } : item))
+      prev.map((item) => (item.name === name ? { ...item, notes: notesVal || null } : item))
     );
+  }
+
+  function handleRemoveTeamMaterial(name: string) {
+    setMatchEquipments((prev) => prev.filter((item) => item.name !== name));
   }
 
   async function handleSave() {
@@ -192,7 +249,7 @@ export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCar
       if (!res.ok) throw new Error(data.error || "Erro ao salvar materiais da partida");
 
       setMatchEquipments(data.matchEquipments);
-      setSuccessMsg("Materiais salvos e atualizados com sucesso!");
+      setSuccessMsg("Controle de devolução salvo com sucesso!");
       
       if (onSaveSuccess) {
         onSaveSuccess();
@@ -206,7 +263,18 @@ export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCar
     }
   }
 
-  // Count items with status
+  // Filter lists
+  const uniformItems = matchEquipments.filter(
+    (me) => me.equipmentId === null && me.name.startsWith("Uniforme #")
+  );
+
+  const teamMaterialItems = matchEquipments.filter(
+    (me) => !(me.equipmentId === null && me.name.startsWith("Uniforme #"))
+  );
+
+  const isCompleted = matchStatus === "COMPLETED";
+
+  // Calculations
   const totalItems = matchEquipments.length;
   const returnedItems = matchEquipments.filter((me) => me.returned).length;
   const pendingItems = totalItems - returnedItems;
@@ -216,17 +284,30 @@ export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCar
       <CardHeader className="border-b border-white/5 bg-white/[0.02]">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60] flex items-center gap-1.5">
-              <ArrowRightLeft className="h-3 w-3" />
-              Controle Pós-Jogo
-            </p>
-            <h2 className="text-lg font-bold text-[var(--text)]">Devolução de Materiais e Uniformes</h2>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60] flex items-center gap-1.5">
+                <ArrowRightLeft className="h-3 w-3" />
+                Controle Pós-Jogo
+              </p>
+              {isCompleted ? (
+                <Badge variant="success" className="text-[10px] uppercase font-black tracking-widest bg-emerald-500/10 border-emerald-500/30 text-emerald-400">
+                  🏆 Jogo Finalizado (Modo Devolução)
+                </Badge>
+              ) : (
+                <Badge variant="info" className="text-[10px] uppercase font-black tracking-widest bg-cyan-500/10 border-cyan-500/30 text-cyan-400">
+                  ⚽ Planejamento de Partida
+                </Badge>
+              )}
+            </div>
+            <h2 className="text-lg font-bold text-[var(--text)] mt-1.5">Devolução de Materiais e Uniformes</h2>
             <p className="text-sm text-[var(--text-subtle)]">
-              Monitore os materiais levados para o jogo e garanta o retorno completo dos uniformes.
+              {isCompleted 
+                ? "Confirme se todos os uniformes entregues aos atletas e materiais de inventário voltaram."
+                : "Selecione os materiais levados para o jogo e controle a devolução pós-partida."
+              }
             </p>
           </div>
-
-          <div className="flex items-center gap-2">
+          <div className="flex gap-2">
             <Button
               type="button"
               variant="ghost"
@@ -235,7 +316,7 @@ export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCar
               disabled={loading || saving}
               className="text-xs font-semibold text-[var(--text-subtle)] hover:text-[var(--text)]"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-3.5 w-3.5 mr-1 ${loading ? 'animate-spin' : ''}`} />
               Recarregar
             </Button>
             <Button
@@ -266,118 +347,213 @@ export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCar
           </div>
         )}
 
-        {/* 1. Add Material Box */}
-        <div className="rounded-[14px] border border-white/5 bg-white/[0.03] p-4">
-          <h3 className="text-sm font-bold text-[var(--text)] mb-3 flex items-center gap-2">
-            <Package className="h-4 w-4 text-[#2a6f60]" />
-            Adicionar Materiais para a Partida
-          </h3>
-          <div className="grid gap-4 sm:grid-cols-[1.5fr_1.5fr_0.8fr_auto] items-end">
-            <div>
-              <label className="block text-xs font-semibold text-[var(--text-subtle)] mb-1">Selecione do Inventário</label>
-              <select
-                value={selectedEquipId}
-                onChange={(e) => setSelectedEquipId(e.target.value)}
-                className="w-full rounded-[10px] border border-white/10 bg-white/[0.05] p-2 text-sm text-[var(--text)] focus:border-[#2a6f60] focus:ring-1 focus:ring-[#2a6f60] focus:outline-none"
-              >
-                <option value="custom" className="bg-[#18181b] text-white">✍️ Item Customizado (Digitar nome)</option>
-                {teamEquipments.map((e) => (
-                  <option key={e.id} value={e.id} className="bg-[#18181b] text-white">
-                    {e.name} ({CATEGORY_LABELS[e.category] || e.category}) - Qtd: {e.availableQty}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {selectedEquipId === "custom" && (
+        {/* 1. Add Material Box (Hiden on Completed Matches) */}
+        {!isCompleted && (
+          <div className="rounded-[14px] border border-white/5 bg-white/[0.03] p-4">
+            <h3 className="text-sm font-bold text-[var(--text)] mb-3 flex items-center gap-2">
+              <Package className="h-4 w-4 text-[#2a6f60]" />
+              Adicionar Materiais para a Partida (Pré-Jogo)
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-[1.5fr_1.5fr_0.8fr_auto] items-end">
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-subtle)] mb-1">Nome do Material</label>
+                <label className="block text-xs font-semibold text-[var(--text-subtle)] mb-1">Selecione do Inventário</label>
+                <select
+                  value={selectedEquipId}
+                  onChange={(e) => setSelectedEquipId(e.target.value)}
+                  className="w-full rounded-[10px] border border-white/10 bg-white/[0.05] p-2 text-sm text-[var(--text)] focus:border-[#2a6f60] focus:ring-1 focus:ring-[#2a6f60] focus:outline-none"
+                >
+                  <option value="custom" className="bg-[#18181b] text-white">✍️ Item Customizado (Digitar nome)</option>
+                  {teamEquipments.map((e) => (
+                    <option key={e.id} value={e.id} className="bg-[#18181b] text-white">
+                      {e.name} ({CATEGORY_LABELS[e.category] || e.category}) - Qtd: {e.availableQty}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedEquipId === "custom" && (
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text-subtle)] mb-1">Nome do Material</label>
+                  <Input
+                    type="text"
+                    placeholder="Ex: Coletes Verdes, Faixa Capitão"
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                    className="w-full bg-white/[0.05] border-white/10"
+                  />
+                </div>
+              )}
+
+              {selectedEquipId !== "custom" && (
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text-subtle)] mb-1">Detalhes do Estoque</label>
+                  <div className="rounded-[10px] border border-dashed border-white/10 px-3 py-2 text-xs text-[var(--text-subtle)] bg-white/[0.01]">
+                    Disponível: {teamEquipments.find(e => e.id === selectedEquipId)?.availableQty ?? 0} unidades
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-subtle)] mb-1">Qtd Levada</label>
                 <Input
-                  type="text"
-                  placeholder="Ex: Coletes Verdes, Faixa Capitão"
-                  value={customName}
-                  onChange={(e) => setCustomName(e.target.value)}
-                  className="w-full bg-white/[0.05] border-white/10"
+                  type="number"
+                  min="1"
+                  value={qtySent}
+                  onChange={(e) => setQtySent(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full bg-white/[0.05] border-white/10 text-center"
                 />
               </div>
-            )}
 
-            {selectedEquipId !== "custom" && (
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-subtle)] mb-1">Detalhes do Estoque</label>
-                <div className="rounded-[10px] border border-dashed border-white/10 px-3 py-2 text-xs text-[var(--text-subtle)] bg-white/[0.01]">
-                  Disponível: {teamEquipments.find(e => e.id === selectedEquipId)?.availableQty ?? 0} unidades
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-xs font-semibold text-[var(--text-subtle)] mb-1">Qtd Levada</label>
-              <Input
-                type="number"
-                min="1"
-                value={qtySent}
-                onChange={(e) => setQtySent(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-full bg-white/[0.05] border-white/10 text-center"
-              />
+              <Button
+                type="button"
+                onClick={handleAddMaterial}
+                className="bg-white/10 hover:bg-white/15 text-[var(--text)] font-semibold rounded-[10px]"
+              >
+                <Plus className="h-4 w-4 mr-1 text-[#2a6f60]" />
+                Adicionar
+              </Button>
             </div>
-
-            <Button
-              type="button"
-              onClick={handleAddMaterial}
-              className="bg-white/10 hover:bg-white/15 text-[var(--text)] font-semibold rounded-[10px]"
-            >
-              <Plus className="h-4 w-4 mr-1 text-[#2a6f60]" />
-              Adicionar
-            </Button>
           </div>
-        </div>
+        )}
 
         {/* 2. Metrics & Status */}
         {totalItems > 0 && (
           <div className="grid grid-cols-3 gap-4">
             <div className="rounded-[12px] border border-white/5 bg-white/[0.02] p-3 text-center">
-              <span className="block text-xs text-[var(--text-subtle)] font-medium">Itens Levados</span>
+              <span className="block text-xs text-[var(--text-subtle)] font-medium">Total de Itens</span>
               <span className="text-xl font-bold text-[var(--text)]">{totalItems}</span>
             </div>
             <div className="rounded-[12px] border border-white/5 bg-emerald-500/5 p-3 text-center">
-              <span className="block text-xs text-emerald-400 font-medium">Devolvidos</span>
+              <span className="block text-xs text-emerald-400 font-medium font-bold">Devolvidos</span>
               <span className="text-xl font-bold text-emerald-400">{returnedItems}</span>
             </div>
             <div className="rounded-[12px] border border-white/5 bg-amber-500/5 p-3 text-center">
-              <span className="block text-xs text-amber-400 font-medium">Faltando</span>
+              <span className="block text-xs text-amber-400 font-medium font-bold">Pendentes</span>
               <span className="text-xl font-bold text-amber-400">{pendingItems}</span>
             </div>
           </div>
         )}
 
-        {/* 3. Items Checklist Table */}
-        {loading ? (
-          <p className="text-center text-sm text-[var(--text-subtle)] py-4">Carregando checklist de materiais...</p>
-        ) : matchEquipments.length === 0 ? (
-          <div className="text-center py-8 border border-dashed border-white/10 rounded-[14px] bg-white/[0.01]">
-            <Package className="h-8 w-8 text-white/20 mx-auto mb-2" />
-            <p className="text-sm font-semibold text-[var(--text)]">Nenhum material registrado para esta partida.</p>
-            <p className="text-xs text-[var(--text-subtle)] mt-1">Adicione os uniformes e materiais levados acima.</p>
+        {/* 3. Section: Player Jerseys (Auto Populated from Attendance) */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+            <Shirt className="h-4 w-4 text-[#2a6f60]" />
+            <h3 className="text-sm font-bold text-[var(--text)] uppercase tracking-wide">
+              Devolução de Uniformes dos Atletas
+            </h3>
+            <span className="text-xs text-[var(--text-subtle)] ml-auto font-medium">
+              (Camisas entregues aos presentes com número != 0)
+            </span>
           </div>
-        ) : (
-          <div className="overflow-x-auto rounded-[14px] border border-white/5 bg-white/[0.01]">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/5 bg-white/[0.03] text-xs font-semibold text-[var(--text-subtle)] uppercase">
-                  <th className="p-3">Material</th>
-                  <th className="p-3 text-center w-24">Levados</th>
-                  <th className="p-3 text-center w-24">Devolvidos</th>
-                  <th className="p-3 text-center w-28">Status</th>
-                  <th className="p-3">Observações / Avarias</th>
-                  <th className="p-3 text-center w-16">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5 text-sm">
-                {matchEquipments.map((item, idx) => {
-                  const isUniform = item.name.toLowerCase().includes("uniforme") || item.name.toLowerCase().includes("camisa");
-                  
-                  return (
+
+          {loading ? (
+            <p className="text-sm text-[var(--text-subtle)]">Carregando camisas dos atletas...</p>
+          ) : uniformItems.length === 0 ? (
+            <div className="flex items-center gap-2.5 rounded-[12px] border border-white/5 bg-white/[0.01] p-4 text-xs text-[var(--text-subtle)]">
+              <Info className="h-4 w-4 shrink-0 text-cyan-400" />
+              <span>Nenhum atleta presente foi escalado com número de camisa diferente de 0 no bordero. Defina as camisas no bordero primeiro.</span>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {uniformItems.map((item, idx) => {
+                // Parse jersey number and name out of standard format "Uniforme #XX - Nome"
+                const numberMatch = item.name.match(/#(\d+)/);
+                const nameMatch = item.name.match(/-\s*(.*)/);
+                const jerseyNumber = numberMatch ? numberMatch[1] : "?";
+                const playerName = nameMatch ? nameMatch[1] : item.name;
+
+                return (
+                  <div 
+                    key={idx}
+                    className={`flex flex-col gap-3 rounded-[12px] border p-4 transition-all ${
+                      item.returned 
+                        ? "border-emerald-500/20 bg-emerald-500/[0.02]" 
+                        : "border-white/5 bg-white/[0.02] hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        {/* Round jersey icon badge */}
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2a6f60] font-mono font-black text-sm text-white shadow-md">
+                          {jerseyNumber}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-sm text-[var(--text)] truncate">{playerName}</p>
+                          <p className="text-[10px] text-[var(--text-subtle)] font-medium">Camisa Atribuída</p>
+                        </div>
+                      </div>
+
+                      {/* Returned Checkbox */}
+                      <label className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/5 px-2.5 py-1.5 hover:bg-white/10 transition-colors cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={item.returned}
+                          onChange={(e) => handleToggleUniformReturned(item.name, e.target.checked)}
+                          className="rounded border-white/10 bg-white/[0.05] text-[#2a6f60] focus:ring-[#2a6f60] h-4 w-4"
+                        />
+                        <span className={`text-xs font-bold uppercase tracking-wider ${item.returned ? 'text-emerald-400' : 'text-[var(--text-subtle)]'}`}>
+                          {item.returned ? "Devolvido" : "Pendente"}
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Incidents/Notes */}
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Registrar avaria, mancha ou perda..."
+                        value={item.notes ?? ""}
+                        onChange={(e) => handleUpdateUniformNotes(item.name, e.target.value)}
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-[8px] px-2.5 py-1.5 text-xs text-[var(--text)] placeholder-white/30 focus:border-[#2a6f60] focus:outline-none"
+                      />
+                      {(!item.returned && !item.notes) && (
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] text-amber-400 font-semibold uppercase tracking-wider animate-pulse">
+                          <FileText className="h-2.5 w-2.5" /> Adicionar Nota
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* 4. Section: Team Materials (Cones, Vests, Balls) */}
+        <div className="space-y-4 pt-4">
+          <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+            <Package className="h-4 w-4 text-[#2a6f60]" />
+            <h3 className="text-sm font-bold text-[var(--text)] uppercase tracking-wide">
+              Devolução de Materiais Coletivos do Time
+            </h3>
+            <span className="text-xs text-[var(--text-subtle)] ml-auto font-medium">
+              (Equipamentos do estoque levados a campo)
+            </span>
+          </div>
+
+          {loading ? (
+            <p className="text-sm text-[var(--text-subtle)]">Carregando materiais do time...</p>
+          ) : teamMaterialItems.length === 0 ? (
+            <div className="text-center py-6 border border-dashed border-white/10 rounded-[14px] bg-white/[0.01]">
+              <Package className="h-6 w-6 text-white/20 mx-auto mb-2" />
+              <p className="text-xs font-semibold text-[var(--text-subtle)]">Nenhum material coletivo adicionado para a partida.</p>
+              {!isCompleted && <p className="text-[10px] text-gray-500 mt-0.5">Use o painel de pré-jogo acima para adicionar coletes, bolas, cones, etc.</p>}
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-[14px] border border-white/5 bg-white/[0.01]">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5 bg-white/[0.03] text-xs font-semibold text-[var(--text-subtle)] uppercase">
+                    <th className="p-3">Material</th>
+                    <th className="p-3 text-center w-24">Levados</th>
+                    <th className="p-3 text-center w-24">Devolvidos</th>
+                    <th className="p-3 text-center w-28">Status</th>
+                    <th className="p-3">Observações / Incidentes</th>
+                    {!isCompleted && <th className="p-3 text-center w-16">Ações</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-sm">
+                  {teamMaterialItems.map((item, idx) => (
                     <tr 
                       key={idx} 
                       className={`hover:bg-white/[0.02] transition-colors ${
@@ -388,14 +564,9 @@ export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCar
                             : "bg-red-500/[0.01]"
                       }`}
                     >
-                      {/* Name / Category */}
+                      {/* Name */}
                       <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-[var(--text)]">{item.name}</span>
-                          {isUniform && (
-                            <Badge variant="warning" className="text-[10px] px-1.5 py-0">Uniforme</Badge>
-                          )}
-                        </div>
+                        <span className="font-semibold text-[var(--text)]">{item.name}</span>
                       </td>
 
                       {/* Qty Sent */}
@@ -404,8 +575,9 @@ export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCar
                           type="number"
                           min="1"
                           value={item.quantitySent}
-                          onChange={(e) => handleUpdateQtySent(idx, parseInt(e.target.value) || 0)}
-                          className="w-16 rounded-[8px] border border-white/10 bg-white/[0.05] p-1 text-center text-sm font-semibold text-[var(--text)] focus:border-[#2a6f60] focus:ring-1 focus:ring-[#2a6f60] focus:outline-none"
+                          disabled={isCompleted}
+                          onChange={(e) => handleUpdateTeamMaterialQtySent(item.name, parseInt(e.target.value) || 0)}
+                          className="w-16 rounded-[8px] border border-white/10 bg-white/[0.05] disabled:bg-transparent disabled:border-transparent p-1 text-center text-sm font-semibold text-[var(--text)] focus:border-[#2a6f60] focus:ring-1 focus:ring-[#2a6f60] focus:outline-none"
                         />
                       </td>
 
@@ -415,7 +587,7 @@ export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCar
                           type="number"
                           min="0"
                           value={item.quantityReturned}
-                          onChange={(e) => handleUpdateQtyReturned(idx, parseInt(e.target.value) || 0)}
+                          onChange={(e) => handleUpdateTeamMaterialQtyReturned(item.name, parseInt(e.target.value) || 0)}
                           className="w-16 rounded-[8px] border border-white/10 bg-white/[0.05] p-1 text-center text-sm font-semibold text-[var(--text)] focus:border-[#2a6f60] focus:ring-1 focus:ring-[#2a6f60] focus:outline-none"
                         />
                       </td>
@@ -423,14 +595,14 @@ export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCar
                       {/* Status Checkbox / Badges */}
                       <td className="p-3 text-center">
                         <div className="flex flex-col items-center gap-1.5">
-                          <label className="flex items-center gap-1.5 text-xs text-[var(--text)] cursor-pointer">
+                          <label className="flex items-center gap-1.5 text-xs text-[var(--text)] cursor-pointer select-none">
                             <input
                               type="checkbox"
                               checked={item.returned}
-                              onChange={(e) => handleToggleReturned(idx, e.target.checked)}
+                              onChange={(e) => handleToggleTeamMaterialReturned(item.name, e.target.checked)}
                               className="rounded border-white/10 bg-white/[0.05] text-[#2a6f60] focus:ring-[#2a6f60] h-3.5 w-3.5"
                             />
-                            <span>Completo</span>
+                            <span className="font-medium">Completo</span>
                           </label>
                           {item.returned ? (
                             <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-0.5">
@@ -455,8 +627,8 @@ export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCar
                             type="text"
                             placeholder="Descreva perdas ou avarias se houver..."
                             value={item.notes ?? ""}
-                            onChange={(e) => handleUpdateNotes(idx, e.target.value)}
-                            className="w-full bg-white/[0.03] border border-white/10 rounded-[8px] px-2 py-1 text-xs text-[var(--text)] placeholder-white/30 focus:border-[#2a6f60] focus:outline-none"
+                            onChange={(e) => handleUpdateTeamMaterialNotes(item.name, e.target.value)}
+                            className="w-full bg-white/[0.03] border border-white/10 rounded-[8px] px-2.5 py-1.5 text-xs text-[var(--text)] placeholder-white/30 focus:border-[#2a6f60] focus:outline-none"
                           />
                           {(item.quantityReturned < item.quantitySent && !item.notes) && (
                             <span className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[9px] text-amber-400 font-semibold uppercase tracking-wider animate-pulse">
@@ -467,23 +639,25 @@ export function MatchEquipmentCard({ matchId, onSaveSuccess }: MatchEquipmentCar
                       </td>
 
                       {/* Actions */}
-                      <td className="p-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveItem(idx)}
-                          className="p-1.5 rounded-[8px] hover:bg-red-500/10 text-white/30 hover:text-red-400 transition-colors"
-                          title="Remover Material"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </td>
+                      {!isCompleted && (
+                        <td className="p-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTeamMaterial(item.name)}
+                            className="p-1.5 rounded-[8px] hover:bg-red-500/10 text-white/30 hover:text-red-400 transition-colors"
+                            title="Remover Material"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

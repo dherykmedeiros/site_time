@@ -40,6 +40,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   // Verify match belongs to team
   const match = await prisma.match.findFirst({
     where: { id: matchId, teamId: session.user.teamId },
+    select: { id: true, status: true },
   });
 
   if (!match) {
@@ -61,8 +62,32 @@ export async function GET(request: Request, { params }: RouteParams) {
     orderBy: { name: "asc" },
   });
 
+  // Get present players with jersey number !== 0
+  const presentPlayers = await prisma.matchAttendance.findMany({
+    where: {
+      matchId,
+      present: true,
+      NOT: [
+        { shirtNumber: null },
+        { shirtNumber: 0 }
+      ]
+    },
+    include: {
+      player: {
+        select: { name: true }
+      }
+    }
+  });
+
+  const playerJerseys = presentPlayers.map((att) => ({
+    playerId: att.playerId,
+    playerName: att.player.name,
+    shirtNumber: att.shirtNumber,
+  }));
+
   return NextResponse.json({
     matchId,
+    matchStatus: match.status,
     teamEquipments: teamEquipments.map((e) => ({
       id: e.id,
       name: e.name,
@@ -79,6 +104,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       returned: me.returned,
       notes: me.notes,
     })),
+    playerJerseys,
   });
 }
 

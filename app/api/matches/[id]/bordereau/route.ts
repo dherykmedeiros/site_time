@@ -84,6 +84,7 @@ async function buildBordereauResponse(matchId: string, teamId: string) {
     where: { id: matchId, teamId },
     select: {
       id: true,
+      status: true,
       rsvps: {
         select: {
           playerId: true,
@@ -130,17 +131,25 @@ async function buildBordereauResponse(matchId: string, teamId: string) {
       isChecked: item.isChecked,
       sortOrder: item.sortOrder,
     })),
-    attendance: players.map((player) => {
-      const attendance = attendanceMap.get(player.id);
-      return {
-        playerId: player.id,
-        playerName: player.name,
-        rsvpStatus: rsvpMap.get(player.id) ?? "PENDING",
-        present: attendance?.present ?? false,
-        checkedInAt: attendance?.checkedInAt?.toISOString() ?? null,
-        shirtNumber: attendance?.shirtNumber ?? 0,
-      };
-    }),
+    attendance: players
+      .map((player) => {
+        const attendance = attendanceMap.get(player.id);
+        return {
+          playerId: player.id,
+          playerName: player.name,
+          rsvpStatus: rsvpMap.get(player.id) ?? "PENDING",
+          present: attendance?.present ?? false,
+          checkedInAt: attendance?.checkedInAt?.toISOString() ?? null,
+          shirtNumber: attendance?.shirtNumber ?? 0,
+        };
+      })
+      .filter((item) => {
+        if (match.status === "COMPLETED") {
+          return item.present;
+        } else {
+          return item.rsvpStatus !== "DECLINED";
+        }
+      }),
     expenses: expenseRows.map((expense) => ({
       id: expense.id,
       amount: Number(expense.amount),
