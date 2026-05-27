@@ -492,7 +492,7 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
                 </h3>
               </CardHeader>
               <CardContent>
-                {(live.liveStatus === "FIRST_HALF" || live.liveStatus === "SECOND_HALF") ? (
+                {(live.liveStatus === "FIRST_HALF" || live.liveStatus === "SECOND_HALF" || live.liveStatus === "HALF_TIME") ? (
                   <form onSubmit={handleAddEvent} className="space-y-4">
                     
                     {/* Event Type Select */}
@@ -571,7 +571,7 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
                       loading={submitting}
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Lançar Evento aos {formatTime(live.liveStatus === "FIRST_HALF" ? firstHalfSeconds : secondHalfSeconds)}
+                      Lançar Evento aos {live.liveStatus === "HALF_TIME" ? "Intervalo" : formatTime(live.liveStatus === "FIRST_HALF" ? firstHalfSeconds : secondHalfSeconds)}
                     </Button>
 
                   </form>

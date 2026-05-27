@@ -52,10 +52,10 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 
-  // Live events can only be added while a half is running
-  if (live.liveStatus !== "FIRST_HALF" && live.liveStatus !== "SECOND_HALF") {
+  // Live events can only be added while a half is running or during halftime
+  if (live.liveStatus !== "FIRST_HALF" && live.liveStatus !== "SECOND_HALF" && live.liveStatus !== "HALF_TIME") {
     return NextResponse.json(
-      { error: "A partida precisa estar com o cronômetro rolando para registrar eventos.", code: "LIVE_STATE_ERROR" },
+      { error: "A partida precisa estar com o cronômetro rolando ou no intervalo para registrar eventos.", code: "LIVE_STATE_ERROR" },
       { status: 400 }
     );
   }
@@ -87,12 +87,15 @@ export async function POST(request: Request, { params }: RouteParams) {
   // Calculate minute based on timestamps
   const now = new Date();
   let minute = 1;
-  const half = live.liveStatus === "FIRST_HALF" ? 1 : 2;
+  const half = live.liveStatus === "FIRST_HALF" || live.liveStatus === "HALF_TIME" ? 1 : 2;
 
-  if (half === 1 && live.firstHalfStart) {
+  if (live.liveStatus === "FIRST_HALF" && live.firstHalfStart) {
     const diffMs = now.getTime() - new Date(live.firstHalfStart).getTime();
     minute = Math.max(1, Math.round(diffMs / 60000));
-  } else if (half === 2 && live.secondHalfStart) {
+  } else if (live.liveStatus === "HALF_TIME" && live.firstHalfStart && live.firstHalfEnd) {
+    const diffMs = new Date(live.firstHalfEnd).getTime() - new Date(live.firstHalfStart).getTime();
+    minute = Math.max(1, Math.round(diffMs / 60000));
+  } else if (live.liveStatus === "SECOND_HALF" && live.secondHalfStart) {
     const diffMs = now.getTime() - new Date(live.secondHalfStart).getTime();
     minute = Math.max(1, Math.round(diffMs / 60000));
   }
