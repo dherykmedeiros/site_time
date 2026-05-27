@@ -28,6 +28,12 @@ function badgeHtml(url: string | null, name: string): string {
     : `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:22px;font-weight:800">${esc(name.slice(0, 2).toUpperCase())}</div>`;
 }
 
+function cleanBadgeHtml(url: string | null, name: string, size: number, isDark: boolean = false): string {
+  return url
+    ? `<img src="${esc(url)}" alt="${esc(name)}" style="max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 12px 24px rgba(0,0,0,${isDark ? 0.4 : 0.12}))">`
+    : `<div style="display:flex;align-items:center;justify-content:center;width:${size}px;height:${size}px;border-radius:50%;background:${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'};color:${isDark ? 'white' : 'black'};font-size:24px;font-weight:800">${esc(name.slice(0, 2).toUpperCase())}</div>`;
+}
+
 export async function GET(request: Request, context: RouteContext) {
   const { matchId } = await context.params;
   const { searchParams } = new URL(request.url);
@@ -122,16 +128,16 @@ export async function GET(request: Request, context: RouteContext) {
           <!-- Scoreboard / Badge part with giant X -->
           <div style="display:flex;align-items:center;justify-content:center;gap:40px;width:100%;margin-top:-20px;position:relative;z-index:2;padding:0 48px;">
             <!-- Home badge -->
-            <div class="badge badge-lg" style="width:200px;height:200px;border:4px solid white;box-shadow:0 12px 36px rgba(0,0,0,0.15);background:white;border-radius:50%">
-              ${badgeHtml(homeBadge, homeName)}
+            <div style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;">
+              ${cleanBadgeHtml(homeBadge, homeName, 200, false)}
             </div>
             
             <!-- Giant X -->
             <div style="font-size:64px;font-weight:300;color:rgba(0,0,0,0.6);margin:0 20px;font-family:'Inter',sans-serif">X</div>
             
             <!-- Away badge -->
-            <div class="badge badge-lg" style="width:200px;height:200px;border:4px solid white;box-shadow:0 12px 36px rgba(0,0,0,0.15);background:white;border-radius:50%">
-              ${badgeHtml(awayBadge, awayName)}
+            <div style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;">
+              ${cleanBadgeHtml(awayBadge, awayName, 200, false)}
             </div>
           </div>
 
@@ -252,17 +258,17 @@ export async function GET(request: Request, context: RouteContext) {
             
             <!-- Badges Center Scoreboard -->
             <div style="display:flex;align-items:center;justify-content:center;gap:32px;width:100%;margin-top:10px">
-              <!-- Home badge container with clean light frame -->
-              <div style="width:130px;height:130px;border-radius:50%;background:white;box-shadow:0 8px 24px rgba(0,0,0,0.08);padding:4px;display:flex;align-items:center;justify-content:center;">
-                ${badgeHtml(homeBadge, homeName)}
+              <!-- Home badge container floating -->
+              <div style="width:140px;height:140px;display:flex;align-items:center;justify-content:center;">
+                ${cleanBadgeHtml(homeBadge, homeName, 140, false)}
               </div>
 
               <!-- Center thin VS -->
               <div style="font-size:32px;font-weight:300;color:rgba(0,0,0,0.4);font-family:'Inter',sans-serif">VS</div>
 
-              <!-- Away badge container with clean light frame -->
-              <div style="width:130px;height:130px;border-radius:50%;background:white;box-shadow:0 8px 24px rgba(0,0,0,0.08);padding:4px;display:flex;align-items:center;justify-content:center;">
-                ${badgeHtml(awayBadge, awayName)}
+              <!-- Away badge container floating -->
+              <div style="width:140px;height:140px;display:flex;align-items:center;justify-content:center;">
+                ${cleanBadgeHtml(awayBadge, awayName, 140, false)}
               </div>
             </div>
 
