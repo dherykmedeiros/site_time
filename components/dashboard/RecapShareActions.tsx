@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 
 function isColorLight(colorStr: string): boolean {
   if (!colorStr) return false;
@@ -56,6 +56,7 @@ export function RecapShareActions({
   format: formatProp,
   theme: themeProp,
 }: RecapShareActionsProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<OgFormat>(formatProp ?? "landscape");
   const [selectedTheme, setSelectedTheme] = useState<OgTheme>(themeProp ?? "classic");
@@ -64,6 +65,10 @@ export function RecapShareActions({
   useEffect(() => {
     if (typeof window !== "undefined") {
       const getBrandProp = () => {
+        if (containerRef.current) {
+          const compBrand = window.getComputedStyle(containerRef.current).getPropertyValue("--brand").trim();
+          if (compBrand) return compBrand;
+        }
         const docBrand = window.getComputedStyle(document.documentElement).getPropertyValue("--brand").trim();
         if (docBrand) return docBrand;
         const bodyBrand = window.getComputedStyle(document.body).getPropertyValue("--brand").trim();
@@ -191,7 +196,7 @@ export function RecapShareActions({
   const brandTextColor = isBrandLight ? "text-slate-950 font-black" : "text-white font-bold";
 
   return (
-    <div className="space-y-3">
+    <div ref={containerRef} className="space-y-3">
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
