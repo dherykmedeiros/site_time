@@ -89,6 +89,7 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
   const [eventType, setEventType] = useState<"GOAL" | "ASSIST" | "YELLOW_CARD" | "RED_CARD" | "SUBSTITUTION">("GOAL");
   const [selectedPlayerKey, setSelectedPlayerKey] = useState(""); // format: "player_ID" or "guest_ID" or ""
   const [selectedPlayerInKey, setSelectedPlayerInKey] = useState(""); // format: "player_ID" or "guest_ID" or ""
+  const [selectedAssistPlayerKey, setSelectedAssistPlayerKey] = useState(""); // format: "player_ID" or "guest_ID" or ""
   const [eventDescription, setEventDescription] = useState("");
 
   const handleShareGoal = async (event: any) => {
@@ -248,6 +249,17 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
       guestPlayerId = selectedPlayerKey.replace("guest_", "");
     }
 
+    let assistPlayerId: string | null = null;
+    let assistGuestPlayerId: string | null = null;
+
+    if (eventType === "GOAL" && selectedAssistPlayerKey) {
+      if (selectedAssistPlayerKey.startsWith("player_")) {
+        assistPlayerId = selectedAssistPlayerKey.replace("player_", "");
+      } else if (selectedAssistPlayerKey.startsWith("guest_")) {
+        assistGuestPlayerId = selectedAssistPlayerKey.replace("guest_", "");
+      }
+    }
+
     let finalDescription = eventDescription.trim() || null;
 
     if (eventType === "SUBSTITUTION") {
@@ -273,6 +285,8 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
           type: eventType,
           playerId,
           guestPlayerId,
+          assistPlayerId,
+          assistGuestPlayerId,
           description: finalDescription,
         }),
       });
@@ -282,6 +296,7 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
 
       setSelectedPlayerKey("");
       setSelectedPlayerInKey("");
+      setSelectedAssistPlayerKey("");
       setEventDescription("");
       await refreshLiveState();
     } catch (err: any) {
@@ -622,13 +637,26 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
                         {/* Player Dropdown */}
                         <div>
                           <Select
-                            label="Quem participou?"
+                            label={eventType === "GOAL" ? "Autor do Gol" : "Quem participou?"}
                             options={playerOptions}
                             value={selectedPlayerKey}
                             onChange={(e) => setSelectedPlayerKey(e.target.value)}
-                            placeholder="Nenhum / Gol do adversário..."
+                            placeholder={eventType === "GOAL" ? "Selecione o autor do gol..." : "Nenhum / Gol do adversário..."}
                           />
                         </div>
+
+                        {/* Optional Assist Dropdown (Only for Goal) */}
+                        {eventType === "GOAL" && (
+                          <div>
+                            <Select
+                              label="Assistência (Passe para o Gol)"
+                              options={playerOptions}
+                              value={selectedAssistPlayerKey}
+                              onChange={(e) => setSelectedAssistPlayerKey(e.target.value)}
+                              placeholder="Sem assistência / Não teve..."
+                            />
+                          </div>
+                        )}
 
                         {/* Optional description */}
                         <div>

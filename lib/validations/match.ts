@@ -308,6 +308,8 @@ export const liveEventSchema = z.object({
   }),
   playerId: z.string().min(1).optional().nullable(),
   guestPlayerId: z.string().min(1).optional().nullable(),
+  assistPlayerId: z.string().min(1).optional().nullable(),
+  assistGuestPlayerId: z.string().min(1).optional().nullable(),
   description: z
     .string()
     .max(200, "Descrição deve ter no máximo 200 caracteres")
@@ -318,6 +320,12 @@ export const liveEventSchema = z.object({
   {
     message: "Informe playerId OU guestPlayerId, mas não ambos",
     path: ["playerId"],
+  }
+).refine(
+  (data) => !(data.assistPlayerId && data.assistGuestPlayerId),
+  {
+    message: "Informe assistPlayerId OU assistGuestPlayerId, mas não ambos",
+    path: ["assistPlayerId"],
   }
 );
 

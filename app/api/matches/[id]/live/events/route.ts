@@ -82,7 +82,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 
-  const { type, playerId, guestPlayerId, description } = parsed.data;
+  const { type, playerId, guestPlayerId, description, assistPlayerId, assistGuestPlayerId } = parsed.data;
 
   // Calculate minute based on timestamps
   const now = new Date();
@@ -136,6 +136,21 @@ export async function POST(request: Request, { params }: RouteParams) {
           awayScore: { increment: awayIncrement },
         },
       });
+
+      // If an assist was specified alongside our team's goal, create the ASSIST event
+      if (isOurTeamGoal && (assistPlayerId || assistGuestPlayerId)) {
+        await tx.matchLiveEvent.create({
+          data: {
+            matchLiveId: live.id,
+            type: "ASSIST",
+            minute,
+            half,
+            playerId: assistPlayerId || null,
+            guestPlayerId: assistGuestPlayerId || null,
+            description: "Assistência para o gol",
+          },
+        });
+      }
     }
 
     return newEvent;
