@@ -16,7 +16,8 @@ import {
   Activity, 
   Award,
   AlertTriangle,
-  UserCheck
+  UserCheck,
+  Share2
 } from "lucide-react";
 
 interface LiveEvent {
@@ -89,6 +90,34 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
   const [selectedPlayerKey, setSelectedPlayerKey] = useState(""); // format: "player_ID" or "guest_ID" or ""
   const [selectedPlayerInKey, setSelectedPlayerInKey] = useState(""); // format: "player_ID" or "guest_ID" or ""
   const [eventDescription, setEventDescription] = useState("");
+
+  const handleShareGoal = async (event: any) => {
+    const pName = event.player?.name || event.guestPlayer?.name || "Jogador";
+    const shareUrl = `${window.location.origin}/api/og/goal/${event.id}`;
+    
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: `⚽ GOL DO TIME!`,
+          text: `GOLAÇO do ${pName} aos ${event.minute}' do ${event.half}º Tempo! Confira no nosso portal oficial!`,
+          url: shareUrl,
+        });
+        return;
+      } catch (err) {
+        // Silent catch
+      }
+    }
+    
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+      } catch (err) {
+        console.error("Erro ao copiar link", err);
+      }
+    }
+    
+    window.open(shareUrl, "_blank", "noopener,noreferrer");
+  };
 
   useEffect(() => {
     fetchInitialData();
@@ -730,15 +759,26 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
                           </div>
                         </div>
 
-                        {live.liveStatus !== "FINISHED" && (
-                          <button
-                            onClick={() => handleDeleteEvent(event.id)}
-                            className="rounded-[8px] p-1.5 text-[var(--text-muted)] hover:bg-[rgba(239,68,68,0.1)] hover:text-[#fca5a5] transition-all"
-                            title="Remover Evento"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isOurGoal && (
+                            <button
+                              onClick={() => handleShareGoal(event)}
+                              className="rounded-[8px] p-1.5 text-[var(--brand)] hover:bg-[var(--brand-soft)] transition-all cursor-pointer"
+                              title="Compartilhar Gol (Stories)"
+                            >
+                              <Share2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {live.liveStatus !== "FINISHED" && (
+                            <button
+                              onClick={() => handleDeleteEvent(event.id)}
+                              className="rounded-[8px] p-1.5 text-[var(--text-muted)] hover:bg-[rgba(239,68,68,0.1)] hover:text-[#fca5a5] transition-all cursor-pointer"
+                              title="Remover Evento"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
