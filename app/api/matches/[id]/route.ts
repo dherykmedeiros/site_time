@@ -207,6 +207,8 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
       redCards: stat.redCards,
     })),
     canSubmitPostGame,
+    hasCharge: finalMatch.hasCharge,
+    chargeAmount: finalMatch.chargeAmount ? Number(finalMatch.chargeAmount) : null,
     createdAt: finalMatch.createdAt.toISOString(),
     updatedAt: finalMatch.updatedAt.toISOString(),
   });
@@ -526,6 +528,8 @@ function buildMatchDetailResponse(
     season: { id: string; name: string; type: string; status: string } | null;
     positionLimits: Array<{ position: string; maxPlayers: number }>;
     shareToken: string;
+    hasCharge: boolean;
+    chargeAmount: Prisma.Decimal | null | number;
     createdAt: Date;
     updatedAt: Date;
     team: { slug: string };
@@ -566,6 +570,8 @@ function buildMatchDetailResponse(
     season: match.season,
     positionLimits: match.positionLimits,
     shareToken: match.shareToken,
+    hasCharge: match.hasCharge,
+    chargeAmount: match.chargeAmount ? Number(match.chargeAmount) : null,
     shareUrl,
     rsvps: match.rsvps.map((rsvp) => ({
       playerId: rsvp.playerId,

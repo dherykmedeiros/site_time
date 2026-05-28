@@ -17,6 +17,7 @@ import { TeamRecapWidget } from "@/components/dashboard/TeamRecapWidget";
 import { MatchPhotosGallery } from "@/components/dashboard/MatchPhotosGallery";
 import type { BordereauResponse, SuggestedLineupResponse } from "@/lib/validations/match";
 import { Star } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 const PostGameForm = dynamic(
   () => import("@/components/forms/PostGameForm").then((m) => ({ default: m.PostGameForm })),
@@ -154,6 +155,8 @@ interface MatchDetail {
   rsvps: RSVP[];
   stats: PlayerStat[];
   canSubmitPostGame: boolean;
+  hasCharge: boolean;
+  chargeAmount: number | null;
   season?: { id: string; name: string; type: string; status: string } | null;
   positionLimits?: Array<{ position: string; maxPlayers: number }>;
   createdAt: string;
@@ -167,7 +170,7 @@ interface MatchLineupResponse {
   lineup: SuggestedLineupResponse;
 }
 
-type ScheduledWorkspaceSection = "overview" | "presence" | "lineup" | "operations" | "postgame" | "gallery" | "live" | "guests";
+type ScheduledWorkspaceSection = "overview" | "presence" | "lineup" | "operations" | "postgame" | "gallery" | "live" | "guests" | "charges";
 
 const statusLabels: Record<string, string> = {
   SCHEDULED: "Agendada",
@@ -242,6 +245,73 @@ export default function MatchDetailPage() {
   const [ratingsAverages, setRatingsAverages] = useState<Array<{ playerId: string; averageStars: number; totalRatings: number }>>([]);
   const [canRate, setCanRate] = useState(false);
   const [submittingRatingId, setSubmittingRatingId] = useState<string | null>(null);
+
+  // Match Charges state inside the match detail page
+  const [checklistPlayers, setChecklistPlayers] = useState<any[]>([]);
+  const [checklistLoading, setChecklistLoading] = useState(false);
+  const [togglingPlayerId, setTogglingPlayerId] = useState<string | null>(null);
+  const [chargesFeedback, setChargesFeedback] = useState<string | null>(null);
+  const [chargesError, setChargesError] = useState<string | null>(null);
+
+  const loadChecklistPlayers = useCallback(async () => {
+    if (!id) return;
+    setChecklistLoading(true);
+    setChargesError(null);
+    try {
+      const res = await fetch(`/api/matches/${id}/charges`);
+      if (res.ok) {
+        const data = await res.json();
+        setChecklistPlayers(data.players || []);
+      } else {
+        setChargesError("Erro ao carregar pagamentos");
+      }
+    } catch (err) {
+      setChargesError("Erro de conexão ao carregar pagamentos");
+    } finally {
+      setChecklistLoading(false);
+    }
+  }, [id]);
+
+  const handleTogglePayment = async (playerId: string, isPaid: boolean) => {
+    if (!id || !match) return;
+    setTogglingPlayerId(playerId);
+    setChargesError(null);
+    setChargesFeedback(null);
+    try {
+      const method = isPaid ? "POST" : "DELETE";
+      const res = await fetch(`/api/matches/${id}/charges/${playerId}`, {
+        method,
+      });
+      if (res.ok) {
+        setChecklistPlayers((prev) =>
+          prev.map((p) => {
+            if (p.id === playerId) {
+              return {
+                ...p,
+                payment: isPaid ? { amount: match.chargeAmount } : null,
+              };
+            }
+            return p;
+          })
+        );
+        setChargesFeedback(isPaid ? "Pagamento registrado com sucesso!" : "Pagamento estornado com sucesso!");
+        setTimeout(() => setChargesFeedback(null), 3000);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setChargesError(data.error || "Erro ao atualizar pagamento");
+      }
+    } catch (err) {
+      setChargesError("Erro de conexão");
+    } finally {
+      setTogglingPlayerId(null);
+    }
+  };
+
+  useEffect(() => {
+    if (activeSection === "charges") {
+      loadChecklistPlayers();
+    }
+  }, [activeSection, loadChecklistPlayers]);
 
   const fetchMatch = useCallback(async () => {
     setLoading(true);
@@ -462,10 +532,14 @@ export default function MatchDetailPage() {
       allowedSections.push("guests");
     }
 
+    if (match?.hasCharge) {
+      allowedSections.push("charges");
+    }
+
     if (!allowedSections.includes(activeSection)) {
       setActiveSection("overview");
     }
-  }, [activeSection, isAdmin, isCoachOrAdmin, match?.canSubmitPostGame, match?.status]);
+  }, [activeSection, isAdmin, isCoachOrAdmin, match?.canSubmitPostGame, match?.status, match?.hasCharge]);
 
   function toggleChecklistItem(index: number) {
     setBordereauData((current) => {
@@ -957,6 +1031,9 @@ export default function MatchDetailPage() {
     ...(canSeePostGame
       ? [{ id: "postgame" as const, label: "Pos-jogo", helper: "Placar, estatisticas e compartilhamento" }]
       : []),
+    ...(match.hasCharge
+      ? [{ id: "charges" as const, label: "Cobrança", helper: "Controle de pagamentos do jogo" }]
+      : []),
   ];
 
   return (
@@ -1261,6 +1338,26 @@ export default function MatchDetailPage() {
                 <p className="mt-2 text-lg font-semibold text-[var(--text)]">Fotos do jogo</p>
                 <p className="mt-1 text-sm text-[var(--text-subtle)]">Resenha e fotos da partida.</p>
               </button>
+
+              {match.hasCharge && (
+                <button
+                  type="button"
+                  onClick={() => setActiveSection("charges")}
+                  className={`rounded-[14px] border p-4 text-left transition-colors ${
+                    activeSection === "charges"
+                      ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                      : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white/[0.07]"
+                  }`}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Cobrança</p>
+                  <p className="mt-2 text-lg font-semibold text-[var(--text)]">
+                    {match.chargeAmount != null ? formatCurrency(match.chargeAmount) : "Taxa de jogo"}
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--text-subtle)]">
+                    Acompanhe quem pagou a taxa deste jogo.
+                  </p>
+                </button>
+              )}
             </div>
 
             <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
@@ -1562,6 +1659,112 @@ export default function MatchDetailPage() {
           />
           <MatchEquipmentCard matchId={match.id} />
         </div>
+      )}
+
+      {match.hasCharge && activeSection === "charges" && (
+        <Card className="rounded-[18px]">
+          <CardHeader>
+            <div className="flex flex-col justify-between gap-2 border-b border-white/5 pb-3 sm:flex-row sm:items-center">
+              <div>
+                <h2 className="text-lg font-semibold text-white">Controle de Pagamentos</h2>
+                <p className="text-xs text-[var(--text-muted)] mt-1">
+                  Taxa definida por atleta: <strong className="text-[#34d399]">{match.chargeAmount != null ? formatCurrency(match.chargeAmount) : "R$ 0,00"}</strong>
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-4 text-sm mt-2 sm:mt-0">
+                <div className="rounded-xl bg-white/[0.02] border border-white/5 px-4 py-2 text-center">
+                  <p className="text-xs text-[var(--text-muted)]">Arrecadado</p>
+                  <p className="text-lg font-black text-[#34d399] mt-0.5">
+                    {formatCurrency(
+                      checklistPlayers
+                        .filter((p) => p.payment)
+                        .reduce((sum, p) => sum + (match.chargeAmount || 0), 0)
+                    )}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-white/[0.02] border border-white/5 px-4 py-2 text-center">
+                  <p className="text-xs text-[var(--text-muted)]">Pagos</p>
+                  <p className="text-lg font-black text-white mt-0.5">
+                    {checklistPlayers.filter((p) => p.payment).length} <span className="text-xs font-normal text-[var(--text-muted)]">/ {checklistPlayers.length}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {chargesFeedback && (
+              <div className="rounded-[12px] border border-[#bde0d3] bg-[#e9f8f1] p-3 text-sm text-[#1d5f4f]">
+                {chargesFeedback}
+              </div>
+            )}
+
+            {chargesError && (
+              <div className="rounded-[12px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[var(--danger)]">
+                {chargesError}
+              </div>
+            )}
+
+            {checklistLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#10b981] border-t-transparent" />
+              </div>
+            ) : checklistPlayers.length === 0 ? (
+              <p className="text-center py-8 text-[var(--text-muted)]">Nenhum jogador ativo no elenco.</p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {checklistPlayers.map((p) => {
+                  const isPaid = !!p.payment;
+                  const isToggling = togglingPlayerId === p.id;
+                  
+                  return (
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4 hover:bg-white/[0.04] transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-soft)] text-sm font-black text-[var(--brand)] border border-[var(--brand)]/20">
+                          {p.shirtNumber || "—"}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white text-sm">{p.name}</p>
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {p.present ? (
+                              <Badge variant="success" className="text-[10px] px-1.5 py-0.5">Presente</Badge>
+                            ) : p.rsvp === "CONFIRMED" ? (
+                              <Badge variant="info" className="text-[10px] px-1.5 py-0.5">Confirmou RSVP</Badge>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      {isAdmin ? (
+                        <label className="relative inline-flex items-center cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={isPaid}
+                            disabled={isToggling}
+                            onChange={(e) => handleTogglePayment(p.id, e.target.checked)}
+                            className="sr-only peer"
+                            aria-label={`Toggle payment for ${p.name}`}
+                          />
+                          <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand)]"></div>
+                        </label>
+                      ) : (
+                        <div>
+                          {isPaid ? (
+                            <Badge variant="success" className="bg-green-500/10 text-green-400 border border-green-500/20 text-xs px-2.5 py-1">Pago ✅</Badge>
+                          ) : (
+                            <Badge variant="warning" className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-xs px-2.5 py-1">Pendente ⏳</Badge>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Post-game form (T042) — show when canSubmitPostGame is true */}
