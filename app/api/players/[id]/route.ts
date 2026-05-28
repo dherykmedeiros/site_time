@@ -171,7 +171,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         // Exclude matches where they already have an RSVP
         rsvps: { none: { playerId: id } },
       },
-      select: { id: true },
+      select: { id: true, type: true },
     });
 
     if (futureMatches.length > 0) {
@@ -180,6 +180,7 @@ export async function PATCH(request: Request, context: RouteContext) {
           playerId: id,
           matchId: match.id,
           status: "PENDING" as const,
+          summoned: match.type === "FRIENDLY",
         })),
         skipDuplicates: true,
       });

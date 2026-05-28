@@ -196,6 +196,7 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
       playerName: rsvp.player.name,
       status: rsvp.status,
       respondedAt: rsvp.respondedAt?.toISOString() ?? null,
+      summoned: rsvp.summoned,
     })),
     stats: finalMatch.matchStats.map((stat) => ({
       playerId: stat.playerId || stat.guestPlayerId,
@@ -541,6 +542,7 @@ function buildMatchDetailResponse(
       player: { name: string };
       status: string;
       respondedAt: Date | null;
+      summoned: boolean;
     }>;
     matchStats: Array<{
       playerId: string | null;
@@ -582,6 +584,7 @@ function buildMatchDetailResponse(
       playerName: rsvp.player.name,
       status: rsvp.status,
       respondedAt: rsvp.respondedAt?.toISOString() ?? null,
+      summoned: rsvp.summoned,
     })),
     stats: match.matchStats.map((stat) => ({
       playerId: stat.playerId || stat.guestPlayerId,

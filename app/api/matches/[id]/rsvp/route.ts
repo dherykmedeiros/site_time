@@ -85,6 +85,29 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 
+  // Check if player is summoned for championship matches
+  if (match.type === "CHAMPIONSHIP") {
+    const existingRsvp = await prisma.rSVP.findUnique({
+      where: {
+        playerId_matchId: {
+          playerId: player.id,
+          matchId,
+        },
+      },
+      select: { summoned: true },
+    });
+
+    if (!existingRsvp || !existingRsvp.summoned) {
+      return NextResponse.json(
+        {
+          error: "Apenas jogadores convocados para este jogo podem registrar presença.",
+          code: "NOT_SUMMONED",
+        },
+        { status: 403 }
+      );
+    }
+  }
+
   // Check match hasn't passed (FR-013)
   if (match.date <= new Date()) {
     return NextResponse.json(

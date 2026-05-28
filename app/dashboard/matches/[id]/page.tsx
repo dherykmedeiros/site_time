@@ -128,6 +128,7 @@ interface RSVP {
   playerName: string;
   status: "PENDING" | "CONFIRMED" | "DECLINED";
   respondedAt: string | null;
+  summoned?: boolean;
 }
 
 interface PlayerStat {
@@ -1583,56 +1584,117 @@ export default function MatchDetailPage() {
           </Card>
         )}
 
-      {/* RSVP Summary and Actions */}
-      {match.status === "SCHEDULED" && activeSection === "presence" && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Confirmação de Presença</h2>
-              <div className="flex gap-3 text-sm">
-                <span className="text-green-600">✅ {confirmed}</span>
-                <span className="text-red-600">❌ {declined}</span>
-                <span className="text-yellow-600">⏳ {pending}</span>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* RSVP action buttons for players */}
-            <div className="mb-4 flex gap-3">
-              <Button
-                onClick={() => handleRsvp("CONFIRMED")}
-                disabled={rsvpLoading}
-              >
-                ✅ Confirmar Presença
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => handleRsvp("DECLINED")}
-                disabled={rsvpLoading}
-              >
-                ❌ Recusar
-              </Button>
-            </div>
-
-            {/* RSVP list */}
-            <div className="space-y-2">
-              {match.rsvps.map((rsvp) => (
-                <div
-                  key={rsvp.playerId}
-                  className="flex items-center justify-between rounded-[12px] border border-white/5 bg-white/[0.04] px-4 py-2 hover:bg-white/[0.07] transition-colors"
-                >
-                  <span className="font-medium text-[var(--text)]">
-                    {rsvp.playerName}
-                  </span>
-                  <Badge variant={rsvpStatusVariants[rsvp.status]}>
-                    {rsvpStatusLabels[rsvp.status]}
-                  </Badge>
+      {match.status === "SCHEDULED" && activeSection === "presence" && (() => {
+        const loggedInPlayerRsvp = match.rsvps.find((r) => r.playerId === session?.user?.playerId);
+        const isSummoned = match.type !== "CHAMPIONSHIP" || loggedInPlayerRsvp?.summoned === true;
+        return (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Confirmação de Presença</h2>
+                <div className="flex gap-3 text-sm">
+                  <span className="text-green-600">✅ {confirmed}</span>
+                  <span className="text-red-600">❌ {declined}</span>
+                  <span className="text-yellow-600">⏳ {pending}</span>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* RSVP action buttons for players */}
+              {isSummoned ? (
+                <div className="mb-4 flex gap-3">
+                  <Button
+                    onClick={() => handleRsvp("CONFIRMED")}
+                    disabled={rsvpLoading}
+                  >
+                    ✅ Confirmar Presença
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={() => handleRsvp("DECLINED")}
+                    disabled={rsvpLoading}
+                  >
+                    ❌ Recusar
+                  </Button>
+                </div>
+              ) : (
+                <div className="mb-4 p-4 rounded-xl border border-yellow-500/20 bg-yellow-500/5 flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-yellow-400">Você não foi convocado</p>
+                    <p className="text-xs text-[var(--text-subtle)] mt-1">
+                      Esta é uma partida de campeonato. Apenas jogadores convocados pela comissão técnica podem registrar presença.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* RSVP list */}
+              <div className="space-y-2">
+                {match.rsvps.map((rsvp) => (
+                  <div
+                    key={rsvp.playerId}
+                    className="flex items-center justify-between rounded-[12px] border border-white/5 bg-white/[0.04] px-4 py-2 hover:bg-white/[0.07] transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`font-medium ${match.type === "CHAMPIONSHIP" && !rsvp.summoned ? "text-[var(--text-muted)] line-through" : "text-[var(--text)]"}`}>
+                        {rsvp.playerName}
+                      </span>
+                      {match.type === "CHAMPIONSHIP" && (
+                        <Badge variant={rsvp.summoned ? "success" : "default"}>
+                          {rsvp.summoned ? "Convocado" : "Não Convocado"}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {isCoachOrAdmin && match.type === "CHAMPIONSHIP" && (
+                        <Button
+                          size="sm"
+                          variant={rsvp.summoned ? "ghost" : "secondary"}
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/matches/${match.id}/rsvp/summon`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  playerId: rsvp.playerId,
+                                  summoned: !rsvp.summoned,
+                                }),
+                              });
+                              if (res.ok) {
+                                const updatedSummon = await res.json();
+                                setMatch(prev => {
+                                  if (!prev) return null;
+                                  return {
+                                    ...prev,
+                                    rsvps: prev.rsvps.map((r) =>
+                                      r.playerId === rsvp.playerId
+                                        ? { ...r, summoned: updatedSummon.summoned }
+                                        : r
+                                    ),
+                                  };
+                                });
+                              }
+                            } catch (err) {
+                              console.error("Erro ao alterar convocação", err);
+                            }
+                          }}
+                        >
+                          {rsvp.summoned ? "📋 Desconvocar" : "📋 Convocar"}
+                        </Button>
+                      )}
+                      <Badge variant={rsvpStatusVariants[rsvp.status]}>
+                        {rsvpStatusLabels[rsvp.status]}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* RSVP list for non-scheduled matches */}
       {match.status !== "SCHEDULED" && match.rsvps.length > 0 && activeSection === "presence" && (
@@ -1647,9 +1709,16 @@ export default function MatchDetailPage() {
                   key={rsvp.playerId}
                   className="flex items-center justify-between rounded-[12px] border border-white/5 bg-white/[0.04] px-4 py-2 hover:bg-white/[0.07] transition-colors"
                 >
-                  <span className="font-medium text-[var(--text)]">
-                    {rsvp.playerName}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className={`font-medium ${match.type === "CHAMPIONSHIP" && !rsvp.summoned ? "text-[var(--text-muted)] line-through" : "text-[var(--text)]"}`}>
+                      {rsvp.playerName}
+                    </span>
+                    {match.type === "CHAMPIONSHIP" && (
+                      <Badge variant={rsvp.summoned ? "success" : "default"}>
+                        {rsvp.summoned ? "Convocado" : "Não Convocado"}
+                      </Badge>
+                    )}
+                  </div>
                   <Badge variant={rsvpStatusVariants[rsvp.status]}>
                     {rsvpStatusLabels[rsvp.status]}
                   </Badge>

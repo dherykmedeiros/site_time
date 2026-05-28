@@ -142,7 +142,7 @@ export async function POST(request: Request) {
         status: "SCHEDULED",
         date: { gte: new Date() },
       },
-      select: { id: true },
+      select: { id: true, type: true },
     });
 
     if (futureMatches.length > 0) {
@@ -151,6 +151,7 @@ export async function POST(request: Request) {
           playerId: player.id,
           matchId: match.id,
           status: "PENDING" as const,
+          summoned: match.type === "FRIENDLY",
         })),
         skipDuplicates: true,
       });

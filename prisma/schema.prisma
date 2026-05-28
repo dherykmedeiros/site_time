@@ -381,6 +381,7 @@ model RSVP {
   matchId     String
   match       Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
   respondedAt DateTime?
+  summoned    Boolean    @default(true)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @default(now()) @updatedAt
 

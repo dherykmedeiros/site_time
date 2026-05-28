@@ -229,6 +229,7 @@ export const POST = withErrorHandler(async (request: Request) => {
           playerId: player.id,
           matchId: newMatch.id,
           status: "PENDING" as const,
+          summoned: type === "FRIENDLY",
         })),
       });
     }
