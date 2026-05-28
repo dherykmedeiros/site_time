@@ -578,24 +578,13 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
                       <button
                         type="button"
                         onClick={() => setEventType("GOAL")}
-                        className={`py-2 px-3 text-sm font-bold rounded-xl border flex items-center justify-center gap-2 transition-all ${
+                        className={`py-2 px-3 text-sm font-bold rounded-xl border flex items-center justify-center gap-2 transition-all col-span-2 ${
                           eventType === "GOAL"
                             ? "bg-[var(--brand-soft)] text-[var(--brand)] border-[var(--brand)]"
                             : "border-white/10 bg-white/[0.02] text-[var(--text-muted)] hover:bg-white/[0.05]"
                         }`}
                       >
                         ⚽ Gol
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEventType("ASSIST")}
-                        className={`py-2 px-3 text-sm font-bold rounded-xl border flex items-center justify-center gap-2 transition-all ${
-                          eventType === "ASSIST"
-                            ? "bg-[var(--brand-soft)] text-[var(--brand)] border-[var(--brand)]"
-                            : "border-white/10 bg-white/[0.02] text-[var(--text-muted)] hover:bg-white/[0.05]"
-                        }`}
-                      >
-                        👟 Assistência
                       </button>
                       <button
                         type="button"
