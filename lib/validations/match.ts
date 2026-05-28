@@ -60,6 +60,11 @@ export const createMatchSchema = z.object({
     .min(0, "Placar deve ser >= 0")
     .optional()
     .nullable(),
+  pixKey: z
+    .string()
+    .max(200, "Chave Pix deve ter no máximo 200 caracteres")
+    .optional()
+    .nullable(),
 });
 
 export const updateMatchSchema = z.object({
@@ -103,6 +108,11 @@ export const updateMatchSchema = z.object({
     .number()
     .int("Placar deve ser inteiro")
     .min(0, "Placar deve ser >= 0")
+    .optional()
+    .nullable(),
+  pixKey: z
+    .string()
+    .max(200, "Chave Pix deve ter no máximo 200 caracteres")
     .optional()
     .nullable(),
 });

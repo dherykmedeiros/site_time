@@ -13,6 +13,7 @@ interface RSVP {
 
 interface PlayerStatInput {
   playerId: string;
+  guestPlayerId?: string | null;
   playerName: string;
   goals: number;
   assists: number;
@@ -87,20 +88,22 @@ export function PostGameForm({
   const confirmedPlayers = rsvps.filter((r) => r.status === "CONFIRMED");
   const initialStatsByPlayer = new Map((initialStats || []).map((item) => [item.playerId, item]));
   const mergedPlayers = [
-    ...confirmedPlayers,
+    ...confirmedPlayers.map((r) => ({ ...r, guestPlayerId: null })),
     ...((initialStats || [])
       .filter((item) => !confirmedPlayers.some((player) => player.playerId === item.playerId))
       .map((item) => ({
         playerId: item.playerId,
+        guestPlayerId: item.guestPlayerId,
         playerName: item.playerName,
         status: "CONFIRMED",
         respondedAt: null,
-      })) as RSVP[]),
+      }))),
   ];
 
   const [playerStats, setPlayerStats] = useState<PlayerStatInput[]>(
     mergedPlayers.map((r) => ({
       playerId: r.playerId,
+      guestPlayerId: r.guestPlayerId || null,
       playerName: r.playerName,
       goals: initialStatsByPlayer.get(r.playerId)?.goals ?? 0,
       assists: initialStatsByPlayer.get(r.playerId)?.assists ?? 0,
@@ -211,7 +214,8 @@ export function PostGameForm({
 
       const statsPayload = {
         stats: playerStats.map((s) => ({
-          playerId: s.playerId,
+          playerId: s.guestPlayerId ? null : s.playerId,
+          guestPlayerId: s.guestPlayerId || null,
           goals: s.goals,
           assists: s.assists,
           yellowCards: s.yellowCards,
@@ -429,6 +433,7 @@ export function PostGameForm({
                       ...prev,
                       {
                         playerId: player.id,
+                        guestPlayerId: null,
                         playerName: player.name,
                         goals: 0,
                         assists: 0,

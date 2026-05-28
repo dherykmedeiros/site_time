@@ -319,6 +319,7 @@ model Match {
   achievements Achievement[]
   hasCharge    Boolean     @default(false)
   chargeAmount Decimal?    @db.Decimal(10, 2)
+  pixKey       String?
   matchPayments MatchPayment[]
   datePoll     DatePoll?
   photos       MatchPhoto[]
@@ -548,6 +549,8 @@ model MatchPayment {
   amount        Decimal      @db.Decimal(10, 2)
   paidAt        DateTime     @default(now())
   transactionId String?      @unique
+  status        String       @default("PAID")
+  receiptUrl    String?
   player        Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
   match         Match        @relation(fields: [matchId], references: [id], onDelete: Cascade)
   team          Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)

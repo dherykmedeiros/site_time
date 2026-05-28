@@ -35,6 +35,7 @@ export const GET = withErrorHandler(async (request: Request, context: RouteConte
       date: true,
       hasCharge: true,
       chargeAmount: true,
+      pixKey: true,
     },
   });
 
@@ -68,6 +69,8 @@ export const GET = withErrorHandler(async (request: Request, context: RouteConte
           amount: Number(p.matchPayments[0].amount),
           paidAt: p.matchPayments[0].paidAt.toISOString(),
           transactionId: p.matchPayments[0].transactionId,
+          status: p.matchPayments[0].status,
+          receiptUrl: p.matchPayments[0].receiptUrl,
         }
       : null;
 
@@ -89,6 +92,7 @@ export const GET = withErrorHandler(async (request: Request, context: RouteConte
       date: match.date.toISOString(),
       hasCharge: match.hasCharge,
       chargeAmount: match.chargeAmount ? Number(match.chargeAmount) : null,
+      pixKey: match.pixKey,
     },
     players: playerCharges,
   });

@@ -55,6 +55,7 @@ interface MatchFormProps {
     positionLimits?: Array<{ position: string; maxPlayers: number }>;
     homeScore?: number | null;
     awayScore?: number | null;
+    pixKey?: string | null;
   };
   onSuccess?: () => void;
   onCancel?: () => void;
@@ -145,6 +146,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
       type: (defaultValues?.type as "FRIENDLY" | "CHAMPIONSHIP") || undefined,
       homeScore: defaultValues?.homeScore !== null ? defaultValues?.homeScore : undefined,
       awayScore: defaultValues?.awayScore !== null ? defaultValues?.awayScore : undefined,
+      pixKey: defaultValues?.pixKey || "",
     },
   });
 
@@ -278,6 +280,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         ...data,
         date: new Date(data.date).toISOString(),
         opponentBadgeUrl: data.opponentBadgeUrl?.trim() ? data.opponentBadgeUrl.trim() : null,
+        pixKey: data.pixKey?.trim() ? data.pixKey.trim() : null,
         status: recordType,
       };
 
@@ -546,6 +549,13 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         placeholder="Selecione o tipo"
         error={errors.type?.message}
         {...register("type")}
+      />
+
+      <Input
+        label="Chave Pix para Pagamento da Taxa (opcional)"
+        placeholder="Ex: Celular, E-mail, CPF ou Chave Aleatória"
+        error={errors.pixKey?.message}
+        {...register("pixKey")}
       />
 
       {seasons.length > 0 && (

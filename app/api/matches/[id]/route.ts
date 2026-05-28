@@ -209,6 +209,7 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
     canSubmitPostGame,
     hasCharge: finalMatch.hasCharge,
     chargeAmount: finalMatch.chargeAmount ? Number(finalMatch.chargeAmount) : null,
+    pixKey: finalMatch.pixKey,
     createdAt: finalMatch.createdAt.toISOString(),
     updatedAt: finalMatch.updatedAt.toISOString(),
   });
@@ -415,6 +416,7 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
   if (data.homeScore !== undefined) updateData.homeScore = data.homeScore;
   if (data.awayScore !== undefined) updateData.awayScore = data.awayScore;
   if (data.status) updateData.status = data.status;
+  if (data.pixKey !== undefined) updateData.pixKey = data.pixKey;
 
   const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     if (data.positionLimits) {
@@ -530,6 +532,7 @@ function buildMatchDetailResponse(
     shareToken: string;
     hasCharge: boolean;
     chargeAmount: Prisma.Decimal | null | number;
+    pixKey: string | null;
     createdAt: Date;
     updatedAt: Date;
     team: { slug: string };
@@ -572,6 +575,7 @@ function buildMatchDetailResponse(
     shareToken: match.shareToken,
     hasCharge: match.hasCharge,
     chargeAmount: match.chargeAmount ? Number(match.chargeAmount) : null,
+    pixKey: match.pixKey,
     shareUrl,
     rsvps: match.rsvps.map((rsvp) => ({
       playerId: rsvp.playerId,
