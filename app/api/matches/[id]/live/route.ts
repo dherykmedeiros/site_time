@@ -214,10 +214,18 @@ export async function POST(request: Request, { params }: RouteParams) {
 
   // If match has ended, compile live events into MatchStats and complete the Match
   if (action === "end_second_half") {
-    // 1. Get all events for compilation
-    const events = await prisma.matchLiveEvent.findMany({
-      where: { matchLiveId: live.id },
-    });
+    // 1. Get all events, lineup selections, and confirmed RSVPs for compilation
+    const [events, lineupSelections, confirmedRsvps] = await Promise.all([
+      prisma.matchLiveEvent.findMany({
+        where: { matchLiveId: live.id },
+      }),
+      prisma.matchLineupSelection.findMany({
+        where: { matchId },
+      }),
+      prisma.rSVP.findMany({
+        where: { matchId, status: "CONFIRMED" },
+      }),
+    ]);
 
     // Aggregate stats per player (playerId or guestPlayerId)
     interface PlayerStatsAgg {
@@ -237,6 +245,41 @@ export async function POST(request: Request, { params }: RouteParams) {
       return "";
     };
 
+    // Pre-populate with lineup selections (starters, bench, and guest players)
+    for (const sel of lineupSelections) {
+      const key = getKey(sel.playerId, sel.guestPlayerId);
+      if (!key) continue;
+
+      if (!aggregated[key]) {
+        aggregated[key] = {
+          playerId: sel.playerId,
+          guestPlayerId: sel.guestPlayerId,
+          goals: 0,
+          assists: 0,
+          yellowCards: 0,
+          redCards: 0,
+        };
+      }
+    }
+
+    // Pre-populate with confirmed RSVPs
+    for (const rsvp of confirmedRsvps) {
+      const key = getKey(rsvp.playerId, null);
+      if (!key) continue;
+
+      if (!aggregated[key]) {
+        aggregated[key] = {
+          playerId: rsvp.playerId,
+          guestPlayerId: null,
+          goals: 0,
+          assists: 0,
+          yellowCards: 0,
+          redCards: 0,
+        };
+      }
+    }
+
+    // Aggregate stats from live events
     for (const event of events) {
       const key = getKey(event.playerId, event.guestPlayerId);
       if (!key) continue;

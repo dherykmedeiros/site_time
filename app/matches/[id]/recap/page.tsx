@@ -89,6 +89,143 @@ async function getMatchByIdOrToken(idOrToken: string) {
     },
   });
 
+  if (match && match.status === "COMPLETED") {
+    // Check for missing players in matchStats
+    const confirmedRsvps = await prisma.rSVP.findMany({
+      where: { matchId: match.id, status: "CONFIRMED" },
+    });
+
+    const existingPlayerIds = new Set(match.matchStats.map((s) => s.playerId).filter(Boolean));
+    const existingGuestPlayerIds = new Set(match.matchStats.map((s) => s.guestPlayerId).filter(Boolean));
+
+    const toCreate: Array<{ playerId: string | null; guestPlayerId: string | null }> = [];
+
+    for (const sel of match.lineupSelections) {
+      if (sel.playerId && !existingPlayerIds.has(sel.playerId)) {
+        toCreate.push({ playerId: sel.playerId, guestPlayerId: null });
+        existingPlayerIds.add(sel.playerId);
+      } else if (sel.guestPlayerId && !existingGuestPlayerIds.has(sel.guestPlayerId)) {
+        toCreate.push({ playerId: null, guestPlayerId: sel.guestPlayerId });
+        existingGuestPlayerIds.add(sel.guestPlayerId);
+      }
+    }
+
+    for (const rsvp of confirmedRsvps) {
+      if (!existingPlayerIds.has(rsvp.playerId)) {
+        toCreate.push({ playerId: rsvp.playerId, guestPlayerId: null });
+        existingPlayerIds.add(rsvp.playerId);
+      }
+    }
+
+    if (toCreate.length > 0) {
+      await prisma.$transaction(async (tx) => {
+        await tx.matchStats.createMany({
+          data: toCreate.map((c) => ({
+            matchId: match.id,
+            playerId: c.playerId,
+            guestPlayerId: c.guestPlayerId,
+            goals: 0,
+            assists: 0,
+            yellowCards: 0,
+            redCards: 0,
+          })),
+        });
+
+        for (const c of toCreate) {
+          if (c.playerId) {
+            await tx.matchAttendance.upsert({
+              where: {
+                matchId_playerId: {
+                  matchId: match.id,
+                  playerId: c.playerId,
+                },
+              },
+              create: {
+                matchId: match.id,
+                playerId: c.playerId,
+                present: true,
+                checkedInAt: new Date(),
+              },
+              update: {
+                present: true,
+              },
+            });
+          }
+        }
+      });
+
+      // Refetch match to return updated stats
+      return prisma.match.findFirst({
+        where: {
+          OR: [
+            { id: idOrToken },
+            { shareToken: idOrToken }
+          ]
+        },
+        include: {
+          team: {
+            select: {
+              id: true,
+              name: true,
+              shortName: true,
+              badgeUrl: true,
+              primaryColor: true,
+              secondaryColor: true,
+            },
+          },
+          matchStats: {
+            include: {
+              player: {
+                select: {
+                  id: true,
+                  name: true,
+                  photoUrl: true,
+                  position: true,
+                  shirtNumber: true,
+                },
+              },
+              guestPlayer: {
+                select: {
+                  id: true,
+                  name: true,
+                  position: true,
+                  shirtNumber: true,
+                },
+              },
+            },
+            orderBy: {
+              goals: "desc",
+            },
+          },
+          lineupSelections: {
+            include: {
+              player: {
+                select: {
+                  id: true,
+                  name: true,
+                  photoUrl: true,
+                  position: true,
+                  shirtNumber: true,
+                },
+              },
+              guestPlayer: {
+                select: {
+                  id: true,
+                  name: true,
+                  position: true,
+                  shirtNumber: true,
+                },
+              },
+            },
+            orderBy: {
+              sortOrder: "asc",
+            },
+          },
+        },
+      });
+    }
+  }
+
   return match;
 }
 

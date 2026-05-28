@@ -60,34 +60,144 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
     );
   }
 
+  let finalMatch = match;
+
+  if (match.status === "COMPLETED") {
+    // 1. Fetch lineup selections and confirmed RSVPs
+    const [lineupSelections, confirmedRsvps] = await Promise.all([
+      prisma.matchLineupSelection.findMany({
+        where: { matchId: id },
+      }),
+      prisma.rSVP.findMany({
+        where: { matchId: id, status: "CONFIRMED" },
+      }),
+    ]);
+
+    // 2. Identify missing players in matchStats
+    const existingPlayerIds = new Set(match.matchStats.map((s) => s.playerId).filter(Boolean));
+    const existingGuestPlayerIds = new Set(match.matchStats.map((s) => s.guestPlayerId).filter(Boolean));
+
+    const toCreate: Array<{ playerId: string | null; guestPlayerId: string | null }> = [];
+
+    for (const sel of lineupSelections) {
+      if (sel.playerId && !existingPlayerIds.has(sel.playerId)) {
+        toCreate.push({ playerId: sel.playerId, guestPlayerId: null });
+        existingPlayerIds.add(sel.playerId);
+      } else if (sel.guestPlayerId && !existingGuestPlayerIds.has(sel.guestPlayerId)) {
+        toCreate.push({ playerId: null, guestPlayerId: sel.guestPlayerId });
+        existingGuestPlayerIds.add(sel.guestPlayerId);
+      }
+    }
+
+    for (const rsvp of confirmedRsvps) {
+      if (!existingPlayerIds.has(rsvp.playerId)) {
+        toCreate.push({ playerId: rsvp.playerId, guestPlayerId: null });
+        existingPlayerIds.add(rsvp.playerId);
+      }
+    }
+
+    // 3. Perform database backfill if there are missing players
+    if (toCreate.length > 0) {
+      await prisma.$transaction(async (tx) => {
+        await tx.matchStats.createMany({
+          data: toCreate.map((c) => ({
+            matchId: id,
+            playerId: c.playerId,
+            guestPlayerId: c.guestPlayerId,
+            goals: 0,
+            assists: 0,
+            yellowCards: 0,
+            redCards: 0,
+          })),
+        });
+
+        // Ensure attendance is marked as present for regular players backfilled
+        for (const c of toCreate) {
+          if (c.playerId) {
+            await tx.matchAttendance.upsert({
+              where: {
+                matchId_playerId: {
+                  matchId: id,
+                  playerId: c.playerId,
+                },
+              },
+              create: {
+                matchId: id,
+                playerId: c.playerId,
+                present: true,
+                checkedInAt: new Date(),
+              },
+              update: {
+                present: true,
+              },
+            });
+          }
+        }
+      });
+
+      // Refetch match to have updated stats in the response
+      const updatedMatch = await prisma.match.findFirst({
+        where: { id, teamId: session.user.teamId },
+        include: {
+          rsvps: {
+            where: {
+              player: {
+                status: "ACTIVE"
+              }
+            },
+            include: {
+              player: { select: { name: true } },
+            },
+            orderBy: { createdAt: "asc" },
+          },
+          matchStats: {
+            include: {
+              player: { select: { name: true } },
+              guestPlayer: { select: { name: true } },
+            },
+          },
+          positionLimits: {
+            select: { position: true, maxPlayers: true },
+          },
+          team: { select: { slug: true } },
+          season: { select: { id: true, name: true, type: true, status: true } },
+        },
+      });
+
+      if (updatedMatch) {
+        finalMatch = updatedMatch;
+      }
+    }
+  }
+
   const canSubmitPostGame =
-    match.date < new Date() && match.status === "SCHEDULED";
+    finalMatch.date < new Date() && finalMatch.status === "SCHEDULED";
 
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-  const shareUrl = `${baseUrl}/matches/${match.id}?t=${match.shareToken}`;
+  const shareUrl = `${baseUrl}/matches/${finalMatch.id}?t=${finalMatch.shareToken}`;
 
   return NextResponse.json({
-    id: match.id,
-    date: match.date.toISOString(),
-    venue: match.venue,
-    opponent: match.opponent,
-    isHome: match.isHome,
-    opponentBadgeUrl: match.opponentBadgeUrl,
-    type: match.type,
-    homeScore: match.homeScore,
-    awayScore: match.awayScore,
-    status: match.status,
-    season: match.season,
-    positionLimits: match.positionLimits,
-    shareToken: match.shareToken,
+    id: finalMatch.id,
+    date: finalMatch.date.toISOString(),
+    venue: finalMatch.venue,
+    opponent: finalMatch.opponent,
+    isHome: finalMatch.isHome,
+    opponentBadgeUrl: finalMatch.opponentBadgeUrl,
+    type: finalMatch.type,
+    homeScore: finalMatch.homeScore,
+    awayScore: finalMatch.awayScore,
+    status: finalMatch.status,
+    season: finalMatch.season,
+    positionLimits: finalMatch.positionLimits,
+    shareToken: finalMatch.shareToken,
     shareUrl,
-    rsvps: match.rsvps.map((rsvp) => ({
+    rsvps: finalMatch.rsvps.map((rsvp) => ({
       playerId: rsvp.playerId,
       playerName: rsvp.player.name,
       status: rsvp.status,
       respondedAt: rsvp.respondedAt?.toISOString() ?? null,
     })),
-    stats: match.matchStats.map((stat) => ({
+    stats: finalMatch.matchStats.map((stat) => ({
       playerId: stat.playerId || stat.guestPlayerId,
       guestPlayerId: stat.guestPlayerId,
       playerName: stat.player?.name ?? stat.guestPlayer?.name ?? "Convidado",
@@ -97,8 +207,8 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
       redCards: stat.redCards,
     })),
     canSubmitPostGame,
-    createdAt: match.createdAt.toISOString(),
-    updatedAt: match.updatedAt.toISOString(),
+    createdAt: finalMatch.createdAt.toISOString(),
+    updatedAt: finalMatch.updatedAt.toISOString(),
   });
 });
 
