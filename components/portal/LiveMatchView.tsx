@@ -69,31 +69,8 @@ export function LiveMatchView({ matchId, initialMatch, initialLive }: LiveMatchV
   const [match, setMatch] = useState<MatchData>(initialMatch);
   const [live, setLive] = useState<MatchLive>(initialLive);
 
-  const handleShareGoal = async (event: any) => {
-    const pName = event.player?.name || event.guestPlayer?.name || "Jogador";
-    const shareUrl = `${window.location.origin}/api/og/goal/${event.id}`;
-    
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({
-          title: `⚽ GOL DO TIME!`,
-          text: `GOLAÇO do ${pName} aos ${event.minute}' do ${event.half}º Tempo! Confira no nosso portal oficial!`,
-          url: shareUrl,
-        });
-        return;
-      } catch (err) {
-        // Silent catch
-      }
-    }
-    
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-      } catch (err) {
-        console.error("Erro ao copiar link", err);
-      }
-    }
-    
+  const handleOpenEventRecap = (event: any) => {
+    const shareUrl = `${window.location.origin}/api/og/event/${event.id}`;
     window.open(shareUrl, "_blank", "noopener,noreferrer");
   };
   
@@ -325,11 +302,11 @@ export function LiveMatchView({ matchId, initialMatch, initialLive }: LiveMatchV
                               {getEventLabel(event.type)}
                             </span>
                           </div>
-                          {isGoal && !isOpponentGoal && (
+                          {(event.playerId || event.guestPlayerId) && (
                             <button
-                              onClick={() => handleShareGoal(event)}
+                              onClick={() => handleOpenEventRecap(event)}
                               className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-full hover:bg-emerald-500/20 transition-all cursor-pointer shadow-sm active:scale-95"
-                              title="Compartilhar Stories"
+                              title="Ver Stories Recap"
                             >
                               <Share2 className="h-3 w-3" />
                               Stories Recap

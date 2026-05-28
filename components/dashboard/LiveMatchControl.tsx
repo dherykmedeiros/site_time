@@ -92,31 +92,8 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
   const [selectedAssistPlayerKey, setSelectedAssistPlayerKey] = useState(""); // format: "player_ID" or "guest_ID" or ""
   const [eventDescription, setEventDescription] = useState("");
 
-  const handleShareGoal = async (event: any) => {
-    const pName = event.player?.name || event.guestPlayer?.name || "Jogador";
-    const shareUrl = `${window.location.origin}/api/og/goal/${event.id}`;
-    
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({
-          title: `⚽ GOL DO TIME!`,
-          text: `GOLAÇO do ${pName} aos ${event.minute}' do ${event.half}º Tempo! Confira no nosso portal oficial!`,
-          url: shareUrl,
-        });
-        return;
-      } catch (err) {
-        // Silent catch
-      }
-    }
-    
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-      } catch (err) {
-        console.error("Erro ao copiar link", err);
-      }
-    }
-    
+  const handleOpenEventRecap = (event: any) => {
+    const shareUrl = `${window.location.origin}/api/og/event/${event.id}`;
     window.open(shareUrl, "_blank", "noopener,noreferrer");
   };
 
@@ -777,11 +754,11 @@ export function LiveMatchControl({ matchId }: LiveMatchControlProps) {
                         </div>
 
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {isOurGoal && (
+                          {(event.playerId || event.guestPlayerId) && (
                             <button
-                              onClick={() => handleShareGoal(event)}
+                              onClick={() => handleOpenEventRecap(event)}
                               className="rounded-[8px] p-1.5 text-[var(--brand)] hover:bg-[var(--brand-soft)] transition-all cursor-pointer"
-                              title="Compartilhar Gol (Stories)"
+                              title="Ver Stories Recap"
                             >
                               <Share2 className="h-3.5 w-3.5" />
                             </button>

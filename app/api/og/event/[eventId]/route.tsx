@@ -13,7 +13,7 @@ interface RouteContext {
 function fallbackSvg(width: number, height: number): Response {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <rect width="${width}" height="${height}" fill="#0b0f19"/>
-  <text x="${width / 2}" y="${height / 2}" fill="#e2e8f0" text-anchor="middle" font-family="Arial,sans-serif" font-size="42" font-weight="700">Recap de Gol indisponível</text>
+  <text x="${width / 2}" y="${height / 2}" fill="#e2e8f0" text-anchor="middle" font-family="Arial,sans-serif" font-size="42" font-weight="700">Recap indisponível</text>
 </svg>`;
   return new Response(svg.trim(), {
     headers: { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": "public, max-age=60" },
@@ -24,7 +24,7 @@ export async function GET(request: Request, context: RouteContext) {
   const { eventId } = await context.params;
   const { searchParams } = new URL(request.url);
   const theme = resolveTheme(searchParams.get("theme"));
-  const dims = OG_DIMENSIONS.stories; // Goals are designed strictly in Stories format as requested
+  const dims = OG_DIMENSIONS.stories; // Story-format stories (1080x1920) as requested
 
   try {
     const event = await prisma.matchLiveEvent.findUnique({
@@ -68,15 +68,14 @@ export async function GET(request: Request, context: RouteContext) {
       }
     });
 
-    if (!event || event.type !== "GOAL") {
-      return new Response("Goal event not found", { status: 404 });
+    if (!event) {
+      return new Response("Event not found", { status: 404 });
     }
 
-    // Verify it is a goal from OUR team (needs either a player or guestPlayer)
-    // Opponent goals are generic and don't get individual player stories
-    const isOurTeamGoal = event.playerId || event.guestPlayerId;
-    if (!isOurTeamGoal) {
-      return new Response("Opponent goals are generic and do not support player stories recaps", { status: 400 });
+    // Verify it is an event from OUR team
+    const isOurTeamEvent = event.playerId || event.guestPlayerId;
+    if (!isOurTeamEvent) {
+      return new Response("Opponent events are generic and do not support stories recaps", { status: 400 });
     }
 
     const match = event.matchLive.match;
@@ -106,13 +105,46 @@ export async function GET(request: Request, context: RouteContext) {
 
     const isFallbackBadge = !event.player?.photoUrl;
 
+    // Adapt visual indicators based on event type
+    let emoji = "📢";
+    let typeLabel = "ACONTECIMENTO!";
+    let typeStyle = "background:rgba(255,255,255,0.06); border:2px solid rgba(255,255,255,0.15); color:#fff; box-shadow:0 0 30px rgba(255,255,255,0.05)";
+    let subtitleText = "AÇÃO DA PARTIDA";
+
+    if (event.type === "GOAL") {
+      emoji = "⚽";
+      typeLabel = "GOL DO TIME!";
+      typeStyle = `background:rgba(52,211,153,0.1); border:2px solid rgba(52,211,153,0.3); color:#34d399; box-shadow:0 0 30px rgba(52,211,153,0.2)`;
+      subtitleText = "AUTOR DO GOL";
+    } else if (event.type === "ASSIST") {
+      emoji = "👟";
+      typeLabel = "ASSISTÊNCIA!";
+      typeStyle = `background:rgba(59,130,246,0.1); border:2px solid rgba(59,130,246,0.3); color:#60a5fa; box-shadow:0 0 30px rgba(59,130,246,0.2)`;
+      subtitleText = "PÓS-PASSE DECISIVO";
+    } else if (event.type === "YELLOW_CARD") {
+      emoji = "🟨";
+      typeLabel = "CARTÃO AMARELO";
+      typeStyle = `background:rgba(245,158,11,0.1); border:2px solid rgba(245,158,11,0.3); color:#fbbf24; box-shadow:0 0 30px rgba(245,158,11,0.15)`;
+      subtitleText = "ADVERTÊNCIA DO JOGO";
+    } else if (event.type === "RED_CARD") {
+      emoji = "🟥";
+      typeLabel = "CARTÃO VERMELHO";
+      typeStyle = `background:rgba(239,68,68,0.1); border:2px solid rgba(239,68,68,0.3); color:#f87171; box-shadow:0 0 30px rgba(239,68,68,0.2)`;
+      subtitleText = "EXPULSÃO EM CAMPO";
+    } else if (event.type === "SUBSTITUTION") {
+      emoji = "🔁";
+      typeLabel = "SUBSTITUIÇÃO";
+      typeStyle = `background:rgba(139,92,246,0.1); border:2px solid rgba(139,92,246,0.3); color:#a78bfa; box-shadow:0 0 30px rgba(139,92,246,0.2)`;
+      subtitleText = "SAINDO DE CAMPO";
+    }
+
     const content = `
       <div class="card" style="overflow:hidden;gap:0;background:#060a13;border-color:rgba(255,255,255,0.06);display:flex;flex-direction:column;justify-content:flex-start;height:100%;padding:0;">
         <!-- Banner or Crest Section -->
         <div style="position:relative;width:100%;height:52%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle, ${primary}55 0%, #060a13 100%);overflow:hidden">
           
-          <!-- Large floating ball icon -->
-          <div style="position:absolute;font-size:260px;opacity:0.07;top:10%;left:25%;pointer-events:none;color:#fff;">⚽</div>
+          <!-- Large floating icon in background -->
+          <div style="position:absolute;font-size:260px;opacity:0.07;top:10%;left:25%;pointer-events:none;color:#fff;">${emoji}</div>
 
           <!-- Photo or Badge -->
           <div style="width:380px;height:380px;border-radius:50%;overflow:hidden;border:5px solid rgba(255,255,255,0.18);box-shadow:0 30px 80px rgba(0,0,0,0.6), 0 0 100px ${primary}44;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02)">
@@ -125,14 +157,17 @@ export async function GET(request: Request, context: RouteContext) {
         <div style="display:flex;flex-direction:column;padding:40px 48px;flex:1;justify-content:flex-start;gap:24px;text-align:center;align-items:center;">
           
           <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
-            <!-- Goal Emoji and Indicator -->
-            <div style="display:flex;align-items:center;gap:12px;background:rgba(52,211,153,0.1);border:2px solid rgba(52,211,153,0.3);border-radius:99px;padding:8px 24px;box-shadow:0 0 30px rgba(52,211,153,0.15)">
-              <span style="font-size:32px">⚽</span>
-              <span class="tracking-wide" style="font-size:26px;font-weight:900;color:#34d399;letter-spacing:0.25em">GOL DO TIME!</span>
+            <!-- Event Type Pill -->
+            <div style="display:flex;align-items:center;gap:12px;border-radius:99px;padding:8px 24px;${typeStyle}">
+              <span style="font-size:32px">${emoji}</span>
+              <span class="tracking-wide" style="font-size:26px;font-weight:900;letter-spacing:0.25em">${typeLabel}</span>
             </div>
 
+            <!-- Role Indicator Subtitle -->
+            <span class="tracking-wide" style="font-size:15px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.18em;margin-top:20px;text-transform:uppercase;">${subtitleText}</span>
+
             <!-- Player name and shirt number -->
-            <h1 class="font-black" style="font-size:72px;line-height:1.05;letter-spacing:-0.03em;color:white;margin-top:24px;text-transform:uppercase;text-shadow:0 8px 24px rgba(0,0,0,0.5)">
+            <h1 class="font-black" style="font-size:72px;line-height:1.05;letter-spacing:-0.03em;color:white;margin-top:6px;text-transform:uppercase;text-shadow:0 8px 24px rgba(0,0,0,0.5)">
               ${esc(cut(playerName, 26))}
               ${shirtNumber ? `<span style="font-size:48px;color:${primary};font-family:'Roboto Mono',monospace;margin-left:8px;font-weight:900;">#${shirtNumber}</span>` : ""}
             </h1>
@@ -149,10 +184,10 @@ export async function GET(request: Request, context: RouteContext) {
             <span style="font-size:32px;font-weight:900;color:#fff;letter-spacing:-0.01em">${esc(scoreLabel)}</span>
           </div>
 
-          <!-- Description / Commentary if entered -->
+          <!-- Description / Commentary or entering player detail for Substitutions -->
           ${description ? `
-            <div style="margin-top:16px;max-width:90%">
-              <p style="font-size:24px;color:rgba(255,255,255,0.65);font-style:italic;line-height:1.4">
+            <div style="margin-top:20px;max-width:90%">
+              <p style="font-size:26px;color:#fff;font-weight:700;line-height:1.4">
                 "${esc(cut(description, 120))}"
               </p>
             </div>
@@ -197,7 +232,7 @@ export async function GET(request: Request, context: RouteContext) {
     const png = await renderHtmlToImage(html, dims);
     return new Response(png, { headers: { "Content-Type": "image/png", ...OG_CACHE_HEADERS } });
   } catch (e) {
-    console.error("Error generating goal recap:", e);
+    console.error("Error generating event recap:", e);
     return fallbackSvg(dims.width, dims.height);
   }
 }
