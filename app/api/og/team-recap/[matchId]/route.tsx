@@ -117,24 +117,25 @@ export async function GET(request: Request, context: RouteContext) {
     let content: string;
     if (isStories) {
       content = `
-        <div class="card" style="margin:0;border-radius:0;border:none;width:100%;height:100%;display:flex;flex-direction:column;justify-content:space-between;padding:80px 0;background:#0d0d0d;position:relative">
+        <div class="card" style="margin:0;border-radius:0;border:none;width:100%;height:100%;display:flex;flex-direction:column;justify-content:space-between;padding:80px 0;background:radial-gradient(circle at 50% 20%, ${primary}1A 0%, #0d0d0d 65%), #0d0d0d;position:relative">
           
           <!-- Atmospheric noise & crumpled overlay -->
           <div style="position:absolute;inset:0;opacity:0.04;background-image:url('data:image/svg+xml,%3Csvg viewBox=\"0 0 200 200\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cfilter id=\"n\"%3E%3CfeTurbulence type=\"fractalNoise\" baseFrequency=\"0.04\" numOctaves=\"3\" stitchTiles=\"stitch\"/%3E%3C/filter%3E%3Crect width=\"100%25\" height=\"100%25\" filter=\"url(%23n)\"/%3E%3C/svg%3E');mix-blend-mode:overlay;pointer-events:none"></div>
           <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.015) 0%,rgba(0,0,0,0.15) 50%,rgba(255,255,255,0.015) 100%),linear-gradient(220deg,rgba(255,255,255,0.01) 0%,rgba(0,0,0,0.2) 60%,rgba(255,255,255,0.01) 100%);mix-blend-mode:overlay;pointer-events:none"></div>
 
-          <!-- Title: FIM DE JOGO in outline text -->
-          <div style="display:flex;flex-direction:column;align-items:center;width:100%;margin-top:20px;gap:8px;z-index:2">
-            <div style="font-family:'Inter',sans-serif;font-size:120px;font-weight:900;color:transparent;-webkit-text-stroke:3.5px white;letter-spacing:0.06em;line-height:0.85;text-align:center;text-transform:uppercase;width:100%">
-              FIM DE
+          <!-- Header: Title and Scoreboard Section -->
+          <div style="display:flex;flex-direction:column;align-items:center;width:100%;gap:32px;z-index:2;margin-top:20px">
+            <!-- Title: FIM DE JOGO in outline text -->
+            <div style="display:flex;flex-direction:column;align-items:center;width:100%;gap:8px">
+              <div style="font-family:'Inter',sans-serif;font-size:120px;font-weight:900;color:transparent;-webkit-text-stroke:3.5px white;letter-spacing:0.06em;line-height:0.85;text-align:center;text-transform:uppercase;width:100%">
+                FIM DE
+              </div>
+              <div style="font-family:'Inter',sans-serif;font-size:120px;font-weight:900;color:transparent;-webkit-text-stroke:3.5px white;letter-spacing:0.06em;line-height:0.85;text-align:center;text-transform:uppercase;width:100%">
+                JOGO
+              </div>
             </div>
-            <div style="font-family:'Inter',sans-serif;font-size:120px;font-weight:900;color:transparent;-webkit-text-stroke:3.5px white;letter-spacing:0.06em;line-height:0.85;text-align:center;text-transform:uppercase;width:100%">
-              JOGO
-            </div>
-          </div>
 
-          <!-- Scoreboard Section: Badges and Score -->
-          <div style="display:flex;flex-direction:column;align-items:center;width:100%;margin-top:-20px;z-index:2">
+            <!-- Scoreboard Section: Badges and Score -->
             <div style="display:flex;align-items:center;justify-content:center;gap:36px;width:100%;padding:0 48px;">
               <!-- Left Team Badge -->
               <div style="display:flex;flex-direction:column;align-items:center;width:28%">
@@ -157,18 +158,75 @@ export async function GET(request: Request, context: RouteContext) {
                 </div>
               </div>
             </div>
+
+            <!-- Match Details pill -->
+            <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:12px 24px;">
+              <span style="font-size:22px;font-weight:700;color:white;letter-spacing:0.05em;text-transform:uppercase">
+                📅 ${esc(dateLabel)}
+              </span>
+              <span style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.4)"></span>
+              <span style="font-size:22px;font-weight:700;color:${primary};letter-spacing:0.05em;text-transform:uppercase">
+                ${esc(fieldLabel)}
+              </span>
+            </div>
           </div>
 
-          <!-- Bottom Section: Scorers list and Instagram handle -->
-          <div style="display:flex;flex-direction:column;width:100%;padding:0 64px 20px;margin-top:auto;position:relative;z-index:2">
+          <!-- Middle Section: Beautiful Glassmorphic Cards -->
+          <div style="display:flex;flex-direction:column;width:100%;padding:0 56px;gap:28px;z-index:2;margin:auto 0">
             
-            <!-- Scorers list aligned to the right, exactly matching user mockup -->
+            <!-- Scorers list if any -->
             ${teamScorers.length > 0 ? `
-              <div style="display:flex;flex-direction:column;align-items:flex-start;align-self:flex-end;gap:12px;margin-bottom:60px;margin-right:20px;">
-                ${scorersHtml}
+              <div style="display:flex;flex-direction:column;width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:32px 36px;box-shadow:0 8px 32px rgba(0,0,0,0.3);backdrop-filter:blur(10px)">
+                <div style="font-size:22px;font-weight:800;color:rgba(255,255,255,0.4);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px;display:flex;align-items:center;gap:10px">
+                  <span>⚽</span> ARTILHEIROS DO TIME
+                </div>
+                <div style="display:flex;flex-direction:column;gap:16px">
+                  ${teamScorers.map((s: { name: string; goals: number }) => `
+                    <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+                      <span style="font-size:32px;font-weight:900;color:white;text-transform:uppercase;letter-spacing:-0.01em">${esc(cut(s.name, 18))}</span>
+                      <span style="font-family:'Roboto Mono',monospace;font-size:32px;font-weight:900;color:${primary}">${s.goals > 1 ? `${s.goals} Gols` : '1 Gol'}</span>
+                    </div>
+                  `).join("")}
+                </div>
               </div>
-            ` : ''}
+            ` : `
+              <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:48px;box-shadow:0 8px 32px rgba(0,0,0,0.3);backdrop-filter:blur(10px)">
+                <span style="font-size:48px;margin-bottom:12px">⚔️</span>
+                <span style="font-size:24px;font-weight:700;color:rgba(255,255,255,0.4);letter-spacing:0.05em;text-transform:uppercase">Sem gols registrados</span>
+              </div>
+            `}
 
+            <!-- Collective stats Card -->
+            <div style="display:flex;flex-direction:column;width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:32px 36px;box-shadow:0 8px 32px rgba(0,0,0,0.3);backdrop-filter:blur(10px)">
+              <div style="font-size:22px;font-weight:800;color:rgba(255,255,255,0.4);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:12px;display:flex;align-items:center;gap:10px">
+                <span>📊</span> ESTATÍSTICAS DO TIME
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:20px">
+                <!-- Assistências -->
+                <div style="display:flex;flex-direction:column;align-items:center;flex:1;background:rgba(255,255,255,0.02);border-radius:18px;padding:20px;border:1px solid rgba(255,255,255,0.04)">
+                  <span style="font-size:36px">👟</span>
+                  <span style="font-size:18px;color:rgba(255,255,255,0.4);margin-top:6px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase">Assists</span>
+                  <span style="font-family:'Roboto Mono',monospace;font-size:36px;font-weight:900;color:white;margin-top:4px">${recap.totals.assists}</span>
+                </div>
+                <!-- Cartão Amarelo -->
+                <div style="display:flex;flex-direction:column;align-items:center;flex:1;background:rgba(255,255,255,0.02);border-radius:18px;padding:20px;border:1px solid rgba(255,255,255,0.04)">
+                  <span style="font-size:36px">🟨</span>
+                  <span style="font-size:18px;color:rgba(255,255,255,0.4);margin-top:6px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase">Amarelos</span>
+                  <span style="font-family:'Roboto Mono',monospace;font-size:36px;font-weight:900;color:white;margin-top:4px">${recap.totals.yellowCards}</span>
+                </div>
+                <!-- Cartão Vermelho -->
+                <div style="display:flex;flex-direction:column;align-items:center;flex:1;background:rgba(255,255,255,0.02);border-radius:18px;padding:20px;border:1px solid rgba(255,255,255,0.04)">
+                  <span style="font-size:36px">🟥</span>
+                  <span style="font-size:18px;color:rgba(255,255,255,0.4);margin-top:6px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase">Vermelhos</span>
+                  <span style="font-family:'Roboto Mono',monospace;font-size:36px;font-weight:900;color:white;margin-top:4px">${recap.totals.redCards}</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Bottom Section: Instagram handle -->
+          <div style="display:flex;flex-direction:column;width:100%;padding:0 64px;margin-top:auto;position:relative;z-index:2">
             <!-- Instagram footer info -->
             <div style="display:flex;flex-direction:column;align-items:center;gap:8px;width:100%">
               <!-- Instagram logo colorful icon -->
@@ -183,7 +241,6 @@ export async function GET(request: Request, context: RouteContext) {
                 @${esc(recap.team.slug.toUpperCase())}FC
               </div>
             </div>
-
           </div>
 
         </div>`;
