@@ -26,24 +26,33 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
     where: { matchId: id },
   });
 
-  // Calculate averages per rated player
-  const ratedIds = Array.from(new Set(ratings.map((r: { ratedId: string }) => r.ratedId)));
-  const averages = ratedIds.map((ratedId) => {
-    const playerRatings = ratings.filter((r: { ratedId: string }) => r.ratedId === ratedId);
-    const sum = playerRatings.reduce((acc: number, curr: { stars: number }) => acc + curr.stars, 0);
-    const avg = playerRatings.length > 0 ? Number((sum / playerRatings.length).toFixed(1)) : 0;
+  // Calculate averages per rated athlete (can be ratedId or ratedGuestId)
+  const ratingTargetsMap = new Map<string, number[]>();
+
+  ratings.forEach((r) => {
+    const targetId = r.ratedId || r.ratedGuestId;
+    if (!targetId) return;
+    if (!ratingTargetsMap.has(targetId)) {
+      ratingTargetsMap.set(targetId, []);
+    }
+    ratingTargetsMap.get(targetId)!.push(r.stars);
+  });
+
+  const averages = Array.from(ratingTargetsMap.entries()).map(([targetId, starsList]) => {
+    const sum = starsList.reduce((acc, stars) => acc + stars, 0);
+    const avg = starsList.length > 0 ? Number((sum / starsList.length).toFixed(1)) : 0;
     return {
-      playerId: ratedId,
+      playerId: targetId,
       averageStars: avg,
-      totalRatings: playerRatings.length,
+      totalRatings: starsList.length,
     };
   });
 
   // Filter ratings given by the current logged-in user to pre-fill the UI
   const userRatings = ratings
-    .filter((r: { raterId: string }) => r.raterId === session.user.id)
-    .map((r: { ratedId: string; stars: number }) => ({
-      playerId: r.ratedId,
+    .filter((r) => r.raterId === session.user.id)
+    .map((r) => ({
+      playerId: r.ratedId || r.ratedGuestId,
       stars: r.stars,
     }));
 
@@ -123,6 +132,25 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
     );
   }
 
+  // Find if ratedId belongs to a Player (official) or GuestPlayer (guest)
+  const officialPlayer = await prisma.player.findFirst({
+    where: { id: ratedId, teamId: session.user.teamId },
+  });
+
+  let guestPlayer = null;
+  if (!officialPlayer) {
+    guestPlayer = await prisma.guestPlayer.findFirst({
+      where: { id: ratedId, matchId: id, teamId: session.user.teamId },
+    });
+  }
+
+  if (!officialPlayer && !guestPlayer) {
+    return NextResponse.json(
+      { error: "Atleta não encontrado." },
+      { status: 404 }
+    );
+  }
+
   // Rule: A player cannot rate themselves
   if (session.user.playerId && session.user.playerId === ratedId) {
     return NextResponse.json(
@@ -165,26 +193,48 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
   }
 
   // Upsert the rating in the database
-  const rating = await prisma.matchPlayerRating.upsert({
-    where: {
-      matchId_raterId_ratedId: {
+  let rating;
+  if (officialPlayer) {
+    rating = await prisma.matchPlayerRating.upsert({
+      where: {
+        matchId_raterId_ratedId: {
+          matchId: id,
+          raterId: session.user.id,
+          ratedId: officialPlayer.id,
+        },
+      },
+      update: { stars },
+      create: {
         matchId: id,
         raterId: session.user.id,
-        ratedId,
+        ratedId: officialPlayer.id,
+        stars,
       },
-    },
-    update: { stars },
-    create: {
-      matchId: id,
-      raterId: session.user.id,
-      ratedId,
-      stars,
-    },
-  });
+    });
+  } else {
+    rating = await prisma.matchPlayerRating.upsert({
+      where: {
+        matchId_raterId_ratedGuestId: {
+          matchId: id,
+          raterId: session.user.id,
+          ratedGuestId: guestPlayer!.id,
+        },
+      },
+      update: { stars },
+      create: {
+        matchId: id,
+        raterId: session.user.id,
+        ratedGuestId: guestPlayer!.id,
+        stars,
+      },
+    });
+  }
 
   // Recalculate average and total count for this specific player to return immediately
   const playerStats = await prisma.matchPlayerRating.aggregate({
-    where: { matchId: id, ratedId },
+    where: officialPlayer
+      ? { matchId: id, ratedId: officialPlayer.id }
+      : { matchId: id, ratedGuestId: guestPlayer!.id },
     _avg: { stars: true },
     _count: { stars: true },
   });

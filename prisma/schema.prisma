@@ -682,21 +682,25 @@ model PlayerEvaluation {
 }
 
 model MatchPlayerRating {
-  id          String   @id @default(cuid())
-  matchId     String
-  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  raterId     String   // ID do User que avaliou
-  rater       User     @relation(fields: [raterId], references: [id], onDelete: Cascade)
-  ratedId     String   // ID do Player avaliado
-  rated       Player   @relation(fields: [ratedId], references: [id], onDelete: Cascade)
-  stars       Int      // 1 a 5 estrelas
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String       @id @default(cuid())
+  matchId        String
+  match          Match        @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  raterId        String       // ID do User que avaliou
+  rater          User         @relation(fields: [raterId], references: [id], onDelete: Cascade)
+  ratedId        String?      // ID do Player avaliado
+  rated          Player?      @relation(fields: [ratedId], references: [id], onDelete: Cascade)
+  ratedGuestId   String?      // ID do GuestPlayer avaliado
+  ratedGuest     GuestPlayer? @relation(fields: [ratedGuestId], references: [id], onDelete: Cascade)
+  stars          Int          // 1 a 5 estrelas
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@unique([matchId, raterId, ratedId])
+  @@unique([matchId, raterId, ratedGuestId])
   @@index([matchId])
   @@index([raterId])
   @@index([ratedId])
+  @@index([ratedGuestId])
   @@map("match_player_ratings")
 }
 
@@ -977,6 +981,7 @@ model GuestPlayer {
   liveEvents  MatchLiveEvent[]
   matchStats  MatchStats[]
   lineupSelections MatchLineupSelection[]
+  receivedRatings MatchPlayerRating[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 

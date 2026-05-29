@@ -131,7 +131,16 @@ export async function POST(request: Request, { params }: RouteParams) {
       },
     });
 
-    // 4. Delete the GuestPlayer record
+    // 4. Migrate MatchPlayerRating records
+    await tx.matchPlayerRating.updateMany({
+      where: { ratedGuestId: guest.id },
+      data: {
+        ratedId: player.id,
+        ratedGuestId: null,
+      },
+    });
+
+    // 5. Delete the GuestPlayer record
     await tx.guestPlayer.delete({
       where: { id: guest.id },
     });
