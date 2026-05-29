@@ -35,6 +35,11 @@ async function getMatchData(matchId: string, token?: string) {
         },
         orderBy: { createdAt: "asc" },
       },
+      guestPlayers: {
+        select: {
+          id: true,
+        },
+      },
       matchStats: {
         include: {
           player: { select: { name: true, position: true } },
@@ -184,7 +189,7 @@ export default async function PublicMatchPage({
     timeZone: "America/Sao_Paulo",
   }).format(match.date);
 
-  const confirmed = match.rsvps.filter((r) => r.status === "CONFIRMED").length;
+  const confirmed = match.rsvps.filter((r) => r.status === "CONFIRMED").length + (match.guestPlayers?.length || 0);
   const declined = match.rsvps.filter((r) => r.status === "DECLINED").length;
   const pending = match.rsvps.filter((r) => r.status === "PENDING").length;
 

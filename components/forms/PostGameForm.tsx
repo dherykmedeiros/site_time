@@ -9,6 +9,8 @@ interface RSVP {
   playerId: string;
   playerName: string;
   status: string;
+  isGuest?: boolean;
+  guestPlayerId?: string | null;
 }
 
 interface PlayerStatInput {
@@ -88,7 +90,12 @@ export function PostGameForm({
   const confirmedPlayers = rsvps.filter((r) => r.status === "CONFIRMED");
   const initialStatsByPlayer = new Map((initialStats || []).map((item) => [item.playerId, item]));
   const mergedPlayers = [
-    ...confirmedPlayers.map((r) => ({ ...r, guestPlayerId: null })),
+    ...confirmedPlayers.map((r) => ({
+      playerId: r.playerId,
+      guestPlayerId: r.isGuest ? r.playerId : null,
+      playerName: r.playerName,
+      status: r.status,
+    })),
     ...((initialStats || [])
       .filter((item) => !confirmedPlayers.some((player) => player.playerId === item.playerId))
       .map((item) => ({

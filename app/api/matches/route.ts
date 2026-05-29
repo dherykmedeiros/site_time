@@ -67,13 +67,16 @@ export const GET = withErrorHandler(async (request: Request) => {
       positionLimits: {
         select: { position: true, maxPlayers: true },
       },
+      guestPlayers: {
+        select: { id: true },
+      },
     },
     orderBy: { date: "asc" },
     take: 500,
   });
 
   const result = matches.map((match) => {
-    const confirmed = match.rsvps.filter((r) => r.status === "CONFIRMED").length;
+    const confirmed = match.rsvps.filter((r) => r.status === "CONFIRMED").length + match.guestPlayers.length;
     const declined = match.rsvps.filter((r) => r.status === "DECLINED").length;
     const pending = match.rsvps.filter((r) => r.status === "PENDING").length;
 

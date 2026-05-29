@@ -50,6 +50,7 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
       },
       team: { select: { slug: true } },
       season: { select: { id: true, name: true, type: true, status: true } },
+      guestPlayers: true,
     },
   });
 
@@ -161,6 +162,7 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
           },
           team: { select: { slug: true } },
           season: { select: { id: true, name: true, type: true, status: true } },
+          guestPlayers: true,
         },
       });
 
@@ -191,13 +193,24 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
     positionLimits: finalMatch.positionLimits,
     shareToken: finalMatch.shareToken,
     shareUrl,
-    rsvps: finalMatch.rsvps.map((rsvp) => ({
-      playerId: rsvp.playerId,
-      playerName: rsvp.player.name,
-      status: rsvp.status,
-      respondedAt: rsvp.respondedAt?.toISOString() ?? null,
-      summoned: rsvp.summoned,
-    })),
+    rsvps: [
+      ...finalMatch.rsvps.map((rsvp) => ({
+        playerId: rsvp.playerId,
+        playerName: rsvp.player.name,
+        status: rsvp.status,
+        respondedAt: rsvp.respondedAt?.toISOString() ?? null,
+        summoned: rsvp.summoned,
+      })),
+      ...(finalMatch.guestPlayers || []).map((guest) => ({
+        playerId: guest.id,
+        playerName: `${guest.name} (Convidado)`,
+        status: "CONFIRMED" as const,
+        respondedAt: guest.createdAt.toISOString(),
+        summoned: true,
+        isGuest: true,
+        guestPlayerId: guest.id,
+      })),
+    ],
     stats: finalMatch.matchStats.map((stat) => ({
       playerId: stat.playerId || stat.guestPlayerId,
       guestPlayerId: stat.guestPlayerId,
@@ -348,6 +361,7 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
         },
         team: { select: { slug: true } },
         season: { select: { id: true, name: true, type: true, status: true } },
+        guestPlayers: true,
       },
     });
 
@@ -399,6 +413,7 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
         },
         team: { select: { slug: true } },
         season: { select: { id: true, name: true, type: true, status: true } },
+        guestPlayers: true,
       },
     });
 
@@ -456,6 +471,7 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
         },
         team: { select: { slug: true } },
         season: { select: { id: true, name: true, type: true, status: true } },
+        guestPlayers: true,
       },
     });
   });
@@ -537,6 +553,11 @@ function buildMatchDetailResponse(
     createdAt: Date;
     updatedAt: Date;
     team: { slug: string };
+    guestPlayers?: Array<{
+      id: string;
+      name: string;
+      createdAt: Date;
+    }>;
     rsvps: Array<{
       playerId: string;
       player: { name: string };
@@ -579,13 +600,24 @@ function buildMatchDetailResponse(
     chargeAmount: match.chargeAmount ? Number(match.chargeAmount) : null,
     pixKey: match.pixKey,
     shareUrl,
-    rsvps: match.rsvps.map((rsvp) => ({
-      playerId: rsvp.playerId,
-      playerName: rsvp.player.name,
-      status: rsvp.status,
-      respondedAt: rsvp.respondedAt?.toISOString() ?? null,
-      summoned: rsvp.summoned,
-    })),
+    rsvps: [
+      ...match.rsvps.map((rsvp) => ({
+        playerId: rsvp.playerId,
+        playerName: rsvp.player.name,
+        status: rsvp.status,
+        respondedAt: rsvp.respondedAt?.toISOString() ?? null,
+        summoned: rsvp.summoned,
+      })),
+      ...(match.guestPlayers || []).map((guest) => ({
+        playerId: guest.id,
+        playerName: `${guest.name} (Convidado)`,
+        status: "CONFIRMED",
+        respondedAt: guest.createdAt.toISOString(),
+        summoned: true,
+        isGuest: true,
+        guestPlayerId: guest.id,
+      })),
+    ],
     stats: match.matchStats.map((stat) => ({
       playerId: stat.playerId || stat.guestPlayerId,
       guestPlayerId: stat.guestPlayerId,

@@ -129,6 +129,8 @@ interface RSVP {
   status: "PENDING" | "CONFIRMED" | "DECLINED";
   respondedAt: string | null;
   summoned?: boolean;
+  isGuest?: boolean;
+  guestPlayerId?: string | null;
 }
 
 interface PlayerStat {
@@ -1648,7 +1650,7 @@ export default function MatchDetailPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      {isCoachOrAdmin && match.type === "CHAMPIONSHIP" && (
+                      {isCoachOrAdmin && match.type === "CHAMPIONSHIP" && !rsvp.isGuest && (
                         <Button
                           size="sm"
                           variant={rsvp.summoned ? "ghost" : "secondary"}
@@ -1808,7 +1810,7 @@ export default function MatchDetailPage() {
       )}
 
       {canSeeGuests && activeSection === "guests" && (
-        <GuestPlayersManager matchId={match.id} />
+        <GuestPlayersManager matchId={match.id} onGuestsChange={fetchMatch} />
       )}
 
       {activeSection === "gallery" && (

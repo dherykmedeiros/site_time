@@ -18,9 +18,10 @@ interface GuestPlayer {
 
 interface GuestPlayersManagerProps {
   matchId: string;
+  onGuestsChange?: () => void;
 }
 
-export function GuestPlayersManager({ matchId }: GuestPlayersManagerProps) {
+export function GuestPlayersManager({ matchId, onGuestsChange }: GuestPlayersManagerProps) {
   const [guests, setGuests] = useState<GuestPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -80,6 +81,7 @@ export function GuestPlayersManager({ matchId }: GuestPlayersManagerProps) {
       setName("");
       setShirtNumber("");
       setPosition("");
+      onGuestsChange?.();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -103,6 +105,7 @@ export function GuestPlayersManager({ matchId }: GuestPlayersManagerProps) {
       if (promotingGuest?.id === id) {
         setPromotingGuest(null);
       }
+      onGuestsChange?.();
     } catch (err: any) {
       setError(err.message);
     }
@@ -133,6 +136,7 @@ export function GuestPlayersManager({ matchId }: GuestPlayersManagerProps) {
       setPromoteShirtNumber("");
       setPromotePosition("");
       alert(data.message || "Jogador integrado ao time com sucesso!");
+      onGuestsChange?.();
     } catch (err: any) {
       setPromoteError(err.message);
     } finally {
