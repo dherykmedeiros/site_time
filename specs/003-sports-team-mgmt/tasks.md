@@ -35,7 +35,7 @@
 ### Database & ORM
 
 - [x] T005 Create Prisma schema with all entities (User, Team, Player, Match, RSVP, MatchStats, FriendlyRequest, Transaction, InviteToken) and enums (Role, PlayerPosition, PlayerStatus, MatchType, MatchStatus, RSVPStatus, FriendlyRequestStatus, TransactionType, TransactionCategory) in `prisma/schema.prisma` conforme data-model.md
-- [ ] T006 Run initial Prisma migration (`npx prisma migrate dev --name init`) and generate Prisma Client
+- [x] T006 Run initial Prisma migration (`npx prisma migrate dev --name init`) and generate Prisma Client
 - [x] T007 [P] Create Prisma client singleton in `lib/prisma.ts`
 
 ### Authentication

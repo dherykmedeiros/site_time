@@ -110,6 +110,13 @@ O projeto abrange as seguintes funcionalidades principais:
 6. **Gestão Financeira (Caixinha)** — Controle de receitas e despesas
    do time.
 
+### VI. Integridade e Proteção do Banco de Dados
+
+- **PROIBIDO RESETAR OU LIMPAR O BANCO DE DADOS (DATABASE RESET IS STRICTLY FORBIDDEN):** 
+  Nenhum agente de IA (como o Antigravity) tem permissão para executar comandos destrutivos que apaguem dados do banco de dados de desenvolvimento ou produção. Comandos como `npx prisma migrate reset` ou `prisma db push --force-reset` são terminantemente PROIBIDOS.
+  Se houver conflito de migrações ou divergência de schema, o agente DEVE alertar o usuário imediatamente e propor alterações incrementais não-destrutivas (como gerar migrações manuais de DDL seguras) ou aguardar intervenção humana.
+  - Rationale: Protege dados críticos de testes e produção criados pelos desenvolvedores ou usuários reais, evitando retrabalho catastrófico.
+
 ## Governance
 
 - Esta constitution é o documento máximo do projeto; todas as decisões
@@ -122,4 +129,4 @@ O projeto abrange as seguintes funcionalidades principais:
 - Revisão de conformidade DEVE ocorrer a cada nova feature iniciada
   (via seção "Constitution Check" no plano de implementação).
 
-**Version**: 1.0.0 | **Ratified**: 2026-03-28 | **Last Amended**: 2026-03-28
+**Version**: 1.1.0 | **Ratified**: 2026-03-28 | **Last Amended**: 2026-05-31

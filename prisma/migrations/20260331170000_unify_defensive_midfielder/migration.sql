@@ -1,6 +1,7 @@
 -- Unify defensive midfield positions into a single enum value
 
 ALTER TYPE "PlayerPosition" ADD VALUE IF NOT EXISTS 'DEFENSIVE_MIDFIELDER';
+COMMIT;
 
 UPDATE "players"
 SET "position" = 'DEFENSIVE_MIDFIELDER'::"PlayerPosition"
