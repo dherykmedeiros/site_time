@@ -955,7 +955,7 @@ export default async function HomePage({
   const tacticalPlayers = getTacticalPositions(startersData);
 
   const finishedMatches = team.matches
-    .filter((m) => m.status === "COMPLETED" || m.status === "CANCELLED")
+    .filter((m) => m.status === "COMPLETED")
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const hasDiscoveryInfo = Boolean(team.city || team.region || team.fieldType || team.competitiveLevel);
