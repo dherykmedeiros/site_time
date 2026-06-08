@@ -172,6 +172,25 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
     }
   }
 
+  let userAttendance = null;
+  if (session?.user?.playerId) {
+    const att = await prisma.matchAttendance.findUnique({
+      where: {
+        matchId_playerId: {
+          matchId: id,
+          playerId: session.user.playerId,
+        },
+      },
+      select: { present: true, checkedInAt: true },
+    });
+    if (att) {
+      userAttendance = {
+        present: att.present,
+        checkedInAt: att.checkedInAt?.toISOString() ?? null,
+      };
+    }
+  }
+
   const canSubmitPostGame =
     finalMatch.date < new Date() && finalMatch.status === "SCHEDULED";
 
@@ -224,6 +243,9 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
     hasCharge: finalMatch.hasCharge,
     chargeAmount: finalMatch.chargeAmount ? Number(finalMatch.chargeAmount) : null,
     pixKey: finalMatch.pixKey,
+    latitude: finalMatch.latitude,
+    longitude: finalMatch.longitude,
+    userAttendance,
     createdAt: finalMatch.createdAt.toISOString(),
     updatedAt: finalMatch.updatedAt.toISOString(),
   });
@@ -433,6 +455,8 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
   if (data.awayScore !== undefined) updateData.awayScore = data.awayScore;
   if (data.status) updateData.status = data.status;
   if (data.pixKey !== undefined) updateData.pixKey = data.pixKey;
+  if (data.latitude !== undefined) updateData.latitude = data.latitude;
+  if (data.longitude !== undefined) updateData.longitude = data.longitude;
 
   const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     if (data.positionLimits) {
@@ -550,6 +574,8 @@ function buildMatchDetailResponse(
     hasCharge: boolean;
     chargeAmount: Prisma.Decimal | null | number;
     pixKey: string | null;
+    latitude: number | null;
+    longitude: number | null;
     createdAt: Date;
     updatedAt: Date;
     team: { slug: string };
@@ -575,7 +601,8 @@ function buildMatchDetailResponse(
       yellowCards: number;
       redCards: number;
     }>;
-  }
+  },
+  userAttendance?: { present: boolean; checkedInAt: string | null } | null
 ) {
   const canSubmitPostGame =
     match.date < new Date() && match.status === "SCHEDULED";
@@ -628,6 +655,9 @@ function buildMatchDetailResponse(
       redCards: stat.redCards,
     })),
     canSubmitPostGame,
+    latitude: match.latitude,
+    longitude: match.longitude,
+    userAttendance: userAttendance ?? null,
     createdAt: match.createdAt.toISOString(),
     updatedAt: match.updatedAt.toISOString(),
   });

@@ -56,6 +56,8 @@ interface MatchFormProps {
     homeScore?: number | null;
     awayScore?: number | null;
     pixKey?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   };
   onSuccess?: () => void;
   onCancel?: () => void;
@@ -147,6 +149,8 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
       homeScore: defaultValues?.homeScore !== null ? defaultValues?.homeScore : undefined,
       awayScore: defaultValues?.awayScore !== null ? defaultValues?.awayScore : undefined,
       pixKey: defaultValues?.pixKey || "",
+      latitude: defaultValues?.latitude !== null && defaultValues?.latitude !== undefined ? defaultValues.latitude : undefined,
+      longitude: defaultValues?.longitude !== null && defaultValues?.longitude !== undefined ? defaultValues.longitude : undefined,
     },
   });
 
@@ -281,6 +285,8 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         date: new Date(data.date).toISOString(),
         opponentBadgeUrl: data.opponentBadgeUrl?.trim() ? data.opponentBadgeUrl.trim() : null,
         pixKey: data.pixKey?.trim() ? data.pixKey.trim() : null,
+        latitude: data.latitude !== undefined && data.latitude !== "" && data.latitude !== null ? Number(data.latitude) : null,
+        longitude: data.longitude !== undefined && data.longitude !== "" && data.longitude !== null ? Number(data.longitude) : null,
         status: recordType,
       };
 
@@ -476,6 +482,21 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         error={errors.venue?.message}
         {...register("venue")}
       />
+
+      <div className="grid gap-4 grid-cols-2">
+        <Input
+          label="Latitude do Campo (opcional)"
+          placeholder="Ex: -3.7319"
+          error={errors.latitude?.message}
+          {...register("latitude")}
+        />
+        <Input
+          label="Longitude do Campo (opcional)"
+          placeholder="Ex: -38.5267"
+          error={errors.longitude?.message}
+          {...register("longitude")}
+        />
+      </div>
 
       <Input
         label="Adversário"

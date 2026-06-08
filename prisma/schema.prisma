@@ -320,6 +320,8 @@ model Match {
   hasCharge    Boolean     @default(false)
   chargeAmount Decimal?    @db.Decimal(10, 2)
   pixKey       String?
+  latitude     Float?
+  longitude    Float?
   matchPayments MatchPayment[]
   datePoll     DatePoll?
   photos       MatchPhoto[]

@@ -97,6 +97,8 @@ export const GET = withErrorHandler(async (request: Request) => {
       hasCharge: match.hasCharge,
       chargeAmount: match.chargeAmount ? Number(match.chargeAmount) : null,
       pixKey: match.pixKey,
+      latitude: match.latitude,
+      longitude: match.longitude,
       createdAt: match.createdAt.toISOString(),
     };
   });
@@ -160,6 +162,8 @@ export const POST = withErrorHandler(async (request: Request) => {
     homeScore,
     awayScore,
     pixKey,
+    latitude,
+    longitude,
   } = parsed.data;
   const matchDate = new Date(date);
 
@@ -215,6 +219,8 @@ export const POST = withErrorHandler(async (request: Request) => {
         homeScore: homeScore !== undefined ? homeScore : null,
         awayScore: awayScore !== undefined ? awayScore : null,
         pixKey: pixKey || null,
+        latitude: latitude ?? null,
+        longitude: longitude ?? null,
         ...(seasonId && { seasonId }),
       },
     });
@@ -272,6 +278,8 @@ export const POST = withErrorHandler(async (request: Request) => {
       shareToken: match.shareToken,
       shareUrl,
       pixKey: match.pixKey,
+      latitude: match.latitude,
+      longitude: match.longitude,
       createdAt: match.createdAt.toISOString(),
     },
     { status: 201 }

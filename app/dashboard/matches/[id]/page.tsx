@@ -16,7 +16,7 @@ import { SuggestedLineupCard } from "@/components/dashboard/SuggestedLineupCard"
 import { TeamRecapWidget } from "@/components/dashboard/TeamRecapWidget";
 import { MatchPhotosGallery } from "@/components/dashboard/MatchPhotosGallery";
 import type { BordereauResponse, SuggestedLineupResponse } from "@/lib/validations/match";
-import { Star, Copy, Check, Upload, Eye, FileText, CheckCircle2, XCircle, AlertCircle, Coins } from "lucide-react";
+import { Star, Copy, Check, Upload, Eye, FileText, CheckCircle2, XCircle, AlertCircle, Coins, MapPin } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 const PostGameForm = dynamic(
@@ -164,6 +164,9 @@ interface MatchDetail {
   pixKey: string | null;
   season?: { id: string; name: string; type: string; status: string } | null;
   positionLimits?: Array<{ position: string; maxPlayers: number }>;
+  latitude?: number | null;
+  longitude?: number | null;
+  userAttendance?: { present: boolean; checkedInAt: string | null } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -233,6 +236,9 @@ export default function MatchDetailPage() {
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [checkInLoading, setCheckInLoading] = useState(false);
+  const [checkInError, setCheckInError] = useState<string | null>(null);
+  const [checkInFeedback, setCheckInFeedback] = useState<string | null>(null);
   const [lineupData, setLineupData] = useState<MatchLineupResponse | null>(null);
   const [lineupLoading, setLineupLoading] = useState(false);
   const [lineupRefreshing, setLineupRefreshing] = useState(false);
@@ -822,6 +828,56 @@ export default function MatchDetailPage() {
     }
   }
 
+  const handleCheckIn = () => {
+    if (!navigator.geolocation) {
+      setCheckInError("Geolocalização não é suportada pelo seu navegador");
+      return;
+    }
+
+    setCheckInLoading(true);
+    setCheckInError(null);
+    setCheckInFeedback(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const res = await fetch(`/api/matches/${id}/check-in`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            setCheckInFeedback(data.message);
+            await fetchMatch();
+          } else {
+            setCheckInError(data.error || "Erro ao realizar check-in");
+          }
+        } catch {
+          setCheckInError("Erro de conexão com o servidor");
+        } finally {
+          setCheckInLoading(false);
+        }
+      },
+      (error) => {
+        let msg = "Erro ao obter localização";
+        if (error.code === error.PERMISSION_DENIED) {
+          msg = "Permissão de localização negada pelo usuário";
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          msg = "Localização indisponível no dispositivo";
+        } else if (error.code === error.TIMEOUT) {
+          msg = "Tempo limite esgotado ao obter localização";
+        }
+        setCheckInError(msg);
+        setCheckInLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   async function handleCancelConfirm() {
     setActionLoading(true);
     setActionError(null);
@@ -1291,7 +1347,19 @@ export default function MatchDetailPage() {
             </div>
             <div>
               <span className="text-sm text-[var(--text-muted)]">Local</span>
-              <p className="font-medium text-[var(--text)]">{match.venue}</p>
+              <p className="font-medium text-[var(--text)] flex flex-wrap items-center gap-2">
+                {match.venue}
+                {match.latitude && match.longitude && (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${match.latitude},${match.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-xs text-[#34d399] hover:underline"
+                  >
+                    🗺️ Ver no mapa
+                  </a>
+                )}
+              </p>
             </div>
             <div>
               <span className="text-sm text-[var(--text-muted)]">Adversário</span>
@@ -1629,6 +1697,63 @@ export default function MatchDetailPage() {
                     </p>
                   </div>
                 </div>
+              )}
+
+              {/* Check-in section for confirmed players */}
+              {loggedInPlayerRsvp?.status === "CONFIRMED" && (
+                <>
+                  {match.userAttendance?.present ? (
+                    <div className="mb-4 p-4 rounded-xl border border-green-500/20 bg-green-500/5 flex items-start gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-semibold text-green-400">Chegada Confirmada no Campo!</p>
+                        <p className="text-xs text-[var(--text-subtle)] mt-1">
+                          Seu check-in no local foi registrado em{" "}
+                          {match.userAttendance.checkedInAt
+                            ? new Intl.DateTimeFormat("pt-BR", {
+                                timeStyle: "short",
+                                timeZone: "America/Sao_Paulo",
+                              }).format(new Date(match.userAttendance.checkedInAt))
+                            : ""}{" "}
+                          h. Presença oficialmente confirmada.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    match.latitude && match.longitude && (
+                      <div className="mb-4 p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <MapPin className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-semibold text-blue-400">Confirmar Presença no Local</p>
+                            <p className="text-xs text-[var(--text-subtle)] mt-1">
+                              Quando estiver no local da partida (campo de jogo, em um raio de até 500 metros), confirme sua chegada clicando no botão abaixo.
+                            </p>
+                          </div>
+                        </div>
+
+                        {checkInFeedback && (
+                          <div className="rounded-[12px] border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] p-3 text-xs text-[#6ee7b7] font-semibold">
+                            {checkInFeedback}
+                          </div>
+                        )}
+                        {checkInError && (
+                          <div className="rounded-[12px] border border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.1)] p-3 text-xs text-[#fca5a5] font-semibold">
+                            {checkInError}
+                          </div>
+                        )}
+
+                        <Button
+                          onClick={handleCheckIn}
+                          disabled={checkInLoading}
+                          className="w-full sm:w-auto text-xs font-black uppercase tracking-wider text-[#010403] bg-[#10b981] hover:bg-[#34d399]"
+                        >
+                          {checkInLoading ? "Obtendo localização..." : "📍 Confirmar Presença (Check-in)"}
+                        </Button>
+                      </div>
+                    )
+                  )}
+                </>
               )}
 
               {/* RSVP list */}
@@ -2439,6 +2564,8 @@ export default function MatchDetailPage() {
             homeScore: match.homeScore,
             awayScore: match.awayScore,
             pixKey: match.pixKey,
+            latitude: match.latitude,
+            longitude: match.longitude,
           }}
           onSuccess={async () => {
             setShowEditMatch(false);
