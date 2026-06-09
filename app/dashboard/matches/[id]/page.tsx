@@ -1215,10 +1215,12 @@ export default function MatchDetailPage() {
   return (
     <div className="space-y-5">
       {/* ── Hero Header ─────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-[20px] border border-white/[0.06] bg-gradient-to-br from-[#0c1a14] via-[#0a1510] to-[#081210] p-5 sm:p-6">
-        {/* Decorative gradient orbs */}
-        <div className="pointer-events-none absolute -top-20 -right-20 h-40 w-40 rounded-full bg-[rgba(16,185,129,0.06)] blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-[rgba(52,211,153,0.04)] blur-2xl" />
+      <div className="relative rounded-[20px] border border-white/[0.06] bg-gradient-to-br from-[#0c1a14] via-[#0a1510] to-[#081210] p-5 sm:p-6">
+        {/* Decorative gradient orbs wrapper (handles overflow-hidden for orbs) */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[20px]">
+          <div className="absolute -top-20 -right-20 h-40 w-40 rounded-full bg-[rgba(16,185,129,0.06)] blur-3xl" />
+          <div className="absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-[rgba(52,211,153,0.04)] blur-2xl" />
+        </div>
 
         {/* Back button */}
         <button
