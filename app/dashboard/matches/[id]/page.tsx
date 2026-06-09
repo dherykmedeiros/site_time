@@ -16,7 +16,7 @@ import { SuggestedLineupCard } from "@/components/dashboard/SuggestedLineupCard"
 import { TeamRecapWidget } from "@/components/dashboard/TeamRecapWidget";
 import { MatchPhotosGallery } from "@/components/dashboard/MatchPhotosGallery";
 import type { BordereauResponse, SuggestedLineupResponse } from "@/lib/validations/match";
-import { Star, Copy, Check, Upload, Eye, FileText, CheckCircle2, XCircle, AlertCircle, Coins, MapPin } from "lucide-react";
+import { Star, Copy, Check, Upload, Eye, FileText, CheckCircle2, XCircle, AlertCircle, Coins, MapPin, Calendar, Users, LayoutGrid, Settings, Trophy, Camera, Radio, UserPlus, MoreVertical, ExternalLink, ChevronDown } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 const PostGameForm = dynamic(
@@ -179,6 +179,18 @@ interface MatchLineupResponse {
 }
 
 type ScheduledWorkspaceSection = "overview" | "presence" | "lineup" | "operations" | "postgame" | "gallery" | "live" | "guests" | "charges";
+
+const sectionIcons: Record<ScheduledWorkspaceSection, React.ReactNode> = {
+  overview: <LayoutGrid className="h-4 w-4" />,
+  presence: <Users className="h-4 w-4" />,
+  lineup: <LayoutGrid className="h-4 w-4" />,
+  operations: <Settings className="h-4 w-4" />,
+  postgame: <Trophy className="h-4 w-4" />,
+  gallery: <Camera className="h-4 w-4" />,
+  live: <Radio className="h-4 w-4" />,
+  guests: <UserPlus className="h-4 w-4" />,
+  charges: <Coins className="h-4 w-4" />,
+};
 
 const statusLabels: Record<string, string> = {
   SCHEDULED: "Agendada",
@@ -1197,73 +1209,199 @@ export default function MatchDetailPage() {
       : []),
   ];
 
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <button
-            onClick={() => router.push("/matches")}
-            className="mb-2 text-sm text-[var(--brand-neon)] hover:text-white transition-colors"
-          >
-            ← Voltar para Jogos
-          </button>
-          <h1 className="text-2xl font-bold text-[var(--text)]">
-            vs {match.opponent}
-          </h1>
-          <div className="mt-1 flex items-center gap-2">
-            <Badge variant={statusVariants[match.status]}>
-              {statusLabels[match.status]}
-            </Badge>
-            <Badge variant="default">
-              {match.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
-            </Badge>
+    <div className="space-y-5">
+      {/* ── Hero Header ─────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-[20px] border border-white/[0.06] bg-gradient-to-br from-[#0c1a14] via-[#0a1510] to-[#081210] p-5 sm:p-6">
+        {/* Decorative gradient orbs */}
+        <div className="pointer-events-none absolute -top-20 -right-20 h-40 w-40 rounded-full bg-[rgba(16,185,129,0.06)] blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-[rgba(52,211,153,0.04)] blur-2xl" />
+
+        {/* Back button */}
+        <button
+          onClick={() => router.push("/matches")}
+          className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#34d399] hover:text-white transition-colors tracking-wide uppercase"
+        >
+          ← Voltar para Jogos
+        </button>
+
+        {/* Match title row */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-center gap-4">
+            {match.opponentBadgeUrl ? (
+              <img
+                src={match.opponentBadgeUrl}
+                alt={match.opponent}
+                className="h-14 w-14 rounded-xl border border-white/10 object-cover shadow-lg"
+              />
+            ) : (
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-xl font-black text-white/30">
+                VS
+              </div>
+            )}
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                vs {match.opponent}
+              </h1>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <Badge variant={statusVariants[match.status]}>
+                  {statusLabels[match.status]}
+                </Badge>
+                <Badge variant="default">
+                  {match.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
+                </Badge>
+                <Badge variant="default">
+                  {match.isHome ? "🏠 Casa" : "✈️ Visitante"}
+                </Badge>
+                {match.season && (
+                  <Badge variant="default">{match.season.name}</Badge>
+                )}
+              </div>
+            </div>
           </div>
+
+          {/* Scoreboard (completed matches) */}
+          {match.status === "COMPLETED" && match.homeScore !== null && match.awayScore !== null && (
+            <div className="flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-black/30 px-5 py-3 backdrop-blur-sm">
+              <div className="text-center">
+                <span className="block text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">
+                  {match.isHome ? "NÓS" : "ADV"}
+                </span>
+                <span className={`block text-3xl font-black mt-0.5 ${match.isHome ? "text-[#6ee7b7]" : "text-[#fca5a5]"}`}>
+                  {match.homeScore}
+                </span>
+              </div>
+              <span className="text-lg font-bold text-white/20">×</span>
+              <div className="text-center">
+                <span className="block text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">
+                  {match.isHome ? "ADV" : "NÓS"}
+                </span>
+                <span className={`block text-3xl font-black mt-0.5 ${match.isHome ? "text-[#fca5a5]" : "text-[#6ee7b7]"}`}>
+                  {match.awayScore}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={handleCopyLink}>
-            🖗 Compartilhar
+
+        {/* Meta info strip */}
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[#8fa39b]">
+          <span className="flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 text-[#34d399]" />
+            {formatMatchDate(match.date)}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5 text-[#34d399]" />
+            {match.venue}
+            {match.latitude && match.longitude && (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${match.latitude},${match.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-0.5 text-[#34d399] hover:underline ml-1"
+              >
+                <ExternalLink className="h-3 w-3" /> Mapa
+              </a>
+            )}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5 text-[#34d399]" />
+            {confirmed} confirmados · {pending} pendentes
+          </span>
+        </div>
+
+        {/* Actions bar */}
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/[0.04] pt-4">
+          <Button size="sm" variant="secondary" onClick={handleCopyLink}>
+            <Copy className="h-3.5 w-3.5 mr-1.5" /> Compartilhar
           </Button>
+
           {isAdmin && (
-            <Button variant="secondary" onClick={() => setShowEditMatch(true)}>
-              Editar partida
-            </Button>
-          )}
-          {isAdmin && match.status === "COMPLETED" && (
-            <Button variant="secondary" onClick={() => setShowEditPostGame(true)}>
-              Editar pos-jogo
-            </Button>
-          )}
-          {isAdmin && match.status === "SCHEDULED" && (
-            <Button
-              variant="secondary"
-              onClick={() => {
-                const next = !showConvocacao;
-                setShowConvocacao(next);
-                if (next && match) {
-                  setConvocacaoText(buildConvocacaoText());
-                }
-              }}
-            >
-              📋 Gerar Convocação
-            </Button>
-          )}
-          {isAdmin && match.status === "SCHEDULED" && (
-            <Button variant="danger" onClick={() => setConfirmCancelOpen(true)}>
-              Cancelar Partida
-            </Button>
-          )}
-          {isAdmin && (
-            <Button variant="danger" onClick={() => setConfirmDeleteOpen(true)}>
-              Excluir
-            </Button>
+            <div className="relative">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setAdminMenuOpen(!adminMenuOpen)}
+              >
+                <MoreVertical className="h-3.5 w-3.5 mr-1.5" /> Ações
+                <ChevronDown className={`h-3 w-3 ml-1 transition-transform ${adminMenuOpen ? "rotate-180" : ""}`} />
+              </Button>
+              {adminMenuOpen && (
+                <div
+                  className="absolute left-0 top-full z-30 mt-1.5 min-w-[200px] rounded-xl border border-white/10 bg-[#0c1a14] shadow-xl backdrop-blur-md overflow-hidden"
+                  onMouseLeave={() => setAdminMenuOpen(false)}
+                >
+                  <button
+                    type="button"
+                    onClick={() => { setShowEditMatch(true); setAdminMenuOpen(false); }}
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-white hover:bg-white/[0.06] transition-colors"
+                  >
+                    ✏️ Editar partida
+                  </button>
+                  {match.status === "COMPLETED" && (
+                    <button
+                      type="button"
+                      onClick={() => { setShowEditPostGame(true); setAdminMenuOpen(false); }}
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-white hover:bg-white/[0.06] transition-colors"
+                    >
+                      📊 Editar pós-jogo
+                    </button>
+                  )}
+                  {match.status === "SCHEDULED" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowConvocacao(true);
+                        setConvocacaoText(buildConvocacaoText());
+                        setAdminMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-white hover:bg-white/[0.06] transition-colors"
+                    >
+                      📋 Gerar Convocação
+                    </button>
+                  )}
+                  <div className="border-t border-white/[0.06]" />
+                  {match.status === "SCHEDULED" && (
+                    <button
+                      type="button"
+                      onClick={() => { setConfirmCancelOpen(true); setAdminMenuOpen(false); }}
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-[#fca5a5] hover:bg-red-500/[0.08] transition-colors"
+                    >
+                      🚫 Cancelar partida
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => { setConfirmDeleteOpen(true); setAdminMenuOpen(false); }}
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-[#fca5a5] hover:bg-red-500/[0.08] transition-colors"
+                  >
+                    🗑️ Excluir partida
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
 
+      {/* ── Feedback / Alerts ──────────────────────────────── */}
       {copyMsg && (
         <div className="rounded-[12px] border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] p-3 text-sm text-[#6ee7b7] font-semibold">
           {copyMsg}
+        </div>
+      )}
+
+      {feedback && (
+        <div className="rounded-[12px] border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] p-3 text-sm text-[#6ee7b7] font-semibold">
+          {feedback}
+        </div>
+      )}
+
+      {actionError && (
+        <div className="rounded-[12px] border border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.1)] p-3 text-sm text-[#fca5a5] font-semibold">
+          {actionError}
         </div>
       )}
 
@@ -1322,257 +1460,68 @@ export default function MatchDetailPage() {
         </Card>
       )}
 
-      {feedback && (
-        <div className="rounded-[12px] border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] p-3 text-sm text-[#6ee7b7] font-semibold">
-          {feedback}
-        </div>
-      )}
-
-      {actionError && (
-        <div className="rounded-[12px] border border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.1)] p-3 text-sm text-[#fca5a5] font-semibold">
-          {actionError}
-        </div>
-      )}
-
-      {/* Match Info */}
-      <Card>
-        <CardHeader>
-          <h2 className="text-lg font-semibold">Informações</h2>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <span className="text-sm text-[var(--text-muted)]">Data</span>
-              <p className="font-medium text-[var(--text)]">{formatMatchDate(match.date)}</p>
-            </div>
-            <div>
-              <span className="text-sm text-[var(--text-muted)]">Local</span>
-              <p className="font-medium text-[var(--text)] flex flex-wrap items-center gap-2">
-                {match.venue}
-                {match.latitude && match.longitude && (
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${match.latitude},${match.longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center text-xs text-[#34d399] hover:underline"
-                  >
-                    🗺️ Ver no mapa
-                  </a>
-                )}
-              </p>
-            </div>
-            <div>
-              <span className="text-sm text-[var(--text-muted)]">Adversário</span>
-              <p className="font-medium text-[var(--text)]">{match.opponent}</p>
-            </div>
-            <div>
-              <span className="text-sm text-[var(--text-muted)]">Tipo</span>
-              <p className="font-medium text-[var(--text)]">
-                {match.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
-              </p>
-            </div>
-            <div>
-              <span className="text-sm text-[var(--text-muted)]">Mando</span>
-              <p className="font-medium text-[var(--text)]">{match.isHome ? "Casa" : "Visitante"}</p>
-            </div>
-            <div>
-              <span className="text-sm text-[var(--text-muted)]">Escudo adversário</span>
-              <p className="font-medium text-[var(--text)]">{match.opponentBadgeUrl ? "Definido" : "Nao informado"}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
+      {/* ── Tab Navigation Strip ──────────────────────────── */}
       {(isScheduled || canSeePostGame) && (
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-[var(--text)]">Central da partida</h2>
-                <p className="text-sm text-[var(--text-subtle)]">
-                  Separamos presenca, escalacao e operacao para a pagina ficar mais objetiva.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {sections.map((section) => (
-                  <Button
-                    key={section.id}
-                    type="button"
-                    variant={activeSection === section.id ? "primary" : "ghost"}
-                    size="sm"
-                    onClick={() => setActiveSection(section.id)}
-                  >
-                    {section.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <button
-                type="button"
-                onClick={() => setActiveSection("overview")}
-                className={`rounded-[14px] border p-4 text-left transition-colors ${
-                  activeSection === "overview"
-                    ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                    : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white/[0.07]"
-                }`}
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Resumo</p>
-                <p className="mt-2 text-lg font-semibold text-[var(--text)]">Tudo em contexto</p>
-                <p className="mt-1 text-sm text-[var(--text-subtle)]">Visao rapida da rodada e proximos passos.</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveSection("presence")}
-                className={`rounded-[14px] border p-4 text-left transition-colors ${
-                  activeSection === "presence"
-                    ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                    : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white/[0.07]"
-                }`}
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Presenca</p>
-                <p className="mt-2 text-lg font-semibold text-[var(--text)]">{confirmed} confirmados</p>
-                <p className="mt-1 text-sm text-[var(--text-subtle)]">{pending} pendentes e {declined} recusas.</p>
-              </button>
-
-              {canSeeLineup && (
+        <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
+          <div className="flex items-center gap-1 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-1.5 backdrop-blur-sm min-w-max">
+            {sections.map((section) => {
+              const isActive = activeSection === section.id;
+              return (
                 <button
+              key={section.id}
                   type="button"
-                  onClick={() => setActiveSection("lineup")}
-                  className={`rounded-[14px] border p-4 text-left transition-colors ${
-                    activeSection === "lineup"
-                      ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                      : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white/[0.07]"
+                  onClick={() => setActiveSection(section.id)}
+                  className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 whitespace-nowrap ${
+                    isActive
+                      ? "bg-[rgba(16,185,129,0.12)] border border-[rgba(16,185,129,0.25)] text-[#34d399] shadow-sm"
+                      : "border border-transparent text-[#8fa39b] hover:text-white hover:bg-white/[0.04]"
                   }`}
+                  title={section.helper}
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Escalacao</p>
-                  <p className="mt-2 text-lg font-semibold text-[var(--text)]">
-                    {lineupLoading ? "Calculando..." : `${lineupData?.lineup?.starters?.length ?? 0} titulares`}
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--text-subtle)]">
-                    {lineupError ? "Revise o erro da leitura" : "Veja a sugestao sem inflar a pagina principal."}
-                  </p>
+                  {sectionIcons[section.id]}
+                  {section.label}
                 </button>
-              )}
-
-              {canSeeOperations && (
-                <button
-                  type="button"
-                  onClick={() => setActiveSection("operations")}
-                  className={`rounded-[14px] border p-4 text-left transition-colors ${
-                    activeSection === "operations"
-                      ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                      : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white/[0.07]"
-                  }`}
-                >
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Operacao</p>
-                  <p className="mt-2 text-lg font-semibold text-[var(--text)]">
-                    {bordereauLoading ? "Carregando..." : `${bordereauData?.costSummary?.presentCount ?? 0} presentes`}
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--text-subtle)]">
-                    Bordero e despesas ficam isolados do RSVP.
-                  </p>
-                </button>
-              )}
-
-              {canSeePostGame && (
-                <button
-                  type="button"
-                  onClick={() => setActiveSection("postgame")}
-                  className={`rounded-[14px] border p-4 text-left transition-colors ${
-                    activeSection === "postgame"
-                      ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                      : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white/[0.07]"
-                  }`}
-                >
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Pos-jogo</p>
-                  <p className="mt-2 text-lg font-semibold text-[var(--text)]">
-                    {match.status === "COMPLETED" ? "Partida finalizada" : "Registro pendente"}
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--text-subtle)]">
-                    Placar, estatisticas e compartilhamento em uma area dedicada.
-                  </p>
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setActiveSection("gallery")}
-                className={`rounded-[14px] border p-4 text-left transition-colors ${
-                  activeSection === "gallery"
-                    ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                    : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white/[0.07]"
-                }`}
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Galeria</p>
-                <p className="mt-2 text-lg font-semibold text-[var(--text)]">Fotos do jogo</p>
-                <p className="mt-1 text-sm text-[var(--text-subtle)]">Resenha e fotos da partida.</p>
-              </button>
-
-              {match.hasCharge && (
-                <button
-                  type="button"
-                  onClick={() => setActiveSection("charges")}
-                  className={`rounded-[14px] border p-4 text-left transition-colors ${
-                    activeSection === "charges"
-                      ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                      : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white/[0.07]"
-                  }`}
-                >
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Cobrança</p>
-                  <p className="mt-2 text-lg font-semibold text-[var(--text)]">
-                    {match.chargeAmount != null ? formatCurrency(match.chargeAmount) : "Taxa de jogo"}
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--text-subtle)]">
-                    Acompanhe quem pagou a taxa deste jogo.
-                  </p>
-                </button>
-              )}
-            </div>
-
-            <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-              <p className="text-sm font-semibold text-[var(--text)]">
-                {sections.find((section) => section.id === activeSection)?.label ?? ""}
-              </p>
-              <p className="mt-1 text-sm text-[var(--text-subtle)]">
-                {sections.find((section) => section.id === activeSection)?.helper ?? ""}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {isScheduled && activeSection === "overview" && (
         <>
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold text-[var(--text)]">Visao geral do jogo</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 lg:grid-cols-3">
-                <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Confirmacoes</p>
-                  <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{confirmed}</p>
-                  <p className="mt-1 text-sm text-[var(--text-subtle)]">Jogadores que ja confirmaram presenca.</p>
-                </div>
-                <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Pendencias</p>
-                  <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{pending}</p>
-                  <p className="mt-1 text-sm text-[var(--text-subtle)]">Ainda sem resposta no RSVP.</p>
-                </div>
-                <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Recusas</p>
-                  <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{declined}</p>
-                  <p className="mt-1 text-sm text-[var(--text-subtle)]">Atletas indisponiveis para esta partida.</p>
-                </div>
+          {/* Compact Stats Bar */}
+          <div className="grid gap-3 grid-cols-3">
+            <div className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(16,185,129,0.1)] text-[#34d399]">
+                <CheckCircle2 className="h-5 w-5" />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <p className="text-2xl font-black text-white">{confirmed}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">Confirmados</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(251,191,36,0.1)] text-[#fbbf24]">
+                <AlertCircle className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-black text-white">{pending}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">Pendentes</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(248,113,113,0.1)] text-[#f87171]">
+                <XCircle className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-black text-white">{declined}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">Recusas</p>
+              </div>
+            </div>
+          </div>
 
-          <Card className="mt-4">
+
+          <Card>
             <CardHeader>
               <h2 className="text-lg font-semibold text-[var(--text)]">Divulgar Pré-Jogo nas Redes Sociais</h2>
             </CardHeader>
@@ -1622,37 +1571,7 @@ export default function MatchDetailPage() {
         </>
       )}
 
-      {/* Score (if completed) */}
-      {activeSection === "postgame" && match.status === "COMPLETED" &&
-        match.homeScore !== null &&
-        match.awayScore !== null && (
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold">Placar</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center gap-10 text-3xl font-bold text-center">
-                <div className="space-y-1">
-                  <span className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
-                    {match.isHome ? "Nosso Time (Casa)" : `${match.opponent} (Casa)`}
-                  </span>
-                  <span className={`${match.isHome ? "text-[#6ee7b7]" : "text-[#fca5a5]"} text-4xl block font-black`}>
-                    {match.homeScore}
-                  </span>
-                </div>
-                <span className="text-[var(--text-muted)] self-end pb-1">x</span>
-                <div className="space-y-1">
-                  <span className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
-                    {match.isHome ? `${match.opponent} (Visitante)` : "Nosso Time (Visitante)"}
-                  </span>
-                  <span className={`${match.isHome ? "text-[#fca5a5]" : "text-[#6ee7b7]"} text-4xl block font-black`}>
-                    {match.awayScore}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+      {/* Score section removed — scoreboard is now integrated into the hero header */}
 
       {match.status === "SCHEDULED" && activeSection === "presence" && (() => {
         const loggedInPlayerRsvp = match.rsvps.find((r) => r.playerId === session?.user?.playerId);
