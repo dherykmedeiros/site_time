@@ -268,6 +268,7 @@ export default function MatchDetailPage() {
   const [ratingsAverages, setRatingsAverages] = useState<Array<{ playerId: string; averageStars: number; totalRatings: number }>>([]);
   const [canRate, setCanRate] = useState(false);
   const [submittingRatingId, setSubmittingRatingId] = useState<string | null>(null);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
 
   // Match Charges state inside the match detail page
   const [checklistPlayers, setChecklistPlayers] = useState<any[]>([]);
@@ -1209,7 +1210,7 @@ export default function MatchDetailPage() {
       : []),
   ];
 
-  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+
 
   return (
     <div className="space-y-5">
