@@ -35,6 +35,7 @@ declare module "next-auth/jwt" {
     role: "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR";
     teamId: string | null;
     playerId: string | null;
+    lastRefreshed?: number;
   }
 }
 
@@ -93,10 +94,15 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.teamId = user.teamId;
         token.playerId = user.playerId;
+        token.lastRefreshed = Date.now();
       }
 
-      // Keep JWT claims fresh when user/team links change after login.
-      if (token.id) {
+      // Keep JWT claims fresh when user/team links change after login, with 60-second throttling TTL.
+      const now = Date.now();
+      const throttleMs = 60 * 1000;
+      const lastRefreshed = token.lastRefreshed || 0;
+
+      if (token.id && (now - lastRefreshed > throttleMs)) {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.id },
@@ -112,9 +118,10 @@ export const authOptions: NextAuthOptions = {
           if (dbUser) {
             token.email = dbUser.email;
             token.name = dbUser.name;
-            token.role = dbUser.role;
+            token.role = dbUser.role as "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR";
             token.teamId = dbUser.teamId;
             token.playerId = dbUser.playerId;
+            token.lastRefreshed = now;
           }
         } catch (err) {
           console.error("[AUTH] JWT refresh failed:", err);
