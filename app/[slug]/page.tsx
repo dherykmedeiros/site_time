@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { parseFormation, inferBestFormation } from "@/lib/formations";
+import { PlayerPosition, MatchLineupRole } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 import { getSession } from "@/lib/auth";
@@ -214,15 +215,39 @@ const positionOrder: Record<string, number> = {
   RIGHT_WINGER: 7,
   FORWARD: 8,
   LEFT_WINGER: 9,
-};
+};interface PortalPlayer {
+  id: string;
+  name: string;
+  shirtNumber: number;
+  position: PlayerPosition;
+  photoUrl?: string | null;
+}
 
-function getTacticalPositions(starters: any[]) {
+interface LineupEntryInput {
+  id: string;
+  fieldX: number | null;
+  fieldY: number | null;
+  role: MatchLineupRole;
+  player?: PortalPlayer | null;
+  guestPlayer?: PortalPlayer | null;
+}
+
+interface MappedTacticalPlayer {
+  id: string;
+  name: string;
+  shirtNumber: number;
+  position: PlayerPosition;
+  x: number;
+  y: number;
+}
+
+function getTacticalPositions(starters: LineupEntryInput[]): MappedTacticalPlayer[] {
   // Separate players into custom placement (database coords) and automatic placement
   const customPlacements = starters.filter(s => s.fieldX != null && s.fieldY != null).map(s => {
     const p = s.player || s.guestPlayer;
     // Swapped for horizontal screen display
-    const x = s.fieldY;
-    const y = s.fieldX;
+    const x = s.fieldY ?? 50;
+    const y = s.fieldX ?? 50;
     return {
       id: s.id,
       name: p?.name || "Convidado",
@@ -236,10 +261,10 @@ function getTacticalPositions(starters: any[]) {
   const autoPlacements = starters.filter(s => s.fieldX == null || s.fieldY == null);
 
   // Group auto placements by group type
-  const gks: any[] = [];
-  const defs: any[] = [];
-  const mids: any[] = [];
-  const fwds: any[] = [];
+  const gks: LineupEntryInput[] = [];
+  const defs: LineupEntryInput[] = [];
+  const mids: LineupEntryInput[] = [];
+  const fwds: LineupEntryInput[] = [];
 
   autoPlacements.forEach((s) => {
     const p = s.player || s.guestPlayer;
@@ -256,7 +281,7 @@ function getTacticalPositions(starters: any[]) {
   });
 
   // Sort each group by natural vertical order (top-to-bottom on screen)
-  const sortByPosition = (a: any, b: any) => {
+  const sortByPosition = (a: LineupEntryInput, b: LineupEntryInput) => {
     const pA = a.player || a.guestPlayer;
     const pB = b.player || b.guestPlayer;
     const orderA = positionOrder[pA?.position || "FORWARD"] || 99;
@@ -269,7 +294,7 @@ function getTacticalPositions(starters: any[]) {
   mids.sort(sortByPosition);
   fwds.sort(sortByPosition);
 
-  const mappedAuto: any[] = [];
+  const mappedAuto: MappedTacticalPlayer[] = [];
 
   // 1. Goalkeepers
   gks.forEach((s) => {
@@ -419,7 +444,58 @@ function getTacticalPositions(starters: any[]) {
   return [...customPlacements, ...mappedAuto];
 }
 
-function getPlayerStamp(player: any, stats: any) {
+interface RankingEntry {
+  playerId: string;
+  playerName: string;
+  photoUrl: string | null;
+  shirtNumber: number | null;
+  position: PlayerPosition;
+  status: string;
+  goals: number;
+  assists: number;
+  yellowCards: number;
+  redCards: number;
+  matches: number;
+  averageStars: number | null;
+  totalRatings: number;
+}
+
+interface TeamStatsType {
+  totalMatches: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  winRate: number;
+  goalsScored: number;
+  goalsConceded: number;
+  topScorers: Array<{ playerName: string; total: number }>;
+  activeSeason: { id: string; name: string } | null;
+  activeSeasonStandings: Array<{
+    playerId: string;
+    playerName: string;
+    shirtNumber: number | null;
+    points: number;
+    played: number;
+    won: number;
+    drawn: number;
+    lost: number;
+    goalDiff: number;
+  }>;
+  ranking: RankingEntry[];
+  highlights: {
+    bestScorer: RankingEntry | null;
+    bestAssist: RankingEntry | null;
+    bestPresence: RankingEntry | null;
+    bestRated: RankingEntry | null;
+  };
+}
+
+interface StampPlayerInput {
+  id: string;
+  position: PlayerPosition;
+}
+
+function getPlayerStamp(player: StampPlayerInput, stats: TeamStatsType) {
   const isBestScorer = stats.highlights.bestScorer?.playerId === player.id;
   const isBestAssist = stats.highlights.bestAssist?.playerId === player.id;
   const isBestRated = stats.highlights.bestRated?.playerId === player.id;
@@ -428,13 +504,13 @@ function getPlayerStamp(player: any, stats: any) {
   if (player.position === "GOALKEEPER") {
     return "Paredão Insuperável";
   }
-  if (isBestScorer && stats.highlights.bestScorer.goals > 0) {
+  if (isBestScorer && (stats.highlights.bestScorer?.goals ?? 0) > 0) {
     return "Artilheiro de Ouro";
   }
-  if (isBestRated && stats.highlights.bestRated.averageStars > 0) {
+  if (isBestRated && (stats.highlights.bestRated?.averageStars ?? 0) > 0) {
     return "Diferenciado";
   }
-  if (isBestAssist && stats.highlights.bestAssist.assists > 0) {
+  if (isBestAssist && (stats.highlights.bestAssist?.assists ?? 0) > 0) {
     return "Motor de Assistências";
   }
   if (isBestPresence) {
@@ -458,7 +534,7 @@ function getPlayerStamp(player: any, stats: any) {
   }
 }
 
-function getPlayerTag(player: any, stats: any) {
+function getPlayerTag(player: StampPlayerInput, stats: TeamStatsType) {
   const isBestScorer = stats.highlights.bestScorer?.playerId === player.id;
   const isBestAssist = stats.highlights.bestAssist?.playerId === player.id;
   const isBestRated = stats.highlights.bestRated?.playerId === player.id;
@@ -883,30 +959,30 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
   const nextMatch = scheduledMatches[0] || null;
   const remainingScheduled = scheduledMatches.slice(1);
 
-  let startersData: any[] = [];
+  let startersData: LineupEntryInput[] = [];
   if (team.defaultLineup && team.defaultLineup.length > 0) {
-    startersData = team.defaultLineup.filter((l: any) => l.role === "STARTER");
+    startersData = team.defaultLineup.filter((l) => l.role === "STARTER");
   } else if (nextMatch && nextMatch.lineupSelections && nextMatch.lineupSelections.length > 0) {
-    startersData = nextMatch.lineupSelections.filter((l: any) => l.role === "STARTER");
+    startersData = nextMatch.lineupSelections.filter((l) => l.role === "STARTER") as LineupEntryInput[];
   } else {
     const matchCounts = new Map<string, number>();
     stats.ranking.forEach((r) => {
       matchCounts.set(r.playerId, r.matches);
     });
     const getMatchCount = (playerId: string) => matchCounts.get(playerId) || 0;
-    const sortByMatchesDesc = (a: any, b: any) => getMatchCount(b.id) - getMatchCount(a.id);
+    const sortByMatchesDesc = (a: { id: string }, b: { id: string }) => getMatchCount(b.id) - getMatchCount(a.id);
 
     const goalkeepers = team.players
-      .filter((p: any) => p.position === "GOALKEEPER")
+      .filter((p) => p.position === "GOALKEEPER")
       .sort(sortByMatchesDesc);
     const defenders = team.players
-      .filter((p: any) => ["DEFENDER", "LEFT_BACK", "RIGHT_BACK"].includes(p.position))
+      .filter((p) => ["DEFENDER", "LEFT_BACK", "RIGHT_BACK"].includes(p.position))
       .sort(sortByMatchesDesc);
     const midfielders = team.players
-      .filter((p: any) => ["MIDFIELDER", "DEFENSIVE_MIDFIELDER"].includes(p.position))
+      .filter((p) => ["MIDFIELDER", "DEFENSIVE_MIDFIELDER"].includes(p.position))
       .sort(sortByMatchesDesc);
     const forwards = team.players
-      .filter((p: any) => ["FORWARD", "LEFT_WINGER", "RIGHT_WINGER"].includes(p.position))
+      .filter((p) => ["FORWARD", "LEFT_WINGER", "RIGHT_WINGER"].includes(p.position))
       .sort(sortByMatchesDesc);
     
     const selectedGK = goalkeepers.slice(0, 1);
@@ -915,7 +991,7 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
     const selectedFWD = forwards.slice(0, 3);
     
     const suggestedPlayers = [...selectedGK, ...selectedDEF, ...selectedMID, ...selectedFWD];
-    startersData = suggestedPlayers.map((p: any) => ({
+    startersData = suggestedPlayers.map((p) => ({
       id: `suggested-${p.id}`,
       role: "STARTER",
       fieldX: null,
@@ -928,10 +1004,10 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
       if (team.defaultFormation) {
         return parseFormation(team.defaultFormation) || "4-3-3";
       }
-      return inferBestFormation(startersData.map((s: any) => ({
-        playerId: s.player.id,
-        playerName: s.player.name,
-        position: s.player.position,
+      return inferBestFormation(startersData.map((s) => ({
+        playerId: s.player?.id || "",
+        playerName: s.player?.name || "Convidado",
+        position: s.player?.position || "FORWARD",
         reason: "",
       }))) || "4-3-3";
     }
@@ -939,10 +1015,10 @@ export default async function TeamPublicPage({ params, searchParams }: PageProps
       if (nextMatch.lineupFormation) {
         return parseFormation(nextMatch.lineupFormation) || "4-3-3";
       }
-      return inferBestFormation(startersData.map((s: any) => ({
-        playerId: s.player.id,
-        playerName: s.player.name,
-        position: s.player.position,
+      return inferBestFormation(startersData.map((s) => ({
+        playerId: s.player?.id || s.guestPlayer?.id || "",
+        playerName: s.player?.name || s.guestPlayer?.name || "Convidado",
+        position: s.player?.position || s.guestPlayer?.position || "FORWARD",
         reason: "",
       }))) || "4-3-3";
     }
