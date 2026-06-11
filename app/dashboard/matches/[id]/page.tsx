@@ -843,7 +843,7 @@ export default function MatchDetailPage() {
 
   const handleCheckIn = () => {
     if (!navigator.geolocation) {
-      setCheckInError("Geolocalização não é suportada pelo seu navegador");
+      setCheckInError("Geolocalização não é suportada ou requer conexão segura (HTTPS).");
       return;
     }
 
@@ -878,7 +878,7 @@ export default function MatchDetailPage() {
       (error) => {
         let msg = "Erro ao obter localização";
         if (error.code === error.PERMISSION_DENIED) {
-          msg = "Permissão de localização negada pelo usuário";
+          msg = "Permissão de localização negada. Ative a permissão de localização nas configurações do seu navegador (clique no ícone de cadeado ao lado do endereço do site) e tente novamente.";
         } else if (error.code === error.POSITION_UNAVAILABLE) {
           msg = "Localização indisponível no dispositivo";
         } else if (error.code === error.TIMEOUT) {
@@ -1177,6 +1177,13 @@ export default function MatchDetailPage() {
   const declined = match.rsvps.filter((r) => r.status === "DECLINED").length;
   const pending = match.rsvps.filter((r) => r.status === "PENDING").length;
   const isScheduled = match.status === "SCHEDULED";
+  
+  // Check-in only open starting 3 hours before kickoff
+  const matchTimeMs = new Date(match.date).getTime();
+  const currentTimeMs = new Date().getTime();
+  const threeHoursInMs = 3 * 60 * 60 * 1000;
+  const isCheckInOpen = currentTimeMs >= (matchTimeMs - threeHoursInMs);
+
   const canSeeLineup = isCoachOrAdmin && isScheduled;
   const canSeeOperations = isAdmin && (isScheduled || match.status === "COMPLETED");
   const canSeePostGame = (isAdmin && match.canSubmitPostGame) || match.status === "COMPLETED";
@@ -1642,7 +1649,7 @@ export default function MatchDetailPage() {
                       </div>
                     </div>
                   ) : (
-                    match.latitude && match.longitude && (
+                    match.latitude && match.longitude && isCheckInOpen && (
                       <div className="mb-4 p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 space-y-3">
                         <div className="flex items-start gap-3">
                           <MapPin className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
