@@ -264,7 +264,12 @@ export default function FinesPage() {
     setRuleId(fine.ruleId || "");
     setDescription(fine.description);
     setSeverity(fine.severity);
-    setPunishmentTypeId((fine as any).punishmentTypeId || "");
+    
+    // Auto-select type based on existing ID or fallback to first type of same severity
+    const existingTypeId = (fine as any).punishmentTypeId;
+    const fallbackType = punishmentTypes.find((t) => t.severity === fine.severity);
+    setPunishmentTypeId(existingTypeId || fallbackType?.id || "");
+    
     setMatchesSuspended(fine.matchesSuspended !== null ? String(fine.matchesSuspended) : "1");
     setStatus(fine.status);
     setDate(new Date(fine.date).toISOString().substring(0, 10));
@@ -737,6 +742,11 @@ export default function FinesPage() {
                   className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
                 >
                   <option value="">— Sem partida específica (Cumpre em jogos futuros) —</option>
+                  {editingFine?.suspendedMatch && !scheduledMatches.some((m) => m.id === editingFine.suspendedMatchId) && (
+                    <option key={editingFine.suspendedMatch.id} value={editingFine.suspendedMatch.id}>
+                      {formatDate(editingFine.suspendedMatch.date)} - vs {editingFine.suspendedMatch.opponent} ({editingFine.suspendedMatch.type === "CHAMPIONSHIP" ? "Campeonato" : "Amistoso"}) [Histórico]
+                    </option>
+                  )}
                   {scheduledMatches.map((m) => (
                     <option key={m.id} value={m.id}>
                       {formatDate(m.date)} - vs {m.opponent} ({m.type === "CHAMPIONSHIP" ? "Campeonato" : "Amistoso"})
