@@ -41,6 +41,7 @@ export const GET = withErrorHandler(async (request: Request) => {
         },
       },
       punishmentType: true,
+      suspendedMatch: true,
     },
   });
 
@@ -75,7 +76,7 @@ export const POST = withErrorHandler(async (request: Request) => {
     );
   }
 
-  const { playerId, ruleId, punishmentTypeId, description, severity, matchesSuspended, status = "ACTIVE", date } = parsed.data;
+  const { playerId, ruleId, punishmentTypeId, description, severity, matchesSuspended, status = "ACTIVE", date, suspendedMatchId } = parsed.data;
 
   // Verify the player belongs to this team
   const playerExists = await prisma.player.findFirst({
@@ -93,6 +94,16 @@ export const POST = withErrorHandler(async (request: Request) => {
     });
     if (!ruleExists) {
       return NextResponse.json({ error: "Regra não encontrada no time" }, { status: 404 });
+    }
+  }
+
+  // If suspendedMatchId is provided, verify it belongs to this team
+  if (suspendedMatchId) {
+    const matchExists = await prisma.match.findFirst({
+      where: { id: suspendedMatchId, teamId: session.user.teamId },
+    });
+    if (!matchExists) {
+      return NextResponse.json({ error: "Partida não encontrada no time" }, { status: 404 });
     }
   }
 
@@ -146,6 +157,7 @@ export const POST = withErrorHandler(async (request: Request) => {
       severity,
       matchesSuspended: severity === "SUSPENSION" ? matchesSuspended : null,
       status,
+      suspendedMatchId: suspendedMatchId || null,
       date: new Date(date),
     },
     include: {
@@ -163,8 +175,31 @@ export const POST = withErrorHandler(async (request: Request) => {
         },
       },
       punishmentType: true,
+      suspendedMatch: true,
     },
   });
+
+  // 2.1 Auto RSVP Decline if suspended for a specific match
+  if (severity === "SUSPENSION" && status === "ACTIVE" && suspendedMatchId) {
+    await prisma.rSVP.upsert({
+      where: {
+        playerId_matchId: {
+          playerId,
+          matchId: suspendedMatchId,
+        },
+      },
+      update: {
+        status: "DECLINED",
+        respondedAt: new Date(),
+      },
+      create: {
+        playerId,
+        matchId: suspendedMatchId,
+        status: "DECLINED",
+        respondedAt: new Date(),
+      },
+    });
+  }
 
   // 3. Accumulation / Escalation logic
   let escalatedFine = null;

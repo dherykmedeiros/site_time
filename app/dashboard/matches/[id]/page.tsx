@@ -131,6 +131,7 @@ interface RSVP {
   summoned?: boolean;
   isGuest?: boolean;
   guestPlayerId?: string | null;
+  isSuspended?: boolean;
 }
 
 interface PlayerStat {
@@ -156,6 +157,8 @@ interface MatchDetail {
   status: string;
   shareToken: string;
   shareUrl: string;
+  isPlayerSuspended?: boolean;
+  suspensionReason?: string | null;
   rsvps: RSVP[];
   stats: PlayerStat[];
   canSubmitPostGame: boolean;
@@ -1599,19 +1602,34 @@ export default function MatchDetailPage() {
               </div>
             </CardHeader>
             <CardContent>
+              {match.isPlayerSuspended && (
+                <div className="mb-4 p-4 rounded-xl border border-red-500/20 bg-red-500/5 flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-400">Você está suspenso para esta partida</p>
+                    <p className="text-xs text-[var(--text-subtle)] mt-1">
+                      Motivo: {match.suspensionReason || "Suspensão disciplinar ativa."}
+                    </p>
+                    <p className="text-xs text-[var(--text-subtle)] mt-0.5">
+                      Você foi automaticamente marcado como "não vai" e está bloqueado de alterar presença ou realizar check-in.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* RSVP action buttons for players */}
               {isSummoned ? (
                 <div className="mb-4 flex gap-3">
                   <Button
                     onClick={() => handleRsvp("CONFIRMED")}
-                    disabled={rsvpLoading}
+                    disabled={rsvpLoading || match.isPlayerSuspended}
                   >
                     ✅ Confirmar Presença
                   </Button>
                   <Button
                     variant="danger"
                     onClick={() => handleRsvp("DECLINED")}
-                    disabled={rsvpLoading}
+                    disabled={rsvpLoading || match.isPlayerSuspended}
                   >
                     ❌ Recusar
                   </Button>
@@ -1696,6 +1714,11 @@ export default function MatchDetailPage() {
                       <span className={`font-medium ${match.type === "CHAMPIONSHIP" && !rsvp.summoned ? "text-[var(--text-muted)] line-through" : "text-[var(--text)]"}`}>
                         {rsvp.playerName}
                       </span>
+                      {rsvp.isSuspended && (
+                        <Badge variant="danger" className="bg-red-500/10 text-red-400 border-red-500/20">
+                          Suspenso
+                        </Badge>
+                      )}
                       {match.type === "CHAMPIONSHIP" && (
                         <Badge variant={rsvp.summoned ? "success" : "default"}>
                           {rsvp.summoned ? "Convocado" : "Não Convocado"}

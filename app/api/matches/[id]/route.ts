@@ -193,64 +193,7 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
     }
   }
 
-  const canSubmitPostGame =
-    finalMatch.date < new Date() && finalMatch.status === "SCHEDULED";
-
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-  const shareUrl = `${baseUrl}/matches/${finalMatch.id}?t=${finalMatch.shareToken}`;
-
-  return NextResponse.json({
-    id: finalMatch.id,
-    date: finalMatch.date.toISOString(),
-    venue: finalMatch.venue,
-    opponent: finalMatch.opponent,
-    isHome: finalMatch.isHome,
-    opponentBadgeUrl: finalMatch.opponentBadgeUrl,
-    type: finalMatch.type,
-    homeScore: finalMatch.homeScore,
-    awayScore: finalMatch.awayScore,
-    status: finalMatch.status,
-    season: finalMatch.season,
-    positionLimits: finalMatch.positionLimits,
-    shareToken: finalMatch.shareToken,
-    shareUrl,
-    rsvps: [
-      ...finalMatch.rsvps.map((rsvp) => ({
-        playerId: rsvp.playerId,
-        playerName: rsvp.player.name,
-        status: rsvp.status,
-        respondedAt: rsvp.respondedAt?.toISOString() ?? null,
-        summoned: rsvp.summoned,
-      })),
-      ...(finalMatch.guestPlayers || []).map((guest) => ({
-        playerId: guest.id,
-        playerName: `${guest.name} (Convidado)`,
-        status: "CONFIRMED" as const,
-        respondedAt: guest.createdAt.toISOString(),
-        summoned: true,
-        isGuest: true,
-        guestPlayerId: guest.id,
-      })),
-    ],
-    stats: finalMatch.matchStats.map((stat) => ({
-      playerId: stat.playerId || stat.guestPlayerId,
-      guestPlayerId: stat.guestPlayerId,
-      playerName: stat.player?.name ?? stat.guestPlayer?.name ?? "Convidado",
-      goals: stat.goals,
-      assists: stat.assists,
-      yellowCards: stat.yellowCards,
-      redCards: stat.redCards,
-    })),
-    canSubmitPostGame,
-    hasCharge: finalMatch.hasCharge,
-    chargeAmount: finalMatch.chargeAmount ? Number(finalMatch.chargeAmount) : null,
-    pixKey: finalMatch.pixKey,
-    latitude: finalMatch.latitude,
-    longitude: finalMatch.longitude,
-    userAttendance,
-    createdAt: finalMatch.createdAt.toISOString(),
-    updatedAt: finalMatch.updatedAt.toISOString(),
-  });
+  return await buildMatchDetailResponse(finalMatch, userAttendance, session.user.playerId);
 });
 
 // PATCH /api/matches/:id - Update match (ADMIN only)
@@ -389,7 +332,7 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
       },
     });
 
-    return buildMatchDetailResponse(updated);
+    return await buildMatchDetailResponse(updated, null, session.user.playerId);
   }
 
   // Handle score submission (triggers COMPLETED)
@@ -441,7 +384,7 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
       },
     });
 
-    return buildMatchDetailResponse(updated);
+    return await buildMatchDetailResponse(updated, null, session.user.playerId);
   }
 
   // Basic field updates
@@ -517,7 +460,7 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
     });
   });
 
-  return buildMatchDetailResponse(updated);
+  return await buildMatchDetailResponse(updated, null, session.user.playerId);
 });
 
 // DELETE /api/matches/:id - Delete match (ADMIN only)
@@ -573,7 +516,7 @@ export const DELETE = withErrorHandler(async (request: Request, { params }: Rout
 });
 
 // Helper to build match detail response
-function buildMatchDetailResponse(
+async function buildMatchDetailResponse(
   match: {
     id: string;
     date: Date;
@@ -619,12 +562,31 @@ function buildMatchDetailResponse(
       redCards: number;
     }>;
   },
-  userAttendance?: { present: boolean; checkedInAt: string | null } | null
+  userAttendance?: { present: boolean; checkedInAt: string | null } | null,
+  playerId?: string | null
 ) {
   const canSubmitPostGame =
     match.date < new Date() && match.status === "SCHEDULED";
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
   const shareUrl = `${baseUrl}/matches/${match.id}?t=${match.shareToken}`;
+
+  // Fetch suspensions for this match
+  const matchSuspensions = await prisma.fine.findMany({
+    where: {
+      suspendedMatchId: match.id,
+      severity: "SUSPENSION",
+      status: "ACTIVE",
+    },
+    select: {
+      playerId: true,
+      description: true,
+    },
+  });
+
+  const suspendedPlayerIds = new Set(matchSuspensions.map((s) => s.playerId));
+  const playerSuspension = playerId
+    ? matchSuspensions.find((s) => s.playerId === playerId)
+    : null;
 
   return NextResponse.json({
     id: match.id,
@@ -640,10 +602,9 @@ function buildMatchDetailResponse(
     season: match.season,
     positionLimits: match.positionLimits,
     shareToken: match.shareToken,
-    hasCharge: match.hasCharge,
-    chargeAmount: match.chargeAmount ? Number(match.chargeAmount) : null,
-    pixKey: match.pixKey,
     shareUrl,
+    isPlayerSuspended: !!playerSuspension,
+    suspensionReason: playerSuspension?.description || null,
     rsvps: [
       ...match.rsvps.map((rsvp) => ({
         playerId: rsvp.playerId,
@@ -651,6 +612,7 @@ function buildMatchDetailResponse(
         status: rsvp.status,
         respondedAt: rsvp.respondedAt?.toISOString() ?? null,
         summoned: rsvp.summoned,
+        isSuspended: suspendedPlayerIds.has(rsvp.playerId),
       })),
       ...(match.guestPlayers || []).map((guest) => ({
         playerId: guest.id,
@@ -660,6 +622,7 @@ function buildMatchDetailResponse(
         summoned: true,
         isGuest: true,
         guestPlayerId: guest.id,
+        isSuspended: false,
       })),
     ],
     stats: match.matchStats.map((stat) => ({

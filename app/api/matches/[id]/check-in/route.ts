@@ -79,6 +79,27 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
     );
   }
 
+  // Check if player has an active suspension for this match
+  const activeSuspension = await prisma.fine.findFirst({
+    where: {
+      playerId,
+      severity: "SUSPENSION",
+      status: "ACTIVE",
+      suspendedMatchId: id,
+    },
+    select: { id: true, description: true }
+  });
+
+  if (activeSuspension) {
+    return NextResponse.json(
+      {
+        error: `Você está suspenso para esta partida: ${activeSuspension.description}`,
+        code: "PLAYER_SUSPENDED",
+      },
+      { status: 403 }
+    );
+  }
+
   // Parse player location coordinates
   let body: unknown;
   try {

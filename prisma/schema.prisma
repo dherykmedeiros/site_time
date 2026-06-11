@@ -329,6 +329,7 @@ model Match {
   matchLive    MatchLive?
   guestPlayers GuestPlayer[]
   matchEquipments MatchEquipment[]
+  suspensions  Fine[]      @relation("MatchSuspensions")
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
@@ -648,12 +649,15 @@ model Fine {
   team             Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
   punishmentTypeId String?
   punishmentType   PunishmentType? @relation(fields: [punishmentTypeId], references: [id], onDelete: SetNull)
+  suspendedMatchId String?
+  suspendedMatch   Match?    @relation("MatchSuspensions", fields: [suspendedMatchId], references: [id], onDelete: SetNull)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   @@index([teamId])
   @@index([playerId])
   @@index([ruleId])
+  @@index([suspendedMatchId])
   @@map("fines")
 }
 
