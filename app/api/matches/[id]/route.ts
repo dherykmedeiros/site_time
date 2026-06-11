@@ -603,6 +603,9 @@ async function buildMatchDetailResponse(
     positionLimits: match.positionLimits,
     shareToken: match.shareToken,
     shareUrl,
+    hasCharge: match.hasCharge,
+    chargeAmount: match.chargeAmount ? Number(match.chargeAmount) : null,
+    pixKey: match.pixKey,
     isPlayerSuspended: !!playerSuspension,
     suspensionReason: playerSuspension?.description || null,
     rsvps: [
