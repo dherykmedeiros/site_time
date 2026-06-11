@@ -149,8 +149,10 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
       homeScore: defaultValues?.homeScore !== null ? defaultValues?.homeScore : undefined,
       awayScore: defaultValues?.awayScore !== null ? defaultValues?.awayScore : undefined,
       pixKey: defaultValues?.pixKey || "",
-      latitude: defaultValues?.latitude !== null && defaultValues?.latitude !== undefined ? defaultValues.latitude : undefined,
-      longitude: defaultValues?.longitude !== null && defaultValues?.longitude !== undefined ? defaultValues.longitude : undefined,
+      mapsUrl: (defaultValues?.latitude !== undefined && defaultValues?.latitude !== null &&
+                defaultValues?.longitude !== undefined && defaultValues?.longitude !== null)
+        ? `https://www.google.com/maps/search/?api=1&query=${defaultValues.latitude},${defaultValues.longitude}`
+        : "",
     },
   });
 
@@ -285,8 +287,7 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         date: new Date(data.date).toISOString(),
         opponentBadgeUrl: data.opponentBadgeUrl?.trim() ? data.opponentBadgeUrl.trim() : null,
         pixKey: data.pixKey?.trim() ? data.pixKey.trim() : null,
-        latitude: data.latitude !== undefined && data.latitude !== "" && data.latitude !== null ? Number(data.latitude) : null,
-        longitude: data.longitude !== undefined && data.longitude !== "" && data.longitude !== null ? Number(data.longitude) : null,
+        mapsUrl: data.mapsUrl?.trim() || null,
         status: recordType,
       };
 
@@ -483,19 +484,16 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         {...register("venue")}
       />
 
-      <div className="grid gap-4 grid-cols-2">
+      <div className="space-y-1">
         <Input
-          label="Latitude do Campo (opcional)"
-          placeholder="Ex: -3.7319"
-          error={errors.latitude?.message}
-          {...register("latitude")}
+          label="Link do Google Maps (opcional)"
+          placeholder="Ex: https://maps.app.goo.gl/XYZ ou coordenadas"
+          error={errors.mapsUrl?.message}
+          {...register("mapsUrl")}
         />
-        <Input
-          label="Longitude do Campo (opcional)"
-          placeholder="Ex: -38.5267"
-          error={errors.longitude?.message}
-          {...register("longitude")}
-        />
+        <p className="text-[11px] text-[var(--text-subtle)] leading-relaxed">
+          Cole o link compartilhado do Google Maps (ex: <code>https://maps.app.goo.gl/...</code> ou coordenadas diretas no formato <code>latitude, longitude</code>) para habilitar o check-in automático a 500m dos atletas.
+        </p>
       </div>
 
       <Input

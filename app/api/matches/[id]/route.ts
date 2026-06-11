@@ -6,6 +6,8 @@ import { updateMatchSchema } from "@/lib/validations/match";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
 import { withErrorHandler } from "@/lib/api-handler";
+import { resolveGoogleMapsUrl, extractCoordsFromGoogleMaps } from "@/lib/utils";
+
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -455,8 +457,23 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
   if (data.awayScore !== undefined) updateData.awayScore = data.awayScore;
   if (data.status) updateData.status = data.status;
   if (data.pixKey !== undefined) updateData.pixKey = data.pixKey;
-  if (data.latitude !== undefined) updateData.latitude = data.latitude;
-  if (data.longitude !== undefined) updateData.longitude = data.longitude;
+  
+  if (data.mapsUrl !== undefined) {
+    if (data.mapsUrl === null || data.mapsUrl === "") {
+      updateData.latitude = null;
+      updateData.longitude = null;
+    } else {
+      const resolvedUrl = await resolveGoogleMapsUrl(data.mapsUrl);
+      const coords = extractCoordsFromGoogleMaps(resolvedUrl);
+      if (coords) {
+        updateData.latitude = coords.latitude;
+        updateData.longitude = coords.longitude;
+      }
+    }
+  } else {
+    if (data.latitude !== undefined) updateData.latitude = data.latitude;
+    if (data.longitude !== undefined) updateData.longitude = data.longitude;
+  }
 
   const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     if (data.positionLimits) {

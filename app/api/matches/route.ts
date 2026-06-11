@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireAuth } from "@/lib/auth";
-import { generateUUID } from "@/lib/utils";
+import { generateUUID, resolveGoogleMapsUrl, extractCoordsFromGoogleMaps } from "@/lib/utils";
 import { createMatchSchema, matchListQuerySchema } from "@/lib/validations/match";
 import { notifyScheduledMatch } from "@/lib/push";
 import { rateLimitMutation } from "@/lib/rate-limit";
@@ -164,8 +164,21 @@ export const POST = withErrorHandler(async (request: Request) => {
     pixKey,
     latitude,
     longitude,
+    mapsUrl,
   } = parsed.data;
   const matchDate = new Date(date);
+
+  let finalLat = latitude ?? null;
+  let finalLon = longitude ?? null;
+
+  if (mapsUrl) {
+    const resolvedUrl = await resolveGoogleMapsUrl(mapsUrl);
+    const coords = extractCoordsFromGoogleMaps(resolvedUrl);
+    if (coords) {
+      finalLat = coords.latitude;
+      finalLon = coords.longitude;
+    }
+  }
 
   const uniquePositions = new Set(positionLimits.map((l) => l.position));
   if (uniquePositions.size !== positionLimits.length) {
@@ -219,8 +232,8 @@ export const POST = withErrorHandler(async (request: Request) => {
         homeScore: homeScore !== undefined ? homeScore : null,
         awayScore: awayScore !== undefined ? awayScore : null,
         pixKey: pixKey || null,
-        latitude: latitude ?? null,
-        longitude: longitude ?? null,
+        latitude: finalLat,
+        longitude: finalLon,
         ...(seasonId && { seasonId }),
       },
     });

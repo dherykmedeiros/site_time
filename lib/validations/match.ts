@@ -67,6 +67,7 @@ export const createMatchSchema = z.object({
     .nullable(),
   latitude: z.coerce.number().min(-90, "Latitude deve ser >= -90").max(90, "Latitude deve ser <= 90").optional().nullable(),
   longitude: z.coerce.number().min(-180, "Longitude deve ser >= -180").max(180, "Longitude deve ser <= 180").optional().nullable(),
+  mapsUrl: z.string().trim().optional().nullable(),
 });
 
 export const updateMatchSchema = z.object({
@@ -119,6 +120,7 @@ export const updateMatchSchema = z.object({
     .nullable(),
   latitude: z.coerce.number().min(-90, "Latitude deve ser >= -90").max(90, "Latitude deve ser <= 90").optional().nullable(),
   longitude: z.coerce.number().min(-180, "Longitude deve ser >= -180").max(180, "Longitude deve ser <= 180").optional().nullable(),
+  mapsUrl: z.string().trim().optional().nullable(),
 });
 
 export const rsvpResponseSchema = z.object({
