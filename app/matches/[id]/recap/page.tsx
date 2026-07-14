@@ -241,6 +241,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const opponent = match.opponent;
   const formattedDate = new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
+    timeZone: "America/Sao_Paulo",
   }).format(match.date);
 
   const title = `Recap: ${teamName} x ${opponent} | Portal do Time`;
@@ -305,10 +306,12 @@ export default async function PublicRecapPage({ params }: PageProps) {
 
   const formattedDate = new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "full",
+    timeZone: "America/Sao_Paulo",
   }).format(match.date);
 
   const formattedTime = new Intl.DateTimeFormat("pt-BR", {
     timeStyle: "short",
+    timeZone: "America/Sao_Paulo",
   }).format(match.date);
 
   // Extract scorers and assistants

@@ -79,7 +79,7 @@ export async function GET(request: Request, context: RouteContext) {
           : "draw";
 
   const scorers = match.matchStats.map((s) => `${s.player?.name ?? s.guestPlayer?.name ?? "Convidado"} (${s.goals})`).join("  ·  ");
-  const dateStr = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(match.date);
+  const dateStr = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(match.date);
 
   const content = `
     <div class="card card-padded" style="padding:28px 34px;gap:0">

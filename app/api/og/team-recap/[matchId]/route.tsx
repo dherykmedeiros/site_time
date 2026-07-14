@@ -56,7 +56,7 @@ export async function GET(request: Request, context: RouteContext) {
     const resultLabel = teamGoals > opponentGoals ? "VITORIA" : teamGoals < opponentGoals ? "DERROTA" : "EMPATE";
     const resultClass = resultLabel === "VITORIA" ? "win" : resultLabel === "DERROTA" ? "loss" : "draw";
 
-    const dateLabel = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(recap.match.date);
+    const dateLabel = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "America/Sao_Paulo" }).format(recap.match.date);
 
     const topScorerLabel = recap.leaders.topScorer
       ? `${recap.leaders.topScorer.playerName} (${recap.leaders.topScorer.goals})`
