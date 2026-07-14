@@ -14,6 +14,7 @@ declare module "next-auth" {
       role: "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR";
       teamId: string | null;
       playerId: string | null;
+      mustChangePassword: boolean;
     };
   }
 
@@ -24,6 +25,7 @@ declare module "next-auth" {
     role: "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR";
     teamId: string | null;
     playerId: string | null;
+    mustChangePassword: boolean;
   }
 }
 
@@ -35,6 +37,7 @@ declare module "next-auth/jwt" {
     role: "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR";
     teamId: string | null;
     playerId: string | null;
+    mustChangePassword: boolean;
     lastRefreshed?: number;
   }
 }
@@ -77,6 +80,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role as "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR",
           teamId: user.teamId,
           playerId: user.playerId,
+          mustChangePassword: user.mustChangePassword,
         };
       },
     }),
@@ -94,6 +98,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.teamId = user.teamId;
         token.playerId = user.playerId;
+        token.mustChangePassword = user.mustChangePassword;
         token.lastRefreshed = Date.now();
       }
 
@@ -102,7 +107,7 @@ export const authOptions: NextAuthOptions = {
       const throttleMs = 60 * 1000;
       const lastRefreshed = token.lastRefreshed || 0;
 
-      if (token.id && (now - lastRefreshed > throttleMs)) {
+      if (token.id && (token.mustChangePassword || now - lastRefreshed > throttleMs)) {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.id },
@@ -112,6 +117,7 @@ export const authOptions: NextAuthOptions = {
               role: true,
               teamId: true,
               playerId: true,
+              mustChangePassword: true,
             },
           });
 
@@ -121,6 +127,7 @@ export const authOptions: NextAuthOptions = {
             token.role = dbUser.role as "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR";
             token.teamId = dbUser.teamId;
             token.playerId = dbUser.playerId;
+            token.mustChangePassword = dbUser.mustChangePassword;
             token.lastRefreshed = now;
           }
         } catch (err) {
@@ -139,6 +146,7 @@ export const authOptions: NextAuthOptions = {
         role: token.role,
         teamId: token.teamId,
         playerId: token.playerId,
+        mustChangePassword: token.mustChangePassword,
       };
       return session;
     },

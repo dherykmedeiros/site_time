@@ -167,6 +167,7 @@ model User {
   passwordHash String
   name         String
   role         Role     @default(PLAYER)
+  mustChangePassword Boolean  @default(false)
   teamId       String?
   team         Team?    @relation(fields: [teamId], references: [id])
   playerId     String?  @unique

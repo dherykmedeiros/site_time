@@ -41,7 +41,56 @@ export default function DashboardShell({
 }: {
   children: React.ReactNode;
 }) {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
+  const mustChangePassword = session?.user?.mustChangePassword;
+
+  // State for password change form
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    if (newPassword.length < 6) {
+      setErrorMessage("A senha deve ter no mínimo 6 caracteres.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setErrorMessage("As senhas não coincidem.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ password: newPassword }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setErrorMessage(data.error || "Erro ao alterar a senha.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      setSuccessMessage("Senha alterada com sucesso! Atualizando...");
+      await update();
+    } catch (err) {
+      setErrorMessage("Erro de rede ao alterar a senha.");
+      setIsSubmitting(false);
+    }
+  };
   const role = session?.user?.role;
   const isAdmin = role === "ADMIN";
 
@@ -221,6 +270,91 @@ export default function DashboardShell({
           );
         })}
       </>
+    );
+  }
+
+  if (mustChangePassword) {
+    return (
+      <div data-theme="dark" className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#020506]/90 backdrop-blur-xl p-4">
+        {/* Decorative Glow Elements */}
+        <div className="absolute top-1/4 left-1/4 w-[300px] h-[300px] bg-[var(--brand)] opacity-10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] bg-[var(--brand-neon)] opacity-5 rounded-full blur-[100px] pointer-events-none" />
+
+        <div className="relative w-full max-w-md rounded-[24px] border border-[rgba(16,185,129,0.15)] bg-[rgba(10,24,20,0.6)] p-6 sm:p-8 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-300">
+          <div className="text-center mb-6">
+            <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--brand)]/20 bg-[var(--brand-soft)] text-2xl mb-4">
+              🔒
+            </span>
+            <h2 className="text-xl font-black uppercase tracking-tight text-white font-serif">
+              Alteração de Senha Obrigatória
+            </h2>
+            <p className="mt-2 text-xs text-[var(--text-muted)] leading-relaxed">
+              Sua senha foi resetada pela administração. Para sua segurança, defina uma nova senha de acesso antes de continuar.
+            </p>
+          </div>
+
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            {errorMessage && (
+              <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs font-semibold text-red-400">
+                ⚠️ {errorMessage}
+              </div>
+            )}
+            {successMessage && (
+              <div className="rounded-xl border border-[var(--brand)]/20 bg-[var(--brand-soft)] p-3 text-xs font-semibold text-[var(--brand)]">
+                ✓ {successMessage}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-[0.25em] text-[var(--text-subtle)] mb-1.5">
+                Nova Senha
+              </label>
+              <input
+                type="password"
+                required
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                disabled={isSubmitting}
+                placeholder="Mínimo 6 caracteres"
+                className="w-full rounded-xl border border-[var(--border)] bg-black/40 px-4 py-3 text-sm text-white placeholder-gray-600 focus:border-[var(--brand)] focus:outline-none transition duration-200"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-[0.25em] text-[var(--text-subtle)] mb-1.5">
+                Confirmar Nova Senha
+              </label>
+              <input
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={isSubmitting}
+                placeholder="Repita a nova senha"
+                className="w-full rounded-xl border border-[var(--border)] bg-black/40 px-4 py-3 text-sm text-white placeholder-gray-600 focus:border-[var(--brand)] focus:outline-none transition duration-200"
+              />
+            </div>
+
+            <div className="pt-2 flex flex-col gap-2">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full rounded-xl bg-[#10b981] hover:bg-[#34d399] px-4 py-3 text-xs font-black uppercase tracking-widest text-[#010403] disabled:opacity-50 transition duration-200 cursor-pointer text-center"
+              >
+                {isSubmitting ? "Salvando..." : "Salvar Nova Senha"}
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="w-full rounded-xl border border-[var(--border)] hover:bg-white/5 px-4 py-3 text-xs font-black uppercase tracking-widest text-[var(--text-muted)] transition duration-200 cursor-pointer text-center"
+              >
+                Sair da Conta
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     );
   }
 

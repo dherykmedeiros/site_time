@@ -65,7 +65,7 @@ export default function SquadPage() {
   const [search, setSearch] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [confirmAction, setConfirmAction] = useState<"delete" | "promote" | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"delete" | "promote" | "resetPassword" | null>(null);
   const [actionPlayer, setActionPlayer] = useState<Player | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<"ADMIN" | "COACH" | "MATERIAL_DIRECTOR" | "PLAYER">("PLAYER");
@@ -164,6 +164,19 @@ export default function SquadPage() {
     }
   }
 
+  async function handleResetPassword(player: Player) {
+    const res = await fetch(`/api/players/${player.id}/reset-password`, {
+      method: "POST",
+    });
+
+    if (res.ok) {
+      setFeedback(`Senha do jogador ${player.name} foi resetada para a senha padrão "123456" com sucesso.`);
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setActionError(data.error || "Erro ao resetar senha");
+    }
+  }
+
   async function handleConfirmAction() {
     if (!actionPlayer || !confirmAction) return;
 
@@ -172,6 +185,8 @@ export default function SquadPage() {
 
     if (confirmAction === "delete") {
       await handleDelete(actionPlayer);
+    } else if (confirmAction === "resetPassword") {
+      await handleResetPassword(actionPlayer);
     } else {
       await handlePromote(actionPlayer, selectedRole);
     }
@@ -400,18 +415,32 @@ export default function SquadPage() {
                     </Button>
                   )}
                   {isAdmin && player.hasAccount && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setActionPlayer(player);
-                        setConfirmAction("promote");
-                        setSelectedRole(player.role || "PLAYER");
-                        setActionError(null);
-                      }}
-                    >
-                      Permissão
-                    </Button>
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setActionPlayer(player);
+                          setConfirmAction("promote");
+                          setSelectedRole(player.role || "PLAYER");
+                          setActionError(null);
+                        }}
+                      >
+                        Permissão
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-amber-500 hover:text-amber-400"
+                        onClick={() => {
+                          setActionPlayer(player);
+                          setConfirmAction("resetPassword");
+                          setActionError(null);
+                        }}
+                      >
+                        Resetar Senha
+                      </Button>
+                    </>
                   )}
                   {isCoachOrAdmin && (
                     <Button
@@ -537,18 +566,22 @@ export default function SquadPage() {
       </Modal>
 
       <Modal
-        open={((confirmAction === "promote" ? isAdmin : isCoachOrAdmin)) && !!confirmAction && !!actionPlayer}
+        open={((confirmAction === "promote" ? isAdmin : confirmAction === "resetPassword" ? isAdmin : isCoachOrAdmin)) && !!confirmAction && !!actionPlayer}
         onClose={() => {
           if (actionLoading) return;
           setConfirmAction(null);
           setActionPlayer(null);
         }}
-        title={confirmAction === "delete" ? "Remover jogador" : "Alterar Nível de Autoridade"}
+        title={confirmAction === "delete" ? "Remover jogador" : confirmAction === "resetPassword" ? "Resetar Senha" : "Alterar Nível de Autoridade"}
       >
         <div className="space-y-4">
           {confirmAction === "delete" ? (
             <p className="text-sm text-gray-400">
               Remover {actionPlayer?.name} do elenco? O jogador será marcado como inativo.
+            </p>
+          ) : confirmAction === "resetPassword" ? (
+            <p className="text-sm text-gray-300">
+              Tem certeza que deseja resetar a senha de <strong>{actionPlayer?.name}</strong>? A nova senha dele será definida para a senha padrão <strong>123456</strong> e ele precisará alterá-la no próximo acesso.
             </p>
           ) : (
             <div className="space-y-4">
