@@ -72,6 +72,17 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
     );
   }
 
+  // Check if check-in is open (starting 1 hour before kickoff)
+  const matchTimeMs = new Date(match.date).getTime();
+  const currentTimeMs = Date.now();
+  const oneHourInMs = 1 * 60 * 60 * 1000;
+  if (currentTimeMs < matchTimeMs - oneHourInMs) {
+    return NextResponse.json(
+      { error: "O check-in só é liberado 1 hora antes do início do jogo", code: "CHECKIN_NOT_OPEN" },
+      { status: 400 }
+    );
+  }
+
   if (match.latitude === null || match.longitude === null) {
     return NextResponse.json(
       { error: "Local da partida não possui coordenadas geográficas cadastradas", code: "NO_COORDINATES" },

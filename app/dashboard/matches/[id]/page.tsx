@@ -1181,11 +1181,11 @@ export default function MatchDetailPage() {
   const pending = match.rsvps.filter((r) => r.status === "PENDING").length;
   const isScheduled = match.status === "SCHEDULED";
   
-  // Check-in only open starting 3 hours before kickoff
+  // Check-in only open starting 1 hour before kickoff
   const matchTimeMs = new Date(match.date).getTime();
   const currentTimeMs = new Date().getTime();
-  const threeHoursInMs = 3 * 60 * 60 * 1000;
-  const isCheckInOpen = currentTimeMs >= (matchTimeMs - threeHoursInMs);
+  const oneHourInMs = 1 * 60 * 60 * 1000;
+  const isCheckInOpen = currentTimeMs >= (matchTimeMs - oneHourInMs);
 
   const canSeeLineup = isCoachOrAdmin && isScheduled;
   const canSeeOperations = isAdmin && (isScheduled || match.status === "COMPLETED");
@@ -1473,6 +1473,93 @@ export default function MatchDetailPage() {
         </Card>
       )}
 
+      {/* ── Check-in Banner (Fácil Localização) ──────────────── */}
+      {isScheduled && session?.user?.playerId && (() => {
+        const loggedInPlayerRsvp = match.rsvps.find((r) => r.playerId === session?.user?.playerId);
+        if (loggedInPlayerRsvp?.status !== "CONFIRMED" || match.isPlayerSuspended || !match.latitude || !match.longitude) {
+          return null;
+        }
+
+        const matchTimeMs = new Date(match.date).getTime();
+        const oneHourInMs = 1 * 60 * 60 * 1000;
+        const formattedOpenTime = new Intl.DateTimeFormat("pt-BR", {
+          timeStyle: "short",
+          timeZone: "America/Sao_Paulo",
+        }).format(new Date(matchTimeMs - oneHourInMs));
+
+        return (
+          <Card className="border-[rgba(16,185,129,0.2)] bg-gradient-to-br from-[#0c1a14] to-[#07130e] shadow-lg">
+            <CardContent className="pt-6">
+              {match.userAttendance?.present ? (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-500/10 text-green-400 border border-green-500/20 shrink-0">
+                      <CheckCircle2 className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-green-400">Presença Confirmada no Local!</h3>
+                      <p className="text-xs text-[var(--text-subtle)] mt-0.5">
+                        Seu check-in foi registrado em{" "}
+                        {match.userAttendance.checkedInAt
+                          ? new Intl.DateTimeFormat("pt-BR", {
+                              timeStyle: "short",
+                              timeZone: "America/Sao_Paulo",
+                            }).format(new Date(match.userAttendance.checkedInAt))
+                          : ""}{" "}
+                        h. Bom jogo!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-white">Confirmação de Presença no Local</h3>
+                      <p className="text-xs text-[var(--text-subtle)] mt-1 max-w-xl">
+                        {isCheckInOpen 
+                          ? "Você está confirmado para a partida! Por favor, realize o check-in no local clicando no botão ao lado para confirmar sua presença."
+                          : `Você está confirmado para a partida! A confirmação de presença no local (check-in) será liberada a partir das ${formattedOpenTime}h (1 hora antes do início do jogo).`
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <div className="shrink-0 w-full sm:w-auto">
+                    {isCheckInOpen ? (
+                      <div className="flex flex-col gap-2 w-full">
+                        {checkInFeedback && (
+                          <p className="text-xs text-green-400 font-semibold">{checkInFeedback}</p>
+                        )}
+                        {checkInError && (
+                          <p className="text-xs text-[#fca5a5] font-semibold max-w-xs">{checkInError}</p>
+                        )}
+                        <Button
+                          onClick={handleCheckIn}
+                          disabled={checkInLoading}
+                          className="w-full sm:w-auto text-xs font-black uppercase tracking-wider text-[#010403] bg-[#10b981] hover:bg-[#34d399]"
+                        >
+                          {checkInLoading ? "Obtendo localização..." : "📍 Confirmar Presença (Check-in)"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        disabled
+                        className="w-full sm:w-auto text-xs font-black uppercase tracking-wider text-white/40 bg-white/5 border border-white/10 cursor-not-allowed"
+                      >
+                        ⏳ Check-in Indisponível
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {/* ── Tab Navigation Strip ──────────────────────────── */}
       {(isScheduled || canSeePostGame) && (
         <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
@@ -1585,6 +1672,47 @@ export default function MatchDetailPage() {
       )}
 
       {/* Score section removed — scoreboard is now integrated into the hero header */}
+
+      {activeSection === "presence" && (
+        <Card className="mb-4">
+          <CardHeader>
+            <h2 className="text-lg font-semibold text-[var(--text)]">Relatório de Presenças no Local</h2>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-4 py-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-semibold text-[#34d399]">Gerar Card de Presenças</p>
+                <p className="text-sm text-[var(--text-subtle)]">
+                  Crie um relatório visual personalizado mostrando os jogadores confirmados e o horário exato do check-in de cada um!
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    const url = `/api/og/match/${match.id}/attendance`;
+                    window.open(url, "_blank", "noopener,noreferrer");
+                  }}
+                >
+                  🖼️ Abrir card de presenças
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    const url = `${window.location.origin}/api/og/match/${match.id}/attendance`;
+                    navigator.clipboard.writeText(url).then(() => {
+                      setCopyMsg("Link do relatório copiado!");
+                      setTimeout(() => setCopyMsg(""), 2500);
+                    });
+                  }}
+                >
+                  📋 Copiar link do card
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {match.status === "SCHEDULED" && activeSection === "presence" && (() => {
         const loggedInPlayerRsvp = match.rsvps.find((r) => r.playerId === session?.user?.playerId);
