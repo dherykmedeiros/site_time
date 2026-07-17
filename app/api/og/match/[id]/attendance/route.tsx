@@ -14,7 +14,7 @@ export async function GET(request: Request, context: RouteContext) {
   const { id } = await context.params;
   const { searchParams } = new URL(request.url);
   const format = resolveFormat(searchParams.get("format"));
-  const theme = resolveTheme(searchParams.get("theme"));
+  const theme = resolveTheme("dark");
   const dims = OG_DIMENSIONS[format];
 
   const match = await prisma.match.findUnique({
