@@ -266,6 +266,7 @@ model Player {
   receivedRatings MatchPlayerRating[]
   pollVotes    DatePollVote[]
   liveEvents   MatchLiveEvent[]
+  rsvpStatusLogs RSVPStatusLog[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -331,6 +332,7 @@ model Match {
   guestPlayers GuestPlayer[]
   matchEquipments MatchEquipment[]
   suspensions  Fine[]      @relation("MatchSuspensions")
+  rsvpStatusLogs RSVPStatusLog[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
@@ -378,21 +380,40 @@ model MatchPositionLimit {
 }
 
 model RSVP {
-  id          String     @id @default(cuid())
-  status      RSVPStatus @default(PENDING)
+  id          String          @id @default(cuid())
+  status      RSVPStatus      @default(PENDING)
   playerId    String
-  player      Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  player      Player          @relation(fields: [playerId], references: [id], onDelete: Cascade)
   matchId     String
-  match       Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  match       Match           @relation(fields: [matchId], references: [id], onDelete: Cascade)
   respondedAt DateTime?
-  summoned    Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @default(now()) @updatedAt
+  summoned    Boolean         @default(true)
+  statusLogs  RSVPStatusLog[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @default(now()) @updatedAt
 
   @@unique([playerId, matchId])
   @@index([matchId])
   @@index([matchId, status])
   @@map("rsvps")
+}
+
+model RSVPStatusLog {
+  id         String      @id @default(cuid())
+  rsvpId     String
+  rsvp       RSVP        @relation(fields: [rsvpId], references: [id], onDelete: Cascade)
+  playerId   String
+  player     Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  matchId    String
+  match      Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  oldStatus  RSVPStatus?
+  newStatus  RSVPStatus
+  createdAt  DateTime    @default(now())
+
+  @@index([rsvpId])
+  @@index([playerId])
+  @@index([matchId])
+  @@map("rsvp_status_logs")
 }
 
 model MatchStats {

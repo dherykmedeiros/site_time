@@ -5,6 +5,7 @@ import { fineSchema } from "@/lib/validations/fine";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
 import { withErrorHandler } from "@/lib/api-handler";
+import { trackOperationalEvent } from "@/lib/telemetry";
 
 // GET /api/fines — list all punishments (fines) for the team (Anyone authenticated can see)
 export const GET = withErrorHandler(async (request: Request) => {
@@ -181,7 +182,17 @@ export const POST = withErrorHandler(async (request: Request) => {
 
   // 2.1 Auto RSVP Decline if suspended for a specific match
   if (severity === "SUSPENSION" && status === "ACTIVE" && suspendedMatchId) {
-    await prisma.rSVP.upsert({
+    const existingRsvp = await prisma.rSVP.findUnique({
+      where: {
+        playerId_matchId: {
+          playerId,
+          matchId: suspendedMatchId,
+        },
+      },
+      select: { id: true, status: true },
+    });
+
+    const rsvp = await prisma.rSVP.upsert({
       where: {
         playerId_matchId: {
           playerId,
@@ -199,6 +210,28 @@ export const POST = withErrorHandler(async (request: Request) => {
         respondedAt: new Date(),
       },
     });
+
+    if (!existingRsvp || existingRsvp.status !== "DECLINED") {
+      await prisma.rSVPStatusLog.create({
+        data: {
+          rsvpId: rsvp.id,
+          playerId,
+          matchId: suspendedMatchId,
+          oldStatus: existingRsvp?.status ?? null,
+          newStatus: "DECLINED",
+        },
+      });
+
+      trackOperationalEvent("player_rsvp_status_changed", {
+        rsvpId: rsvp.id,
+        playerId,
+        playerName: playerExists.name,
+        matchId: suspendedMatchId,
+        oldStatus: existingRsvp?.status ?? null,
+        newStatus: "DECLINED",
+        reason: "SUSPENSION",
+      });
+    }
   }
 
   // 3. Accumulation / Escalation logic

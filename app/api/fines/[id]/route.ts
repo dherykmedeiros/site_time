@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireCoachOrAdmin } from "@/lib/auth";
 import { fineSchema } from "@/lib/validations/fine";
 import { withErrorHandler } from "@/lib/api-handler";
+import { trackOperationalEvent } from "@/lib/telemetry";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -110,7 +111,17 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
 
   // Auto RSVP Decline if suspended for a specific match
   if (severity === "SUSPENSION" && status === "ACTIVE" && suspendedMatchId) {
-    await prisma.rSVP.upsert({
+    const existingRsvp = await prisma.rSVP.findUnique({
+      where: {
+        playerId_matchId: {
+          playerId,
+          matchId: suspendedMatchId,
+        },
+      },
+      select: { id: true, status: true },
+    });
+
+    const rsvp = await prisma.rSVP.upsert({
       where: {
         playerId_matchId: {
           playerId,
@@ -128,6 +139,28 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
         respondedAt: new Date(),
       },
     });
+
+    if (!existingRsvp || existingRsvp.status !== "DECLINED") {
+      await prisma.rSVPStatusLog.create({
+        data: {
+          rsvpId: rsvp.id,
+          playerId,
+          matchId: suspendedMatchId,
+          oldStatus: existingRsvp?.status ?? null,
+          newStatus: "DECLINED",
+        },
+      });
+
+      trackOperationalEvent("player_rsvp_status_changed", {
+        rsvpId: rsvp.id,
+        playerId,
+        playerName: playerExists.name,
+        matchId: suspendedMatchId,
+        oldStatus: existingRsvp?.status ?? null,
+        newStatus: "DECLINED",
+        reason: "SUSPENSION",
+      });
+    }
   }
 
   return NextResponse.json({ fine });

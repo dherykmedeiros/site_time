@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth";
 import { rsvpResponseSchema } from "@/lib/validations/match";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
+import { trackOperationalEvent } from "@/lib/telemetry";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -206,6 +207,17 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
   }
 
+  // Get existing RSVP to record status transition
+  const existingRsvp = await prisma.rSVP.findUnique({
+    where: {
+      playerId_matchId: {
+        playerId: player.id,
+        matchId,
+      },
+    },
+    select: { id: true, status: true },
+  });
+
   // Upsert the RSVP for this player+match
   const rsvp = await prisma.rSVP.upsert({
     where: {
@@ -225,6 +237,28 @@ export async function POST(request: Request, { params }: RouteParams) {
       respondedAt: new Date(),
     },
   });
+
+  // Log status change history
+  if (!existingRsvp || existingRsvp.status !== status) {
+    await prisma.rSVPStatusLog.create({
+      data: {
+        rsvpId: rsvp.id,
+        playerId: player.id,
+        matchId,
+        oldStatus: existingRsvp?.status ?? null,
+        newStatus: status,
+      },
+    });
+
+    trackOperationalEvent("player_rsvp_status_changed", {
+      rsvpId: rsvp.id,
+      playerId: player.id,
+      playerName: player.name,
+      matchId,
+      oldStatus: existingRsvp?.status ?? null,
+      newStatus: status,
+    });
+  }
 
   return NextResponse.json({
     playerId: rsvp.playerId,
