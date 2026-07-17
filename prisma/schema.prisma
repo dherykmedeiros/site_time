@@ -104,6 +104,13 @@ enum TransactionCategory {
   OTHER
 }
 
+enum TransactionStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
 enum AchievementType {
   HAT_TRICK
   TOP_SCORER_ROUND
@@ -179,6 +186,7 @@ model User {
   messageReactions TeamMessageReaction[]
   notifications    Notification[]
   photos           MatchPhoto[]
+  tacticalPlays    TacticalPlay[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -229,6 +237,7 @@ model Team {
   photos           MatchPhoto[]
   recruitmentRequests RecruitmentRequest[]
   guestPlayers       GuestPlayer[]
+  tacticalPlays      TacticalPlay[]
 
   defaultFormation   MatchLineupFormation?
   defaultBlockPreset MatchLineupBlockPreset?
@@ -267,6 +276,8 @@ model Player {
   pollVotes    DatePollVote[]
   liveEvents   MatchLiveEvent[]
   rsvpStatusLogs RSVPStatusLog[]
+  votesGiven    MatchVote[] @relation("votesGiven")
+  votesReceived MatchVote[] @relation("votesReceived")
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -333,6 +344,7 @@ model Match {
   matchEquipments MatchEquipment[]
   suspensions  Fine[]      @relation("MatchSuspensions")
   rsvpStatusLogs RSVPStatusLog[]
+  votes        MatchVote[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
@@ -482,6 +494,8 @@ model Transaction {
   description String
   category    TransactionCategory
   date        DateTime
+  status      TransactionStatus   @default(PAID)
+  externalId  String?             @unique
   teamId      String
   matchId     String?
   team        Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -1036,4 +1050,43 @@ model MatchEquipment {
   @@index([matchId])
   @@index([equipmentId])
   @@map("match_equipments")
+}
+
+// ─── Match Voting ──────────────────────────────────────────
+
+model MatchVote {
+  id        String   @id @default(cuid())
+  matchId   String
+  voterId   String
+  votedId   String
+  createdAt DateTime @default(now())
+
+  match Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  voter Player @relation("votesGiven", fields: [voterId], references: [id], onDelete: Cascade)
+  voted Player @relation("votesReceived", fields: [votedId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, voterId])
+  @@index([matchId])
+  @@index([votedId])
+  @@map("match_votes")
+}
+
+// ─── Tactical Plays ────────────────────────────────────────
+
+model TacticalPlay {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String   @default("CORNER_KICK")
+  movements   Json
+  teamId      String
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  team      Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@map("tactical_plays")
 }
