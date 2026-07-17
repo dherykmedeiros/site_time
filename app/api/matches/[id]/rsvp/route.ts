@@ -49,7 +49,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   // Check player is active
   const player = await prisma.player.findUnique({
     where: { id: user.playerId },
-    select: { id: true, status: true, teamId: true, position: true },
+    select: { id: true, status: true, teamId: true, position: true, name: true },
   });
 
   if (!player || player.status !== "ACTIVE") {
