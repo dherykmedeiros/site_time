@@ -135,6 +135,10 @@ export function PostGameForm({
     });
   }
 
+  function removePlayerStat(indexToRemove: number) {
+    setPlayerStats((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  }
+
   async function handleSubmitScore() {
     setLoading(true);
     setErrorMsg("");
@@ -468,14 +472,24 @@ export function PostGameForm({
                   key={stat.playerId}
                   className="rounded-xl border border-white/10 bg-[#090f0c] p-4"
                 >
-                  <p className="mb-3 font-semibold text-white flex items-center gap-2">
-                    <span>{stat.playerName}</span>
-                    {squadPlayers.find((sp) => sp.id === stat.playerId)?.status === "INACTIVE" && (
-                      <span className="text-[10px] font-semibold text-red-400 bg-red-950/50 border border-red-800/30 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                        Inativo
-                      </span>
-                    )}
-                  </p>
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="font-semibold text-white flex items-center gap-2">
+                      <span>{stat.playerName}</span>
+                      {squadPlayers.find((sp) => sp.id === stat.playerId)?.status === "INACTIVE" && (
+                        <span className="text-[10px] font-semibold text-red-400 bg-red-950/50 border border-red-800/30 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          Inativo
+                        </span>
+                      )}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => removePlayerStat(idx)}
+                      className="text-xs text-red-400 hover:text-red-300 font-bold px-2 py-1 hover:bg-red-500/10 rounded-lg transition"
+                      title="Remover jogador"
+                    >
+                      Remover
+                    </button>
+                  </div>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <Input
                       label="Gols"
