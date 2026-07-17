@@ -928,7 +928,7 @@ export default function MatchDetailPage() {
     });
 
     if (res.ok) {
-      router.push("/matches");
+      router.push("/dashboard/matches");
       return;
     }
 
@@ -1234,7 +1234,7 @@ export default function MatchDetailPage() {
 
         {/* Back button */}
         <button
-          onClick={() => router.push("/matches")}
+          onClick={() => router.push("/dashboard/matches")}
           className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#34d399] hover:text-white transition-colors tracking-wide uppercase"
         >
           ← Voltar para Jogos
