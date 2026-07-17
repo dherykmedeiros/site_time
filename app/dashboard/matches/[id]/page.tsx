@@ -1104,13 +1104,17 @@ export default function MatchDetailPage() {
     ];
 
     if (confirmedNames.length > 0) {
-      lines.push(`✅ Confirmados (${confirmedNames.length}): ${confirmedNames.join(", ")}`);
+      lines.push(`✅ Confirmados (${confirmedNames.length}):`);
+      lines.push(...confirmedNames.map((name) => `▪️ ${name}`));
+      lines.push(``);
     }
     if (pendingNames.length > 0) {
-      lines.push(`⏳ Aguardando (${pendingNames.length}): ${pendingNames.join(", ")}`);
+      lines.push(`⏳ Aguardando (${pendingNames.length}):`);
+      lines.push(...pendingNames.map((name) => `▫️ ${name}`));
+      lines.push(``);
     }
 
-    lines.push(``, `👉 Confirme aqui: ${window.location.origin}/matches/${match.id}?t=${match.shareToken}`);
+    lines.push(`👉 Confirme aqui: ${window.location.origin}/matches/${match.id}?t=${match.shareToken}`);
     return lines.join("\n");
   }
 
@@ -1137,7 +1141,8 @@ export default function MatchDetailPage() {
     if (lineupData.lineup.bench.length > 0) {
       lines.push(
         ``,
-        `🪑 Banco: ${lineupData.lineup.bench.map((b) => b.playerName).join(", ")}`
+        `🪑 Banco:`,
+        ...lineupData.lineup.bench.map((b) => `▫️ ${b.playerName}`)
       );
     }
 
@@ -1153,19 +1158,24 @@ export default function MatchDetailPage() {
     const result = our > opp ? "✅ Vitória" : our < opp ? "❌ Derrota" : "🟡 Empate";
     const scorers = match.stats
       .filter((s) => s.goals > 0)
-      .map((s) => `${s.playerName} (${s.goals})`)
-      .join(", ");
+      .map((s) => `${s.playerName} (${s.goals})`);
 
     const lines = [
       `⚽ RESULTADO`,
       ``,
       `${result}: ${our} × ${opp}`,
       `🏆 vs ${match.opponent}`,
-      ...(scorers ? [`⚽ Gols: ${scorers}`] : []),
+    ];
+
+    if (scorers.length > 0) {
+      lines.push(``, `⚽ Gols:`, ...scorers.map((s) => `▪️ ${s}`));
+    }
+
+    lines.push(
       ``,
       `🖼️ Card recap: ${getRecapCardUrl()}`,
-      `👉 Ver partida: ${match.shareUrl}`,
-    ];
+      `👉 Ver partida: ${match.shareUrl}`
+    );
     return lines.join("\n");
   }
 
