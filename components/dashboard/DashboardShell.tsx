@@ -19,6 +19,7 @@ const navItems = [
   { href: "/dashboard/finances", label: "Finanças", icon: "💳" },
   { href: "/dashboard/fines", label: "Punições", icon: "⚖️" },
   { href: "/dashboard/rules", label: "Regras", icon: "📋" },
+  { href: "/dashboard/tactical-plays", label: "Jogadas Ensaiadas", icon: "📐" },
   { href: "/dashboard/evaluations", label: "Avaliações", icon: "📈", adminOnly: true },
   { href: "/dashboard/equipment", label: "Equipamentos", icon: "👕" },
   {

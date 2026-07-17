@@ -273,6 +273,17 @@ export default function MatchDetailPage() {
   const [submittingRatingId, setSubmittingRatingId] = useState<string | null>(null);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
 
+  // Player of the match votes state
+  const [votesData, setVotesData] = useState<{
+    results: Array<{ playerId: string; playerName: string; photoUrl: string | null; shirtNumber: number; position: string; voteCount: number }>;
+    hasVoted: boolean;
+    votedForId: string | null;
+  } | null>(null);
+  const [votesLoading, setVotesLoading] = useState(false);
+  const [votingForId, setVotingForId] = useState<string>("");
+  const [submitVoteLoading, setSubmitVoteLoading] = useState(false);
+  const [voteError, setVoteError] = useState<string | null>(null);
+
   // Match Charges state inside the match detail page
   const [checklistPlayers, setChecklistPlayers] = useState<any[]>([]);
   const [checklistLoading, setChecklistLoading] = useState(false);
@@ -591,11 +602,53 @@ export default function MatchDetailPage() {
     }
   }, [id, match]);
 
+  const fetchVotes = useCallback(async () => {
+    if (!match || match.status !== "COMPLETED") return;
+    setVotesLoading(true);
+    setVoteError(null);
+    try {
+      const res = await fetch(`/api/matches/${id}/votes`);
+      if (res.ok) {
+        const data = await res.json();
+        setVotesData(data);
+      }
+    } catch (err) {
+      console.error("Erro ao buscar votos:", err);
+    } finally {
+      setVotesLoading(false);
+    }
+  }, [id, match]);
+
   useEffect(() => {
     if (activeSection === "postgame" && match?.status === "COMPLETED") {
       fetchRatings();
+      fetchVotes();
     }
-  }, [activeSection, match?.status, fetchRatings]);
+  }, [activeSection, match?.status, fetchRatings, fetchVotes]);
+
+  async function handleCastVote() {
+    if (!votingForId) return;
+    setSubmitVoteLoading(true);
+    setVoteError(null);
+    try {
+      const res = await fetch(`/api/matches/${id}/votes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ votedId: votingForId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setVotingForId("");
+        await fetchVotes();
+      } else {
+        setVoteError(data.error || "Erro ao registrar voto");
+      }
+    } catch (err) {
+      setVoteError("Erro de conexão ao enviar voto");
+    } finally {
+      setSubmitVoteLoading(false);
+    }
+  }
 
   async function handleRateTeammate(ratedId: string, stars: number) {
     if (!canRate) return;
@@ -2434,6 +2487,112 @@ export default function MatchDetailPage() {
                 </tbody>
               </table>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Player of the Match Voting Card */}
+      {activeSection === "postgame" && match.status === "COMPLETED" && (
+        <Card className="rounded-[22px] border border-white/5 bg-white/[0.02] backdrop-blur-md overflow-hidden">
+          <CardHeader className="border-b border-white/5 pb-4">
+            <h2 className="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
+              <span className="text-[#34d399]">🏆</span> Craque da Partida
+            </h2>
+            <p className="text-xs text-[#8fa39b] mt-1">
+              Vote no melhor jogador em campo nesta partida. Apenas atletas que participaram podem votar.
+            </p>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            {votesLoading ? (
+              <div className="space-y-3 py-4">
+                <div className="h-16 animate-pulse rounded-xl border border-white/5 bg-white/[0.01]" />
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Voting Action */}
+                {session?.user?.playerId && match.userAttendance?.present ? (
+                  votesData?.hasVoted ? (
+                    <div className="rounded-xl border border-green-500/10 bg-green-500/5 p-4 flex items-center gap-3">
+                      <span className="text-xl">✅</span>
+                      <div>
+                        <p className="text-sm font-semibold text-white">Seu voto foi registrado!</p>
+                        <p className="text-xs text-[#8fa39b] mt-0.5">
+                          Você votou em: <strong className="text-[#34d399]">{votesData.results.find(r => r.playerId === votesData.votedForId)?.playerName || "atleta"}</strong>
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-white/5 bg-white/[0.01] p-4 space-y-3">
+                      <p className="text-sm font-semibold text-white">Deixe seu voto para o Craque do Jogo:</p>
+                      {voteError && <p className="text-xs text-red-400 font-semibold">{voteError}</p>}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <select
+                          aria-label="Escolher jogador"
+                          value={votingForId}
+                          onChange={(e) => setVotingForId(e.target.value)}
+                          className="flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-[var(--brand)] focus:outline-none"
+                        >
+                          <option value="">-- Selecione o Craque --</option>
+                          {match.stats
+                            .filter((s) => s.playerId && !s.guestPlayerId && s.playerId !== session.user.playerId)
+                            .map((s) => (
+                              <option key={s.playerId} value={s.playerId || ""}>
+                                {s.playerName}
+                              </option>
+                            ))}
+                        </select>
+                        <Button
+                          onClick={handleCastVote}
+                          disabled={!votingForId || submitVoteLoading}
+                          className="text-xs font-black uppercase tracking-wider text-[#010403] bg-[#10b981] hover:bg-[#34d399]"
+                        >
+                          {submitVoteLoading ? "Enviando..." : "Confirmar Voto"}
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.01] p-4 text-center">
+                    <p className="text-sm font-semibold text-white/80">Votação Restrita</p>
+                    <p className="text-xs text-[#8fa39b] mt-1">
+                      Apenas jogadores com presença física confirmada (check-in) nesta partida podem votar.
+                    </p>
+                  </div>
+                )}
+
+                {/* Leaderboard Results */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-[#8fa39b] border-b border-white/5 pb-2">
+                    Resultados Parciais
+                  </h3>
+                  {votesData?.results && votesData.results.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {votesData.results.map((res, index) => (
+                        <div
+                          key={res.playerId}
+                          className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.01] p-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-bold text-white/40">#{index + 1}</span>
+                            <div>
+                              <p className="text-sm font-semibold text-white">{res.playerName}</p>
+                              <p className="text-[10px] text-[#8fa39b]">
+                                {res.shirtNumber ? `#${res.shirtNumber}` : "Sem número"} • {res.position}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="rounded-full bg-[#10b981]/15 border border-[#10b981]/20 px-3 py-1 text-xs font-bold text-[#10b981]">
+                            {res.voteCount} {res.voteCount === 1 ? "voto" : "votos"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#8fa39b] italic">Nenhum voto registrado para esta partida ainda.</p>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
