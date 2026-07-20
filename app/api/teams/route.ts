@@ -159,6 +159,8 @@ export async function GET() {
     kitAwayUrl: team.kitAwayUrl,
     kitGkUrl: team.kitGkUrl,
     monthlyFeesEnabled: team.monthlyFeesEnabled,
+    defaultPositionLimitsEnabled: team.defaultPositionLimitsEnabled,
+    defaultPositionLimits: team.defaultPositionLimits,
     createdAt: team.createdAt.toISOString(),
     updatedAt: team.updatedAt.toISOString(),
     _count: team._count,
@@ -223,6 +225,8 @@ export async function PATCH(request: Request) {
   if (data.kitAwayUrl !== undefined) updateData.kitAwayUrl = data.kitAwayUrl;
   if (data.kitGkUrl !== undefined) updateData.kitGkUrl = data.kitGkUrl;
   if (data.monthlyFeesEnabled !== undefined) updateData.monthlyFeesEnabled = data.monthlyFeesEnabled;
+  if (data.defaultPositionLimitsEnabled !== undefined) updateData.defaultPositionLimitsEnabled = data.defaultPositionLimitsEnabled;
+  if (data.defaultPositionLimits !== undefined) updateData.defaultPositionLimits = data.defaultPositionLimits;
 
   // If name changed, regenerate slug and check uniqueness
   if (data.name) {
@@ -269,6 +273,8 @@ export async function PATCH(request: Request) {
     kitAwayUrl: team.kitAwayUrl,
     kitGkUrl: team.kitGkUrl,
     monthlyFeesEnabled: team.monthlyFeesEnabled,
+    defaultPositionLimitsEnabled: team.defaultPositionLimitsEnabled,
+    defaultPositionLimits: team.defaultPositionLimits,
     createdAt: team.createdAt.toISOString(),
     updatedAt: team.updatedAt.toISOString(),
     _count: team._count,

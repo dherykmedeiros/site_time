@@ -245,6 +245,9 @@ model Team {
   defaultBlockPreset MatchLineupBlockPreset?
   defaultLineup      DefaultLineupSelection[]
 
+  defaultPositionLimitsEnabled Boolean @default(false)
+  defaultPositionLimits        Json?
+
   @@map("teams")
 }
 

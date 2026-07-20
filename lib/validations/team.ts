@@ -101,6 +101,8 @@ export const updateTeamSchema = z.object({
   kitAwayUrl: kitUrlSchema.optional().nullable(),
   kitGkUrl: kitUrlSchema.optional().nullable(),
   monthlyFeesEnabled: z.boolean().optional(),
+  defaultPositionLimitsEnabled: z.boolean().optional(),
+  defaultPositionLimits: z.any().optional(),
 });
 
 export type CreateTeamInput = z.infer<typeof createTeamSchema>;

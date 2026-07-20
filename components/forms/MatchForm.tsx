@@ -156,6 +156,33 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
     },
   });
 
+  useEffect(() => {
+    if (!isEditing && !defaultValues?.positionLimits?.length) {
+      fetch("/api/teams")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((team) => {
+          if (team) {
+            if (team.defaultVenue && !defaultValues?.venue) {
+              setValue("venue", team.defaultVenue);
+            }
+            if (team.defaultPositionLimitsEnabled && team.defaultPositionLimits) {
+              setPositionLimitsEnabled(true);
+              setPositionLimits((prev) => {
+                const updated = { ...prev };
+                for (const pos of playerPositions) {
+                  if (team.defaultPositionLimits[pos] !== undefined && team.defaultPositionLimits[pos] !== null) {
+                    updated[pos] = String(team.defaultPositionLimits[pos]);
+                  }
+                }
+                return updated;
+              });
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isEditing, defaultValues, setValue]);
+
   const watchedDate = watch("date");
   const watchedOpponentBadgeUrl = watch("opponentBadgeUrl");
   const isPastDate = watchedDate ? new Date(watchedDate) < new Date() : false;
