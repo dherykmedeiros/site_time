@@ -193,19 +193,28 @@ export default function DashboardShell({
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  const visibleNavItems = navItems.filter((item) => {
-    if (item.href === "/dashboard/squad/mensalidade" && !monthlyFeesEnabled) {
-      return false;
-    }
-    if (item.href === "/dashboard/finances") {
-      return role === "ADMIN" || role === "MATERIAL_DIRECTOR";
-    }
-    if (!item.adminOnly) return true;
-    if (item.href === "/dashboard/team/settings") {
-      return role === "ADMIN";
-    }
-    return role === "ADMIN" || role === "COACH";
-  });
+  const isCoachOrAdmin = role === "ADMIN" || role === "COACH";
+
+  const visibleNavItems = navItems
+    .filter((item) => {
+      if (item.href === "/dashboard/squad/mensalidade" && !monthlyFeesEnabled) {
+        return false;
+      }
+      if (item.href === "/dashboard/finances") {
+        return role === "ADMIN" || role === "MATERIAL_DIRECTOR";
+      }
+      if (!item.adminOnly) return true;
+      if (item.href === "/dashboard/team/settings") {
+        return role === "ADMIN";
+      }
+      return role === "ADMIN" || role === "COACH";
+    })
+    .map((item) => {
+      if (item.href === "/dashboard/evaluations" && !isCoachOrAdmin) {
+        return { ...item, label: "Meu Feedback" };
+      }
+      return item;
+    });
 
   const activeItem = (() => {
     const exact = visibleNavItems.find((item) => pathname === item.href);

@@ -79,13 +79,21 @@ export default async function PlayerProfilePage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      {/* Back button */}
-      <Link
-        href="/dashboard/squad"
-        className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-[#8fa39b] transition hover:bg-white/[0.07] hover:text-white"
-      >
-        ← Voltar ao Elenco
-      </Link>
+      {/* Back button and Feedback shortcut */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          href="/dashboard/squad"
+          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-[#8fa39b] transition hover:bg-white/[0.07] hover:text-white"
+        >
+          ← Voltar ao Elenco
+        </Link>
+        <Link
+          href="/dashboard/evaluations"
+          className="inline-flex items-center gap-2 rounded-xl border border-[rgba(59,130,246,0.3)] bg-[rgba(59,130,246,0.08)] px-4 py-2 text-sm font-semibold text-blue-400 transition hover:bg-[rgba(59,130,246,0.15)]"
+        >
+          📈 Ver Avaliações & Feedback
+        </Link>
+      </div>
 
       {/* Profile header */}
       <div className="relative overflow-hidden rounded-2xl border border-[rgba(16,185,129,0.18)] bg-[rgba(10,24,20,0.4)] backdrop-blur-md">

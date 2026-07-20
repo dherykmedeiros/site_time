@@ -375,13 +375,21 @@ export default function SquadPage() {
 
                 <div className="flex flex-wrap gap-2">
                   {player.id === selfPlayerId && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setProfileTarget({ id: player.id, name: player.name })}
-                    >
-                      Meu perfil
-                    </Button>
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setProfileTarget({ id: player.id, name: player.name })}
+                      >
+                        Meu perfil
+                      </Button>
+                      <Link
+                        href="/dashboard/evaluations"
+                        className="inline-flex items-center justify-center rounded-lg border border-[rgba(59,130,246,0.3)] bg-[rgba(59,130,246,0.08)] px-3 py-1.5 text-xs font-bold text-blue-400 transition hover:bg-[rgba(59,130,246,0.15)] hover:border-[rgba(59,130,246,0.5)]"
+                      >
+                        📈 Meu Feedback
+                      </Link>
+                    </>
                   )}
                   {/* Link to full individual profile page */}
                   <Link
