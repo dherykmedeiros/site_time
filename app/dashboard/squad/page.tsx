@@ -319,7 +319,12 @@ export default function SquadPage() {
       ) : (
         <div className="space-y-3">
           {filteredPlayers.map((player) => (
-            <Card key={player.id} className="rounded-[18px]">
+            <Card
+              key={player.id}
+              className={`rounded-[18px] overflow-visible relative transition-all ${
+                openMenuPlayerId === player.id ? "z-30 ring-1 ring-white/10" : "z-10"
+              }`}
+            >
               <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-4">
                   {player.photoUrl ? (
@@ -595,7 +600,7 @@ export default function SquadPage() {
                                 className="fixed inset-0 z-40"
                                 onClick={() => setOpenMenuPlayerId(null)}
                               />
-                              <div className="absolute right-0 top-full mt-1.5 z-50 w-44 rounded-xl border border-white/10 bg-[#0a1814] p-1.5 shadow-2xl backdrop-blur-xl space-y-0.5">
+                              <div className="absolute right-0 top-full mt-1.5 z-50 w-48 rounded-xl border border-emerald-500/20 bg-[#0d221c] p-1.5 shadow-[0_10px_38px_rgba(0,0,0,0.8)] backdrop-blur-xl space-y-0.5 ring-1 ring-white/10">
                                 {secActions.map((act) => (
                                   <button
                                     key={act.key}

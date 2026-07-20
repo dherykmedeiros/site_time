@@ -6,8 +6,9 @@ interface CardProps {
 }
 
 export function Card({ children, className = "" }: CardProps) {
+  const hasOverflowOverride = className.includes("overflow-");
   return (
-    <div className={`app-surface overflow-hidden ${className}`}>
+    <div className={`app-surface ${hasOverflowOverride ? "" : "overflow-hidden"} ${className}`}>
       {children}
     </div>
   );
