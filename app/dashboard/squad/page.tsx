@@ -11,6 +11,8 @@ import { PlayerSelfProfileForm } from "@/components/forms/PlayerSelfProfileForm"
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 
+import { playerPositionLabels } from "@/lib/player-positions";
+
 const PlayerForm = dynamic(
   () => import("@/components/forms/PlayerForm").then((m) => ({ default: m.PlayerForm })),
   { loading: () => <div className="p-4 text-center text-gray-500">Carregando formulário...</div> }
@@ -20,6 +22,7 @@ interface Player {
   id: string;
   name: string;
   position: string;
+  secondaryPosition?: string | null;
   shirtNumber: number;
   photoUrl: string | null;
   status: "ACTIVE" | "INACTIVE";
@@ -33,17 +36,7 @@ interface ProfileTarget {
   name: string;
 }
 
-const positionLabels: Record<string, string> = {
-  GOALKEEPER: "Goleiro",
-  DEFENDER: "Zagueiro",
-  LEFT_BACK: "Lateral esquerdo",
-  RIGHT_BACK: "Lateral direito",
-  MIDFIELDER: "Meio-campista",
-  DEFENSIVE_MIDFIELDER: "Volante",
-  FORWARD: "Atacante",
-  LEFT_WINGER: "Ponta esquerda",
-  RIGHT_WINGER: "Ponta direita",
-};
+const positionLabels: Record<string, string> = playerPositionLabels;
 
 export default function SquadPage() {
   const { data: session } = useSession();
@@ -345,6 +338,11 @@ export default function SquadPage() {
                     </p>
                     <p className="text-sm text-[var(--text-muted)]">
                       {positionLabels[player.position] || player.position}
+                      {player.secondaryPosition && (
+                        <span className="ml-1 text-xs opacity-75 font-medium">
+                          (Sec: {positionLabels[player.secondaryPosition] || player.secondaryPosition})
+                        </span>
+                      )}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-2 sm:hidden">
                       <Badge variant={player.status === "ACTIVE" ? "success" : "warning"}>

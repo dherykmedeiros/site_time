@@ -41,6 +41,7 @@ export async function GET(request: Request) {
       id: p.id,
       name: p.name,
       position: p.position,
+      secondaryPosition: p.secondaryPosition,
       shirtNumber: p.shirtNumber,
       photoUrl: p.photoUrl,
       status: p.status,
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { name, position, shirtNumber, status } = parsed.data;
+  const { name, position, secondaryPosition, shirtNumber, status } = parsed.data;
 
   let finalShirtNumber = shirtNumber;
   if (finalShirtNumber === undefined || finalShirtNumber === null) {
@@ -127,6 +128,7 @@ export async function POST(request: Request) {
     data: {
       name,
       position,
+      secondaryPosition: secondaryPosition || null,
       shirtNumber: finalShirtNumber,
       status,
       teamId: session.user.teamId,
@@ -163,6 +165,7 @@ export async function POST(request: Request) {
       id: player.id,
       name: player.name,
       position: player.position,
+      secondaryPosition: player.secondaryPosition,
       shirtNumber: player.shirtNumber,
       photoUrl: player.photoUrl,
       status: player.status,

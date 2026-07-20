@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireCoachOrAdmin } from "@/lib/auth";
+import { requireCoachOrAdmin, requireAuth } from "@/lib/auth";
 import { evaluationSchema } from "@/lib/validations/evaluation";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
 import { withErrorHandler } from "@/lib/api-handler";
 
-// GET /api/evaluations — List evaluations for the team (ADMIN/COACH only)
+// GET /api/evaluations — List evaluations for the team (ADMIN/COACH can see all, PLAYER sees their own)
 export const GET = withErrorHandler(async (request: Request) => {
-  const { session, error } = await requireCoachOrAdmin();
+  const { session, error } = await requireAuth();
   if (error) return error;
 
   if (!session.user.teamId) {
@@ -16,12 +16,22 @@ export const GET = withErrorHandler(async (request: Request) => {
   }
 
   const { searchParams } = new URL(request.url);
-  const playerId = searchParams.get("playerId") || undefined;
+  const isCoachOrAdmin = session.user.role === "ADMIN" || session.user.role === "COACH";
+
+  let targetPlayerId = searchParams.get("playerId") || undefined;
+
+  // If user is a regular player, force filtering to their own linked playerId
+  if (!isCoachOrAdmin) {
+    if (!session.user.playerId) {
+      return NextResponse.json({ evaluations: [] });
+    }
+    targetPlayerId = session.user.playerId;
+  }
 
   const evaluations = await prisma.playerEvaluation.findMany({
     where: {
       teamId: session.user.teamId,
-      ...(playerId && { playerId }),
+      ...(targetPlayerId && { playerId: targetPlayerId }),
     },
     orderBy: { date: "desc" },
     include: {
@@ -30,6 +40,7 @@ export const GET = withErrorHandler(async (request: Request) => {
           id: true,
           name: true,
           position: true,
+          secondaryPosition: true,
           shirtNumber: true,
         },
       },

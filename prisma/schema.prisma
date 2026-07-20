@@ -20,6 +20,8 @@ enum PlayerPosition {
   DEFENDER
   LEFT_BACK
   RIGHT_BACK
+  LEFT_WINGBACK
+  RIGHT_WINGBACK
   MIDFIELDER
   DEFENSIVE_MIDFIELDER
   FORWARD
@@ -250,7 +252,8 @@ model Player {
   id           String         @id @default(cuid())
   name         String
   fullName     String?
-  position     PlayerPosition
+  position          PlayerPosition
+  secondaryPosition PlayerPosition?
   shirtNumber  Int
   photoUrl     String?
   age          Int?

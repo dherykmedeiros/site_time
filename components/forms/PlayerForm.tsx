@@ -19,6 +19,7 @@ interface PlayerFormProps {
     id?: string;
     name?: string;
     position?: string;
+    secondaryPosition?: string | null;
     shirtNumber?: number;
     status?: string;
   };
@@ -30,6 +31,11 @@ const positionOptions = playerPositions.map((position) => ({
   value: position,
   label: playerPositionLabels[position],
 }));
+
+const secondaryPositionOptions = [
+  { value: "", label: "Nenhuma (Apenas Principal)" },
+  ...positionOptions,
+];
 
 const statusOptions = [
   { value: "ACTIVE", label: "Ativo" },
@@ -51,6 +57,7 @@ export function PlayerForm({ defaultValues, onSuccess, onCancel }: PlayerFormPro
     defaultValues: {
       name: defaultValues?.name || "",
       position: (defaultValues?.position as CreatePlayerInput["position"]) || undefined,
+      secondaryPosition: (defaultValues?.secondaryPosition as CreatePlayerInput["position"]) || undefined,
       shirtNumber: defaultValues?.shirtNumber || undefined,
       ...(isEditing && { status: (defaultValues?.status as "ACTIVE" | "INACTIVE") || "ACTIVE" }),
     },
@@ -66,10 +73,15 @@ export function PlayerForm({ defaultValues, onSuccess, onCancel }: PlayerFormPro
         : "/api/players";
       const method = isEditing ? "PATCH" : "POST";
 
+      const payload = {
+        ...data,
+        secondaryPosition: data.secondaryPosition || null,
+      };
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       const result = await res.json();
@@ -112,22 +124,46 @@ export function PlayerForm({ defaultValues, onSuccess, onCancel }: PlayerFormPro
         )}
       </div>
 
-      <div>
-        <label htmlFor="position" className="mb-1 block text-sm font-medium text-gray-700">
-          Posição
-        </label>
-        <Select
-          id="position"
-          options={positionOptions}
-          placeholder="Selecione a posição"
-          {...register("position")}
-        />
-        {errors.position && (
-          <p className="mt-1 text-sm text-red-600">{errors.position.message}</p>
-        )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label htmlFor="position" className="mb-1 block text-sm font-medium text-gray-700">
+            Posição Principal *
+          </label>
+          <Select
+            id="position"
+            options={positionOptions}
+            placeholder="Selecione a posição"
+            {...register("position")}
+          />
+          {errors.position && (
+            <p className="mt-1 text-sm text-red-600">{errors.position.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="secondaryPosition" className="mb-1 block text-sm font-medium text-gray-700">
+            Posição Secundária
+          </label>
+          <Select
+            id="secondaryPosition"
+            options={secondaryPositionOptions}
+            placeholder="Nenhuma (Opcional)"
+            {...register("secondaryPosition")}
+          />
+        </div>
       </div>
 
-
+      <div>
+        <label htmlFor="shirtNumber" className="mb-1 block text-sm font-medium text-gray-700">
+          Número da Camisa
+        </label>
+        <Input
+          id="shirtNumber"
+          type="number"
+          placeholder="Ex: 10 (deixe em branco para automático)"
+          {...register("shirtNumber", { valueAsNumber: true })}
+        />
+      </div>
 
       {isEditing && (
         <div>

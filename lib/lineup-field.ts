@@ -30,10 +30,12 @@ function getFieldAnchor(position: SuggestedLineupEntry["position"]): AnchorPoint
     case "GOALKEEPER":
       return { lane: "goal", x: 50, y: laneRows.goal };
     case "LEFT_BACK":
+    case "LEFT_WINGBACK":
       return { lane: "defense", x: 18, y: laneRows.defense };
     case "DEFENDER":
       return { lane: "defense", x: 50, y: laneRows.defense };
     case "RIGHT_BACK":
+    case "RIGHT_WINGBACK":
       return { lane: "defense", x: 82, y: laneRows.defense };
     case "DEFENSIVE_MIDFIELDER":
       return { lane: "midfield", x: 50, y: laneRows.midfield - 6 };

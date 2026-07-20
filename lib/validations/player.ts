@@ -11,6 +11,9 @@ export const createPlayerSchema = z.object({
   position: z.enum(playerPositions, {
     message: "Posição inválida",
   }),
+  secondaryPosition: z.enum(playerPositions, {
+    message: "Posição secundária inválida",
+  }).nullable().optional(),
   shirtNumber: z
     .number()
     .int("Número deve ser inteiro")
@@ -29,6 +32,12 @@ export const updatePlayerSchema = z.object({
     .enum(playerPositions, {
       message: "Posição inválida",
     })
+    .optional(),
+  secondaryPosition: z
+    .enum(playerPositions, {
+      message: "Posição secundária inválida",
+    })
+    .nullable()
     .optional(),
   shirtNumber: z
     .number()
@@ -60,6 +69,12 @@ export const updateOwnPlayerProfileSchema = z
       .trim()
       .min(2, "Nome completo deve ter no mínimo 2 caracteres")
       .max(120, "Nome completo deve ter no máximo 120 caracteres")
+      .nullable()
+      .optional(),
+    secondaryPosition: z
+      .enum(playerPositions, {
+        message: "Posição secundária inválida",
+      })
       .nullable()
       .optional(),
     photoUrl: playerPhotoUrlSchema.nullable().optional(),

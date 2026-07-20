@@ -697,7 +697,7 @@ export default function PortalView({
                             vs {match.opponent}
                           </div>
                           <div className="det text-[9px] text-[var(--text-3)] truncate mt-0.5">
-                            {match.type === "FRIENDLY" ? "Amistoso" : "Championship"} · {match.venue}
+                            {match.type === "FRIENDLY" ? "Amistoso" : "Campeonato"} · {match.venue}
                           </div>
                         </div>
                         <div className="when text-right shrink-0">

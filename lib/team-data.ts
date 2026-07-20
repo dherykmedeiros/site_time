@@ -20,11 +20,13 @@ export const shortRoles: Record<string, string> = {
   DEFENDER: "ZAG",
   LEFT_BACK: "LE",
   RIGHT_BACK: "LD",
+  LEFT_WINGBACK: "AE",
+  RIGHT_WINGBACK: "AD",
   MIDFIELDER: "MEI",
   DEFENSIVE_MIDFIELDER: "VOL",
   FORWARD: "ATA",
-  LEFT_WINGER: "ATA",
-  RIGHT_WINGER: "ATA",
+  LEFT_WINGER: "PE",
+  RIGHT_WINGER: "PD",
 };
 
 export const prettyRoles: Record<string, string> = {
@@ -32,6 +34,8 @@ export const prettyRoles: Record<string, string> = {
   DEFENDER: "Zagueiro",
   LEFT_BACK: "Lateral Esquerdo",
   RIGHT_BACK: "Lateral Direito",
+  LEFT_WINGBACK: "Ala Esquerdo",
+  RIGHT_WINGBACK: "Ala Direito",
   MIDFIELDER: "Meio-campista",
   DEFENSIVE_MIDFIELDER: "Volante",
   FORWARD: "Atacante",
@@ -64,6 +68,18 @@ export const positionThemes: Record<string, { border: string; text: string; labe
     label: "Lateral Direito",
     badge: "bg-emerald-500/5 text-emerald-400 border-emerald-500/20",
   },
+  LEFT_WINGBACK: {
+    border: "border-emerald-500/10 hover:border-emerald-400/30",
+    text: "text-emerald-400",
+    label: "Ala Esquerdo",
+    badge: "bg-emerald-500/5 text-emerald-400 border-emerald-500/20",
+  },
+  RIGHT_WINGBACK: {
+    border: "border-emerald-500/10 hover:border-emerald-400/30",
+    text: "text-emerald-400",
+    label: "Ala Direito",
+    badge: "bg-emerald-500/5 text-emerald-400 border-emerald-500/20",
+  },
   MIDFIELDER: {
     border: "border-cyan-500/10 hover:border-cyan-400/30",
     text: "text-cyan-400",
@@ -91,7 +107,7 @@ export const positionThemes: Record<string, { border: string; text: string; labe
   RIGHT_WINGER: {
     border: "border-rose-500/10 hover:border-rose-400/30",
     text: "text-rose-400",
-    label: "Ponta Direito",
+    label: "Ponta Direita",
     badge: "bg-rose-500/5 text-rose-400 border-rose-500/20",
   },
 };
@@ -116,7 +132,7 @@ export function getPlayerMarkerClasses(position: string) {
     };
   }
 
-  if (["DEFENDER", "LEFT_BACK", "RIGHT_BACK"].includes(p)) {
+  if (["DEFENDER", "LEFT_BACK", "RIGHT_BACK", "LEFT_WINGBACK", "RIGHT_WINGBACK"].includes(p)) {
     return {
       ring: "border-[#d9fff0]/90",
       surface: "bg-[linear-gradient(180deg,rgba(18,63,46,0.82)_0%,rgba(8,29,22,0.90)_100%)]",
@@ -142,8 +158,10 @@ export function getPlayerMarkerClasses(position: string) {
 const positionOrder: Record<string, number> = {
   GOALKEEPER: 1,
   RIGHT_BACK: 2,
+  RIGHT_WINGBACK: 2,
   DEFENDER: 3,
   LEFT_BACK: 4,
+  LEFT_WINGBACK: 4,
   MIDFIELDER: 5,
   DEFENSIVE_MIDFIELDER: 6,
   RIGHT_WINGER: 7,
@@ -450,6 +468,8 @@ export function getPlayerStamp(player: StampPlayerInput, stats: TeamStatsType) {
     case "DEFENDER":
     case "LEFT_BACK":
     case "RIGHT_BACK":
+    case "LEFT_WINGBACK":
+    case "RIGHT_WINGBACK":
       return "Muralha da Várzea";
     case "MIDFIELDER":
     case "DEFENSIVE_MIDFIELDER":
@@ -480,6 +500,8 @@ export function getPlayerTag(player: StampPlayerInput, stats: TeamStatsType) {
     case "DEFENDER":
     case "LEFT_BACK":
     case "RIGHT_BACK":
+    case "LEFT_WINGBACK":
+    case "RIGHT_WINGBACK":
       return "Muralha";
     case "MIDFIELDER":
     case "DEFENSIVE_MIDFIELDER":

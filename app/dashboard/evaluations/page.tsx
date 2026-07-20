@@ -8,11 +8,13 @@ import { useToast } from "@/components/ui/Toast";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
+import { playerPositions, playerPositionLabels, playerPositionShortLabels } from "@/lib/player-positions";
 
 interface Player {
   id: string;
   name: string;
-  position: "GK" | "DF" | "MF" | "FW";
+  position: string;
+  secondaryPosition?: string | null;
   shirtNumber: number | null;
   photoUrl: string | null;
 }
@@ -24,6 +26,7 @@ interface Evaluation {
     id: string;
     name: string;
     position: string;
+    secondaryPosition?: string | null;
     shirtNumber: number | null;
   };
   evaluator: {
@@ -80,18 +83,21 @@ export default function EvaluationsPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const [playersRes, evalsRes] = await Promise.all([
-        fetch("/api/players?status=ACTIVE"),
-        fetch("/api/evaluations"),
-      ]);
-
-      if (playersRes.ok) {
-        const data = await playersRes.json();
-        setPlayers(data.players || []);
+      const promises: Promise<Response>[] = [fetch("/api/evaluations")];
+      if (isCoachOrAdmin) {
+        promises.push(fetch("/api/players?status=ACTIVE"));
       }
+
+      const [evalsRes, playersRes] = await Promise.all(promises);
+
       if (evalsRes.ok) {
         const data = await evalsRes.json();
         setEvaluations(data.evaluations || []);
+      }
+
+      if (playersRes && playersRes.ok) {
+        const data = await playersRes.json();
+        setPlayers(data.players || []);
       }
     } catch {
       toast("Erro ao carregar fichas de avaliação");
@@ -101,32 +107,17 @@ export default function EvaluationsPage() {
   }
 
   useEffect(() => {
-    if (isCoachOrAdmin) {
+    if (authStatus === "authenticated") {
       loadData();
     }
-  }, [isCoachOrAdmin]);
+  }, [authStatus, isCoachOrAdmin]);
 
-  if (authStatus === "loading") {
-    return (
-      <div className="flex h-60 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--brand)] border-t-transparent" />
-      </div>
-    );
+  function getPositionLabel(pos: string) {
+    return playerPositionLabels[pos as keyof typeof playerPositionLabels] || pos;
   }
 
-  // Strictly check coach or admin role on frontend
-  if (!isCoachOrAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12 text-center h-[70vh]">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10 text-4xl border border-red-500/20 shadow-md">
-          🔒
-        </div>
-        <h2 className="mt-6 text-2xl font-black text-white">Área Restrita</h2>
-        <p className="mt-2 text-sm text-[var(--text-subtle)] max-w-md leading-relaxed">
-          Esta área é de acesso exclusivo para a comissão técnica e administradores do time para anotações disciplinares e de desempenho.
-        </p>
-      </div>
-    );
+  function getPositionShortLabel(pos: string) {
+    return playerPositionShortLabels[pos as keyof typeof playerPositionShortLabels] || pos;
   }
 
   function handleOpenPlayerDrawer(player: Player) {
@@ -142,53 +133,59 @@ export default function EvaluationsPage() {
     setFormError("");
   }
 
-  function handleStartEdit(evalItem: Evaluation) {
-    setEditingEval(evalItem);
-    setTechnical(evalItem.technical);
-    setTactical(evalItem.tactical);
-    setPhysical(evalItem.physical);
-    setDiscipline(evalItem.discipline);
-    setContent(evalItem.content);
-    setDate(new Date(evalItem.date).toISOString().substring(0, 10));
+  function handleStartEdit(evaluation: Evaluation) {
+    setEditingEval(evaluation);
+    setTechnical(evaluation.technical);
+    setTactical(evaluation.tactical);
+    setPhysical(evaluation.physical);
+    setDiscipline(evaluation.discipline);
+    setContent(evaluation.content);
+    setDate(new Date(evaluation.date).toISOString().substring(0, 10));
     setActiveTab("NEW");
+    setFormError("");
   }
 
   async function handleSaveEvaluation(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedPlayer) return;
-    setFormError("");
-    setSaving(true);
 
-    const body = {
-      playerId: selectedPlayer.id,
-      content,
-      technical,
-      tactical,
-      physical,
-      discipline,
-      date: new Date(date).toISOString(),
-    };
+    if (!content.trim()) {
+      setFormError("Informe as observações técnicas e comportamentais.");
+      return;
+    }
+
+    setSaving(true);
+    setFormError("");
 
     try {
-      const url = editingEval ? `/api/evaluations/${editingEval.id}` : "/api/evaluations";
-      const method = editingEval ? "PATCH" : "POST";
+      const isEdit = !!editingEval;
+      const url = isEdit ? `/api/evaluations/${editingEval.id}` : "/api/evaluations";
+      const method = isEdit ? "PATCH" : "POST";
+
+      const bodyData = {
+        playerId: selectedPlayer.id,
+        technical,
+        tactical,
+        physical,
+        discipline,
+        content: content.trim(),
+        date,
+      };
 
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(bodyData),
       });
 
+      const resData = await res.json();
+
       if (!res.ok) {
-        const err = await res.json();
-        setFormError(err.error || "Erro ao salvar avaliação");
+        setFormError(resData.error || "Erro ao salvar avaliação");
         return;
       }
 
-      toast(editingEval ? "Ficha de avaliação atualizada!" : "Nova avaliação adicionada com sucesso!");
-      await loadData();
-      
-      // Reset form
+      toast(isEdit ? "Ficha de avaliação atualizada com sucesso!" : "Avaliação registrada com sucesso!");
       setEditingEval(null);
       setTechnical(3);
       setTactical(3);
@@ -197,8 +194,10 @@ export default function EvaluationsPage() {
       setContent("");
       setDate(new Date().toISOString().substring(0, 10));
       setActiveTab("HISTORY");
+
+      await loadData();
     } catch {
-      setFormError("Erro de rede ao conectar com a API");
+      setFormError("Erro de conexão ao salvar avaliação.");
     } finally {
       setSaving(false);
     }
@@ -210,43 +209,254 @@ export default function EvaluationsPage() {
 
   async function executeDeleteEvaluation() {
     if (!deleteModal.evalId) return;
+
     setDeleting(true);
     try {
       const res = await fetch(`/api/evaluations/${deleteModal.evalId}`, {
         method: "DELETE",
       });
 
-      if (res.ok) {
-        toast("Avaliação excluída com sucesso");
-        await loadData();
-      } else {
-        toast("Erro ao excluir avaliação");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast(data.error || "Erro ao excluir avaliação");
+        return;
       }
+
+      toast("Avaliação excluída com sucesso");
+      setDeleteModal({ open: false, evalId: null });
+      await loadData();
     } catch {
-      toast("Erro de conexão");
+      toast("Erro ao excluir avaliação");
     } finally {
       setDeleting(false);
-      setDeleteModal({ open: false, evalId: null });
     }
   }
 
-  // Get position label in Portuguese
-  function getPositionLabel(pos: string) {
-    switch (pos) {
-      case "GK":
-        return "Goleiro";
-      case "DF":
-        return "Defensor";
-      case "MF":
-        return "Meia";
-      case "FW":
-        return "Atacante";
-      default:
-        return pos;
-    }
+  // Star selector input component
+  function StarSelector({
+    label,
+    value,
+    onChange,
+  }: {
+    label: string;
+    value: number;
+    onChange: (val: number) => void;
+  }) {
+    return (
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2 border-b border-white/5 last:border-0">
+        <span className="text-xs font-semibold text-[var(--text)]">{label}</span>
+        <div className="flex items-center gap-1.5">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() => onChange(star)}
+              className={`h-7 w-7 rounded-md text-xs font-bold transition ${
+                star <= value
+                  ? "bg-amber-400/20 text-amber-300 border border-amber-400/40"
+                  : "bg-white/5 text-[var(--text-muted)] hover:bg-white/10"
+              }`}
+            >
+              {star}★
+            </button>
+          ))}
+        </div>
+      </div>
+    );
   }
 
-  // Calculate scores for each player
+  // Star rating small static display
+  function StarRatingDisplay({ rating }: { rating: number }) {
+    return (
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <span
+            key={star}
+            className={`text-xs ${
+              star <= Math.round(rating) ? "text-amber-400" : "text-white/10"
+            }`}
+          >
+            ★
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  function getRatingColor(rating: number) {
+    if (rating === 0) return "text-[var(--text-muted)]";
+    if (rating >= 4.0) return "text-emerald-400";
+    if (rating >= 3.0) return "text-amber-400";
+    return "text-red-400";
+  }
+
+  if (authStatus === "loading" || loading) {
+    return (
+      <div className="flex h-60 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--brand)] border-t-transparent" />
+      </div>
+    );
+  }
+
+  // PLAYER READ-ONLY VIEW (My Feedback)
+  if (!isCoachOrAdmin) {
+    const playerEvals = evaluations; // API returns strictly logged in player's evals for non-coach
+
+    const count = playerEvals.length;
+    const avgTech = count > 0 ? playerEvals.reduce((s, e) => s + e.technical, 0) / count : 0;
+    const avgTac = count > 0 ? playerEvals.reduce((s, e) => s + e.tactical, 0) / count : 0;
+    const avgPhys = count > 0 ? playerEvals.reduce((s, e) => s + e.physical, 0) / count : 0;
+    const avgDisc = count > 0 ? playerEvals.reduce((s, e) => s + e.discipline, 0) / count : 0;
+    const overallAvg = (avgTech + avgTac + avgPhys + avgDisc) / 4;
+
+    return (
+      <div className="space-y-7 max-w-5xl mx-auto">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-[var(--text)]">Meu Feedback & Avaliações</h1>
+          <p className="mt-1 text-sm text-[var(--text-subtle)]">
+            Acompanhe a avaliação técnica, tática, física e disciplinar fornecida pela comissão técnica.
+          </p>
+        </div>
+
+        {/* Overview Metric Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="app-surface rounded-2xl border border-[var(--border)] p-4 flex flex-col justify-between">
+            <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Média Geral</span>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className={`text-3xl font-black ${getRatingColor(overallAvg)}`}>
+                {count > 0 ? overallAvg.toFixed(1) : "-"}
+              </span>
+              <span className="text-xs text-[var(--text-muted)]">/ 5.0</span>
+            </div>
+            <span className="text-[10px] text-[var(--text-muted)] mt-1">{count} {count === 1 ? "avaliação" : "avaliações"}</span>
+          </div>
+
+          <div className="app-surface rounded-2xl border border-[var(--border)] p-4 flex flex-col justify-between">
+            <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Técnica</span>
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-2xl font-bold text-white">{count > 0 ? avgTech.toFixed(1) : "-"}</span>
+              <StarRatingDisplay rating={avgTech} />
+            </div>
+            <span className="text-[10px] text-[var(--text-muted)] mt-1">Passe, Finalização, Habilidade</span>
+          </div>
+
+          <div className="app-surface rounded-2xl border border-[var(--border)] p-4 flex flex-col justify-between">
+            <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Tática</span>
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-2xl font-bold text-white">{count > 0 ? avgTac.toFixed(1) : "-"}</span>
+              <StarRatingDisplay rating={avgTac} />
+            </div>
+            <span className="text-[10px] text-[var(--text-muted)] mt-1">Posicionamento & Leitura</span>
+          </div>
+
+          <div className="app-surface rounded-2xl border border-[var(--border)] p-4 flex flex-col justify-between">
+            <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Física</span>
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-2xl font-bold text-white">{count > 0 ? avgPhys.toFixed(1) : "-"}</span>
+              <StarRatingDisplay rating={avgPhys} />
+            </div>
+            <span className="text-[10px] text-[var(--text-muted)] mt-1">Resistência & Velocidade</span>
+          </div>
+
+          <div className="app-surface rounded-2xl border border-[var(--border)] p-4 flex flex-col justify-between">
+            <span className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">Disciplina</span>
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-2xl font-bold text-white">{count > 0 ? avgDisc.toFixed(1) : "-"}</span>
+              <StarRatingDisplay rating={avgDisc} />
+            </div>
+            <span className="text-[10px] text-[var(--text-muted)] mt-1">Comprometimento & Postura</span>
+          </div>
+        </div>
+
+        {/* Timeline of Feedback */}
+        <div className="app-surface rounded-2xl border border-[var(--border)] p-6 space-y-6">
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <span>📋</span> Histórico de Fichas do Técnico
+          </h2>
+
+          {playerEvals.length === 0 ? (
+            <div className="py-12 text-center text-[var(--text-muted)] border border-dashed border-white/5 rounded-2xl">
+              <p className="text-4xl">📝</p>
+              <p className="mt-3 text-base font-semibold text-white">Nenhum feedback registrado ainda</p>
+              <p className="mt-1 text-xs text-[var(--text-subtle)] max-w-sm mx-auto">
+                Assim que a comissão técnica publicar uma avaliação do seu desempenho, ela aparecerá aqui com todos os detalhes e notas.
+              </p>
+            </div>
+          ) : (
+            <div className="relative border-l border-white/10 pl-6 ml-3 space-y-6">
+              {playerEvals.map((ev) => {
+                const avg = (ev.technical + ev.tactical + ev.physical + ev.discipline) / 4;
+                return (
+                  <div key={ev.id} className="relative">
+                    <div className="absolute -left-[1.88rem] top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--brand)] ring-4 ring-[#0f172a]" />
+
+                    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5 space-y-4 shadow-sm hover:border-white/20 transition-colors">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/5">
+                        <div>
+                          <span className="text-xs font-bold text-[var(--brand)] uppercase tracking-wider">
+                            Avaliador: {ev.evaluator.name || ev.evaluator.email}
+                          </span>
+                          <span className="text-xs text-[var(--text-muted)] block mt-0.5">
+                            Data: {new Intl.DateTimeFormat("pt-BR", { dateStyle: "full" }).format(new Date(ev.date))}
+                          </span>
+                        </div>
+                        <Badge variant="info" className="self-start sm:self-auto px-3 py-1 text-xs font-bold bg-[var(--brand)]/10 text-[var(--brand)] border-[var(--brand)]/20">
+                          Média: {avg.toFixed(2)} ⭐
+                        </Badge>
+                      </div>
+
+                      {/* Ratings subgrid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-2 bg-black/20 p-3 rounded-lg border border-white/5">
+                        <div>
+                          <span className="text-[0.65rem] uppercase font-bold text-[var(--text-muted)] block">Técnica</span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-sm font-bold text-white">{ev.technical}</span>
+                            <StarRatingDisplay rating={ev.technical} />
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-[0.65rem] uppercase font-bold text-[var(--text-muted)] block">Tática</span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-sm font-bold text-white">{ev.tactical}</span>
+                            <StarRatingDisplay rating={ev.tactical} />
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-[0.65rem] uppercase font-bold text-[var(--text-muted)] block">Física</span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-sm font-bold text-white">{ev.physical}</span>
+                            <StarRatingDisplay rating={ev.physical} />
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-[0.65rem] uppercase font-bold text-[var(--text-muted)] block">Disciplina</span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-sm font-bold text-white">{ev.discipline}</span>
+                            <StarRatingDisplay rating={ev.discipline} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Text Observations Content */}
+                      <div>
+                        <span className="text-xs font-bold text-white block mb-1">Observações do Técnico:</span>
+                        <p className="text-sm text-[var(--text-subtle)] leading-relaxed whitespace-pre-line bg-white/[0.01] p-3 rounded-lg border border-white/5">
+                          {ev.content}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // COACH / ADMIN FULL MANAGEMENT VIEW
   const playerStats = players.map((player) => {
     const playerEvals = evaluations.filter((e) => e.playerId === player.id);
     const count = playerEvals.length;
@@ -294,81 +504,18 @@ export default function EvaluationsPage() {
   const filteredPlayers = playerStats
     .filter((p) => {
       const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
-      const matchPosition = positionFilter === "ALL" || p.position === positionFilter;
+      const matchPosition =
+        positionFilter === "ALL" ||
+        p.position === positionFilter ||
+        p.secondaryPosition === positionFilter;
       return matchSearch && matchPosition;
     })
     .sort((a, b) => {
-      if (sortBy === "NAME") {
-        return a.name.localeCompare(b.name);
-      }
-      if (sortBy === "RATING_DESC") {
-        return b.overallAvg - a.overallAvg;
-      }
-      if (sortBy === "RATING_ASC") {
-        // Players with no evaluations should go to the end for convenience
-        if (a.overallAvg === 0) return 1;
-        if (b.overallAvg === 0) return -1;
-        return a.overallAvg - b.overallAvg;
-      }
-      if (sortBy === "EVAL_COUNT_DESC") {
-        return b.evalCount - a.evalCount;
-      }
-      return 0;
+      if (sortBy === "RATING_DESC") return b.overallAvg - a.overallAvg;
+      if (sortBy === "RATING_ASC") return a.overallAvg - b.overallAvg;
+      if (sortBy === "EVAL_COUNT_DESC") return b.evalCount - a.evalCount;
+      return a.name.localeCompare(b.name);
     });
-
-  // Helper to render star rating selectors
-  function StarSelector({
-    label,
-    value,
-    onChange,
-  }: {
-    label: string;
-    value: number;
-    onChange: (val: number) => void;
-  }) {
-    return (
-      <div className="flex items-center justify-between py-2 border-b border-white/5">
-        <span className="text-sm font-semibold text-[var(--text-subtle)]">{label}</span>
-        <div className="flex items-center gap-1.5">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              type="button"
-              onClick={() => onChange(star)}
-              className={`text-2xl transition hover:scale-110 active:scale-95 cursor-pointer ${
-                star <= value ? "text-amber-400" : "text-white/10 hover:text-white/20"
-              }`}
-            >
-              ★
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // Helper to display star ratings
-  function StarRatingDisplay({ rating }: { rating: number }) {
-    return (
-      <div className="flex items-center gap-0.5 text-xs">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <span
-            key={star}
-            className={star <= Math.round(rating) ? "text-amber-400" : "text-white/10"}
-          >
-            ★
-          </span>
-        ))}
-      </div>
-    );
-  }
-
-  function getRatingColor(rating: number) {
-    if (rating === 0) return "text-[var(--text-muted)]";
-    if (rating >= 4.0) return "text-emerald-400";
-    if (rating >= 3.0) return "text-amber-400";
-    return "text-red-400";
-  }
 
   const selectedPlayerEvals = selectedPlayer
     ? evaluations.filter((e) => e.playerId === selectedPlayer.id)
@@ -399,13 +546,14 @@ export default function EvaluationsPage() {
           <select
             value={positionFilter}
             onChange={(e) => setPositionFilter(e.target.value)}
-            className="w-full sm:w-40 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
+            className="w-full sm:w-48 rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
           >
             <option value="ALL">Todas as posições</option>
-            <option value="GK">Goleiros</option>
-            <option value="DF">Defensores</option>
-            <option value="MF">Meio-Campistas</option>
-            <option value="FW">Atacantes</option>
+            {playerPositions.map((pos) => (
+              <option key={pos} value={pos}>
+                {getPositionLabel(pos)}
+              </option>
+            ))}
           </select>
 
           <select
@@ -421,64 +569,86 @@ export default function EvaluationsPage() {
         </div>
       </div>
 
-      {/* Grid of Players */}
-      {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-44 animate-pulse rounded-2xl bg-[var(--surface-soft)] border border-white/5" />
-          ))}
-        </div>
-      ) : filteredPlayers.length === 0 ? (
-        <div className="app-surface rounded-2xl border border-dashed border-[var(--border-strong)] p-14 text-center text-[var(--text-muted)]">
-          <p className="text-4xl">🏃‍♂️</p>
-          <p className="mt-3 text-base font-semibold text-white">Nenhum jogador localizado</p>
-          <p className="mt-1 text-sm text-[var(--text-subtle)]">
-            Tente reajustar seus filtros ou adicione novos atletas no elenco.
+      {/* Players grid list */}
+      {filteredPlayers.length === 0 ? (
+        <div className="app-surface rounded-2xl border border-[var(--border)] p-12 text-center text-[var(--text-muted)]">
+          <p className="text-4xl">🔍</p>
+          <p className="mt-3 text-base font-semibold text-white">Nenhum atleta encontrado</p>
+          <p className="mt-1 text-xs text-[var(--text-subtle)]">
+            Tente ajustar os filtros de busca ou posição para visualizar o elenco.
           </p>
         </div>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPlayers.map((p) => (
             <div
               key={p.id}
               onClick={() => handleOpenPlayerDrawer(p)}
-              className="app-surface group relative flex flex-col justify-between rounded-2xl border border-[var(--border)] p-5 shadow-sm hover:border-[rgba(16,185,129,0.3)] hover:shadow-md transition-all duration-300 cursor-pointer"
+              className="app-surface rounded-2xl border border-[var(--border)] p-5 hover:border-[var(--brand)]/50 transition-all duration-200 cursor-pointer flex flex-col justify-between group shadow-sm hover:shadow-md"
             >
-              <div className="space-y-4">
-                {/* Profile Header */}
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--surface-soft)] text-lg border border-white/5 font-black text-white/50 group-hover:bg-[var(--brand)] group-hover:text-white transition-all">
-                    {p.shirtNumber || "—"}
+              <div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-full overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center font-bold text-lg text-white">
+                      {p.photoUrl ? (
+                        <img src={p.photoUrl} alt={p.name} className="h-full w-full object-cover" />
+                      ) : (
+                        p.name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white group-hover:text-[var(--brand)] transition-colors">
+                        {p.name}
+                      </h3>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <Badge variant="info" className="px-2 py-0 text-[0.65rem] uppercase font-bold">
+                          {getPositionShortLabel(p.position)}
+                        </Badge>
+                        {p.secondaryPosition && (
+                          <Badge variant="default" className="px-2 py-0 text-[0.65rem] uppercase font-semibold text-white/70 bg-white/10">
+                            Sec: {getPositionShortLabel(p.secondaryPosition)}
+                          </Badge>
+                        )}
+                        {p.shirtNumber && (
+                          <span className="text-xs text-[var(--text-muted)] font-semibold">#{p.shirtNumber}</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-white group-hover:text-[var(--brand)] transition-colors">
-                      {p.name}
-                    </h3>
-                    <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider font-semibold">
-                      {getPositionLabel(p.position)}
-                    </p>
+
+                  <div className="text-right">
+                    <span className={`text-2xl font-black ${getRatingColor(p.overallAvg)}`}>
+                      {p.evalCount > 0 ? p.overallAvg.toFixed(1) : "-"}
+                    </span>
+                    <span className="text-[10px] text-[var(--text-muted)] block">/ 5.0</span>
                   </div>
                 </div>
 
-                {/* Performance Average Block */}
-                <div className="rounded-xl bg-white/[0.02] border border-white/5 p-3 flex items-center justify-between">
-                  <span className="text-xs text-[var(--text-subtle)] font-medium">Índice Desportivo</span>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-base font-black ${getRatingColor(p.overallAvg)}`}>
-                      {p.overallAvg > 0 ? p.overallAvg.toFixed(1) : "Sem nota"}
-                    </span>
-                    {p.overallAvg > 0 && <StarRatingDisplay rating={p.overallAvg} />}
+                {/* Rating bars */}
+                <div className="mt-4 grid grid-cols-4 gap-2 py-2 border-t border-b border-white/5">
+                  <div className="text-center">
+                    <span className="text-[0.6rem] uppercase font-bold text-[var(--text-muted)] block">Técnica</span>
+                    <span className="text-xs font-bold text-white">{p.evalCount > 0 ? p.avgTechnical.toFixed(1) : "-"}</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="text-[0.6rem] uppercase font-bold text-[var(--text-muted)] block">Tática</span>
+                    <span className="text-xs font-bold text-white">{p.evalCount > 0 ? p.avgTactical.toFixed(1) : "-"}</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="text-[0.6rem] uppercase font-bold text-[var(--text-muted)] block">Física</span>
+                    <span className="text-xs font-bold text-white">{p.evalCount > 0 ? p.avgPhysical.toFixed(1) : "-"}</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="text-[0.6rem] uppercase font-bold text-[var(--text-muted)] block">Disciplina</span>
+                    <span className="text-xs font-bold text-white">{p.evalCount > 0 ? p.avgDiscipline.toFixed(1) : "-"}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Card Footer info */}
-              <div className="mt-5 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-[var(--text-muted)]">
-                <span>{p.evalCount} {p.evalCount === 1 ? "avaliação" : "avaliações"}</span>
-                <span>
-                  {p.lastEvaluated
-                    ? `Avaliado em: ${new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(p.lastEvaluated))}`
-                    : "Pendente"}
+              <div className="mt-4 flex items-center justify-between text-xs text-[var(--text-muted)]">
+                <span>{p.evalCount} {p.evalCount === 1 ? "ficha registrada" : "fichas registradas"}</span>
+                <span className="font-semibold text-[var(--brand)] group-hover:underline flex items-center gap-1">
+                  Abrir Prontuário →
                 </span>
               </div>
             </div>
@@ -486,20 +656,25 @@ export default function EvaluationsPage() {
         </div>
       )}
 
-      {/* Selected Athlete Profile Drawer Modal */}
+      {/* Selected Player Detail Modal */}
       {selectedPlayer && (
         <Modal
           open={!!selectedPlayer}
           onClose={() => setSelectedPlayer(null)}
-          title={`Avaliação de Desempenho: ${selectedPlayer.name}`}
+          title={`Prontuário de Avaliação — ${selectedPlayer.name}`}
         >
-          <div className="space-y-6">
-            {/* Sub-Header details */}
-            <div className="flex flex-wrap gap-2 items-center justify-between pb-4 border-b border-white/5">
-              <div className="flex gap-2 items-center">
+          <div className="space-y-5">
+            {/* Player Info Header & Tabs */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="info" className="px-2.5 py-0.5 rounded-full font-semibold uppercase text-[0.7rem] bg-blue-500/10 text-blue-400 border-blue-500/20">
                   {getPositionLabel(selectedPlayer.position)}
                 </Badge>
+                {selectedPlayer.secondaryPosition && (
+                  <Badge variant="default" className="px-2.5 py-0.5 rounded-full font-semibold uppercase text-[0.7rem] bg-white/10 text-white/80">
+                    Sec: {getPositionLabel(selectedPlayer.secondaryPosition)}
+                  </Badge>
+                )}
                 {selectedPlayer.shirtNumber && (
                   <Badge variant="default" className="px-2.5 py-0.5 rounded-full font-bold text-[0.7rem] bg-white/5 border border-white/10">
                     Camisa #{selectedPlayer.shirtNumber}
@@ -548,15 +723,13 @@ export default function EvaluationsPage() {
                       const avg = (ev.technical + ev.tactical + ev.physical + ev.discipline) / 4;
                       return (
                         <div key={ev.id} className="relative group">
-                          {/* Timeline node circle */}
                           <div className="absolute -left-[1.62rem] top-1.5 flex h-3 w-3 items-center justify-center rounded-full bg-[var(--brand)] ring-4 ring-[#0f172a]" />
 
                           <div className="rounded-xl border border-white/5 bg-white/[0.01] p-4 space-y-3 hover:border-white/10 transition-colors">
-                            {/* Evaluation Header */}
                             <div className="flex items-center justify-between gap-3">
                               <div>
                                 <span className="text-xs text-[var(--text-muted)] font-semibold uppercase tracking-wider block">
-                                  Avaliador: {ev.evaluator.name}
+                                  Avaliador: {ev.evaluator.name || ev.evaluator.email}
                                 </span>
                                 <span className="text-xs text-[var(--text-muted)] block mt-0.5">
                                   Data: {new Intl.DateTimeFormat("pt-BR", { dateStyle: "long" }).format(new Date(ev.date))}
@@ -581,7 +754,6 @@ export default function EvaluationsPage() {
                               </div>
                             </div>
 
-                            {/* Ratings metrics subgrid */}
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 py-2 border-t border-b border-white/5">
                               <div>
                                 <span className="text-[0.65rem] uppercase font-bold text-[var(--text-muted)] block">Técnica</span>
@@ -613,12 +785,10 @@ export default function EvaluationsPage() {
                               </div>
                             </div>
 
-                            {/* Text Observations Content */}
                             <p className="text-sm text-[var(--text-subtle)] leading-relaxed whitespace-pre-line">
                               {ev.content}
                             </p>
 
-                            {/* Average index */}
                             <div className="flex justify-end text-xs text-[var(--text-muted)]">
                               <span>Média desta ficha: <strong className="text-white">{avg.toFixed(2)}</strong></span>
                             </div>
@@ -640,7 +810,6 @@ export default function EvaluationsPage() {
                   </p>
                 )}
 
-                {/* Rating pillars panel */}
                 <div className="rounded-xl border border-white/5 bg-white/[0.01] p-4 space-y-1">
                   <h4 className="text-xs uppercase tracking-wider font-bold text-white mb-2">Fundamentos Técnicos e Comportamento</h4>
                   <StarSelector label="Técnica (Passe, Habilidade, Finalização)" value={technical} onChange={setTechnical} />
@@ -668,7 +837,6 @@ export default function EvaluationsPage() {
                   />
                 </div>
 
-                {/* Action buttons */}
                 <div className="flex justify-end gap-3 pt-3 border-t border-white/5">
                   {editingEval && (
                     <Button

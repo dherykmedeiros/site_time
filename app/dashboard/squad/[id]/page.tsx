@@ -4,17 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { RadarChart } from "@/components/ui/RadarChart";
 
-const positionLabels: Record<string, string> = {
-  GOALKEEPER: "Goleiro",
-  DEFENDER: "Zagueiro",
-  LEFT_BACK: "Lateral Esquerdo",
-  RIGHT_BACK: "Lateral Direito",
-  MIDFIELDER: "Meio-campista",
-  DEFENSIVE_MIDFIELDER: "Volante",
-  FORWARD: "Atacante",
-  LEFT_WINGER: "Ponta Esquerda",
-  RIGHT_WINGER: "Ponta Direita",
-};
+import { playerPositionLabels } from "@/lib/player-positions";
+
+const positionLabels: Record<string, string> = playerPositionLabels;
 
 const achievementMeta: Record<string, { icon: string; label: string; color: string }> = {
   HAT_TRICK: { icon: "🎩", label: "Hat-trick", color: "border-yellow-400/40 bg-yellow-400/8 text-yellow-300" },
@@ -147,6 +139,14 @@ export default async function PlayerProfilePage({ params }: PageProps) {
               </span>
               <span>·</span>
               <span>{positionLabels[player.position] || player.position}</span>
+              {player.secondaryPosition && (
+                <>
+                  <span>·</span>
+                  <span className="text-xs text-emerald-400/90 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                    Sec: {positionLabels[player.secondaryPosition] || player.secondaryPosition}
+                  </span>
+                </>
+              )}
               {player.age && (
                 <>
                   <span>·</span>
