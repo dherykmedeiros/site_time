@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { RadarChart } from "@/components/ui/RadarChart";
 
+import { CoachPositionEditor } from "@/components/dashboard/CoachPositionEditor";
+
 import { playerPositionLabels } from "@/lib/player-positions";
 
 const positionLabels: Record<string, string> = playerPositionLabels;
@@ -140,7 +142,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
               <p className="text-sm text-[#8fa39b]">{player.fullName}</p>
             )}
 
-            <div className="flex flex-wrap gap-3 text-sm text-[#8fa39b]">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-[#8fa39b]">
               <span className="inline-flex items-center gap-1.5">
                 <span className="text-[#34d399] font-black">#{player.shirtNumber}</span>
                 <span>Camisa</span>
@@ -161,6 +163,14 @@ export default async function PlayerProfilePage({ params }: PageProps) {
                   <span>{player.age} anos</span>
                 </>
               )}
+
+              <CoachPositionEditor
+                playerId={player.id}
+                playerName={player.name}
+                currentPosition={player.position}
+                currentSecondaryPosition={player.secondaryPosition}
+                isCoachOrAdmin={session.user.role === "ADMIN" || session.user.role === "COACH"}
+              />
             </div>
 
             {player.description && (

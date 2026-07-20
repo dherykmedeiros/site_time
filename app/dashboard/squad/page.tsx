@@ -504,6 +504,7 @@ export default function SquadPage() {
               id: editingPlayer.id,
               name: editingPlayer.name,
               position: editingPlayer.position,
+              secondaryPosition: editingPlayer.secondaryPosition,
               shirtNumber: editingPlayer.shirtNumber,
               status: editingPlayer.status,
             }}
