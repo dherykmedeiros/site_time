@@ -17,10 +17,14 @@ export async function GET(request: Request) {
   const teamId = session.user.teamId;
   const { searchParams } = new URL(request.url);
   const seasonId = searchParams.get("seasonId") || undefined;
+  const matchType = searchParams.get("matchType") || searchParams.get("type") || undefined;
 
   // Build the match filter
   const matchWhere: Record<string, unknown> = { teamId };
   if (seasonId) matchWhere.seasonId = seasonId;
+  if (matchType && (matchType === "FRIENDLY" || matchType === "CHAMPIONSHIP")) {
+    matchWhere.type = matchType;
+  }
 
   // Aggregate MatchStats per player
   const stats = await prisma.matchStats.groupBy({

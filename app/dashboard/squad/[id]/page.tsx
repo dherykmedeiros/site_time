@@ -62,10 +62,29 @@ export default async function PlayerProfilePage({ params }: PageProps) {
 
   if (!player) return notFound();
 
-  // Aggregate stats
-  const totalGoals = player.matchStats.reduce((sum, s) => sum + s.goals, 0);
-  const totalAssists = player.matchStats.reduce((sum, s) => sum + s.assists, 0);
-  const matchesWithStats = player.matchStats.length;
+  // Aggregate stats across all matches
+  const allMatchStats = await prisma.matchStats.findMany({
+    where: { playerId: id, match: { teamId: session.user.teamId } },
+    include: {
+      match: { select: { id: true, type: true } },
+    },
+  });
+
+  const championshipStats = allMatchStats.filter((s) => s.match.type === "CHAMPIONSHIP");
+  const friendlyStats = allMatchStats.filter((s) => s.match.type === "FRIENDLY");
+
+  const totalGoals = allMatchStats.reduce((sum, s) => sum + s.goals, 0);
+  const totalAssists = allMatchStats.reduce((sum, s) => sum + s.assists, 0);
+  const matchesWithStats = allMatchStats.length;
+
+  const champGoals = championshipStats.reduce((sum, s) => sum + s.goals, 0);
+  const champAssists = championshipStats.reduce((sum, s) => sum + s.assists, 0);
+  const champMatches = championshipStats.length;
+
+  const friendlyGoals = friendlyStats.reduce((sum, s) => sum + s.goals, 0);
+  const friendlyAssists = friendlyStats.reduce((sum, s) => sum + s.assists, 0);
+  const friendlyMatches = friendlyStats.length;
+
   const totalAttendances = player.attendances.length;
   const presentCount = player.attendances.filter((a) => a.present).length;
   const attendanceRate = totalAttendances > 0 ? Math.round((presentCount / totalAttendances) * 100) : 0;
@@ -73,7 +92,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
   const latestEval = player.evaluations[0] ?? null;
 
   const statCards = [
-    { label: "Gols", value: totalGoals, icon: "⚽", color: "text-[#34d399]", border: "border-[rgba(16,185,129,0.2)]", bg: "bg-[rgba(16,185,129,0.04)]" },
+    { label: "Gols Totais", value: totalGoals, icon: "⚽", color: "text-[#34d399]", border: "border-[rgba(16,185,129,0.2)]", bg: "bg-[rgba(16,185,129,0.04)]" },
     { label: "Assistências", value: totalAssists, icon: "🎯", color: "text-purple-400", border: "border-purple-500/20", bg: "bg-purple-500/4" },
     { label: "Partidas", value: matchesWithStats, icon: "🏟️", color: "text-blue-400", border: "border-blue-500/20", bg: "bg-blue-500/4" },
     { label: "Presença", value: `${attendanceRate}%`, icon: "📅", color: "text-amber-400", border: "border-amber-500/20", bg: "bg-amber-500/4" },
@@ -192,6 +211,59 @@ export default async function PlayerProfilePage({ params }: PageProps) {
             <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-[#8fa39b]">{s.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* Breakdown by Match Type */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.03] p-5 backdrop-blur-sm">
+          <div className="flex items-center justify-between border-b border-amber-500/10 pb-3 mb-3">
+            <h3 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
+              🏆 Desempenho em Campeonato
+            </h3>
+            <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-300">
+              {champMatches} {champMatches === 1 ? "partida" : "partidas"}
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-2xl font-black text-white">{champGoals}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-400/80">⚽ Gols</p>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-white">{champAssists}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-400/80">🎯 Assist.</p>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-white">{champMatches}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-400/80">🏟️ Jogos</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.03] p-5 backdrop-blur-sm">
+          <div className="flex items-center justify-between border-b border-blue-500/10 pb-3 mb-3">
+            <h3 className="text-xs font-black uppercase tracking-wider text-blue-400 flex items-center gap-2">
+              🤝 Desempenho em Amistosos
+            </h3>
+            <span className="rounded-full bg-blue-500/10 px-2.5 py-0.5 text-[10px] font-bold text-blue-300">
+              {friendlyMatches} {friendlyMatches === 1 ? "partida" : "partidas"}
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-2xl font-black text-white">{friendlyGoals}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-blue-400/80">⚽ Gols</p>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-white">{friendlyAssists}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-blue-400/80">🎯 Assist.</p>
+            </div>
+            <div>
+              <p className="text-2xl font-black text-white">{friendlyMatches}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-blue-400/80">🏟️ Jogos</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

@@ -120,6 +120,7 @@ export default function RankingPage() {
   const [ratingsRanking, setRatingsRanking] = useState<RatingGroup[]>([]);
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [seasonFilter, setSeasonFilter] = useState("");
+  const [matchTypeFilter, setMatchTypeFilter] = useState("ALL");
   const [activeSeason, setActiveSeason] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -136,11 +137,12 @@ export default function RankingPage() {
     }
   }
 
-  async function loadData(tab: "stats" | "ratings", sid?: string) {
+  async function loadData(tab: "stats" | "ratings", sid?: string, mtype?: string) {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (sid) params.set("seasonId", sid);
+      if (mtype && mtype !== "ALL") params.set("matchType", mtype);
       const url = tab === "stats" ? `/api/stats/ranking?${params}` : `/api/stats/ratings-ranking?${params}`;
       const res = await fetch(url);
       if (res.ok) {
@@ -161,8 +163,8 @@ export default function RankingPage() {
   }
 
   useEffect(() => {
-    loadData(activeTab, seasonFilter || undefined);
-  }, [activeTab, seasonFilter]);
+    loadData(activeTab, seasonFilter || undefined, matchTypeFilter);
+  }, [activeTab, seasonFilter, matchTypeFilter]);
 
   // Sorted ranking
   const sortedRanking = useMemo(() => {
@@ -245,13 +247,23 @@ export default function RankingPage() {
                 🏆 {activeSeason.name}
               </span>
             )}
+            {matchTypeFilter === "CHAMPIONSHIP" && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-amber-400">
+                🏆 Apenas Campeonato
+              </span>
+            )}
+            {matchTypeFilter === "FRIENDLY" && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-blue-400">
+                🤝 Apenas Amistosos
+              </span>
+            )}
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-white/60">
               {activeTab === "stats" ? "Gols & Assistências" : "Média de Avaliações"}
             </span>
           </div>
         </div>
 
-        {/* Tab switcher + Season filter */}
+        {/* Tab switcher + Season filter + Match Type filter */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Tab Switcher */}
           <div className="flex rounded-xl bg-white/[0.05] p-1 border border-white/5">
@@ -278,10 +290,21 @@ export default function RankingPage() {
           </div>
 
           <select
+            id="match-type-filter"
+            value={matchTypeFilter}
+            onChange={(e) => setMatchTypeFilter(e.target.value)}
+            className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-[#10b981] backdrop-blur-sm cursor-pointer"
+          >
+            <option value="ALL" className="bg-[#0a1814]">Todos os Tipos de Jogo</option>
+            <option value="CHAMPIONSHIP" className="bg-[#0a1814]">🏆 Apenas Campeonato</option>
+            <option value="FRIENDLY" className="bg-[#0a1814]">🤝 Apenas Amistosos</option>
+          </select>
+
+          <select
             id="season-filter"
             value={seasonFilter}
             onChange={(e) => setSeasonFilter(e.target.value)}
-            className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-[#10b981] backdrop-blur-sm"
+            className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-[#10b981] backdrop-blur-sm cursor-pointer"
           >
             <option value="" className="bg-[#0a1814]">Todas as temporadas</option>
             {seasons.map((s) => (
