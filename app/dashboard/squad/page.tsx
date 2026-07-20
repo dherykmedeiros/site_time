@@ -63,6 +63,7 @@ export default function SquadPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<"ADMIN" | "COACH" | "MATERIAL_DIRECTOR" | "PLAYER">("PLAYER");
   const [monthlyFeesEnabled, setMonthlyFeesEnabled] = useState(true);
+  const [openMenuPlayerId, setOpenMenuPlayerId] = useState<string | null>(null);
 
   const roleLabels: Record<string, { label: string; variant: "success" | "warning" | "danger" | "info" | "default" }> = {
     ADMIN: { label: "Admin", variant: "danger" },
@@ -373,104 +374,254 @@ export default function SquadPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {player.id === selfPlayerId && (
-                    <>
+                {(() => {
+                  const isSelf = player.id === selfPlayerId;
+
+                  const mainActionButtons: React.ReactNode[] = [];
+
+                  if (isSelf) {
+                    mainActionButtons.push(
                       <Button
+                        key="my-profile"
                         variant="ghost"
                         size="sm"
                         onClick={() => setProfileTarget({ id: player.id, name: player.name })}
                       >
                         Meu perfil
                       </Button>
+                    );
+                    mainActionButtons.push(
                       <Link
+                        key="my-feedback"
                         href="/dashboard/evaluations"
                         className="inline-flex items-center justify-center rounded-lg border border-[rgba(59,130,246,0.3)] bg-[rgba(59,130,246,0.08)] px-3 py-1.5 text-xs font-bold text-blue-400 transition hover:bg-[rgba(59,130,246,0.15)] hover:border-[rgba(59,130,246,0.5)]"
                       >
                         📈 Meu Feedback
                       </Link>
-                    </>
-                  )}
-                  {/* Link to full individual profile page */}
-                  <Link
-                    href={`/dashboard/squad/${player.id}`}
-                    className="inline-flex items-center justify-center rounded-lg border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] px-3 py-1.5 text-xs font-bold text-[#34d399] transition hover:bg-[rgba(16,185,129,0.15)] hover:border-[rgba(16,185,129,0.5)]"
-                  >
-                    🏅 Ver Perfil
-                  </Link>
-                  {isCoachOrAdmin && player.id !== selfPlayerId && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setProfileTarget({ id: player.id, name: player.name })}
+                    );
+                  }
+
+                  mainActionButtons.push(
+                    <Link
+                      key="view-profile"
+                      href={`/dashboard/squad/${player.id}`}
+                      className="inline-flex items-center justify-center rounded-lg border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] px-3 py-1.5 text-xs font-bold text-[#34d399] transition hover:bg-[rgba(16,185,129,0.15)] hover:border-[rgba(16,185,129,0.5)]"
                     >
-                      Perfil
-                    </Button>
-                  )}
-                  {isCoachOrAdmin && !player.hasAccount && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
+                      🏅 Ver Perfil
+                    </Link>
+                  );
+
+                  interface SecondaryAction {
+                    key: string;
+                    label: string;
+                    icon: string;
+                    danger?: boolean;
+                    className?: string;
+                    onClick: () => void;
+                    inlineRender: React.ReactNode;
+                  }
+
+                  const secActions: SecondaryAction[] = [];
+
+                  if (isCoachOrAdmin && !isSelf) {
+                    secActions.push({
+                      key: "profile-modal",
+                      label: "Perfil",
+                      icon: "👤",
+                      onClick: () => setProfileTarget({ id: player.id, name: player.name }),
+                      inlineRender: (
+                        <Button
+                          key="profile-modal"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setProfileTarget({ id: player.id, name: player.name })}
+                        >
+                          Perfil
+                        </Button>
+                      ),
+                    });
+                  }
+
+                  if (isCoachOrAdmin && !player.hasAccount) {
+                    secActions.push({
+                      key: "invite",
+                      label: "Convidar",
+                      icon: "✉️",
+                      onClick: () => {
                         setInviteModal(player);
                         setInviteEmail("");
                         setInviteMsg("");
-                      }}
-                    >
-                      Convidar
-                    </Button>
-                  )}
-                  {isAdmin && player.hasAccount && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setActionPlayer(player);
-                          setConfirmAction("promote");
-                          setSelectedRole(player.role || "PLAYER");
-                          setActionError(null);
-                        }}
-                      >
-                        Permissão
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-amber-500 hover:text-amber-400"
-                        onClick={() => {
-                          setActionPlayer(player);
-                          setConfirmAction("resetPassword");
-                          setActionError(null);
-                        }}
-                      >
-                        Resetar Senha
-                      </Button>
-                    </>
-                  )}
-                  {isCoachOrAdmin && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setEditingPlayer(player)}
-                    >
-                      Editar
-                    </Button>
-                  )}
-                  {isCoachOrAdmin && player.status === "ACTIVE" && (
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => {
+                      },
+                      inlineRender: (
+                        <Button
+                          key="invite"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setInviteModal(player);
+                            setInviteEmail("");
+                            setInviteMsg("");
+                          }}
+                        >
+                          Convidar
+                        </Button>
+                      ),
+                    });
+                  }
+
+                  if (isAdmin && player.hasAccount) {
+                    secActions.push({
+                      key: "promote",
+                      label: "Permissão",
+                      icon: "🛡️",
+                      onClick: () => {
+                        setActionPlayer(player);
+                        setConfirmAction("promote");
+                        setSelectedRole(player.role || "PLAYER");
+                        setActionError(null);
+                      },
+                      inlineRender: (
+                        <Button
+                          key="promote"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setActionPlayer(player);
+                            setConfirmAction("promote");
+                            setSelectedRole(player.role || "PLAYER");
+                            setActionError(null);
+                          }}
+                        >
+                          Permissão
+                        </Button>
+                      ),
+                    });
+
+                    secActions.push({
+                      key: "resetPassword",
+                      label: "Resetar Senha",
+                      icon: "🔑",
+                      className: "text-amber-400 hover:text-amber-300",
+                      onClick: () => {
+                        setActionPlayer(player);
+                        setConfirmAction("resetPassword");
+                        setActionError(null);
+                      },
+                      inlineRender: (
+                        <Button
+                          key="resetPassword"
+                          variant="ghost"
+                          size="sm"
+                          className="text-amber-500 hover:text-amber-400"
+                          onClick={() => {
+                            setActionPlayer(player);
+                            setConfirmAction("resetPassword");
+                            setActionError(null);
+                          }}
+                        >
+                          Resetar Senha
+                        </Button>
+                      ),
+                    });
+                  }
+
+                  if (isCoachOrAdmin) {
+                    secActions.push({
+                      key: "edit",
+                      label: "Editar",
+                      icon: "✏️",
+                      onClick: () => setEditingPlayer(player),
+                      inlineRender: (
+                        <Button
+                          key="edit"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingPlayer(player)}
+                        >
+                          Editar
+                        </Button>
+                      ),
+                    });
+                  }
+
+                  if (isCoachOrAdmin && player.status === "ACTIVE") {
+                    secActions.push({
+                      key: "delete",
+                      label: "Remover",
+                      icon: "🗑️",
+                      danger: true,
+                      onClick: () => {
                         setActionPlayer(player);
                         setConfirmAction("delete");
                         setActionError(null);
-                      }}
-                    >
-                      Remover
-                    </Button>
-                  )}
-                </div>
+                      },
+                      inlineRender: (
+                        <Button
+                          key="delete"
+                          variant="danger"
+                          size="sm"
+                          onClick={() => {
+                            setActionPlayer(player);
+                            setConfirmAction("delete");
+                            setActionError(null);
+                          }}
+                        >
+                          Remover
+                        </Button>
+                      ),
+                    });
+                  }
+
+                  const totalActions = mainActionButtons.length + secActions.length;
+                  const useDropdown = totalActions > 4;
+
+                  return (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {mainActionButtons}
+                      {!useDropdown && secActions.map((a) => a.inlineRender)}
+                      {useDropdown && secActions.length > 0 && (
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setOpenMenuPlayerId(openMenuPlayerId === player.id ? null : player.id)}
+                            className="inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-bold text-white transition hover:bg-white/10 hover:border-white/20 active:scale-95 cursor-pointer"
+                            title="Mais opções"
+                          >
+                            <span className="text-base leading-none">⋮</span>
+                          </button>
+                          {openMenuPlayerId === player.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-40"
+                                onClick={() => setOpenMenuPlayerId(null)}
+                              />
+                              <div className="absolute right-0 top-full mt-1.5 z-50 w-44 rounded-xl border border-white/10 bg-[#0a1814] p-1.5 shadow-2xl backdrop-blur-xl space-y-0.5">
+                                {secActions.map((act) => (
+                                  <button
+                                    key={act.key}
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenMenuPlayerId(null);
+                                      act.onClick();
+                                    }}
+                                    className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition text-left cursor-pointer ${
+                                      act.danger
+                                        ? "text-red-400 hover:bg-red-500/10"
+                                        : act.className || "text-white/90 hover:bg-white/10 hover:text-white"
+                                    }`}
+                                  >
+                                    <span>{act.icon}</span>
+                                    <span>{act.label}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </Card>
           ))}
