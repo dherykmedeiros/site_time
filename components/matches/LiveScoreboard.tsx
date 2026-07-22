@@ -110,7 +110,7 @@ export function LiveScoreboard({
           table: "match_lives",
           filter: `id=eq.${matchLiveId}`,
         },
-        (payload) => {
+        (payload: any) => {
           if (payload.new) {
             setHomeScore(payload.new.homeScore);
             setAwayScore(payload.new.awayScore);
@@ -127,7 +127,7 @@ export function LiveScoreboard({
           table: "match_live_events",
           filter: `matchLiveId=eq.${matchLiveId}`,
         },
-        (payload) => {
+        (payload: any) => {
           if (payload.new) {
             const newEvt = payload.new as any;
             const playerObj = playersList.find((p) => p.id === newEvt.playerId);

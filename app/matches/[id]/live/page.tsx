@@ -73,52 +73,44 @@ export default async function MatchLivePage({ params }: MatchLivePageProps) {
   });
 
   // Garante a existência do registro MatchLive caso ainda não tenha sido criado
-  let matchLive = match.matchLive;
+  let matchLiveId = match.matchLive?.id || "";
+  let homeScore = match.matchLive?.homeScore ?? match.homeScore ?? 0;
+  let awayScore = match.matchLive?.awayScore ?? match.awayScore ?? 0;
+  let liveStatus: string = match.matchLive?.liveStatus || "NOT_STARTED";
+  let rawEvents = match.matchLive?.events || [];
 
-  if (!matchLive) {
-    matchLive = await prisma.matchLive.create({
-      where: { matchId: match.id },
+  if (!match.matchLive) {
+    const createdLive = await prisma.matchLive.create({
       data: {
         matchId: match.id,
         liveStatus: "NOT_STARTED",
         homeScore: match.homeScore || 0,
         awayScore: match.awayScore || 0,
       },
-      include: {
-        events: {
-          include: {
-            player: {
-              select: {
-                id: true,
-                name: true,
-                shirtNumber: true,
-              },
-            },
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-        },
-      },
-    } as any);
+    });
+
+    matchLiveId = createdLive.id;
+    homeScore = createdLive.homeScore;
+    awayScore = createdLive.awayScore;
+    liveStatus = createdLive.liveStatus;
+    rawEvents = [];
   }
 
   // Formata os eventos iniciais
-  const formattedEvents =
-    matchLive?.events.map((evt) => ({
-      id: evt.id,
-      type: evt.type as any,
-      minute: evt.minute,
-      half: evt.half,
-      description: evt.description,
-      player: evt.player
-        ? {
-            id: evt.player.id,
-            name: evt.player.name,
-            shirtNumber: evt.player.shirtNumber,
-          }
-        : null,
-    })) || [];
+  const formattedEvents = rawEvents.map((evt) => ({
+    id: evt.id,
+    type: evt.type as any,
+    minute: evt.minute,
+    half: evt.half,
+    description: evt.description,
+    player: evt.player
+      ? {
+          id: evt.player.id,
+          name: evt.player.name,
+          shirtNumber: evt.player.shirtNumber,
+        }
+      : null,
+  }));
 
   // Formata os RSVPs iniciais
   const formattedRsvps = match.rsvps.map((r) => ({
@@ -140,14 +132,13 @@ export default async function MatchLivePage({ params }: MatchLivePageProps) {
       venue={match.venue}
       matchDate={match.date.toISOString()}
       isHome={match.isHome}
-      initialHomeScore={matchLive?.homeScore || 0}
-      initialAwayScore={matchLive?.awayScore || 0}
-      initialLiveStatus={matchLive?.liveStatus || "NOT_STARTED"}
-      matchLiveId={matchLive?.id || ""}
+      initialHomeScore={homeScore}
+      initialAwayScore={awayScore}
+      initialLiveStatus={liveStatus}
+      matchLiveId={matchLiveId}
       initialEvents={formattedEvents}
       initialRsvps={formattedRsvps}
       playersList={players}
-      // Se necessário, pode passar a sessão atual do usuário/jogador logado
     />
   );
 }
