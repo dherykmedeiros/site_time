@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDateOnly, formatDate } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 
 const TransactionForm = dynamic(
@@ -424,12 +424,12 @@ export default function FinancesPage() {
                         </p>
                         <p className="text-xs text-[var(--text-muted)]">
                           {categoryLabels[t.category] || t.category} •{" "}
-                          {new Date(t.date).toLocaleDateString("pt-BR")}
+                          {formatDateOnly(t.date, { dateStyle: "short" })}
                         </p>
                         {t.matchId && (
                           <p className="mt-1 text-xs text-[#2a6f60]">
                             Vinculada a {t.matchOpponent ? `vs ${t.matchOpponent}` : "uma partida"}
-                            {t.matchDate ? ` em ${new Date(t.matchDate).toLocaleDateString("pt-BR")}` : ""}
+                            {t.matchDate ? ` em ${formatDateOnly(t.matchDate, { dateStyle: "short" })}` : ""}
                           </p>
                         )}
                       </div>
@@ -629,13 +629,7 @@ export default function FinancesPage() {
           ) : (
             <div className="space-y-3">
               {matches.map((m) => {
-                const matchDateStr = new Date(m.date).toLocaleDateString("pt-BR", {
-                  day: "2-digit",
-                  month: "long",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                });
+                const matchDateStr = formatDate(m.date);
                 return (
                   <Card key={m.id} className="rounded-[18px]">
                     <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">

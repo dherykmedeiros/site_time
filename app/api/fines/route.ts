@@ -6,6 +6,7 @@ import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
 import { withErrorHandler } from "@/lib/api-handler";
 import { trackOperationalEvent } from "@/lib/telemetry";
+import { parseLocalDate } from "@/lib/utils";
 
 // GET /api/fines — list all punishments (fines) for the team (Anyone authenticated can see)
 export const GET = withErrorHandler(async (request: Request) => {
@@ -159,7 +160,7 @@ export const POST = withErrorHandler(async (request: Request) => {
       matchesSuspended: severity === "SUSPENSION" ? matchesSuspended : null,
       status,
       suspendedMatchId: suspendedMatchId || null,
-      date: new Date(date),
+      date: parseLocalDate(date) || new Date(date),
     },
     include: {
       player: {
@@ -289,7 +290,7 @@ export const POST = withErrorHandler(async (request: Request) => {
               severity: targetType.severity,
               matchesSuspended: targetType.severity === "SUSPENSION" ? (rule.targetMatches || 1) : null,
               status: "ACTIVE",
-              date: new Date(date),
+              date: parseLocalDate(date) || new Date(date),
             },
             include: {
               player: {

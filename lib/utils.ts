@@ -13,19 +13,74 @@ export function generateUUID(): string {
   return randomUUID();
 }
 
-export function formatDate(date: Date): string {
+export function parseLocalDate(val: string | Date | null | undefined): Date | null {
+  if (!val) return null;
+  if (val instanceof Date) {
+    if (isNaN(val.getTime())) return null;
+    return val;
+  }
+  const str = String(val).trim();
+  if (!str) return null;
+
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(str);
+  if (dateOnlyMatch) {
+    const y = parseInt(dateOnlyMatch[1], 10);
+    const m = parseInt(dateOnlyMatch[2], 10);
+    const d = parseInt(dateOnlyMatch[3], 10);
+    return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  }
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export function formatDate(date: Date | string): string {
+  const d = parseLocalDate(date);
+  if (!d) return "";
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "short",
     timeZone: "America/Sao_Paulo",
-  }).format(date);
+  }).format(d);
 }
 
-export function formatDateOnly(date: Date): string {
+export function formatDateOnly(
+  val: string | Date | null | undefined,
+  options?: Intl.DateTimeFormatOptions
+): string {
+  const d = parseLocalDate(val);
+  if (!d) return "";
   return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
+    dateStyle: "medium",
     timeZone: "America/Sao_Paulo",
-  }).format(date);
+    ...options,
+  }).format(d);
+}
+
+export function toInputDateString(val: string | Date | null | undefined): string {
+  if (!val) return "";
+  if (val instanceof Date) {
+    const y = val.getUTCFullYear();
+    const m = String(val.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(val.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  const str = String(val).trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(str);
+  if (match) {
+    return `${match[1]}-${match[2]}-${match[3]}`;
+  }
+  const parsed = new Date(str);
+  if (isNaN(parsed.getTime())) return "";
+  const y = parsed.getUTCFullYear();
+  const m = String(parsed.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(parsed.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+export function toApiIsoDate(dateStr: string | Date | null | undefined): string {
+  const d = parseLocalDate(dateStr);
+  if (!d) return new Date().toISOString();
+  return d.toISOString();
 }
 
 export function formatCurrency(value: number): string {

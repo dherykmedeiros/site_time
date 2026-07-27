@@ -6,6 +6,7 @@ import { trackOperationalEvent } from "@/lib/telemetry";
 import { Prisma } from "@prisma/client";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
+import { parseLocalDate } from "@/lib/utils";
 
 type TransactionListRow = {
   id: string;
@@ -188,7 +189,7 @@ export async function POST(request: Request) {
 
   const { type, amount, description, category, date } = parsed.data;
   const { matchId } = parsed.data;
-  const dateObj = new Date(date);
+  const dateObj = parseLocalDate(date) || new Date(date);
 
   if (dateObj > new Date()) {
     return NextResponse.json(

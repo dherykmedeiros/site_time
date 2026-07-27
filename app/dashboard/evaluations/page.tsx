@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { playerPositions, playerPositionLabels, playerPositionShortLabels } from "@/lib/player-positions";
+import { formatDateOnly, toInputDateString, toApiIsoDate } from "@/lib/utils";
 
 interface Player {
   id: string;
@@ -69,7 +70,7 @@ export default function EvaluationsPage() {
   const [physical, setPhysical] = useState(3);
   const [discipline, setDiscipline] = useState(3);
   const [content, setContent] = useState("");
-  const [date, setDate] = useState(() => new Date().toISOString().substring(0, 10));
+  const [date, setDate] = useState(() => toInputDateString(new Date()));
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -140,7 +141,7 @@ export default function EvaluationsPage() {
     setPhysical(evaluation.physical);
     setDiscipline(evaluation.discipline);
     setContent(evaluation.content);
-    setDate(new Date(evaluation.date).toISOString().substring(0, 10));
+    setDate(toInputDateString(evaluation.date));
     setActiveTab("NEW");
     setFormError("");
   }
@@ -169,7 +170,7 @@ export default function EvaluationsPage() {
         physical,
         discipline,
         content: content.trim(),
-        date,
+        date: toApiIsoDate(date),
       };
 
       const res = await fetch(url, {
@@ -398,7 +399,7 @@ export default function EvaluationsPage() {
                             Avaliador: {ev.evaluator.name || ev.evaluator.email}
                           </span>
                           <span className="text-xs text-[var(--text-muted)] block mt-0.5">
-                            Data: {new Intl.DateTimeFormat("pt-BR", { dateStyle: "full" }).format(new Date(ev.date))}
+                            Data: {formatDateOnly(ev.date, { dateStyle: "full" })}
                           </span>
                         </div>
                         <Badge variant="info" className="self-start sm:self-auto px-3 py-1 text-xs font-bold bg-[var(--brand)]/10 text-[var(--brand)] border-[var(--brand)]/20">
@@ -732,7 +733,7 @@ export default function EvaluationsPage() {
                                   Avaliador: {ev.evaluator.name || ev.evaluator.email}
                                 </span>
                                 <span className="text-xs text-[var(--text-muted)] block mt-0.5">
-                                  Data: {new Intl.DateTimeFormat("pt-BR", { dateStyle: "long" }).format(new Date(ev.date))}
+                                  Data: {formatDateOnly(ev.date, { dateStyle: "long" })}
                                 </span>
                               </div>
 

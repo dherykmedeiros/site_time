@@ -4,6 +4,7 @@ import { requireCoachOrAdmin } from "@/lib/auth";
 import { fineSchema } from "@/lib/validations/fine";
 import { withErrorHandler } from "@/lib/api-handler";
 import { trackOperationalEvent } from "@/lib/telemetry";
+import { parseLocalDate } from "@/lib/utils";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -88,7 +89,7 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
       matchesSuspended: severity === "SUSPENSION" ? matchesSuspended : null,
       status,
       suspendedMatchId: suspendedMatchId || null,
-      date: new Date(date),
+      date: parseLocalDate(date) || new Date(date),
     },
     include: {
       player: {

@@ -7,6 +7,7 @@ import { RadarChart } from "@/components/ui/RadarChart";
 import { CoachPositionEditor } from "@/components/dashboard/CoachPositionEditor";
 
 import { playerPositionLabels } from "@/lib/player-positions";
+import { formatDateOnly, formatDate } from "@/lib/utils";
 
 const positionLabels: Record<string, string> = playerPositionLabels;
 
@@ -305,7 +306,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
                 ))}
               </div>
               <p className="text-[10px] text-[#8fa39b] text-center">
-                Avaliação de {new Date(latestEval.date).toLocaleDateString("pt-BR")}
+                Avaliação de {formatDateOnly(latestEval.date, { dateStyle: "short" })}
               </p>
             </div>
           ) : (
@@ -341,7 +342,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
                     <div>
                       <p className="font-bold text-sm text-white">{meta.label}</p>
                       <p className="text-[10px] text-[#8fa39b]">
-                        {new Date(ach.awardedAt).toLocaleDateString("pt-BR")}
+                        {formatDateOnly(ach.awardedAt, { dateStyle: "short" })}
                       </p>
                     </div>
                   </div>
@@ -396,7 +397,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
                 >
                   <div>
                     <p className="font-semibold text-white text-sm">{match.isHome ? "vs" : "@"} {match.opponent}</p>
-                    <p className="text-[10px] text-[#8fa39b]">{new Date(match.date).toLocaleDateString("pt-BR")}</p>
+                    <p className="text-[10px] text-[#8fa39b]">{formatDate(match.date)}</p>
                   </div>
                   <p className={`text-xs font-bold ${resultColor}`}>
                     {resultLabel}
@@ -431,7 +432,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
                     {fine.severity === "SUSPENSION"
                       ? `Suspensão: ${fine.matchesSuspended} jogo(s)`
                       : "Advertência"}
-                    {" "} · {new Date(fine.date).toLocaleDateString("pt-BR")}
+                    {" "} · {formatDateOnly(fine.date, { dateStyle: "short" })}
                   </p>
                 </div>
               </div>

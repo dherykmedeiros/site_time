@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
+import { formatDateOnly, toInputDateString, toApiIsoDate } from "@/lib/utils";
 
 interface Player {
   id: string;
@@ -82,7 +83,7 @@ export default function FinesPage() {
   const [severity, setSeverity] = useState<"WARNING" | "SUSPENSION">("WARNING");
   const [matchesSuspended, setMatchesSuspended] = useState("1");
   const [status, setStatus] = useState<"ACTIVE" | "SERVED" | "CANCELLED">("ACTIVE");
-  const [date, setDate] = useState(() => new Date().toISOString().substring(0, 10));
+  const [date, setDate] = useState(() => toInputDateString(new Date()));
   const [scheduledMatches, setScheduledMatches] = useState<any[]>([]);
   const [suspendedMatchId, setSuspendedMatchId] = useState("");
 
@@ -252,7 +253,7 @@ export default function FinesPage() {
     setPunishmentTypeId("");
     setMatchesSuspended("1");
     setStatus("ACTIVE");
-    setDate(new Date().toISOString().substring(0, 10));
+    setDate(toInputDateString(new Date()));
     setSuspendedMatchId("");
     setFormError("");
     setShowModal(true);
@@ -272,7 +273,7 @@ export default function FinesPage() {
     
     setMatchesSuspended(fine.matchesSuspended !== null ? String(fine.matchesSuspended) : "1");
     setStatus(fine.status);
-    setDate(new Date(fine.date).toISOString().substring(0, 10));
+    setDate(toInputDateString(fine.date));
     setSuspendedMatchId(fine.suspendedMatchId || "");
     setFormError("");
     setShowModal(true);
@@ -292,7 +293,7 @@ export default function FinesPage() {
       matchesSuspended: severity === "SUSPENSION" ? parseInt(matchesSuspended) : null,
       status,
       suspendedMatchId: severity === "SUSPENSION" ? (suspendedMatchId || null) : null,
-      date: new Date(date).toISOString(),
+      date: toApiIsoDate(date),
     };
 
     try {
@@ -407,9 +408,7 @@ export default function FinesPage() {
   });
 
   function formatDate(isoString: string) {
-    return new Intl.DateTimeFormat("pt-BR", {
-      dateStyle: "medium",
-    }).format(new Date(isoString));
+    return formatDateOnly(isoString);
   }
 
   function getSeverityLabel(fine: Fine) {
