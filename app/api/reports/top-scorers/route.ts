@@ -30,7 +30,7 @@ export async function GET(request: Request) {
           player: true,
         }
       },
-      matchAttendances: {
+      attendances: {
         where: { present: true },
       },
     },
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     }
 
     // Matches played
-    for (const att of match.matchAttendances) {
+    for (const att of match.attendances) {
       if (!att.playerId) continue;
       if (!playerMap[att.playerId]) {
         playerMap[att.playerId] = {

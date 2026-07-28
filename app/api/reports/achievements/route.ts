@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   const matches = await prisma.match.findMany({
     where: matchFilter,
     include: {
-      matchVotes: {
+      votes: {
         include: { player: true }
       }
     }
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
   const uniqueAchieversSet = new Set<string>();
 
   matches.forEach(match => {
-    match.matchVotes.forEach(vote => {
+    match.votes.forEach(vote => {
       totalMvpVotes++;
       if (vote.playerId && vote.player) {
         const p = mvpStats.get(vote.playerId) || {

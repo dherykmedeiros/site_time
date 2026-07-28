@@ -31,10 +31,10 @@ export async function GET(request: Request) {
   const matches = await prisma.match.findMany({
     where: matchFilter,
     include: {
-      matchPlayerRatings: {
+      playerRatings: {
         include: { player: true }
       },
-      matchVotes: true
+      votes: true
     }
   });
 
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
     const monthKey = formatMonthYear(match.date);
     const m = monthlyStats.get(monthKey) || { sum: 0, count: 0 };
 
-    match.matchPlayerRatings.forEach(rating => {
+    match.playerRatings.forEach(rating => {
       totalRatingsSum += rating.rating;
       totalRatingsCount++;
       m.sum += rating.rating;
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
       }
     });
 
-    match.matchVotes.forEach(vote => {
+    match.votes.forEach(vote => {
       totalMvpVotes++;
       if (vote.playerId) {
         const p = playerStats.get(vote.playerId) || {

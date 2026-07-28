@@ -28,7 +28,7 @@ export async function GET(request: Request) {
       rsvps: {
         include: { player: true },
       },
-      matchAttendances: {
+      attendances: {
         where: { present: true },
       },
     },
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
       }
     }
 
-    const presentSet = new Set(match.matchAttendances.map(a => a.playerId));
+    const presentSet = new Set(match.attendances.map(a => a.playerId));
     overview.totalPresent += presentSet.size;
 
     if (monthlyMap[monthLabel]) {
@@ -112,7 +112,7 @@ export async function GET(request: Request) {
     }
 
     // Some players might be present without RSVP
-    for (const att of match.matchAttendances) {
+    for (const att of match.attendances) {
       if (!att.playerId) continue;
       if (!playerMap[att.playerId]) {
          playerMap[att.playerId] = {

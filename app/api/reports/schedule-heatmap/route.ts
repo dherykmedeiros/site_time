@@ -25,7 +25,7 @@ export async function GET(request: Request) {
       ...(Object.keys(dateFilter).length > 0 && { date: dateFilter }),
     },
     include: {
-      matchAttendances: true,
+      attendances: true,
     },
   });
 
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     const dayOfWeek = date.getDay();
     const hour = date.getHours();
 
-    const presentCount = match.matchAttendances.filter((a) => a.present).length;
+    const presentCount = match.attendances.filter((a) => a.present).length;
 
     const heatmapKey = `${dayOfWeek}-${hour}`;
     if (!heatmapMap[heatmapKey]) {

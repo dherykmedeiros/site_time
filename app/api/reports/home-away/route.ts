@@ -25,7 +25,7 @@ export async function GET(request: Request) {
       ...(Object.keys(dateFilter).length > 0 && { date: dateFilter }),
     },
     include: {
-      matchAttendances: {
+      attendances: {
         include: {
           player: true,
         }
@@ -64,7 +64,7 @@ export async function GET(request: Request) {
 
     let presentCount = 0;
 
-    for (const att of match.matchAttendances) {
+    for (const att of match.attendances) {
       if (!att.playerId) continue;
       
       if (!playerStats[att.playerId]) {
