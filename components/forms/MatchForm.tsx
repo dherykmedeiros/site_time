@@ -167,6 +167,9 @@ interface SavedVenue {
       pixKey: defaultValues?.pixKey || "",
       mapsUrl: (defaultValues?.latitude !== undefined && defaultValues?.latitude !== null &&
                 defaultValues?.longitude !== undefined && defaultValues?.longitude !== null)
+        ? `https://www.google.com/maps/search/?api=1&query=${defaultValues.latitude},${defaultValues.longitude}`
+        : "",
+    },
   });
 
   const watchedVenue = watch("venue");
