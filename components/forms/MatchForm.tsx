@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
@@ -167,10 +167,25 @@ interface SavedVenue {
       pixKey: defaultValues?.pixKey || "",
       mapsUrl: (defaultValues?.latitude !== undefined && defaultValues?.latitude !== null &&
                 defaultValues?.longitude !== undefined && defaultValues?.longitude !== null)
-        ? `https://www.google.com/maps/search/?api=1&query=${defaultValues.latitude},${defaultValues.longitude}`
-        : "",
-    },
   });
+
+  const watchedVenue = watch("venue");
+  const prevVenueRef = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (watchedVenue === undefined) return;
+
+    if (prevVenueRef.current !== undefined && prevVenueRef.current !== watchedVenue) {
+      const trimmed = watchedVenue.trim().toLowerCase();
+      const matched = savedVenues.find((v) => v.venue.trim().toLowerCase() === trimmed);
+      if (matched) {
+        setValue("mapsUrl", matched.mapsUrl || "", { shouldValidate: true });
+      } else {
+        setValue("mapsUrl", "", { shouldValidate: true });
+      }
+    }
+    prevVenueRef.current = watchedVenue;
+  }, [watchedVenue, savedVenues, setValue]);
 
   useEffect(() => {
     if (!isEditing && !defaultValues?.positionLimits?.length) {
@@ -528,19 +543,7 @@ interface SavedVenue {
           list="saved-venues-list"
           placeholder="Selecione um campo cadastrado ou digite um novo local..."
           className="w-full rounded-lg border border-white/10 bg-[#16130f] px-3.5 py-2 text-sm text-white placeholder:text-[#8fa39b] outline-none focus:border-[#36c2a8] transition-colors"
-          {...register("venue", {
-            onChange: (e) => {
-              const val = e.target.value;
-              const matched = savedVenues.find(
-                (v) => v.venue.toLowerCase() === val.trim().toLowerCase()
-              );
-              if (matched) {
-                setValue("mapsUrl", matched.mapsUrl || "", { shouldValidate: true });
-              } else {
-                setValue("mapsUrl", "", { shouldValidate: true });
-              }
-            },
-          })}
+          {...register("venue")}
         />
         <datalist id="saved-venues-list">
           {savedVenues.map((v) => (
