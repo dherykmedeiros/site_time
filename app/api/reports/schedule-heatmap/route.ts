@@ -1,0 +1,102 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
+
+export async function GET(request: Request) {
+  const { session, error } = await requireAdmin();
+  if (error) return error;
+  const teamId = session.user.teamId;
+  if (!teamId) return NextResponse.json({ error: "Sem time vinculado" }, { status: 403 });
+  
+  const { searchParams } = new URL(request.url);
+  const seasonId = searchParams.get("seasonId") || undefined;
+  const from = searchParams.get("from") || undefined;
+  const to = searchParams.get("to") || undefined;
+
+  const dateFilter: any = {};
+  if (from) dateFilter.gte = new Date(from);
+  if (to) dateFilter.lte = new Date(to);
+
+  const matches = await prisma.match.findMany({
+    where: {
+      teamId,
+      status: "COMPLETED",
+      ...(seasonId && { seasonId }),
+      ...(Object.keys(dateFilter).length > 0 && { date: dateFilter }),
+    },
+    include: {
+      matchAttendances: true,
+    },
+  });
+
+  const dayLabels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
+
+  const heatmapMap: Record<string, { totalPresent: number; totalMatches: number }> = {};
+  const dayOfWeekMap: Record<number, { totalPresent: number; totalMatches: number }> = {};
+  const hourMap: Record<number, { totalPresent: number; totalMatches: number }> = {};
+
+  for (let i = 0; i < 7; i++) {
+    dayOfWeekMap[i] = { totalPresent: 0, totalMatches: 0 };
+  }
+  for (let i = 0; i < 24; i++) {
+    hourMap[i] = { totalPresent: 0, totalMatches: 0 };
+  }
+
+  for (const match of matches) {
+    if (!match.date) continue;
+    const date = new Date(match.date);
+    const dayOfWeek = date.getDay();
+    const hour = date.getHours();
+
+    const presentCount = match.matchAttendances.filter((a) => a.present).length;
+
+    const heatmapKey = `${dayOfWeek}-${hour}`;
+    if (!heatmapMap[heatmapKey]) {
+      heatmapMap[heatmapKey] = { totalPresent: 0, totalMatches: 0 };
+    }
+
+    heatmapMap[heatmapKey].totalPresent += presentCount;
+    heatmapMap[heatmapKey].totalMatches += 1;
+
+    dayOfWeekMap[dayOfWeek].totalPresent += presentCount;
+    dayOfWeekMap[dayOfWeek].totalMatches += 1;
+
+    hourMap[hour].totalPresent += presentCount;
+    hourMap[hour].totalMatches += 1;
+  }
+
+  const heatmap = Object.entries(heatmapMap).map(([key, data]) => {
+    const [dayOfWeekStr, hourStr] = key.split("-");
+    return {
+      dayOfWeek: parseInt(dayOfWeekStr),
+      hour: parseInt(hourStr),
+      avgAttendance: data.totalMatches > 0 ? data.totalPresent / data.totalMatches : 0,
+      matchCount: data.totalMatches,
+    };
+  });
+
+  const dayOfWeekSummary = Object.entries(dayOfWeekMap).map(([dayOfWeekStr, data]) => {
+    const dayOfWeek = parseInt(dayOfWeekStr);
+    return {
+      dayOfWeek,
+      dayLabel: dayLabels[dayOfWeek],
+      avgPresent: data.totalMatches > 0 ? data.totalPresent / data.totalMatches : 0,
+      totalMatches: data.totalMatches,
+    };
+  });
+
+  const hourSummary = Object.entries(hourMap).map(([hourStr, data]) => {
+    const hour = parseInt(hourStr);
+    return {
+      hour,
+      avgPresent: data.totalMatches > 0 ? data.totalPresent / data.totalMatches : 0,
+      totalMatches: data.totalMatches,
+    };
+  });
+
+  return NextResponse.json({
+    heatmap,
+    dayOfWeekSummary,
+    hourSummary,
+  });
+}

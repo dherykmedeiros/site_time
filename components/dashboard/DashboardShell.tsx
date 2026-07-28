@@ -16,6 +16,7 @@ const navItems = [
   { href: "/dashboard/polls", label: "Enquetes", icon: "📊" },
   { href: "/dashboard/seasons", label: "Temporadas", icon: "🏆", adminOnly: true },
   { href: "/dashboard/ranking", label: "Ranking", icon: "🏅" },
+  { href: "/dashboard/reports", label: "Relatórios", icon: "📊", adminOnly: true },
   { href: "/dashboard/finances", label: "Finanças", icon: "💳" },
   { href: "/dashboard/fines", label: "Punições", icon: "⚖️" },
   { href: "/dashboard/rules", label: "Regras", icon: "📋" },
