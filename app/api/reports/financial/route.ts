@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+
 const MONTHS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 function formatMonthYear(d: Date | string) {
   const date = new Date(d);
@@ -46,6 +47,10 @@ export async function GET(request: Request) {
     }
   });
 
+  const activePlayersCount = await prisma.player.count({
+    where: { teamId, status: "ACTIVE" }
+  });
+
   let totalIncome = 0;
   let totalExpenses = 0;
   
@@ -88,32 +93,33 @@ export async function GET(request: Request) {
     net: stats.income - stats.expenses
   }));
 
-  let totalMembershipRecords = memberships.length;
-  let totalPaidMemberships = 0;
-
-  const membershipMonthly = new Map<string, { total: number, paid: number, pending: number, year: number }>();
+  const membershipMonthly = new Map<string, { paid: number, month: number, year: number }>();
 
   memberships.forEach(m => {
-    if (m.status === "PAID") totalPaidMemberships++;
     const key = `${m.month}/${m.year}`;
-    const entry = membershipMonthly.get(key) || { total: 0, paid: 0, pending: 0, year: m.year };
-    entry.total++;
-    if (m.status === "PAID") entry.paid++;
-    else entry.pending++;
+    const entry = membershipMonthly.get(key) || { paid: 0, month: m.month, year: m.year };
+    entry.paid++;
     membershipMonthly.set(key, entry);
   });
 
-  const membershipCollectionRate = totalMembershipRecords > 0 ? (totalPaidMemberships / totalMembershipRecords) * 100 : 0;
+  const totalPaidMemberships = memberships.length;
+  const totalExpectedMemberships = membershipMonthly.size * activePlayersCount;
+  const membershipCollectionRate = totalExpectedMemberships > 0
+    ? (totalPaidMemberships / totalExpectedMemberships) * 100
+    : (totalPaidMemberships > 0 ? 100 : 0);
 
-  const membershipStatus = Array.from(membershipMonthly.entries()).map(([key, stats]) => {
-    const [mStr] = key.split('/');
-    const rate = stats.total > 0 ? (stats.paid / stats.total) * 100 : 0;
+  const membershipStatus = Array.from(membershipMonthly.values()).map(stats => {
+    const monthLabel = MONTHS_PT[stats.month - 1] || String(stats.month);
+    const totalPlayers = Math.max(stats.paid, activePlayersCount);
+    const pending = Math.max(0, totalPlayers - stats.paid);
+    const rate = totalPlayers > 0 ? (stats.paid / totalPlayers) * 100 : 0;
+
     return {
-      month: mStr,
+      month: monthLabel,
       year: stats.year,
-      totalPlayers: stats.total,
+      totalPlayers,
       paid: stats.paid,
-      pending: stats.pending,
+      pending,
       rate
     };
   });
