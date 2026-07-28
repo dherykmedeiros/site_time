@@ -75,7 +75,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
   const confirmedRSVPs = await prisma.rSVP.findMany({
     where: {
       playerId: id,
-      status: "YES",
+      status: "CONFIRMED",
       match: {
         teamId: session.user.teamId,
         status: "COMPLETED",
