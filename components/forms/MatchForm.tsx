@@ -534,8 +534,10 @@ interface SavedVenue {
               const matched = savedVenues.find(
                 (v) => v.venue.toLowerCase() === val.trim().toLowerCase()
               );
-              if (matched?.mapsUrl && !watch("mapsUrl")) {
-                setValue("mapsUrl", matched.mapsUrl, { shouldValidate: true });
+              if (matched) {
+                setValue("mapsUrl", matched.mapsUrl || "", { shouldValidate: true });
+              } else {
+                setValue("mapsUrl", "", { shouldValidate: true });
               }
             },
           })}
