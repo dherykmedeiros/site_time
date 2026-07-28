@@ -71,6 +71,44 @@ export default async function PlayerProfilePage({ params }: PageProps) {
     },
   });
 
+  // Query absences (matches where player confirmed YES on RSVP for a COMPLETED match but did not attend)
+  const confirmedRSVPs = await prisma.rSVP.findMany({
+    where: {
+      playerId: id,
+      status: "YES",
+      match: {
+        teamId: session.user.teamId,
+        status: "COMPLETED",
+      },
+    },
+    include: {
+      match: {
+        select: {
+          id: true,
+          date: true,
+          venue: true,
+          opponent: true,
+          isHome: true,
+          homeScore: true,
+          awayScore: true,
+          type: true,
+          attendances: {
+            where: { playerId: id },
+            select: { present: true },
+          },
+        },
+      },
+    },
+    orderBy: {
+      match: { date: "desc" },
+    },
+  });
+
+  const absences = confirmedRSVPs.filter((r) => {
+    const att = r.match.attendances[0];
+    return !att || att.present === false;
+  });
+
   const championshipStats = allMatchStats.filter((s) => s.match.type === "CHAMPIONSHIP");
   const friendlyStats = allMatchStats.filter((s) => s.match.type === "FRIENDLY");
 
@@ -97,6 +135,14 @@ export default async function PlayerProfilePage({ params }: PageProps) {
     { label: "Assistências", value: totalAssists, icon: "🎯", color: "text-purple-400", border: "border-purple-500/20", bg: "bg-purple-500/4" },
     { label: "Partidas", value: matchesWithStats, icon: "🏟️", color: "text-blue-400", border: "border-blue-500/20", bg: "bg-blue-500/4" },
     { label: "Presença", value: `${attendanceRate}%`, icon: "📅", color: "text-amber-400", border: "border-amber-500/20", bg: "bg-amber-500/4" },
+    {
+      label: "Faltas (Confirmadas)",
+      value: absences.length,
+      icon: "⚠️",
+      color: absences.length > 0 ? "text-red-400" : "text-[#34d399]",
+      border: absences.length > 0 ? "border-red-500/30" : "border-emerald-500/20",
+      bg: absences.length > 0 ? "bg-red-500/[0.06]" : "bg-emerald-500/4",
+    },
   ];
 
   return (
@@ -201,7 +247,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
       </div>
 
       {/* Quick stats */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {statCards.map((s) => (
           <div
             key={s.label}
@@ -407,6 +453,81 @@ export default async function PlayerProfilePage({ params }: PageProps) {
                   <p className="text-center font-bold text-white">{stat.assists}</p>
                   <p className="text-center font-bold text-yellow-400">{stat.yellowCards}</p>
                   <p className="text-center font-bold text-red-400">{stat.redCards}</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Absence History (Confirmed RSVP YES but did not attend) */}
+      <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.02] overflow-hidden">
+        <div className="border-b border-red-500/10 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">⚠️</span>
+            <div>
+              <h2 className="text-sm font-black uppercase tracking-widest text-red-400">
+                Faltas em Jogos Confirmados
+              </h2>
+              <p className="text-xs text-[#8fa39b]">
+                Partidas em que o atleta confirmou presença no RSVP (SIM) mas não compareceu
+              </p>
+            </div>
+          </div>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-bold ${
+              absences.length > 0
+                ? "bg-red-500/10 border border-red-500/30 text-red-400"
+                : "bg-emerald-500/10 border border-emerald-500/30 text-[#34d399]"
+            }`}
+          >
+            {absences.length} {absences.length === 1 ? "falta registrada" : "faltas registradas"}
+          </span>
+        </div>
+
+        {absences.length === 0 ? (
+          <div className="p-8 text-center text-[#8fa39b]">
+            <p className="text-3xl mb-2">✅</p>
+            <p className="font-semibold text-white text-sm">Nenhuma falta registrada!</p>
+            <p className="mt-1 text-xs">O atleta compareceu a todos os jogos para os quais confirmou presença.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-white/5">
+            <div className="hidden sm:grid sm:grid-cols-[2fr_1.5fr_1fr_1.5fr] gap-2 bg-white/[0.015] px-6 py-3 text-[10px] font-black uppercase tracking-widest text-[#8fa39b]">
+              <span>Adversário / Data</span>
+              <span>Local</span>
+              <span>Placar Final</span>
+              <span>Situação</span>
+            </div>
+
+            {absences.map((r) => {
+              const match = r.match;
+              const teamGoals = match.isHome ? match.homeScore : match.awayScore;
+              const opponentGoals = match.isHome ? match.awayScore : match.homeScore;
+
+              return (
+                <div
+                  key={r.id}
+                  className="flex flex-col gap-2 px-6 py-4 transition hover:bg-white/[0.02] sm:grid sm:grid-cols-[2fr_1.5fr_1fr_1.5fr] sm:items-center sm:gap-2"
+                >
+                  <div>
+                    <p className="font-semibold text-white text-sm">
+                      {match.isHome ? "vs" : "@"} {match.opponent}
+                      <span className="ml-2 rounded bg-white/5 border border-white/10 px-1.5 py-0.5 text-[10px] text-[#8fa39b]">
+                        {match.type === "CHAMPIONSHIP" ? "Campeonato" : "Amistoso"}
+                      </span>
+                    </p>
+                    <p className="text-[10px] text-[#8fa39b]">{formatDate(match.date)}</p>
+                  </div>
+                  <p className="text-xs text-[#8fa39b]">{match.venue || "Não informado"}</p>
+                  <p className="text-xs font-bold text-white">
+                    {teamGoals != null && opponentGoals != null ? `${teamGoals} x ${opponentGoals}` : "—"}
+                  </p>
+                  <div>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[11px] font-bold text-red-400">
+                      ❌ Confirmou SIM no RSVP e Faltou
+                    </span>
+                  </div>
                 </div>
               );
             })}
