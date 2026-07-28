@@ -13,6 +13,7 @@ const FinancialReport = dynamic(() => import("./FinancialReport"), { ssr: false 
 const RatingsReport = dynamic(() => import("./RatingsReport"), { ssr: false });
 const LineupReport = dynamic(() => import("./LineupReport"), { ssr: false });
 const AchievementsReport = dynamic(() => import("./AchievementsReport"), { ssr: false });
+const VenueReport = dynamic(() => import("./VenueReport"), { ssr: false });
 
 interface Season {
   id: string;
@@ -23,6 +24,7 @@ interface Season {
 
 const tabs = [
   { key: "schedule", label: "Horários & Dias", icon: "📅" },
+  { key: "venue", label: "Locais & Campos", icon: "📍" },
   { key: "homeaway", label: "Casa vs Fora", icon: "🏠" },
   { key: "performance", label: "Desempenho", icon: "⚽" },
   { key: "scorers", label: "Artilharia", icon: "🎯" },
@@ -42,6 +44,8 @@ export default function ReportsHub() {
   const [seasonId, setSeasonId] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [selectedVenue, setSelectedVenue] = useState("ALL");
+
   const [data, setData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -57,6 +61,7 @@ export default function ReportsHub() {
 
   const apiMap: Record<TabKey, string> = {
     schedule: "/api/reports/schedule-heatmap",
+    venue: "/api/reports/venue",
     homeaway: "/api/reports/home-away",
     performance: "/api/reports/team-performance",
     scorers: "/api/reports/top-scorers",
@@ -69,7 +74,7 @@ export default function ReportsHub() {
   };
 
   const fetchReport = useCallback(
-    async (tab: TabKey) => {
+    async (tab: TabKey, customVenue?: string) => {
       setLoading((prev) => ({ ...prev, [tab]: true }));
       setErrors((prev) => ({ ...prev, [tab]: "" }));
 
@@ -77,6 +82,10 @@ export default function ReportsHub() {
       if (seasonId) params.set("seasonId", seasonId);
       if (from) params.set("from", from);
       if (to) params.set("to", to);
+      if (tab === "venue") {
+        const vToFetch = customVenue !== undefined ? customVenue : selectedVenue;
+        if (vToFetch && vToFetch !== "ALL") params.set("venue", vToFetch);
+      }
 
       try {
         const res = await fetch(`${apiMap[tab]}?${params.toString()}`);
@@ -94,7 +103,7 @@ export default function ReportsHub() {
         setLoading((prev) => ({ ...prev, [tab]: false }));
       }
     },
-    [seasonId, from, to]
+    [seasonId, from, to, selectedVenue]
   );
 
   useEffect(() => {
@@ -163,6 +172,7 @@ export default function ReportsHub() {
             setSeasonId("");
             setFrom("");
             setTo("");
+            setSelectedVenue("ALL");
           }}
           className="h-9 rounded-lg border border-white/10 bg-white/[0.03] px-4 text-xs font-semibold text-[#8fa39b] hover:text-white hover:bg-white/[0.06] transition-all"
         >
@@ -199,6 +209,18 @@ export default function ReportsHub() {
             data={data.schedule}
             loading={loading.schedule}
             error={errors.schedule}
+          />
+        )}
+        {activeTab === "venue" && (
+          <VenueReport
+            data={data.venue}
+            loading={loading.venue}
+            error={errors.venue}
+            selectedVenue={selectedVenue}
+            onSelectVenue={(v) => {
+              setSelectedVenue(v);
+              fetchReport("venue", v);
+            }}
           />
         )}
         {activeTab === "homeaway" && (
