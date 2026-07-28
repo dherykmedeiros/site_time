@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+
 const MONTHS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 function formatMonthYear(d: Date | string) {
   const date = new Date(d);
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
     where: matchFilter,
     include: {
       playerRatings: {
-        include: { player: true }
+        include: { rated: true }
       },
       votes: true
     }
@@ -56,32 +57,32 @@ export async function GET(request: Request) {
     const m = monthlyStats.get(monthKey) || { sum: 0, count: 0 };
 
     match.playerRatings.forEach(rating => {
-      totalRatingsSum += rating.rating;
+      totalRatingsSum += rating.stars;
       totalRatingsCount++;
-      m.sum += rating.rating;
+      m.sum += rating.stars;
       m.count++;
 
-      if (rating.playerId && rating.player) {
-        const p = playerStats.get(rating.playerId) || {
-          playerId: rating.playerId,
-          playerName: rating.player.name,
-          position: rating.player.position,
-          shirtNumber: rating.player.shirtNumber,
+      if (rating.ratedId && rating.rated) {
+        const p = playerStats.get(rating.ratedId) || {
+          playerId: rating.ratedId,
+          playerName: rating.rated.name,
+          position: rating.rated.position,
+          shirtNumber: rating.rated.shirtNumber,
           sum: 0,
           count: 0,
           mvpVotes: 0
         };
-        p.sum += rating.rating;
+        p.sum += rating.stars;
         p.count++;
-        playerStats.set(rating.playerId, p);
+        playerStats.set(rating.ratedId, p);
       }
     });
 
     match.votes.forEach(vote => {
       totalMvpVotes++;
-      if (vote.playerId) {
-        const p = playerStats.get(vote.playerId) || {
-           playerId: vote.playerId,
+      if (vote.votedId) {
+        const p = playerStats.get(vote.votedId) || {
+           playerId: vote.votedId,
            playerName: "Desconhecido",
            position: null,
            shirtNumber: null,
@@ -90,7 +91,7 @@ export async function GET(request: Request) {
            mvpVotes: 0
         };
         p.mvpVotes++;
-        playerStats.set(vote.playerId, p);
+        playerStats.set(vote.votedId, p);
       }
     });
 

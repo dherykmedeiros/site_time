@@ -2,14 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 
-const ACHIEVEMENT_LABELS: Record<string, string> = {
-  HAT_TRICK: "Hat-trick",
-  TOP_SCORER_ROUND: "Artilheiro da Rodada",
-  VETERAN: "Veterano",
-  ASSIST_MASTER: "Mestre das Assistências",
-  FULL_ATTENDANCE_MONTH: "Presença Total do Mês"
-};
-
 export async function GET(request: Request) {
   const { session, error } = await requireAdmin();
   if (error) return error;
@@ -33,7 +25,7 @@ export async function GET(request: Request) {
     where: matchFilter,
     include: {
       votes: {
-        include: { player: true }
+        include: { voted: true }
       }
     }
   });
@@ -61,17 +53,17 @@ export async function GET(request: Request) {
   matches.forEach(match => {
     match.votes.forEach(vote => {
       totalMvpVotes++;
-      if (vote.playerId && vote.player) {
-        const p = mvpStats.get(vote.playerId) || {
-          playerId: vote.playerId,
-          playerName: vote.player.name,
-          position: vote.player.position,
-          shirtNumber: vote.player.shirtNumber,
-          photoUrl: vote.player.photoUrl,
+      if (vote.votedId && vote.voted) {
+        const p = mvpStats.get(vote.votedId) || {
+          playerId: vote.votedId,
+          playerName: vote.voted.name,
+          position: vote.voted.position,
+          shirtNumber: vote.voted.shirtNumber,
+          photoUrl: vote.voted.photoUrl,
           mvpVotes: 0
         };
         p.mvpVotes++;
-        mvpStats.set(vote.playerId, p);
+        mvpStats.set(vote.votedId, p);
       }
     });
   });
@@ -100,14 +92,17 @@ export async function GET(request: Request) {
     .sort((a, b) => b.mvpVotes - a.mvpVotes)
     .slice(0, 10);
 
-  const byType = Array.from(achStats.entries()).map(([type, stats]) => ({
+  const byTypeArray = Array.from(achStats.entries()).map(([type, stats]) => ({
     type,
-    typeLabel: ACHIEVEMENT_LABELS[type] || type,
+    typeLabel: type,
     count: stats.count
   }));
 
-  const playerAchievements = Array.from(playerAchStats.values()).map(p => ({
-    ...p,
+  const playerAchievementsArray = Array.from(playerAchStats.values()).map(p => ({
+    playerId: p.playerId,
+    playerName: p.playerName,
+    position: p.position,
+    achievements: p.achievements,
     types: Array.from(p.types)
   })).sort((a, b) => b.achievements - a.achievements);
 
@@ -117,8 +112,8 @@ export async function GET(request: Request) {
       totalMvpVotes,
       uniqueAchievers: uniqueAchieversSet.size
     },
-    byType,
+    byType: byTypeArray,
     topMvps,
-    playerAchievements
+    playerAchievements: playerAchievementsArray
   });
 }
