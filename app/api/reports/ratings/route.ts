@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+const MONTHS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+function formatMonthYear(d: Date | string) {
+  const date = new Date(d);
+  const m = MONTHS_PT[date.getMonth()];
+  const y = String(date.getFullYear()).slice(2);
+  return `${m}/${y}`;
+}
 
 export async function GET(request: Request) {
   const { session, error } = await requireAdmin();
@@ -47,7 +52,7 @@ export async function GET(request: Request) {
   const monthlyStats = new Map<string, { sum: number, count: number }>();
 
   matches.forEach(match => {
-    const monthKey = format(new Date(match.date), "MMM/yy", { locale: ptBR });
+    const monthKey = formatMonthYear(match.date);
     const m = monthlyStats.get(monthKey) || { sum: 0, count: 0 };
 
     match.matchPlayerRatings.forEach(rating => {

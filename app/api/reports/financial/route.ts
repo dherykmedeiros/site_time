@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+const MONTHS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+function formatMonthYear(d: Date | string) {
+  const date = new Date(d);
+  const m = MONTHS_PT[date.getMonth()];
+  const y = String(date.getFullYear()).slice(2);
+  return `${m}/${y}`;
+}
 
 const CATEGORY_LABELS: Record<string, string> = {
   MEMBERSHIP: "Mensalidade",
@@ -49,7 +54,7 @@ export async function GET(request: Request) {
 
   transactions.forEach(tx => {
     const amount = Number(tx.amount || 0);
-    const monthKey = format(new Date(tx.date), "MMM/yy", { locale: ptBR });
+    const monthKey = formatMonthYear(tx.date);
     
     const m = monthlyStats.get(monthKey) || { income: 0, expenses: 0 };
     
