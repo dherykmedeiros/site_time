@@ -30,9 +30,14 @@ export async function GET(request: Request) {
       },
       attendances: {
         where: { present: true },
+        include: { player: true },
       },
     },
     orderBy: { date: 'asc' },
+  });
+
+  const activePlayers = await prisma.player.findMany({
+    where: { teamId, status: "ACTIVE" },
   });
 
   const overview = {
@@ -47,6 +52,19 @@ export async function GET(request: Request) {
   const monthlyMap: Record<string, { month: string, date: Date | null, matchesCount: number, presentSum: number, summonedSum: number, uniquePlayers: Set<string> }> = {};
   const monthsPt = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
+  for (const player of activePlayers) {
+    playerMap[player.id] = {
+      playerId: player.id,
+      playerName: player.name,
+      position: player.position,
+      shirtNumber: player.shirtNumber,
+      summoned: 0,
+      rsvpConfirmed: 0,
+      rsvpDeclined: 0,
+      present: 0,
+    };
+  }
+
   let totalSummoned = 0;
 
   for (const match of matches) {
@@ -59,7 +77,7 @@ export async function GET(request: Request) {
       }
     }
 
-    const presentSet = new Set(match.attendances.map(a => a.playerId));
+    const presentSet = new Set(match.attendances.map(a => a.playerId).filter(Boolean) as string[]);
     overview.totalPresent += presentSet.size;
 
     if (monthlyMap[monthLabel]) {
@@ -75,7 +93,7 @@ export async function GET(request: Request) {
       if (!playerMap[rsvp.playerId]) {
         playerMap[rsvp.playerId] = {
           playerId: rsvp.playerId,
-          playerName: rsvp.player?.name || "Desconhecido",
+          playerName: rsvp.player?.name || "Jogador",
           position: rsvp.player?.position || "N/A",
           shirtNumber: rsvp.player?.shirtNumber || null,
           summoned: 0,
@@ -98,8 +116,7 @@ export async function GET(request: Request) {
         playerMap[rsvp.playerId].rsvpDeclined++;
       }
       
-      const isPresent = presentSet.has(rsvp.playerId);
-      if (isPresent) {
+      if (presentSet.has(rsvp.playerId)) {
         playerMap[rsvp.playerId].present++;
         if (monthlyMap[monthLabel]) {
           monthlyMap[monthLabel].uniquePlayers.add(rsvp.playerId);
@@ -111,15 +128,16 @@ export async function GET(request: Request) {
       monthlyMap[monthLabel].summonedSum += matchSummonedCount;
     }
 
-    // Some players might be present without RSVP
+    // Process attendances for players present without explicit RSVP
     for (const att of match.attendances) {
       if (!att.playerId) continue;
+
       if (!playerMap[att.playerId]) {
-         playerMap[att.playerId] = {
+        playerMap[att.playerId] = {
           playerId: att.playerId,
-          playerName: "Sem RSVP",
-          position: "N/A",
-          shirtNumber: null,
+          playerName: att.player?.name || "Jogador",
+          position: att.player?.position || "N/A",
+          shirtNumber: att.player?.shirtNumber || null,
           summoned: 0,
           rsvpConfirmed: 0,
           rsvpDeclined: 0,
@@ -138,15 +156,24 @@ export async function GET(request: Request) {
   }
 
   if (totalSummoned > 0) {
-    overview.avgAttendanceRate = overview.totalPresent / totalSummoned;
-    overview.avgRsvpRate = overview.totalRsvpConfirmed / totalSummoned;
+    overview.avgAttendanceRate = (overview.totalPresent / totalSummoned) * 100;
+    overview.avgRsvpRate = (overview.totalRsvpConfirmed / totalSummoned) * 100;
   }
 
-  const players = Object.values(playerMap).map(p => ({
-    ...p,
-    attendanceRate: p.summoned > 0 ? p.present / p.summoned : (p.present > 0 ? 1 : 0),
-    rsvpRate: p.summoned > 0 ? p.rsvpConfirmed / p.summoned : 0,
-  })).sort((a, b) => b.attendanceRate - a.attendanceRate);
+  const players = Object.values(playerMap)
+    .filter((p) => p.summoned > 0 || p.present > 0)
+    .map((p) => {
+      const totalEligible = p.summoned > 0 ? Math.max(p.summoned, p.present) : (matches.length > 0 ? matches.length : 1);
+      const attendanceRate = Math.min(100, (p.present / totalEligible) * 100);
+      const rsvpRate = p.summoned > 0 ? Math.min(100, (p.rsvpConfirmed / p.summoned) * 100) : 0;
+
+      return {
+        ...p,
+        attendanceRate,
+        rsvpRate,
+      };
+    })
+    .sort((a, b) => b.attendanceRate - a.attendanceRate);
 
   const monthly = Object.values(monthlyMap).sort((a, b) => {
     if (!a.date || !b.date) return 0;
@@ -155,7 +182,7 @@ export async function GET(request: Request) {
     month: m.month,
     totalPlayers: m.uniquePlayers.size,
     avgPresent: m.matchesCount > 0 ? m.presentSum / m.matchesCount : 0,
-    attendanceRate: m.summonedSum > 0 ? m.presentSum / m.summonedSum : (m.presentSum > 0 ? 1 : 0),
+    attendanceRate: m.summonedSum > 0 ? Math.min(100, (m.presentSum / m.summonedSum) * 100) : (m.presentSum > 0 ? 100 : 0),
   }));
 
   return NextResponse.json({
