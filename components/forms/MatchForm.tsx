@@ -77,9 +77,18 @@ const typeLabels: Record<string, string> = {
 export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps) {
   const isEditing = !!defaultValues?.id;
   const [loading, setLoading] = useState(false);
+interface SavedVenue {
+  venue: string;
+  latitude: number | null;
+  longitude: number | null;
+  mapsUrl: string | null;
+  matchCount: number;
+}
+
   const [uploadingBadge, setUploadingBadge] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [seasons, setSeasons] = useState<Season[]>([]);
+  const [savedVenues, setSavedVenues] = useState<SavedVenue[]>([]);
   const [availabilitySnapshot, setAvailabilitySnapshot] = useState<MatchAvailabilityResponse | null>(null);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
@@ -117,6 +126,13 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
             )
           );
         }
+      })
+      .catch(() => {});
+
+    fetch("/api/matches/venues")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.venues) setSavedVenues(d.venues);
       })
       .catch(() => {});
   }, [defaultValues?.seasonId]);
@@ -504,12 +520,37 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         </div>
       )}
 
-      <Input
-        label="Local"
-        placeholder="Ex: Campo do Parque"
-        error={errors.venue?.message}
-        {...register("venue")}
-      />
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-[var(--text-subtle)]">
+          Local / Campo
+        </label>
+        <input
+          list="saved-venues-list"
+          placeholder="Selecione um campo cadastrado ou digite um novo local..."
+          className="w-full rounded-lg border border-white/10 bg-[#16130f] px-3.5 py-2 text-sm text-white placeholder:text-[#8fa39b] outline-none focus:border-[#36c2a8] transition-colors"
+          {...register("venue", {
+            onChange: (e) => {
+              const val = e.target.value;
+              const matched = savedVenues.find(
+                (v) => v.venue.toLowerCase() === val.trim().toLowerCase()
+              );
+              if (matched?.mapsUrl && !watch("mapsUrl")) {
+                setValue("mapsUrl", matched.mapsUrl, { shouldValidate: true });
+              }
+            },
+          })}
+        />
+        <datalist id="saved-venues-list">
+          {savedVenues.map((v) => (
+            <option key={v.venue} value={v.venue}>
+              {v.matchCount > 1 ? `${v.matchCount} jogos realizados` : "1 jogo realizado"}
+            </option>
+          ))}
+        </datalist>
+        {errors.venue?.message && (
+          <p className="text-xs text-[#f87171]">{errors.venue.message}</p>
+        )}
+      </div>
 
       <div className="space-y-1">
         <Input
