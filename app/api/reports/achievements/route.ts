@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 
+const ACHIEVEMENT_LABELS: Record<string, string> = {
+  HAT_TRICK: "Hat-trick",
+  TOP_SCORER_ROUND: "Artilheiro",
+  VETERAN: "Veterano",
+  ASSIST_MASTER: "Assistências",
+  FULL_ATTENDANCE_MONTH: "Presença Total"
+};
+
 export async function GET(request: Request) {
   const { session, error } = await requireAdmin();
   if (error) return error;
@@ -94,7 +102,7 @@ export async function GET(request: Request) {
 
   const byTypeArray = Array.from(achStats.entries()).map(([type, stats]) => ({
     type,
-    typeLabel: type,
+    typeLabel: ACHIEVEMENT_LABELS[type] || type,
     count: stats.count
   }));
 

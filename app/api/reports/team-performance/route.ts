@@ -119,7 +119,7 @@ export async function GET(request: Request) {
   }
 
   if (overview.totalMatches > 0) {
-    overview.winRate = overview.wins / overview.totalMatches;
+    overview.winRate = (overview.wins / overview.totalMatches) * 100;
     overview.goalDifference = overview.goalsFor - overview.goalsAgainst;
     overview.avgGoalsFor = overview.goalsFor / overview.totalMatches;
     overview.avgGoalsAgainst = overview.goalsAgainst / overview.totalMatches;
@@ -127,11 +127,11 @@ export async function GET(request: Request) {
 
   const byType = Object.values(byTypeMap).map(t => ({
     ...t,
-    winRate: t.matches > 0 ? t.wins / t.matches : 0
+    winRate: t.matches > 0 ? (t.wins / t.matches) * 100 : 0
   }));
 
-  if (byVenue.home.matches > 0) byVenue.home.winRate = byVenue.home.wins / byVenue.home.matches;
-  if (byVenue.away.matches > 0) byVenue.away.winRate = byVenue.away.wins / byVenue.away.matches;
+  if (byVenue.home.matches > 0) byVenue.home.winRate = (byVenue.home.wins / byVenue.home.matches) * 100;
+  if (byVenue.away.matches > 0) byVenue.away.winRate = (byVenue.away.wins / byVenue.away.matches) * 100;
 
   const monthly = Object.values(monthlyMap).sort((a, b) => {
     if (!a.date || !b.date) return 0;

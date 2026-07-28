@@ -26,6 +26,17 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+const formationLabels: Record<string, string> = {
+  FOUR_FOUR_TWO: "4-4-2",
+  FOUR_THREE_THREE: "4-3-3",
+  FOUR_TWO_THREE_ONE: "4-2-3-1",
+  THREE_FIVE_TWO: "3-5-2",
+  THREE_FOUR_THREE: "3-4-3",
+  FIVE_THREE_TWO: "5-3-2",
+  FOUR_ONE_FOUR_ONE: "4-1-4-1",
+  FIVE_FOUR_ONE: "5-4-1",
+};
+
 const positionLabels: Record<string, string> = {
   GOALKEEPER: "GOL",
   DEFENDER: "ZAG",
@@ -95,7 +106,7 @@ export default function LineupReport({
             Formação Mais Usada
           </p>
           <p className="text-2xl font-black text-[#34d399]">
-            {data.overview.mostUsedFormation || "N/A"}
+            {formationLabels[data.overview.mostUsedFormation] || data.overview.mostUsedFormation || "N/A"}
           </p>
         </div>
       </div>

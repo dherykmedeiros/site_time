@@ -46,21 +46,21 @@ export async function GET(request: Request) {
     awayDraws: 0,
   };
 
+  const playerStats: Record<string, any> = {};
+
   let homeTotalPresent = 0;
   let awayTotalPresent = 0;
 
-  const playerStats: Record<string, { player: any, homePresent: number, homeTotal: number, awayPresent: number, awayTotal: number }> = {};
-
   for (const match of matches) {
+    if (match.homeScore === null || match.awayScore === null) continue;
+
     const isHome = match.isHome;
-    const teamScore = isHome ? match.homeScore : match.awayScore;
-    const oppScore = isHome ? match.awayScore : match.homeScore;
-    
-    let result = "D";
-    if (teamScore !== null && oppScore !== null) {
-      if (teamScore > oppScore) result = "W";
-      else if (teamScore < oppScore) result = "L";
-    }
+    const teamGoals = isHome ? match.homeScore : match.awayScore;
+    const opponentGoals = isHome ? match.awayScore : match.homeScore;
+
+    let result: 'W' | 'D' | 'L' = 'D';
+    if (teamGoals > opponentGoals) result = 'W';
+    else if (teamGoals < opponentGoals) result = 'L';
 
     let presentCount = 0;
 
@@ -111,8 +111,8 @@ export async function GET(request: Request) {
   summary.awayAvgAttendance = summary.awayMatches > 0 ? awayTotalPresent / summary.awayMatches : 0;
 
   const players = Object.values(playerStats).map(stat => {
-    const homeRate = stat.homeTotal > 0 ? stat.homePresent / stat.homeTotal : 0;
-    const awayRate = stat.awayTotal > 0 ? stat.awayPresent / stat.awayTotal : 0;
+    const homeRate = stat.homeTotal > 0 ? (stat.homePresent / stat.homeTotal) * 100 : 0;
+    const awayRate = stat.awayTotal > 0 ? (stat.awayPresent / stat.awayTotal) * 100 : 0;
     return {
       playerId: stat.player?.id || "",
       playerName: stat.player?.name || "Desconhecido",
@@ -123,9 +123,9 @@ export async function GET(request: Request) {
       awayTotal: stat.awayTotal,
       homeRate,
       awayRate,
-      difference: Math.abs(homeRate - awayRate),
+      difference: homeRate - awayRate,
     };
-  }).sort((a, b) => b.difference - a.difference);
+  }).sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference));
 
   return NextResponse.json({
     summary,

@@ -16,6 +16,17 @@ const POSITION_LABELS: Record<string, string> = {
   RIGHT_WINGER: "Ponta direita"
 };
 
+const FORMATION_LABELS: Record<string, string> = {
+  FOUR_FOUR_TWO: "4-4-2",
+  FOUR_THREE_THREE: "4-3-3",
+  FOUR_TWO_THREE_ONE: "4-2-3-1",
+  THREE_FIVE_TWO: "3-5-2",
+  THREE_FOUR_THREE: "3-4-3",
+  FIVE_THREE_TWO: "5-3-2",
+  FOUR_ONE_FOUR_ONE: "4-1-4-1",
+  FIVE_FOUR_ONE: "5-4-1",
+};
+
 export async function GET(request: Request) {
   const { session, error } = await requireAdmin();
   if (error) return error;
@@ -81,21 +92,25 @@ export async function GET(request: Request) {
     });
   });
 
-  let mostUsedFormation: string | null = null;
+  let rawMostUsedFormation: string | null = null;
   let maxForm = 0;
   for (const [form, count] of formationCount.entries()) {
     if (count > maxForm && form !== "Desconhecido") {
       maxForm = count;
-      mostUsedFormation = form;
+      rawMostUsedFormation = form;
     }
   }
+
+  const mostUsedFormation = rawMostUsedFormation 
+    ? (FORMATION_LABELS[rawMostUsedFormation] || rawMostUsedFormation.replace(/_/g, "-")) 
+    : "N/A";
 
   const totalMatches = matches.length;
   
   const playersArray = Array.from(playerStats.values()).map(p => {
     return {
       ...p,
-      starterRate: p.totalSelections > 0 ? p.starterCount / p.totalSelections : 0,
+      starterRate: p.totalSelections > 0 ? (p.starterCount / p.totalSelections) * 100 : 0,
       notSelectedCount: totalMatches - p.totalSelections
     };
   }).sort((a, b) => b.totalSelections - a.totalSelections);
