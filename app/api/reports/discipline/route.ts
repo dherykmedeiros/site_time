@@ -74,7 +74,7 @@ export async function GET(request: Request) {
           redCards: 0,
           totalCards: 0,
           fineCount: 0,
-          fineAmount: 0
+          suspendedMatches: 0
         };
         p.yellowCards += stat.yellowCards || 0;
         p.redCards += stat.redCards || 0;
@@ -87,11 +87,11 @@ export async function GET(request: Request) {
   });
 
   let totalFines = 0;
-  let totalFineAmount = 0;
+  let totalSuspendedMatches = 0;
 
   fines.forEach(fine => {
     totalFines += 1;
-    totalFineAmount += Number(fine.amount || 0);
+    totalSuspendedMatches += fine.matchesSuspended || 0;
     if (fine.playerId && fine.player) {
       const p = playerStats.get(fine.playerId) || {
         playerId: fine.playerId,
@@ -102,10 +102,10 @@ export async function GET(request: Request) {
         redCards: 0,
         totalCards: 0,
         fineCount: 0,
-        fineAmount: 0
+        suspendedMatches: 0
       };
       p.fineCount += 1;
-      p.fineAmount += Number(fine.amount || 0);
+      p.suspendedMatches += fine.matchesSuspended || 0;
       playerStats.set(fine.playerId, p);
     }
   });
@@ -121,7 +121,7 @@ export async function GET(request: Request) {
       totalYellowCards,
       totalRedCards,
       totalFines,
-      totalFineAmount
+      totalSuspendedMatches
     },
     players: playersArray,
     monthly: monthlyArray

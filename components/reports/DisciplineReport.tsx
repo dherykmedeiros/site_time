@@ -68,12 +68,6 @@ export default function DisciplineReport({
       </div>
     );
 
-  const formatCurrency = (value: number) =>
-    Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-
   return (
     <div className="space-y-6">
       {/* KPIs */}
@@ -92,16 +86,16 @@ export default function DisciplineReport({
         </div>
         <div className="rounded-xl border border-white/[0.06] bg-[#16130f] p-4">
           <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-[#8fa39b]">
-            Multas
+            Punições
           </p>
           <p className="text-2xl font-black text-white">{data.overview.totalFines}</p>
         </div>
         <div className="rounded-xl border border-white/[0.06] bg-[#16130f] p-4">
           <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-[#8fa39b]">
-            Valor em Multas
+            Jogos Suspensos
           </p>
-          <p className="text-2xl font-black text-white">
-            {formatCurrency(data.overview.totalFineAmount)}
+          <p className="text-2xl font-black text-[#f87171]">
+            {data.overview.totalSuspendedMatches}
           </p>
         </div>
       </div>
@@ -139,8 +133,8 @@ export default function DisciplineReport({
               <th className="py-2 px-2 font-normal text-center">🟡</th>
               <th className="py-2 px-2 font-normal text-center">🔴</th>
               <th className="py-2 px-2 font-normal text-center">Total</th>
-              <th className="py-2 px-2 font-normal text-center">Multas</th>
-              <th className="py-2 pl-4 font-normal text-right">Valor</th>
+              <th className="py-2 px-2 font-normal text-center">Punições</th>
+              <th className="py-2 pl-4 font-normal text-right">Jogos Susp.</th>
             </tr>
           </thead>
           <tbody>
@@ -163,7 +157,7 @@ export default function DisciplineReport({
                   <td className="py-3 px-2 text-center font-bold">{player.totalCards}</td>
                   <td className="py-3 px-2 text-center">{player.fineCount}</td>
                   <td className="py-3 pl-4 text-right text-[#8fa39b]">
-                    {formatCurrency(player.fineAmount)}
+                    {player.suspendedMatches || 0}
                   </td>
                 </tr>
               ))}
