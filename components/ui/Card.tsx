@@ -1,14 +1,14 @@
-import { ReactNode } from "react";
+import { ReactNode, HTMLAttributes } from "react";
 
-interface CardProps {
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   className?: string;
 }
 
-export function Card({ children, className = "" }: CardProps) {
+export function Card({ children, className = "", ...props }: CardProps) {
   const hasOverflowOverride = className.includes("overflow-");
   return (
-    <div className={`app-surface ${hasOverflowOverride ? "" : "overflow-hidden"} ${className}`}>
+    <div className={`app-surface ${hasOverflowOverride ? "" : "overflow-hidden"} ${className}`} {...props}>
       {children}
     </div>
   );
