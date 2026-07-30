@@ -8,13 +8,20 @@ import {
   createMatchLiveEventSchema,
 } from "@/lib/validations/match-actions";
 import { calculateNewScore } from "@/lib/match-live-service";
+import { getSession } from "@/lib/auth";
 
 /**
  * Action para criação de nova partida.
  */
 export async function createMatchAction(input: unknown) {
   try {
+    const session = await getSession();
+    if (!session?.user) throw new Error("Não autorizado");
+    if (session.user.role !== "ADMIN") throw new Error("Acesso restrito");
+
     const parsed = createMatchSchema.parse(input);
+
+    if (session.user.teamId !== parsed.teamId) throw new Error("Acesso negado");
 
     const match = await prisma.match.create({
       data: {
@@ -60,7 +67,16 @@ export async function createMatchAction(input: unknown) {
  */
 export async function updateRSVPAction(input: unknown) {
   try {
+    const session = await getSession();
+    if (!session?.user) throw new Error("Não autorizado");
+
     const parsed = updateRsvpSchema.parse(input);
+
+    const isOwnRsvp = session.user.playerId === parsed.playerId;
+    const isStaff = session.user.role === "ADMIN" || session.user.role === "COACH";
+    if (!isOwnRsvp && !isStaff) {
+      throw new Error("Acesso restrito");
+    }
 
     const existingRsvp = await prisma.rSVP.findUnique({
       where: {
@@ -119,6 +135,12 @@ export async function updateRSVPAction(input: unknown) {
  */
 export async function createMatchLiveEventAction(input: unknown) {
   try {
+    const session = await getSession();
+    if (!session?.user) throw new Error("Não autorizado");
+    if (session.user.role !== "ADMIN" && session.user.role !== "COACH") {
+      throw new Error("Acesso restrito");
+    }
+
     const parsed = createMatchLiveEventSchema.parse(input);
 
     const matchLive = await prisma.matchLive.findUnique({
@@ -128,6 +150,10 @@ export async function createMatchLiveEventAction(input: unknown) {
 
     if (!matchLive) {
       throw new Error("Registro de Placar ao Vivo não encontrado");
+    }
+
+    if (matchLive.match.teamId !== session.user.teamId) {
+      throw new Error("Acesso negado");
     }
 
     let updatedHomeScore = matchLive.homeScore;

@@ -192,6 +192,7 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  @@index([teamId])
   @@map("users")
 }
 
@@ -357,6 +358,7 @@ model Match {
   @@index([teamId])
   @@index([seasonId])
   @@index([teamId, status])
+  @@index([teamId, date])
   @@map("matches")
 }
 
@@ -700,6 +702,8 @@ model Fine {
   @@index([playerId])
   @@index([ruleId])
   @@index([suspendedMatchId])
+  @@index([teamId, status])
+  @@index([playerId, status])
   @@map("fines")
 }
 
@@ -806,6 +810,7 @@ model TeamMessage {
 
   @@index([teamId])
   @@index([teamId, pinned])
+  @@index([teamId, createdAt])
   @@map("team_messages")
 }
 
@@ -878,6 +883,7 @@ model Notification {
 
   @@index([userId])
   @@index([userId, read])
+  @@index([userId, createdAt])
   @@map("notifications")
 }
 
@@ -896,6 +902,7 @@ model MatchPhoto {
 
   @@index([teamId])
   @@index([matchId])
+  @@index([teamId, createdAt])
   @@map("match_photos")
 }
 
