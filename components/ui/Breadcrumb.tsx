@@ -1,4 +1,5 @@
 import React, { ReactNode } from "react";
+import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
 export interface BreadcrumbRootProps {
@@ -42,12 +43,24 @@ export function BreadcrumbItem({ children, className = "" }: BreadcrumbItemProps
   return <span className={`flex items-center ${className}`}>{children}</span>;
 }
 
-export interface BreadcrumbLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {}
+export interface BreadcrumbLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
+  href?: string;
+}
 
 /**
  * Link de navegação do Breadcrumb
  */
-export function BreadcrumbLink({ className = "", children, ...props }: BreadcrumbLinkProps) {
+export function BreadcrumbLink({ href, className = "", children, ...props }: BreadcrumbLinkProps) {
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={`hover:text-[var(--text)] hover:underline transition-colors ${className}`}
+      >
+        {children}
+      </Link>
+    );
+  }
   return (
     <a
       className={`hover:text-[var(--text)] hover:underline transition-colors ${className}`}
