@@ -31,7 +31,7 @@ interface PlayerDashboardProps {
     opponentName: string;
     venue: string;
   } | null;
-  myRsvpStatus: "CONFIRMED" | "DECLINED" | "TENTATIVE" | null;
+  myRsvpStatus: "CONFIRMED" | "DECLINED" | "PENDING" | null;
   recentEvaluations: {
     id: string;
     date: Date;
@@ -75,7 +75,7 @@ export default function PlayerDashboard({
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
   };
 
-  const handleRsvp = (status: "CONFIRMED" | "DECLINED" | "TENTATIVE") => {
+  const handleRsvp = (status: "CONFIRMED" | "DECLINED" | "PENDING") => {
     startTransition(() => {
       // Simulação de action/fetch
       setRsvpStatus(status);
@@ -159,9 +159,9 @@ export default function PlayerDashboard({
                         <XCircle className="w-4 h-4 mr-2" /> Não Vou
                       </Button>
                       <Button 
-                        onClick={() => handleRsvp("TENTATIVE")} 
+                        onClick={() => handleRsvp("PENDING")} 
                         disabled={isPending}
-                        className={`flex-1 ${rsvpStatus === "TENTATIVE" ? "bg-yellow-600 hover:bg-yellow-700" : "bg-yellow-600/20 text-yellow-500 hover:bg-yellow-600/30"}`}
+                        className={`flex-1 ${rsvpStatus === "PENDING" ? "bg-yellow-600 hover:bg-yellow-700" : "bg-yellow-600/20 text-yellow-500 hover:bg-yellow-600/30"}`}
                       >
                         <HelpCircle className="w-4 h-4 mr-2" /> Dúvida
                       </Button>
