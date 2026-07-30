@@ -9,9 +9,11 @@ import { Card } from "./Card";
 import { Skeleton } from "./Skeleton";
 
 export interface Column<T> {
-  key: string;
+  key?: string;
+  accessorKey?: string;
   header: string;
   render?: (item: T) => ReactNode;
+  cell?: (item: T) => ReactNode;
   sortable?: boolean;
   className?: string;
 }
@@ -53,6 +55,14 @@ export function DataTable<T extends Record<string, any>>({
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
+
+  const getColKey = (col: Column<T>) => col.key || col.accessorKey || "";
+  const getColRender = (col: Column<T>, item: T) => {
+    const r = col.render || col.cell;
+    if (r) return r(item);
+    const k = col.key || col.accessorKey;
+    return k ? (item as any)[k] : "";
+  };
 
   const handleSort = (key: string) => {
     let direction: "asc" | "desc" = "asc";
@@ -170,13 +180,13 @@ export function DataTable<T extends Record<string, any>>({
             <TableRow>
               {columns.map((col) => (
                 <TableHead
-                  key={col.key}
+                  key={getColKey(col)}
                   className={`${col.className || ""} ${col.sortable !== false && sortable ? "cursor-pointer select-none hover:bg-[var(--bg)]" : ""}`}
-                  onClick={() => col.sortable !== false && sortable && handleSort(col.key)}
+                  onClick={() => col.sortable !== false && sortable && handleSort(getColKey(col))}
                 >
                   <div className="flex items-center gap-1">
                     {col.header}
-                    {sortable && col.sortable !== false && sortConfig?.key === col.key && (
+                    {sortable && col.sortable !== false && sortConfig?.key === getColKey(col) && (
                       <span className="text-[var(--brand)]">
                         {sortConfig.direction === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                       </span>
@@ -203,8 +213,8 @@ export function DataTable<T extends Record<string, any>>({
                   onClick={() => onRowClick?.(item)}
                 >
                   {columns.map((col) => (
-                    <TableCell key={col.key} className={col.className}>
-                      {col.render ? col.render(item) : (item as any)[col.key]}
+                    <TableCell key={getColKey(col)} className={col.className}>
+                      {getColRender(col, item)}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -229,10 +239,10 @@ export function DataTable<T extends Record<string, any>>({
             >
               <dl className="space-y-2">
                 {columns.map((col) => (
-                  <div key={col.key} className="flex justify-between items-start gap-4">
+                  <div key={getColKey(col)} className="flex justify-between items-start gap-4">
                     <dt className="text-xs font-medium text-[var(--text-subtle)]">{col.header}</dt>
                     <dd className="text-sm font-semibold text-[var(--text)] text-right">
-                      {col.render ? col.render(item) : (item as any)[col.key]}
+                      {getColRender(col, item)}
                     </dd>
                   </div>
                 ))}
