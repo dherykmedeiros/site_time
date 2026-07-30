@@ -86,13 +86,13 @@ export default function PlayerDashboard({
   // Prepara dados para o RadarChart usando a avaliação mais recente, se houver
   const latestEval = recentEvaluations[0];
   const radarData = latestEval
-    ? [
-        { subject: "Técnica", A: latestEval.technical, fullMark: 10 },
-        { subject: "Tática", A: latestEval.tactical, fullMark: 10 },
-        { subject: "Físico", A: latestEval.physical, fullMark: 10 },
-        { subject: "Disciplina", A: latestEval.discipline, fullMark: 10 },
-      ]
-    : [];
+    ? {
+        technical: latestEval.technical,
+        tactical: latestEval.tactical,
+        physical: latestEval.physical,
+        discipline: latestEval.discipline,
+      }
+    : { technical: 0, tactical: 0, physical: 0, discipline: 0 };
 
   return (
     <div className="space-y-6">
