@@ -22,7 +22,7 @@ export function EmptyState({
     <div className={`flex flex-col items-center justify-center p-8 text-center bg-[var(--bg-elevated)] border border-[var(--border)] border-dashed rounded-lg ${className}`}>
       {icon && (
         <div className="flex items-center justify-center w-12 h-12 mb-4 rounded-full bg-[var(--bg)] text-[var(--text-subtle)] border border-[var(--border)]">
-          {React.cloneElement(icon as React.ReactElement, { className: "w-6 h-6" })}
+          <div className="w-6 h-6 flex items-center justify-center">{icon}</div>
         </div>
       )}
       <h3 className="mb-1 text-lg font-medium text-[var(--text)]">
