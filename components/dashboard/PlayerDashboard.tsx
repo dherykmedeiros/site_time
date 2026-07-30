@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { RadarChart } from "@/components/ui/RadarChart";
 import { Calendar, CheckCircle, XCircle, HelpCircle, Trophy, Goal, Activity, DollarSign } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/components/ui/Toast";
 
 interface Team {
   id: string;
@@ -62,6 +62,7 @@ export default function PlayerDashboard({
 }: PlayerDashboardProps) {
   const [rsvpStatus, setRsvpStatus] = useState(initialRsvp);
   const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("pt-BR", {
@@ -78,7 +79,7 @@ export default function PlayerDashboard({
     startTransition(() => {
       // Simulação de action/fetch
       setRsvpStatus(status);
-      toast.success("Presença atualizada com sucesso.");
+      toast("Presença atualizada com sucesso.", "success");
     });
   };
 

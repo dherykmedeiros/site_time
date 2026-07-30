@@ -174,3 +174,5 @@ export function TabsContent({ value, children, className = "" }: TabsContentProp
     </div>
   );
 }
+
+export { TabsRoot as Tabs };
