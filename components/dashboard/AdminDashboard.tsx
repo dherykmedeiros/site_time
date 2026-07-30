@@ -75,7 +75,10 @@ export default function AdminDashboard({ team, metrics, transactions, friendlyRe
           title="Saldo em Caixa"
           value={formatCurrency(metrics.balance)}
           icon={<DollarSign className="w-5 h-5" />}
-          trend={metrics.balance >= 0 ? "up" : "down"}
+          trend={{
+            value: 0,
+            direction: metrics.balance >= 0 ? "up" : "down"
+          }}
           trendValue={metrics.balance >= 0 ? "Positivo" : "Negativo"}
         />
         <StatCard
