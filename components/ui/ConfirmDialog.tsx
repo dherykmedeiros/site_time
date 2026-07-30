@@ -47,7 +47,7 @@ export function ConfirmDialog({
   const isLoading = loading || internalLoading;
 
   return (
-    <Modal open={open} onOpenChange={isLoading ? undefined : onOpenChange} title="">
+    <Modal open={open} onClose={() => !isLoading && onOpenChange(false)} title="">
       <div className="flex flex-col gap-4 sm:p-2">
         <div className="flex items-start gap-4">
           <div className={`flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full ${isDanger ? 'bg-[var(--danger-soft)] text-[var(--danger)]' : 'bg-[var(--brand-soft)] text-[var(--brand)]'}`}>
