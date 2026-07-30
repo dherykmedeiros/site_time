@@ -1,7 +1,7 @@
 import React, { ReactNode } from "react";
 
 export interface EmptyStateProps {
-  icon?: ReactNode;
+  icon?: ReactNode | React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
   action?: ReactNode;
@@ -12,17 +12,26 @@ export interface EmptyStateProps {
  * Componente para exibição de estado vazio (listas vazias, sem dados, etc)
  */
 export function EmptyState({
-  icon,
+  icon: Icon,
   title,
   description,
   action,
   className = "",
 }: EmptyStateProps) {
+  const renderIcon = () => {
+    if (!Icon) return null;
+    if (typeof Icon === "function" || (typeof Icon === "object" && Icon !== null)) {
+      const LucideIcon = Icon as React.ComponentType<{ className?: string }>;
+      return <LucideIcon className="w-6 h-6" />;
+    }
+    return <div className="w-6 h-6 flex items-center justify-center">{Icon as ReactNode}</div>;
+  };
+
   return (
     <div className={`flex flex-col items-center justify-center p-8 text-center bg-[var(--bg-elevated)] border border-[var(--border)] border-dashed rounded-lg ${className}`}>
-      {icon && (
+      {Icon && (
         <div className="flex items-center justify-center w-12 h-12 mb-4 rounded-full bg-[var(--bg)] text-[var(--text-subtle)] border border-[var(--border)]">
-          <div className="w-6 h-6 flex items-center justify-center">{icon}</div>
+          {renderIcon()}
         </div>
       )}
       <h3 className="mb-1 text-lg font-medium text-[var(--text)]">
