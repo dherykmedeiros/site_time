@@ -385,30 +385,34 @@ export default function RankingPage() {
             </button>
           </div>
 
-          {activeTab !== "analytics" && <select
-            id="match-type-filter"
-            value={matchTypeFilter}
-            onChange={(e) => setMatchTypeFilter(e.target.value)}
-            className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-[#10b981] backdrop-blur-sm cursor-pointer"
-          >
-            <option value="ALL" className="bg-[#0a1814]">Todos os Tipos de Jogo</option>
-            <option value="CHAMPIONSHIP" className="bg-[#0a1814]">🏆 Apenas Campeonato</option>
-            <option value="FRIENDLY" className="bg-[#0a1814]">🤝 Apenas Amistosos</option>
-          </select>
+          {activeTab !== "analytics" && (
+            <>
+              <select
+                id="match-type-filter"
+                value={matchTypeFilter}
+                onChange={(e) => setMatchTypeFilter(e.target.value)}
+                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-[#10b981] backdrop-blur-sm cursor-pointer"
+              >
+                <option value="ALL" className="bg-[#0a1814]">Todos os Tipos de Jogo</option>
+                <option value="CHAMPIONSHIP" className="bg-[#0a1814]">🏆 Apenas Campeonato</option>
+                <option value="FRIENDLY" className="bg-[#0a1814]">🤝 Apenas Amistosos</option>
+              </select>
 
-          <select
-            id="season-filter"
-            value={seasonFilter}
-            onChange={(e) => setSeasonFilter(e.target.value)}
-            className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-[#10b981] backdrop-blur-sm cursor-pointer"
-          >
-            <option value="" className="bg-[#0a1814]">Todas as temporadas</option>
-            {seasons.map((s) => (
-              <option key={s.id} value={s.id} className="bg-[#0a1814]">
-                {s.name} {s.status === "ACTIVE" ? "• Ativa" : ""}
-              </option>
-            ))}
-          </select>}
+              <select
+                id="season-filter"
+                value={seasonFilter}
+                onChange={(e) => setSeasonFilter(e.target.value)}
+                className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-[#10b981] backdrop-blur-sm cursor-pointer"
+              >
+                <option value="" className="bg-[#0a1814]">Todas as temporadas</option>
+                {seasons.map((s) => (
+                  <option key={s.id} value={s.id} className="bg-[#0a1814]">
+                    {s.name} {s.status === "ACTIVE" ? "• Ativa" : ""}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
         </div>
       </div>
 
