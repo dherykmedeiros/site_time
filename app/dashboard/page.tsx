@@ -55,7 +55,7 @@ export default async function DashboardPage() {
   }
 
   if (role === "ADMIN") {
-    const [balanceAgg, overdue, activePlayersCount, pendingAmistososCount, transactionsRaw, friendlyRequests] = await Promise.all([
+    const [balanceAgg, overdue, activePlayersCount, pendingAmistososCount, transactionsRaw, friendlyRequests, nextMatchData] = await Promise.all([
       prisma.transaction.groupBy({
         by: ["type"],
         where: { teamId },
@@ -76,6 +76,10 @@ export default async function DashboardPage() {
         where: { teamId, status: "PENDING" },
         orderBy: { createdAt: "desc" },
         take: 5
+      }),
+      prisma.match.findFirst({
+        where: { teamId, status: "SCHEDULED", date: { gte: new Date() } },
+        orderBy: { date: "asc" },
       })
     ]);
 
@@ -126,6 +130,7 @@ export default async function DashboardPage() {
           status: r.status
         }))}
         overduePayments={overduePayments}
+        nextMatch={nextMatchData ? { id: nextMatchData.id, date: nextMatchData.date, opponentName: nextMatchData.opponent, venue: nextMatchData.venue } : null}
       />
     );
   }

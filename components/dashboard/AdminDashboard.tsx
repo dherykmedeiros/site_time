@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
@@ -50,12 +51,18 @@ interface AdminDashboardProps {
   transactions: Transaction[];
   friendlyRequests: FriendlyRequest[];
   overduePayments: OverduePayment[];
+  nextMatch: {
+    id: string;
+    date: Date;
+    opponentName: string;
+    venue: string;
+  } | null;
 }
 
 /**
  * Componente de painel para a função de Administrador.
  */
-export default function AdminDashboard({ team, metrics, transactions, friendlyRequests, overduePayments }: AdminDashboardProps) {
+export default function AdminDashboard({ team, metrics, transactions, friendlyRequests, overduePayments, nextMatch }: AdminDashboardProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
   };
@@ -63,6 +70,16 @@ export default function AdminDashboard({ team, metrics, transactions, friendlyRe
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("pt-BR").format(new Date(date));
   };
+
+  const isMatchToday = nextMatch ? (() => {
+    const d = new Date(nextMatch.date);
+    const today = new Date();
+    return (
+      d.getDate() === today.getDate() &&
+      d.getMonth() === today.getMonth() &&
+      d.getFullYear() === today.getFullYear()
+    );
+  })() : false;
 
   return (
     <div className="space-y-6">
@@ -101,6 +118,48 @@ export default function AdminDashboard({ team, metrics, transactions, friendlyRe
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Próxima Partida</CardTitle>
+              {isMatchToday && (
+                <span className="rounded-full bg-red-500/10 border border-red-500/30 px-2.5 py-0.5 text-xs font-bold text-red-400 animate-pulse">
+                  🔥 É HOJE!
+                </span>
+              )}
+            </CardHeader>
+            <CardContent>
+              {nextMatch ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <Calendar className="w-10 h-10 text-[var(--brand)] animate-bounce" />
+                    <div>
+                      <h3 className="text-lg font-bold text-[var(--text)]">{nextMatch.opponentName}</h3>
+                      <p className="text-sm text-[var(--text-muted)]">
+                        {formatDate(nextMatch.date)} - {nextMatch.venue}
+                      </p>
+                    </div>
+                  </div>
+                  {isMatchToday && (
+                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3 text-xs font-semibold text-red-400">
+                      ⚽ Dia de jogo importante do clube! Acesse a página do jogo para gerenciar e registrar eventos em tempo real.
+                    </div>
+                  )}
+                  <div className="flex justify-end pt-2">
+                    <Link href={`/dashboard/matches/${nextMatch.id}`} className="w-full sm:w-auto">
+                      <Button variant="ghost" className="w-full text-xs font-black uppercase tracking-wider text-[var(--brand)] hover:bg-[var(--brand-soft)]/20">
+                        🏟️ Acessar Página da Partida ➔
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-4 text-center text-sm text-[var(--text-muted)]">
+                  Nenhuma partida agendada no momento.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Últimas Transações</CardTitle>
