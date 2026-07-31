@@ -25,10 +25,10 @@ interface MatchBordereauTabProps {
   bordereauSaving: boolean;
   bordereauError: string | null;
   bordereauData: BordereauResponse | null;
-  toggleChecklistItem: (itemId: string, checked: boolean) => Promise<void>;
-  toggleAttendance: (playerId: string, present: boolean) => Promise<void>;
-  handleShirtNumberChange: (playerId: string, shirtNumber: string) => Promise<void>;
-  handleSaveBordereau: (data: any) => Promise<void>;
+  toggleChecklistItem: (index: number) => void;
+  toggleAttendance: (playerId: string) => void;
+  handleShirtNumberChange: (playerId: string, shirtNumber: number | null) => void;
+  handleSaveBordereau: () => Promise<void>;
   setExpenseModalOpen: (open: boolean) => void;
   copyPixKey: (key: string) => void;
   pixKeyCopied: boolean;
