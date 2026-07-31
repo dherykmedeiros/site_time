@@ -128,7 +128,7 @@ interface MatchRatingTabProps {
   handleCopyRecapLink: () => void;
   handleCopyLink: () => void;
   buildResultText: () => string;
-  trackRecapCtaClick: (cta: string) => void;
+  trackRecapCtaClick: (cta: "open_card" | "copy_link" | "whatsapp_share") => void;
 }
 
 export function MatchRatingTab({
