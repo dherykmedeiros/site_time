@@ -88,46 +88,6 @@ export function MatchRsvpTab({
     }
   };
 
-  if (match.status !== "SCHEDULED") {
-    return (
-      <Card>
-        <CardHeader>
-          <h2 className="text-lg font-semibold">Presenças</h2>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {match.rsvps.map((rsvp) => (
-              <div
-                key={rsvp.playerId}
-                className="flex items-center justify-between rounded-[12px] border border-white/5 bg-white/[0.04] px-4 py-2 hover:bg-white/[0.07] transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`font-medium ${
-                      match.type === "CHAMPIONSHIP" && !rsvp.summoned
-                        ? "text-[var(--text-muted)] line-through"
-                        : "text-[var(--text)]"
-                    }`}
-                  >
-                    {rsvp.playerName}
-                  </span>
-                  {match.type === "CHAMPIONSHIP" && (
-                    <Badge variant={rsvp.summoned ? "success" : "default"}>
-                      {rsvp.summoned ? "Convocado" : "Não Convocado"}
-                    </Badge>
-                  )}
-                </div>
-                <Badge variant={rsvpStatusVariants[rsvp.status]}>
-                  {rsvpStatusLabels[rsvp.status]}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* Relatório de Presenças */}
@@ -198,7 +158,7 @@ export function MatchRsvpTab({
           )}
 
           {/* RSVP action buttons for players */}
-          {currentUserId && !match.isPlayerSuspended && (
+          {match.status === "SCHEDULED" && currentUserId && !match.isPlayerSuspended && (
             <div className="mb-6">
               {isSummoned ? (
                 <div className="flex gap-3">
@@ -233,7 +193,7 @@ export function MatchRsvpTab({
           )}
 
           {/* Check-in section for confirmed players */}
-          {loggedInPlayerRsvp?.status === "CONFIRMED" && (
+          {match.status === "SCHEDULED" && loggedInPlayerRsvp?.status === "CONFIRMED" && (
             <div className="mb-6">
               {match.userAttendance?.present ? (
                 <div className="p-4 rounded-xl border border-green-500/20 bg-green-500/5 flex items-start gap-3">
@@ -322,7 +282,7 @@ export function MatchRsvpTab({
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {isCoachOrAdmin && match.type === "CHAMPIONSHIP" && !rsvp.isGuest && (
+                  {match.status === "SCHEDULED" && isCoachOrAdmin && match.type === "CHAMPIONSHIP" && !rsvp.isGuest && (
                     <Button
                       size="sm"
                       variant={rsvp.summoned ? "ghost" : "secondary"}
