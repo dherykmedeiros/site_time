@@ -218,7 +218,7 @@ export default function NotificationsPage() {
             <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-2">
                 <Button
-                  variant={filter === "ALL" ? "default" : "secondary"}
+                  variant={filter === "ALL" ? "primary" : "secondary"}
                   size="sm"
                   onClick={() => setFilter("ALL")}
                   className="text-xs uppercase font-bold tracking-wider"
@@ -226,7 +226,7 @@ export default function NotificationsPage() {
                   Todas ({notifications.length})
                 </Button>
                 <Button
-                  variant={filter === "UNREAD" ? "default" : "secondary"}
+                  variant={filter === "UNREAD" ? "primary" : "secondary"}
                   size="sm"
                   onClick={() => setFilter("UNREAD")}
                   className="text-xs uppercase font-bold tracking-wider"
