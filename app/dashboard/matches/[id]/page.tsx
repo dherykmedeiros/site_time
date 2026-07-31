@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
-import { BordereauCard } from "@/components/dashboard/BordereauCard";
-import { MatchEquipmentCard } from "@/components/dashboard/MatchEquipmentCard";
-import { LiveMatchControl } from "@/components/dashboard/LiveMatchControl";
-import { GuestPlayersManager } from "@/components/dashboard/GuestPlayersManager";
-import { SuggestedLineupCard } from "@/components/dashboard/SuggestedLineupCard";
-import { TeamRecapWidget } from "@/components/dashboard/TeamRecapWidget";
-import { MatchPhotosGallery } from "@/components/dashboard/MatchPhotosGallery";
+import { MatchOverviewTab } from "@/components/matches/MatchOverviewTab";
+import { MatchRsvpTab } from "@/components/matches/MatchRsvpTab";
+import { MatchLineupTab } from "@/components/matches/MatchLineupTab";
+import { MatchBordereauTab } from "@/components/matches/MatchBordereauTab";
+import { MatchLiveTab } from "@/components/matches/MatchLiveTab";
+import { MatchRatingTab } from "@/components/matches/MatchRatingTab";
+import { MatchGalleryTab } from "@/components/matches/MatchGalleryTab";
 import type { BordereauResponse, SuggestedLineupResponse } from "@/lib/validations/match";
 import { Star, Copy, Check, Upload, Eye, FileText, CheckCircle2, XCircle, AlertCircle, Coins, MapPin, Calendar, Users, LayoutGrid, Settings, Trophy, Camera, Radio, UserPlus, MoreVertical, ExternalLink, ChevronDown } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
@@ -34,96 +34,9 @@ const TransactionForm = dynamic(
   { loading: () => <div className="p-4 text-center text-gray-500">Carregando formulário...</div> }
 );
 
-function TeammateRatingRow({
-  player,
-  currentUserPlayerId,
-  userRating,
-  averageRating,
-  totalRatings,
-  canRate,
-  onRate,
-  isSubmitting,
-}: {
-  player: PlayerStat;
-  currentUserPlayerId: string | null;
-  userRating: number | null;
-  averageRating: number;
-  totalRatings: number;
-  canRate: boolean;
-  onRate: (stars: number) => void;
-  isSubmitting: boolean;
-}) {
-  const isSelf = currentUserPlayerId && currentUserPlayerId === player.playerId;
-  const [hoveredStars, setHoveredStars] = useState<number | null>(null);
 
-  const disabled = isSelf || !canRate || isSubmitting;
 
-  return (
-    <div
-      className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-xl border border-white/5 bg-white/[0.01] transition-all duration-300 ${
-        isSelf ? "opacity-60 bg-black/10" : "hover:bg-white/[0.03] hover:border-white/10"
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        <div className="h-9 w-9 flex items-center justify-center rounded-full bg-white/10 text-white font-bold text-sm">
-          {player.playerName.charAt(0).toUpperCase()}
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-white text-sm">{player.playerName}</span>
-            {isSelf && (
-              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase text-white/70">
-                Você
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2 mt-0.5 text-xs text-[#8fa39b]">
-            <span>Média: <strong className="text-white">{averageRating.toFixed(1)}⭐</strong></span>
-            <span>·</span>
-            <span>{totalRatings} {totalRatings === 1 ? "avaliação" : "avaliações"}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-3 sm:mt-0 flex items-center gap-3">
-        <div className="flex items-center gap-1">
-          {[1, 2, 3, 4, 5].map((star) => {
-            const isFilled = hoveredStars !== null ? star <= hoveredStars : star <= (userRating || 0);
-            return (
-              <button
-                key={star}
-                type="button"
-                disabled={disabled}
-                onClick={() => onRate(star)}
-                onMouseEnter={() => !disabled && setHoveredStars(star)}
-                onMouseLeave={() => !disabled && setHoveredStars(null)}
-                className={`transition-all duration-150 focus:outline-none ${
-                  disabled ? "cursor-not-allowed" : "cursor-pointer hover:scale-125"
-                }`}
-              >
-                <Star
-                  className={`h-5 w-5 ${
-                    isFilled
-                      ? "fill-yellow-400 text-yellow-400 animate-none"
-                      : "text-white/20 fill-transparent"
-                  } ${isSubmitting ? "animate-pulse" : ""}`}
-                />
-              </button>
-            );
-          })}
-        </div>
-
-        {userRating && (
-          <span className="text-[10px] font-black uppercase text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded-md border border-yellow-400/20">
-            Sua Nota: {userRating}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-interface RSVP {
+export interface RSVP {
   playerId: string;
   playerName: string;
   status: "PENDING" | "CONFIRMED" | "DECLINED";
@@ -134,7 +47,7 @@ interface RSVP {
   isSuspended?: boolean;
 }
 
-interface PlayerStat {
+export interface PlayerStat {
   playerId: string;
   guestPlayerId?: string | null;
   playerName: string;
@@ -144,7 +57,7 @@ interface PlayerStat {
   redCards: number;
 }
 
-interface MatchDetail {
+export interface MatchDetail {
   id: string;
   date: string;
   venue: string;
@@ -174,14 +87,14 @@ interface MatchDetail {
   updatedAt: string;
 }
 
-interface MatchLineupResponse {
+export interface MatchLineupResponse {
   matchId: string;
   generatedAt: string;
   imageUrl: string;
   lineup: SuggestedLineupResponse;
 }
 
-type ScheduledWorkspaceSection = "overview" | "presence" | "lineup" | "operations" | "postgame" | "gallery" | "live" | "guests" | "charges";
+export type ScheduledWorkspaceSection = "overview" | "presence" | "lineup" | "operations" | "postgame" | "gallery" | "live" | "guests" | "charges";
 
 const sectionIcons: Record<ScheduledWorkspaceSection, React.ReactNode> = {
   overview: <LayoutGrid className="h-4 w-4" />,
@@ -1260,26 +1173,20 @@ export default function MatchDetailPage() {
     label: string;
     helper: string;
   }> = [
-    { id: "overview", label: "Resumo", helper: "Visao rapida da partida" },
-    { id: "presence", label: "Presenca", helper: "RSVP e lista de respostas" },
+    { id: "overview", label: "Resumo", helper: "Visão rápida da partida" },
+    { id: "presence", label: "Presença", helper: "RSVP e convidados da partida" },
     { id: "gallery", label: "Galeria", helper: "Fotos da partida" },
     ...(canSeeLive
       ? [{ id: "live" as const, label: "Ao Vivo", helper: "Placar e cronômetro em tempo real" }]
       : []),
-    ...(canSeeGuests
-      ? [{ id: "guests" as const, label: "Convidados", helper: "Jogadores convidados do jogo" }]
-      : []),
     ...(canSeeLineup
-      ? [{ id: "lineup" as const, label: "Escalacao", helper: "Sugestao inicial do jogo" }]
+      ? [{ id: "lineup" as const, label: "Escalação", helper: "Sugestão tática do jogo" }]
       : []),
-    ...(canSeeOperations
-      ? [{ id: "operations" as const, label: "Operacao", helper: "Bordero e despesas" }]
+    ...(canSeeOperations || match.hasCharge
+      ? [{ id: "operations" as const, label: "Financeiro", helper: "Bordero e pagamentos" }]
       : []),
     ...(canSeePostGame
-      ? [{ id: "postgame" as const, label: "Pos-jogo", helper: "Placar, estatisticas e compartilhamento" }]
-      : []),
-    ...(match.hasCharge
-      ? [{ id: "charges" as const, label: "Cobrança", helper: "Controle de pagamentos do jogo" }]
+      ? [{ id: "postgame" as const, label: "Pós-jogo", helper: "Estatísticas e avaliações" }]
       : []),
   ];
 
@@ -1650,1091 +1557,124 @@ export default function MatchDetailPage() {
         </div>
       )}
 
-      {isScheduled && activeSection === "overview" && (
-        <>
-          {/* Compact Stats Bar */}
-          <div className="grid gap-3 grid-cols-3">
-            <div className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(16,185,129,0.1)] text-[#34d399]">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-black text-white">{confirmed}</p>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">Confirmados</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(251,191,36,0.1)] text-[#fbbf24]">
-                <AlertCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-black text-white">{pending}</p>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">Pendentes</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgba(248,113,113,0.1)] text-[#f87171]">
-                <XCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-black text-white">{declined}</p>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">Recusas</p>
-              </div>
-            </div>
-          </div>
-
-
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold text-[var(--text)]">Divulgar Pré-Jogo nas Redes Sociais</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-4 py-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-semibold text-[#6ee7b7]">Gerar Imagem de Pré-Jogo</p>
-                  <p className="text-sm text-[var(--text-subtle)]">
-                    Crie um card de preview personalizado com local, horário, convocados e retrospectiva do time para publicar no Instagram e WhatsApp!
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      const pregameUrl = getPregameRecapCardUrl();
-                      if (!pregameUrl) return;
-                      trackPregameCtaClick("open_card");
-                      window.open(
-                        pregameUrl,
-                        "_blank",
-                        "noopener,noreferrer"
-                      );
-                    }}
-                  >
-                    🖼️ Abrir card pré-jogo
-                  </Button>
-                  <Button variant="secondary" onClick={handleCopyPregameRecapLink}>
-                    📋 Copiar link do card
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      trackPregameCtaClick("whatsapp_share");
-                      window.open(
-                        `https://wa.me/?text=${encodeURIComponent(buildConvocacaoText())}`,
-                        "_blank",
-                        "noopener,noreferrer"
-                      );
-                    }}
-                  >
-                    📱 Compartilhar no WhatsApp
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      {/* Score section removed — scoreboard is now integrated into the hero header */}
-
-      {activeSection === "presence" && (
-        <Card className="mb-4">
-          <CardHeader>
-            <h2 className="text-lg font-semibold text-[var(--text)]">Relatório de Presenças no Local</h2>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-4 py-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="font-semibold text-[#34d399]">Gerar Card de Presenças</p>
-                <p className="text-sm text-[var(--text-subtle)]">
-                  Crie um relatório visual personalizado mostrando os jogadores confirmados e o horário exato do check-in de cada um!
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    const url = `/api/og/match/${match.id}/attendance`;
-                    window.open(url, "_blank", "noopener,noreferrer");
-                  }}
-                >
-                  🖼️ Abrir card de presenças
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    const url = `${window.location.origin}/api/og/match/${match.id}/attendance`;
-                    navigator.clipboard.writeText(url).then(() => {
-                      setCopyMsg("Link do relatório copiado!");
-                      setTimeout(() => setCopyMsg(""), 2500);
-                    });
-                  }}
-                >
-                  📋 Copiar link do card
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {match.status === "SCHEDULED" && activeSection === "presence" && (() => {
-        const loggedInPlayerRsvp = match.rsvps.find((r) => r.playerId === session?.user?.playerId);
-        const isSummoned = match.type !== "CHAMPIONSHIP" || loggedInPlayerRsvp?.summoned === true;
-        return (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Confirmação de Presença</h2>
-                <div className="flex gap-3 text-sm">
-                  <span className="text-green-600">✅ {confirmed}</span>
-                  <span className="text-red-600">❌ {declined}</span>
-                  <span className="text-yellow-600">⏳ {pending}</span>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {match.isPlayerSuspended && (
-                <div className="mb-4 p-4 rounded-xl border border-red-500/20 bg-red-500/5 flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-semibold text-red-400">Você está suspenso para esta partida</p>
-                    <p className="text-xs text-[var(--text-subtle)] mt-1">
-                      Motivo: {match.suspensionReason || "Suspensão disciplinar ativa."}
-                    </p>
-                    <p className="text-xs text-[var(--text-subtle)] mt-0.5">
-                      Você foi automaticamente marcado como "não vai" e está bloqueado de alterar presença ou realizar check-in.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* RSVP action buttons for players */}
-              {isSummoned ? (
-                <div className="mb-4 flex gap-3">
-                  <Button
-                    onClick={() => handleRsvp("CONFIRMED")}
-                    disabled={rsvpLoading || match.isPlayerSuspended}
-                  >
-                    ✅ Confirmar Presença
-                  </Button>
-                  <Button
-                    variant="danger"
-                    onClick={() => handleRsvp("DECLINED")}
-                    disabled={rsvpLoading || match.isPlayerSuspended}
-                  >
-                    ❌ Recusar
-                  </Button>
-                </div>
-              ) : (
-                <div className="mb-4 p-4 rounded-xl border border-yellow-500/20 bg-yellow-500/5 flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-semibold text-yellow-400">Você não foi convocado</p>
-                    <p className="text-xs text-[var(--text-subtle)] mt-1">
-                      Esta é uma partida de campeonato. Apenas jogadores convocados pela comissão técnica podem registrar presença.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Check-in section for confirmed players */}
-              {loggedInPlayerRsvp?.status === "CONFIRMED" && (
-                <>
-                  {match.userAttendance?.present ? (
-                    <div className="mb-4 p-4 rounded-xl border border-green-500/20 bg-green-500/5 flex items-start gap-3">
-                      <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-semibold text-green-400">Chegada Confirmada no Campo!</p>
-                        <p className="text-xs text-[var(--text-subtle)] mt-1">
-                          Seu check-in no local foi registrado em{" "}
-                          {match.userAttendance.checkedInAt
-                            ? new Intl.DateTimeFormat("pt-BR", {
-                                timeStyle: "short",
-                                timeZone: "America/Sao_Paulo",
-                              }).format(new Date(match.userAttendance.checkedInAt))
-                            : ""}{" "}
-                          h. Presença oficialmente confirmada.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    match.latitude && match.longitude && isCheckInOpen && (
-                      <div className="mb-4 p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 space-y-3">
-                        <div className="flex items-start gap-3">
-                          <MapPin className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-sm font-semibold text-blue-400">Confirmar Presença no Local</p>
-                            <p className="text-xs text-[var(--text-subtle)] mt-1">
-                              Quando estiver no local da partida (campo de jogo, em um raio de até 500 metros), confirme sua chegada clicando no botão abaixo.
-                            </p>
-                          </div>
-                        </div>
-
-                        {checkInFeedback && (
-                          <div className="rounded-[12px] border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] p-3 text-xs text-[#6ee7b7] font-semibold">
-                            {checkInFeedback}
-                          </div>
-                        )}
-                        {checkInError && (
-                          <div className="rounded-[12px] border border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.1)] p-3 text-xs text-[#fca5a5] font-semibold">
-                            {checkInError}
-                          </div>
-                        )}
-
-                        <Button
-                          onClick={handleCheckIn}
-                          disabled={checkInLoading}
-                          className="w-full sm:w-auto text-xs font-black uppercase tracking-wider text-[#010403] bg-[#10b981] hover:bg-[#34d399]"
-                        >
-                          {checkInLoading ? "Obtendo localização..." : "📍 Confirmar Presença (Check-in)"}
-                        </Button>
-                      </div>
-                    )
-                  )}
-                </>
-              )}
-
-              {/* RSVP list */}
-              <div className="space-y-2">
-                {match.rsvps.map((rsvp) => (
-                  <div
-                    key={rsvp.playerId}
-                    className="flex items-center justify-between rounded-[12px] border border-white/5 bg-white/[0.04] px-4 py-2 hover:bg-white/[0.07] transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={`font-medium ${match.type === "CHAMPIONSHIP" && !rsvp.summoned ? "text-[var(--text-muted)] line-through" : "text-[var(--text)]"}`}>
-                        {rsvp.playerName}
-                      </span>
-                      {rsvp.isSuspended && (
-                        <Badge variant="danger" className="bg-red-500/10 text-red-400 border-red-500/20">
-                          Suspenso
-                        </Badge>
-                      )}
-                      {match.type === "CHAMPIONSHIP" && (
-                        <Badge variant={rsvp.summoned ? "success" : "default"}>
-                          {rsvp.summoned ? "Convocado" : "Não Convocado"}
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      {isCoachOrAdmin && match.type === "CHAMPIONSHIP" && !rsvp.isGuest && (
-                        <Button
-                          size="sm"
-                          variant={rsvp.summoned ? "ghost" : "secondary"}
-                          onClick={async () => {
-                            try {
-                              const res = await fetch(`/api/matches/${match.id}/rsvp/summon`, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                  playerId: rsvp.playerId,
-                                  summoned: !rsvp.summoned,
-                                }),
-                              });
-                              if (res.ok) {
-                                const updatedSummon = await res.json();
-                                setMatch(prev => {
-                                  if (!prev) return null;
-                                  return {
-                                    ...prev,
-                                    rsvps: prev.rsvps.map((r) =>
-                                      r.playerId === rsvp.playerId
-                                        ? { ...r, summoned: updatedSummon.summoned }
-                                        : r
-                                    ),
-                                  };
-                                });
-                              }
-                            } catch (err) {
-                              console.error("Erro ao alterar convocação", err);
-                            }
-                          }}
-                        >
-                          {rsvp.summoned ? "📋 Desconvocar" : "📋 Convocar"}
-                        </Button>
-                      )}
-                      <Badge variant={rsvpStatusVariants[rsvp.status]}>
-                        {rsvpStatusLabels[rsvp.status]}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })()}
-
-      {/* RSVP list for non-scheduled matches */}
-      {match.status !== "SCHEDULED" && match.rsvps.length > 0 && activeSection === "presence" && (
-        <Card>
-          <CardHeader>
-            <h2 className="text-lg font-semibold">Presenças</h2>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {match.rsvps.map((rsvp) => (
-                <div
-                  key={rsvp.playerId}
-                  className="flex items-center justify-between rounded-[12px] border border-white/5 bg-white/[0.04] px-4 py-2 hover:bg-white/[0.07] transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={`font-medium ${match.type === "CHAMPIONSHIP" && !rsvp.summoned ? "text-[var(--text-muted)] line-through" : "text-[var(--text)]"}`}>
-                      {rsvp.playerName}
-                    </span>
-                    {match.type === "CHAMPIONSHIP" && (
-                      <Badge variant={rsvp.summoned ? "success" : "default"}>
-                        {rsvp.summoned ? "Convocado" : "Não Convocado"}
-                      </Badge>
-                    )}
-                  </div>
-                  <Badge variant={rsvpStatusVariants[rsvp.status]}>
-                    {rsvpStatusLabels[rsvp.status]}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {canSeeLineup && activeSection === "lineup" && lineupData && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Compartilhar Escalação</h2>
-              <button
-                onClick={() => {
-                  const next = !showLineupShare;
-                  setShowLineupShare(next);
-                  if (next) setLineupShareText(buildLineupShareText());
-                }}
-                className="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--brand-neon)] hover:bg-white/[0.06] transition-colors"
-              >
-                {showLineupShare ? "Fechar" : "📋 Gerar texto"}
-              </button>
-            </div>
-          </CardHeader>
-          {showLineupShare && (
-            <CardContent>
-              <textarea
-                className="min-h-[160px] w-full rounded-lg border border-[var(--border)] bg-[#090f0c] p-4 font-sans text-sm text-[var(--text)] placeholder:text-[var(--text-subtle)] focus:border-[var(--brand)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)]"
-                value={lineupShareText}
-                onChange={(e) => setLineupShareText(e.target.value)}
-                aria-label="Texto da escalação para compartilhar"
-              />
-              <div className="mt-4 flex flex-wrap gap-3">
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    navigator.clipboard.writeText(lineupShareText);
-                    setCopyMsg("Escalação copiada!");
-                    setTimeout(() => setCopyMsg(""), 2500);
-                  }}
-                >
-                  📋 Copiar texto
-                </Button>
-                <Button
-                  onClick={() => {
-                    window.open(
-                      `https://wa.me/?text=${encodeURIComponent(lineupShareText)}`,
-                      "_blank",
-                      "noopener,noreferrer"
-                    );
-                  }}
-                >
-                  📱 Enviar no WhatsApp
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => setLineupShareText(buildLineupShareText())}
-                >
-                  🔄 Regenerar
-                </Button>
-              </div>
-            </CardContent>
-          )}
-        </Card>
-      )}
-
-      {canSeeLineup && activeSection === "lineup" && (
-        <SuggestedLineupCard
-          loading={lineupLoading}
-          error={lineupError}
-          lineup={lineupData?.lineup ?? null}
-          generatedAt={lineupData?.generatedAt ?? null}
-          onRefresh={() => fetchLineup({ refresh: true })}
-          canRefresh={!lineupRefreshing}
-          onSaveLineup={handleSaveLineup}
-          onResetSavedLineup={handleResetSavedLineup}
-          saveLoading={lineupSaving}
-          imageUrl={lineupData?.imageUrl ?? null}
+      {activeSection === "overview" && (
+        <MatchOverviewTab
+          match={match}
+          confirmed={confirmed}
+          pending={pending}
+          declined={declined}
+          isScheduled={isScheduled}
+          getPregameRecapCardUrl={getPregameRecapCardUrl}
+          handleCopyPregameRecapLink={handleCopyPregameRecapLink}
+          buildConvocacaoText={buildConvocacaoText}
+          trackPregameCtaClick={trackPregameCtaClick}
         />
       )}
 
-      {canSeeLive && activeSection === "live" && (
-        <LiveMatchControl matchId={match.id} />
+      {activeSection === "presence" && (
+        <MatchRsvpTab
+          match={match}
+          currentUserId={session?.user?.playerId ?? null}
+          isCoachOrAdmin={isCoachOrAdmin}
+          rsvpLoading={rsvpLoading}
+          handleRsvp={handleRsvp}
+          setMatch={setMatch}
+          fetchMatch={fetchMatch}
+          isCheckInOpen={isCheckInOpen}
+          checkInFeedback={checkInFeedback}
+          checkInError={checkInError}
+          checkInLoading={checkInLoading}
+          handleCheckIn={handleCheckIn}
+        />
       )}
 
-      {canSeeGuests && activeSection === "guests" && (
-        <GuestPlayersManager matchId={match.id} onGuestsChange={fetchMatch} />
+      {canSeeLineup && activeSection === "lineup" && (
+        <MatchLineupTab
+          match={match}
+          lineupData={lineupData}
+          lineupLoading={lineupLoading}
+          lineupError={lineupError}
+          lineupRefreshing={lineupRefreshing}
+          lineupSaving={lineupSaving}
+          fetchLineup={fetchLineup}
+          handleSaveLineup={handleSaveLineup}
+          handleResetSavedLineup={handleResetSavedLineup}
+          buildLineupShareText={buildLineupShareText}
+          showLineupShare={showLineupShare}
+          setShowLineupShare={setShowLineupShare}
+          lineupShareText={lineupShareText}
+          setLineupShareText={setLineupShareText}
+          setCopyMsg={setCopyMsg}
+        />
       )}
 
       {activeSection === "gallery" && (
-        <MatchPhotosGallery matchId={match.id} opponent={match.opponent} />
+        <MatchGalleryTab matchId={match.id} opponent={match.opponent} />
       )}
 
-      {canSeeOperations && activeSection === "operations" && (
-        <div className="space-y-6">
-          <BordereauCard
-            loading={bordereauLoading}
-            saving={bordereauSaving}
-            error={bordereauError}
-            data={bordereauData}
-            onChecklistToggle={toggleChecklistItem}
-            onAttendanceToggle={toggleAttendance}
-            onShirtNumberChange={handleShirtNumberChange}
-            onSave={handleSaveBordereau}
-            onOpenExpense={() => setExpenseModalOpen(true)}
-          />
-          <MatchEquipmentCard matchId={match.id} />
-        </div>
+      {canSeeLive && activeSection === "live" && (
+        <MatchLiveTab matchId={match.id} />
       )}
 
-      {match.hasCharge && activeSection === "charges" && (
-        <div className="space-y-6">
-          {/* Card de Chave PIX da Partida */}
-          {match.pixKey && (
-            <div className="rounded-[18px] border border-white/5 bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-5 backdrop-blur-md shadow-lg">
-              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-3.5">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[rgba(16,185,129,0.1)] border border-[rgba(16,185,129,0.2)] text-[#34d399]">
-                    <Coins className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black uppercase tracking-wider text-[var(--text-muted)]">Pagamento via PIX</h3>
-                    <p className="text-xs text-[var(--text-muted)] mt-1">Copie a chave abaixo para realizar a transferência da taxa do jogo.</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 rounded-xl bg-black/20 border border-white/5 p-2 pr-3">
-                  <span className="text-xs font-mono font-bold text-white px-2 select-all">{match.pixKey}</span>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => copyPixKey(match.pixKey || "")}
-                    className="h-8 rounded-lg px-2.5 text-xs flex items-center gap-1.5 active:scale-95 transition-transform"
-                  >
-                    {pixKeyCopied ? (
-                      <>
-                        <Check className="h-3.5 w-3.5 text-[#34d399]" />
-                        <span className="text-[#34d399]">Copiado</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3.5 w-3.5" />
-                        <span>Copiar</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Área do Jogador Autenticado (Seu Status e Envio de Comprovante) */}
-          {(() => {
-            const loggedInPlayerId = session?.user?.playerId;
-            const currentPlayerInfo = loggedInPlayerId ? checklistPlayers.find((p) => p.id === loggedInPlayerId) : null;
-            if (!currentPlayerInfo) return null;
-
-            const isApproved = currentPlayerInfo.payment && currentPlayerInfo.payment.status === "PAID";
-            const isPending = currentPlayerInfo.payment && currentPlayerInfo.payment.status === "PENDING";
-
-            return (
-              <div className="rounded-[18px] border border-white/5 bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-5 backdrop-blur-md shadow-lg">
-                <h3 className="text-sm font-black uppercase tracking-wider text-[var(--text-muted)] mb-3">Seu Pagamento</h3>
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-soft)] text-sm font-black text-[var(--brand)] border border-[var(--brand)]/20">
-                      {currentPlayerInfo.shirtNumber || "—"}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-white text-sm">{currentPlayerInfo.name}</p>
-                      <p className="text-xs text-[var(--text-muted)] mt-0.5">Taxa de jogo individual: <strong className="text-[#34d399]">{match.chargeAmount != null ? formatCurrency(match.chargeAmount) : "R$ 0,00"}</strong></p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-4">
-                    {currentPlayerInfo.payment ? (
-                      isApproved ? (
-                        <Badge variant="success" className="bg-[#10b981]/15 text-[#34d399] border border-[#10b981]/25 text-xs px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-bold">
-                          <CheckCircle2 className="h-4 w-4 text-[#34d399]" />
-                          <span>Pago & Aprovado ✅</span>
-                        </Badge>
-                      ) : (
-                        <div className="flex flex-col items-end gap-1.5">
-                          <Badge variant="warning" className="bg-amber-500/10 text-amber-400 border border-amber-500/25 text-xs px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-bold">
-                            <AlertCircle className="h-4 w-4 text-amber-400" />
-                            <span>Aguardando Aprovação ⏳</span>
-                          </Badge>
-                          {currentPlayerInfo.payment.receiptUrl && (
-                            <a
-                              href={currentPlayerInfo.payment.receiptUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-[#34d399] hover:underline flex items-center gap-1 font-semibold"
-                            >
-                              <Eye className="h-3.5 w-3.5" /> Ver comprovante enviado
-                            </a>
-                          )}
-                        </div>
-                      )
-                    ) : (
-                      <Badge variant="danger" className="bg-red-500/10 text-red-400 border border-red-500/25 text-xs px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-bold">
-                        <XCircle className="h-4 w-4 text-red-400" />
-                        <span>Pagamento Pendente ⏳</span>
-                      </Badge>
-                    )}
-
-                    {!isApproved && (
-                      <label className="relative cursor-pointer">
-                        <span className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition-all shadow-sm ${
-                          uploadingReceipt 
-                            ? "border-white/5 bg-white/5 cursor-not-allowed text-[var(--text-muted)]" 
-                            : "border-[#10b981]/30 bg-[#10b981]/10 hover:bg-[#10b981]/20 hover:border-[#10b981]/40 cursor-pointer"
-                        }`}>
-                          <Upload className="h-4 w-4" />
-                          {uploadingReceipt ? "Enviando..." : "Enviar Comprovante"}
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp,application/pdf"
-                          className="hidden"
-                          onChange={(e) => handleUploadReceipt(e, currentPlayerInfo.id)}
-                          disabled={uploadingReceipt}
-                        />
-                      </label>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Área do Administrador: Comprovantes Pendentes */}
-          {(() => {
-            const pendingPayments = checklistPlayers.filter((p) => p.payment && p.payment.status === "PENDING");
-            if (!isAdmin || pendingPayments.length === 0) return null;
-
-            return (
-              <div className="rounded-[18px] border border-amber-500/15 bg-amber-500/[0.02] p-5 backdrop-blur-md shadow-lg">
-                <div className="flex items-center gap-2.5 mb-4">
-                  <AlertCircle className="h-5 w-5 text-amber-400 animate-pulse" />
-                  <h3 className="text-sm font-black uppercase tracking-wider text-amber-400">Comprovantes Aguardando Revisão ({pendingPayments.length})</h3>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {pendingPayments.map((p) => (
-                    <div
-                      key={p.id}
-                      className="flex items-center justify-between rounded-xl border border-white/5 bg-black/20 p-4 hover:border-white/10 transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/10 text-sm font-black text-amber-400 border border-amber-500/20">
-                          {p.shirtNumber || "—"}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-white text-sm">{p.name}</p>
-                          <p className="text-xs text-[var(--text-muted)] mt-0.5">Enviado por PIX</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {p.payment?.receiptUrl && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setPreviewReceipt({ url: p.payment.receiptUrl, playerName: p.name, playerId: p.id })}
-                            className="h-8 w-8 rounded-lg p-0 flex items-center justify-center text-white/80 hover:text-white bg-white/5 border border-white/5 hover:bg-white/10"
-                            title="Visualizar Comprovante"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          onClick={() => handleApproveReceipt(p.id)}
-                          disabled={togglingPlayerId === p.id}
-                          className="h-8 rounded-lg bg-[#10b981] hover:bg-[#059669] text-white text-xs font-bold px-3 transition-colors"
-                        >
-                          Aprovar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => handleRejectReceipt(p.id)}
-                          disabled={togglingPlayerId === p.id}
-                          className="h-8 rounded-lg border border-red-500/25 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-bold px-3 transition-colors"
-                        >
-                          Recusar
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Controle Geral de Pagamentos */}
-          <Card className="rounded-[18px]">
-            <CardHeader>
-              <div className="flex flex-col justify-between gap-2 border-b border-white/5 pb-3 sm:flex-row sm:items-center">
-                <div>
-                  <h2 className="text-lg font-semibold text-white">Controle de Pagamentos</h2>
-                  <p className="text-xs text-[var(--text-muted)] mt-1">
-                    Taxa definida por atleta: <strong className="text-[#34d399]">{match.chargeAmount != null ? formatCurrency(match.chargeAmount) : "R$ 0,00"}</strong>
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-4 text-sm mt-2 sm:mt-0">
-                  <div className="rounded-xl bg-white/[0.02] border border-white/5 px-4 py-2 text-center">
-                    <p className="text-xs text-[var(--text-muted)]">Arrecadado</p>
-                    <p className="text-lg font-black text-[#34d399] mt-0.5">
-                      {formatCurrency(
-                        checklistPlayers
-                          .filter((p) => p.payment && p.payment.status === "PAID")
-                          .reduce((sum, p) => sum + (match.chargeAmount || 0), 0)
-                      )}
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-white/[0.02] border border-white/5 px-4 py-2 text-center">
-                    <p className="text-xs text-[var(--text-muted)]">Pagos</p>
-                    <p className="text-lg font-black text-white mt-0.5">
-                      {checklistPlayers.filter((p) => p.payment && p.payment.status === "PAID").length} <span className="text-xs font-normal text-[var(--text-muted)]">/ {checklistPlayers.length}</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {chargesFeedback && (
-                <div className="rounded-[12px] border border-[#bde0d3] bg-[#e9f8f1] p-3 text-sm text-[#1d5f4f]">
-                  {chargesFeedback}
-                </div>
-              )}
-
-              {chargesError && (
-                <div className="rounded-[12px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[var(--danger)]">
-                  {chargesError}
-                </div>
-              )}
-
-              {checklistLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#10b981] border-t-transparent" />
-                </div>
-              ) : checklistPlayers.length === 0 ? (
-                <p className="text-center py-8 text-[var(--text-muted)]">Nenhum jogador ativo no elenco.</p>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {checklistPlayers.map((p) => {
-                    const isPaid = !!p.payment && p.payment.status === "PAID";
-                    const isPending = !!p.payment && p.payment.status === "PENDING";
-                    const isToggling = togglingPlayerId === p.id;
-                    
-                    return (
-                      <div
-                        key={p.id}
-                        className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4 hover:bg-white/[0.04] transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--brand-soft)] text-sm font-black text-[var(--brand)] border border-[var(--brand)]/20">
-                            {p.shirtNumber || "—"}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-white text-sm">{p.name}</p>
-                            <div className="mt-1 flex flex-wrap gap-1 items-center font-bold">
-                              {p.present ? (
-                                <Badge variant="success" className="text-[10px] px-1.5 py-0.5">Presente</Badge>
-                              ) : p.rsvp === "CONFIRMED" ? (
-                                <Badge variant="info" className="text-[10px] px-1.5 py-0.5">Confirmou RSVP</Badge>
-                              ) : null}
-                              {isPending && (
-                                <Badge variant="warning" className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] px-1.5 py-0.5 flex items-center gap-1 font-bold">
-                                  <span>Pendente Aprovação</span>
-                                  {p.payment?.receiptUrl && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        setPreviewReceipt({ url: p.payment.receiptUrl, playerName: p.name, playerId: p.id });
-                                      }}
-                                      className="text-[#34d399] hover:text-[#059669] focus:outline-none"
-                                    >
-                                      <Eye className="h-3 w-3" />
-                                    </button>
-                                  )}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {isAdmin ? (
-                          <label className="relative inline-flex items-center cursor-pointer select-none">
-                            <input
-                              type="checkbox"
-                              checked={isPaid}
-                              disabled={isToggling}
-                              onChange={(e) => handleTogglePayment(p.id, e.target.checked)}
-                              className="sr-only peer"
-                              aria-label={`Toggle payment for ${p.name}`}
-                            />
-                            <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand)]"></div>
-                          </label>
-                        ) : (
-                          <div>
-                            {isPaid ? (
-                              <Badge variant="success" className="bg-[#10b981]/10 text-[#34d399] border border-[#10b981]/20 text-xs px-2.5 py-1">Pago ✅</Badge>
-                            ) : isPending ? (
-                              <Badge variant="warning" className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs px-2.5 py-1">Em Análise ⏳</Badge>
-                            ) : (
-                              <Badge variant="danger" className="bg-red-500/10 text-red-400 border border-red-500/20 text-xs px-2.5 py-1">Pendente ⏳</Badge>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+      {(canSeeOperations || match.hasCharge) && activeSection === "operations" && (
+        <MatchBordereauTab
+          match={match}
+          session={session}
+          isAdmin={isAdmin}
+          canSeeOperations={canSeeOperations}
+          togglingPlayerId={togglingPlayerId}
+          checklistLoading={checklistLoading}
+          checklistPlayers={checklistPlayers}
+          chargesFeedback={chargesFeedback}
+          chargesError={chargesError}
+          uploadingReceipt={uploadingReceipt}
+          bordereauLoading={bordereauLoading}
+          bordereauSaving={bordereauSaving}
+          bordereauError={bordereauError}
+          bordereauData={bordereauData}
+          toggleChecklistItem={toggleChecklistItem}
+          toggleAttendance={toggleAttendance}
+          handleShirtNumberChange={handleShirtNumberChange}
+          handleSaveBordereau={handleSaveBordereau}
+          setExpenseModalOpen={setExpenseModalOpen}
+          copyPixKey={copyPixKey}
+          pixKeyCopied={pixKeyCopied}
+          handleUploadReceipt={handleUploadReceipt}
+          handleApproveReceipt={handleApproveReceipt}
+          handleRejectReceipt={handleRejectReceipt}
+          setPreviewReceipt={setPreviewReceipt}
+          handleTogglePayment={handleTogglePayment}
+        />
       )}
 
-      {/* Post-game form (T042) — show when canSubmitPostGame is true */}
-      {activeSection === "postgame" && isAdmin && match.canSubmitPostGame && !showPostGame && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent>
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="font-semibold text-orange-800">
-                  Pós-jogo disponível
-                </p>
-                <p className="text-sm text-orange-600">
-                  A data da partida já passou. Registre o placar e as
-                  estatísticas.
-                </p>
-              </div>
-              <Button onClick={() => setShowPostGame(true)}>
-                Registrar Pós-Jogo
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      {canSeePostGame && activeSection === "postgame" && (
+        <MatchRatingTab
+          match={match}
+          session={session}
+          isAdmin={isAdmin}
+          showPostGame={showPostGame}
+          setShowPostGame={setShowPostGame}
+          fetchMatch={fetchMatch}
+          votesLoading={votesLoading}
+          votesData={votesData}
+          votingForId={votingForId}
+          setVotingForId={setVotingForId}
+          submitVoteLoading={submitVoteLoading}
+          voteError={voteError}
+          handleCastVote={handleCastVote}
+          ratingsLoading={ratingsLoading}
+          userRatings={userRatings}
+          ratingsAverages={ratingsAverages}
+          canRate={canRate}
+          submittingRatingId={submittingRatingId}
+          handleRateTeammate={handleRateTeammate}
+          getRecapCardUrl={getRecapCardUrl}
+          handleCopyRecapLink={handleCopyRecapLink}
+          handleCopyLink={handleCopyLink}
+          buildResultText={buildResultText}
+          trackRecapCtaClick={trackRecapCtaClick}
+        />
       )}
-
-      {activeSection === "postgame" && isAdmin && match.canSubmitPostGame && showPostGame && (
-        <Card>
-          <CardHeader>
-            <h2 className="text-lg font-semibold">Registrar Pós-Jogo</h2>
-          </CardHeader>
-          <CardContent>
-            <PostGameForm
-              matchId={match.id}
-              rsvps={match.rsvps}
-              initialIsHome={match.isHome}
-              onSuccess={() => {
-                setShowPostGame(false);
-                fetchMatch();
-              }}
-              onCancel={() => setShowPostGame(false)}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Stats display (when match is COMPLETED and has stats) */}
-      {activeSection === "postgame" && match.status === "COMPLETED" && match.stats.length > 0 && (
-        <Card>
-          <CardHeader>
-            <h2 className="text-lg font-semibold">Estatísticas Individuais</h2>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="pb-2 font-medium text-gray-500">Jogador</th>
-                    <th className="pb-2 text-center font-medium text-gray-500">
-                      Gols
-                    </th>
-                    <th className="pb-2 text-center font-medium text-gray-500">
-                      Assist.
-                    </th>
-                    <th className="pb-2 text-center font-medium text-gray-500">
-                      🟨
-                    </th>
-                    <th className="pb-2 text-center font-medium text-gray-500">
-                      🟥
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {match.stats.map((stat) => (
-                    <tr
-                      key={stat.playerId}
-                      className="border-b border-gray-100"
-                    >
-                      <td className="py-2 font-medium">{stat.playerName}</td>
-                      <td className="py-2 text-center">{stat.goals}</td>
-                      <td className="py-2 text-center">{stat.assists}</td>
-                      <td className="py-2 text-center">{stat.yellowCards}</td>
-                      <td className="py-2 text-center">{stat.redCards}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Player of the Match Voting Card */}
-      {activeSection === "postgame" && match.status === "COMPLETED" && (
-        <Card className="rounded-[22px] border border-white/5 bg-white/[0.02] backdrop-blur-md overflow-hidden">
-          <CardHeader className="border-b border-white/5 pb-4">
-            <h2 className="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
-              <span className="text-[#34d399]">🏆</span> Craque da Partida
-            </h2>
-            <p className="text-xs text-[#8fa39b] mt-1">
-              Vote no melhor jogador em campo nesta partida. Apenas atletas que participaram podem votar.
-            </p>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            {votesLoading ? (
-              <div className="space-y-3 py-4">
-                <div className="h-16 animate-pulse rounded-xl border border-white/5 bg-white/[0.01]" />
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Voting Action */}
-                {session?.user?.playerId && match.userAttendance?.present ? (
-                  votesData?.hasVoted ? (
-                    <div className="rounded-xl border border-green-500/10 bg-green-500/5 p-4 flex items-center gap-3">
-                      <span className="text-xl">✅</span>
-                      <div>
-                        <p className="text-sm font-semibold text-white">Seu voto foi registrado!</p>
-                        <p className="text-xs text-[#8fa39b] mt-0.5">
-                          Você votou em: <strong className="text-[#34d399]">{votesData.results.find(r => r.playerId === votesData.votedForId)?.playerName || "atleta"}</strong>
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-xl border border-white/5 bg-white/[0.01] p-4 space-y-3">
-                      <p className="text-sm font-semibold text-white">Deixe seu voto para o Craque do Jogo:</p>
-                      {voteError && <p className="text-xs text-red-400 font-semibold">{voteError}</p>}
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                        <select
-                          aria-label="Escolher jogador"
-                          value={votingForId}
-                          onChange={(e) => setVotingForId(e.target.value)}
-                          className="flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-[var(--brand)] focus:outline-none"
-                        >
-                          <option value="">-- Selecione o Craque --</option>
-                          {match.stats
-                            .filter((s) => s.playerId && !s.guestPlayerId && s.playerId !== session.user.playerId)
-                            .map((s) => (
-                              <option key={s.playerId} value={s.playerId || ""}>
-                                {s.playerName}
-                              </option>
-                            ))}
-                        </select>
-                        <Button
-                          onClick={handleCastVote}
-                          disabled={!votingForId || submitVoteLoading}
-                          className="text-xs font-black uppercase tracking-wider text-[#010403] bg-[#10b981] hover:bg-[#34d399]"
-                        >
-                          {submitVoteLoading ? "Enviando..." : "Confirmar Voto"}
-                        </Button>
-                      </div>
-                    </div>
-                  )
-                ) : (
-                  <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.01] p-4 text-center">
-                    <p className="text-sm font-semibold text-white/80">Votação Restrita</p>
-                    <p className="text-xs text-[#8fa39b] mt-1">
-                      Apenas jogadores com presença física confirmada (check-in) nesta partida podem votar.
-                    </p>
-                  </div>
-                )}
-
-                {/* Leaderboard Results */}
-                <div className="space-y-3">
-                  <h3 className="text-xs font-black uppercase tracking-widest text-[#8fa39b] border-b border-white/5 pb-2">
-                    Resultados Parciais
-                  </h3>
-                  {votesData?.results && votesData.results.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {votesData.results.map((res, index) => (
-                        <div
-                          key={res.playerId}
-                          className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.01] p-3"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm font-bold text-white/40">#{index + 1}</span>
-                            <div>
-                              <p className="text-sm font-semibold text-white">{res.playerName}</p>
-                              <p className="text-[10px] text-[#8fa39b]">
-                                {res.shirtNumber ? `#${res.shirtNumber}` : "Sem número"} • {res.position}
-                              </p>
-                            </div>
-                          </div>
-                          <span className="rounded-full bg-[#10b981]/15 border border-[#10b981]/20 px-3 py-1 text-xs font-bold text-[#10b981]">
-                            {res.voteCount} {res.voteCount === 1 ? "voto" : "votos"}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-[#8fa39b] italic">Nenhum voto registrado para esta partida ainda.</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Teammate Ratings Card */}
-      {activeSection === "postgame" && match.status === "COMPLETED" && match.stats.length > 0 && (
-        <Card className="rounded-[22px] border border-white/5 bg-white/[0.02] backdrop-blur-md overflow-hidden">
-          <CardHeader className="border-b border-white/5 pb-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div>
-                <h2 className="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
-                  <span className="text-[#34d399]">⭐</span> Avaliação dos Companheiros
-                </h2>
-                <p className="text-xs text-[#8fa39b] mt-1">
-                  Atribua notas de 1 a 5 estrelas para os atletas que participaram desta partida.
-                </p>
-              </div>
-              {!canRate && (
-                <span className="rounded-full bg-red-500/10 border border-red-500/20 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-400">
-                  Somente Participantes
-                </span>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            {!canRate && (
-              <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.01] p-4 text-center">
-                <p className="text-sm font-semibold text-white/80">Avaliação Restrita</p>
-                <p className="text-xs text-[#8fa39b] mt-1">
-                  Apenas os administradores, comissão técnica ou jogadores que participaram da partida (súmula ou presença confirmada) podem avaliar o time.
-                </p>
-              </div>
-            )}
-            
-            {ratingsLoading ? (
-              <div className="space-y-3 py-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-16 animate-pulse rounded-xl border border-white/5 bg-white/[0.01]" />
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {match.stats.map((stat) => {
-                  const userRating = userRatings.find((r) => r.playerId === stat.playerId)?.stars ?? null;
-                  const avgData = ratingsAverages.find((r) => r.playerId === stat.playerId);
-                  const averageRating = avgData?.averageStars ?? 0;
-                  const totalRatings = avgData?.totalRatings ?? 0;
-
-                  return (
-                    <TeammateRatingRow
-                      key={stat.playerId}
-                      player={stat}
-                      currentUserPlayerId={session?.user?.playerId ?? null}
-                      userRating={userRating}
-                      averageRating={averageRating}
-                      totalRatings={totalRatings}
-                      canRate={canRate}
-                      onRate={(stars) => handleRateTeammate(stat.playerId, stars)}
-                      isSubmitting={submittingRatingId === stat.playerId}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* F-002: Share result card */}
-      {activeSection === "postgame" && match.status === "COMPLETED" && (
-        <Card>
-          <CardHeader>
-            <h2 className="text-lg font-semibold">Recap da Rodada</h2>
-          </CardHeader>
-          <CardContent>
-            <TeamRecapWidget matchId={match.id} />
-          </CardContent>
-        </Card>
-      )}
-
-      {activeSection === "postgame" && match.status === "COMPLETED" &&
-        match.stats.length > 0 &&
-        match.homeScore !== null &&
-        match.awayScore !== null && (
-          <Card className="border-blue-200 bg-blue-50">
-            <CardContent>
-              <div className="flex flex-col gap-4 py-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-semibold text-blue-800">Compartilhar resultado</p>
-                  <p className="text-sm text-blue-600">
-                    {match.isHome ? match.homeScore : match.awayScore} × {match.isHome ? match.awayScore : match.homeScore} vs {match.opponent} — divulgue o card de resultado!
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      const recapUrl = getRecapCardUrl();
-                      if (!recapUrl) return;
-                      trackRecapCtaClick("open_card");
-                      window.open(
-                        recapUrl,
-                        "_blank",
-                        "noopener,noreferrer"
-                      );
-                    }}
-                  >
-                    🖼️ Abrir card recap
-                  </Button>
-                  <Button variant="secondary" onClick={handleCopyRecapLink}>
-                    📋 Copiar link do recap
-                  </Button>
-                  <Button variant="secondary" onClick={handleCopyLink}>
-                    🔗 Copiar link
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      trackRecapCtaClick("whatsapp_share");
-                      window.open(
-                        `https://wa.me/?text=${encodeURIComponent(buildResultText())}`,
-                        "_blank",
-                        "noopener,noreferrer"
-                      );
-                    }}
-                  >
-                    📱 Compartilhar no WhatsApp
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
       <Modal
         open={isAdmin && confirmCancelOpen}
