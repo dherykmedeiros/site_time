@@ -8,7 +8,8 @@ import { Coins, Check, Copy, AlertCircle, Eye, Upload, XCircle, CheckCircle2, Fi
 import { BordereauCard } from "@/components/dashboard/BordereauCard";
 import { MatchEquipmentCard } from "@/components/dashboard/MatchEquipmentCard";
 import { formatCurrency } from "@/lib/utils";
-import type { MatchDetail, BordereauResponse } from "@/app/dashboard/matches/[id]/page";
+import type { MatchDetail } from "@/app/dashboard/matches/[id]/page";
+import type { BordereauResponse } from "@/lib/validations/match";
 
 interface MatchBordereauTabProps {
   match: MatchDetail;
