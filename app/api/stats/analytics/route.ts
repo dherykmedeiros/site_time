@@ -94,7 +94,7 @@ export const GET = withErrorHandler(async (request: Request) => {
     take: 5,
   });
 
-  const playerIds = ratingsAgg.map((r) => r.ratedId);
+  const playerIds = ratingsAgg.map((r) => r.ratedId).filter(Boolean) as string[];
   const players = await prisma.player.findMany({
     where: { id: { in: playerIds } },
     select: { id: true, name: true },
