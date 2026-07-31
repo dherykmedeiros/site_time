@@ -68,7 +68,8 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/dashboard/squad", label: "Jogadores", icon: UserCircle },
       { href: "/dashboard/evaluations", label: "Avaliações", icon: ClipboardCheck },
-      { href: "/dashboard/ranking", label: "Rankings e Estatísticas", icon: BarChart3 }
+      { href: "/dashboard/ranking", label: "Rankings e Estatísticas", icon: BarChart3 },
+      { href: "/dashboard/me", label: "Meu Perfil", icon: UserCircle }
     ]
   },
   {
