@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
 import { Percent, Goal, Shield, ClipboardCheck, Calendar } from "lucide-react";
+import { ActivityTimeline } from "./ActivityTimeline";
 
 interface Team {
   id: string;
@@ -211,6 +212,8 @@ export default function CoachDashboard({
               </Tabs>
             </CardContent>
           </Card>
+
+          <ActivityTimeline />
         </div>
       </div>
     </div>

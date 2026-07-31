@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireCoachOrAdmin } from "@/lib/auth";
+import { logActivity } from "@/lib/activity-logger";
 
 // GET /api/polls — List active and closed polls for the logged-in user's team
 export async function GET(request: Request) {
@@ -133,6 +134,14 @@ export async function POST(request: Request) {
         options: true,
       },
     });
+
+    await logActivity(
+      teamId,
+      "POLL_CREATED",
+      `Criou uma nova enquete de data: "${title.trim()}"`,
+      session.user.id,
+      { pollId: newPoll.id }
+    );
 
     return NextResponse.json(newPoll, { status: 201 });
   } catch (err: any) {

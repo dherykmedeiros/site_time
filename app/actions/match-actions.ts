@@ -9,6 +9,7 @@ import {
 } from "@/lib/validations/match-actions";
 import { calculateNewScore } from "@/lib/match-live-service";
 import { getSession } from "@/lib/auth";
+import { logActivity } from "@/lib/activity-logger";
 
 /**
  * Action para criação de nova partida.
@@ -48,6 +49,14 @@ export async function createMatchAction(input: unknown) {
         matchLive: true,
       },
     });
+
+    await logActivity(
+      parsed.teamId,
+      "MATCH_CREATED",
+      `Cadastrou uma nova partida contra ${parsed.opponent} (${parsed.type === "CHAMPIONSHIP" ? "Campeonato" : "Amistoso"})`,
+      session.user.id,
+      { matchId: match.id }
+    );
 
     revalidatePath(`/dashboard/matches`);
     revalidatePath(`/matches/${match.id}/live`);

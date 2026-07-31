@@ -4,6 +4,7 @@ import { requireAdmin, requireCoachOrAdmin, requireAuth } from "@/lib/auth";
 import { createPlayerSchema } from "@/lib/validations/player";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
+import { logActivity } from "@/lib/activity-logger";
 
 // GET /api/players — List players for the team
 export async function GET(request: Request) {
@@ -134,6 +135,14 @@ export async function POST(request: Request) {
       teamId: session.user.teamId,
     },
   });
+
+  await logActivity(
+    session.user.teamId,
+    "PLAYER_ADDED",
+    `Adicionou o jogador ${name} (#${finalShirtNumber}) ao elenco`,
+    session.user.id,
+    { playerId: player.id }
+  );
 
   // Auto-create PENDING RSVPs for all future SCHEDULED matches
   // so the new player appears without needing to recreate the game

@@ -7,6 +7,7 @@ import { Prisma } from "@prisma/client";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
 import { parseLocalDate } from "@/lib/utils";
+import { logActivity } from "@/lib/activity-logger";
 
 type TransactionListRow = {
   id: string;
@@ -258,6 +259,14 @@ export async function POST(request: Request) {
       amount: Number(transaction.amount),
     });
   }
+
+  await logActivity(
+    session.user.teamId!,
+    "TRANSACTION_LOGGED",
+    `Lançou uma transação de ${type === "INCOME" ? "entrada" : "saída"}: ${description} (${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(amount))})`,
+    session.user.id,
+    { transactionId: transaction.id }
+  );
 
   return NextResponse.json(
     {

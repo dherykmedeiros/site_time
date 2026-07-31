@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { DollarSign, AlertCircle, Users, Calendar, Copy, Check, X } from "lucide-react";
+import { ActivityTimeline } from "./ActivityTimeline";
 
 interface Team {
   id: string;
@@ -183,6 +184,8 @@ export default function AdminDashboard({ team, metrics, transactions, friendlyRe
               )}
             </CardContent>
           </Card>
+
+          <ActivityTimeline />
         </div>
       </div>
     </div>

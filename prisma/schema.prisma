@@ -189,6 +189,8 @@ model User {
   notifications    Notification[]
   photos           MatchPhoto[]
   tacticalPlays    TacticalPlay[]
+  activityEvents   ActivityEvent[]
+  notificationPreferences NotificationPreference[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -241,6 +243,8 @@ model Team {
   recruitmentRequests RecruitmentRequest[]
   guestPlayers       GuestPlayer[]
   tacticalPlays      TacticalPlay[]
+  activityEvents     ActivityEvent[]
+  notifications      Notification[]
 
   defaultFormation   MatchLineupFormation?
   defaultBlockPreset MatchLineupBlockPreset?
@@ -873,17 +877,25 @@ model DatePollVote {
 model Notification {
   id        String   @id @default(cuid())
   userId    String
+  teamId    String?
   type      String   // MATCH_CREATED, FINE_APPLIED, PAYMENT_DUE, MESSAGE_PINNED, RSVP_REMINDER, RECAP_READY
   title     String
   body      String
   link      String?
   read      Boolean  @default(false)
+  readAt    DateTime?
+  metadata  Json?
+  entityType String?
+  entityId   String?
+  category   String?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team      Team?    @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, read])
   @@index([userId, createdAt])
+  @@index([teamId])
   @@map("notifications")
 }
 
@@ -1102,4 +1114,40 @@ model TacticalPlay {
 
   @@index([teamId])
   @@map("tactical_plays")
+}
+
+// ─── Activity Events ────────────────────────────────────────
+
+model ActivityEvent {
+  id          String   @id @default(cuid())
+  teamId      String
+  userId      String?
+  type        String   // MATCH_CREATED, PLAYER_ADDED, TRANSACTION_LOGGED, POLL_CREATED, etc.
+  description String
+  metadata    Json?    // Dynamic variables
+  createdAt   DateTime @default(now())
+
+  team        Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user        User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([teamId])
+  @@index([teamId, createdAt])
+  @@map("activity_events")
+}
+
+// ─── Notification Preferences ─────────────────────────────────
+
+model NotificationPreference {
+  id        String   @id @default(cuid())
+  userId    String
+  category  String   // MATCHES, FINANCES, DISCIPLINARY, COMMUNICATION
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category])
+  @@index([userId])
+  @@map("notification_preferences")
 }

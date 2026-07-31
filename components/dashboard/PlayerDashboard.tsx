@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { RadarChart } from "@/components/ui/RadarChart";
 import { Calendar, CheckCircle, XCircle, HelpCircle, Trophy, Goal, Activity, DollarSign } from "lucide-react";
+import { ActivityTimeline } from "./ActivityTimeline";
 import { useToast } from "@/components/ui/Toast";
 
 interface Team {
@@ -222,6 +223,8 @@ export default function PlayerDashboard({
               )}
             </CardContent>
           </Card>
+
+          <ActivityTimeline />
         </div>
       </div>
     </div>
