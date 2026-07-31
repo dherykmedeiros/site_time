@@ -111,11 +111,11 @@ export default function NotificationsPage() {
         setPreferences((prev) => ({ ...prev, [category]: newVal }));
         toast("Preferência atualizada com sucesso.", "success");
       } else {
-        toast("Falha ao salvar preferência.", "danger");
+        toast("Falha ao salvar preferência.", "error");
       }
     } catch (err) {
       console.error("Erro ao salvar preferência:", err);
-      toast("Erro de rede ao salvar.", "danger");
+      toast("Erro de rede ao salvar.", "error");
     } finally {
       setSavingPref(null);
     }
