@@ -9,7 +9,7 @@ import { CommandMenu } from "@/components/ui/CommandMenu";
 import { Permission, Role, hasPermission, hasAnyPermission } from "@/lib/permissions";
 import {
   LayoutDashboard, Home,
-  Trophy, CalendarDays, Award, PenTool,
+  Trophy, CalendarDays, Calendar, Award, PenTool,
   Users, UserCircle, ClipboardCheck, BarChart3,
   MessageSquare, Megaphone, Vote, Image as ImageIcon,
   Wallet, DollarSign, CreditCard, Gavel,
@@ -57,6 +57,7 @@ const NAV_GROUPS: NavGroup[] = [
     icon: Trophy,
     items: [
       { href: "/dashboard/matches", label: "Jogos", icon: CalendarDays, badgeKey: "upcomingMatches" },
+      { href: "/dashboard/calendar", label: "Calendário", icon: Calendar },
       { href: "/dashboard/seasons", label: "Temporadas", icon: Award, permission: "season:manage" },
       { href: "/dashboard/tactical-plays", label: "Prancheta Tática", icon: PenTool, permission: "tactical:view" }
     ]
