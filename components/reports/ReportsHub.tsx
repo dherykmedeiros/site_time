@@ -14,6 +14,7 @@ const RatingsReport = dynamic(() => import("./RatingsReport"), { ssr: false });
 const LineupReport = dynamic(() => import("./LineupReport"), { ssr: false });
 const AchievementsReport = dynamic(() => import("./AchievementsReport"), { ssr: false });
 const VenueReport = dynamic(() => import("./VenueReport"), { ssr: false });
+const PlayerComparisonReport = dynamic(() => import("./PlayerComparisonReport"), { ssr: false });
 
 interface Season {
   id: string;
@@ -22,24 +23,34 @@ interface Season {
   status: string;
 }
 
-const tabs = [
+interface TabConfig {
+  key: string;
+  label: string;
+  icon: string;
+  adminOnly?: boolean;
+}
+
+const allTabs: TabConfig[] = [
+  { key: "performance", label: "Desempenho", icon: "⚽" },
+  { key: "compare", label: "Comparar Atletas", icon: "⚔️" },
+  { key: "scorers", label: "Artilharia", icon: "🎯" },
+  { key: "attendance", label: "Presença", icon: "📋" },
+  { key: "ratings", label: "Avaliações", icon: "⭐" },
+  { key: "discipline", label: "Disciplina", icon: "💛" },
   { key: "schedule", label: "Horários & Dias", icon: "📅" },
   { key: "venue", label: "Locais & Campos", icon: "📍" },
   { key: "homeaway", label: "Casa vs Fora", icon: "🏠" },
-  { key: "performance", label: "Desempenho", icon: "⚽" },
-  { key: "scorers", label: "Artilharia", icon: "🎯" },
-  { key: "attendance", label: "Presença", icon: "📋" },
-  { key: "discipline", label: "Disciplina", icon: "💛" },
-  { key: "financial", label: "Financeiro", icon: "💰" },
-  { key: "ratings", label: "Avaliações", icon: "⭐" },
   { key: "lineup", label: "Escalação", icon: "🔄" },
   { key: "achievements", label: "Conquistas", icon: "🏆" },
-] as const;
+  { key: "financial", label: "Financeiro", icon: "💰", adminOnly: true },
+];
 
-type TabKey = (typeof tabs)[number]["key"];
+type TabKey = string;
 
-export default function ReportsHub() {
-  const [activeTab, setActiveTab] = useState<TabKey>("schedule");
+export default function ReportsHub({ userRole }: { userRole?: string }) {
+  const visibleTabs = allTabs.filter((t) => !t.adminOnly || userRole === "ADMIN");
+
+  const [activeTab, setActiveTab] = useState<TabKey>("performance");
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [seasonId, setSeasonId] = useState("");
   const [from, setFrom] = useState("");
@@ -59,7 +70,7 @@ export default function ReportsHub() {
       .catch(() => {});
   }, []);
 
-  const apiMap: Record<TabKey, string> = {
+  const apiMap: Partial<Record<TabKey, string>> = {
     schedule: "/api/reports/schedule-heatmap",
     venue: "/api/reports/venue",
     homeaway: "/api/reports/home-away",
@@ -75,6 +86,9 @@ export default function ReportsHub() {
 
   const fetchReport = useCallback(
     async (tab: TabKey, customVenue?: string) => {
+      const endpoint = apiMap[tab];
+      if (!endpoint) return;
+
       setLoading((prev) => ({ ...prev, [tab]: true }));
       setErrors((prev) => ({ ...prev, [tab]: "" }));
 
@@ -88,7 +102,7 @@ export default function ReportsHub() {
       }
 
       try {
-        const res = await fetch(`${apiMap[tab]}?${params.toString()}`);
+        const res = await fetch(`${endpoint}?${params.toString()}`);
         const json = await res.json();
 
         if (!res.ok) {
@@ -107,7 +121,9 @@ export default function ReportsHub() {
   );
 
   useEffect(() => {
-    fetchReport(activeTab);
+    if (activeTab !== "compare") {
+      fetchReport(activeTab);
+    }
   }, [activeTab, fetchReport]);
 
   return (
@@ -115,75 +131,77 @@ export default function ReportsHub() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-black text-white tracking-tight">
-          Central de Relatórios
+          Central de Relatórios & Estatísticas
         </h1>
         <p className="mt-1 text-sm text-[#8fa39b]">
-          Análise estatística completa do seu time
+          Análise de desempenho, comparações entre atletas e estatísticas completas
         </p>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="space-y-1">
-          <label className="block text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">
-            Temporada
-          </label>
-          <select
-            value={seasonId}
-            onChange={(e) => setSeasonId(e.target.value)}
-            className="h-9 rounded-lg border border-white/10 bg-[#16130f] px-3 text-sm text-white outline-none focus:border-[#36c2a8] transition-colors"
+      {activeTab !== "compare" && (
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">
+              Temporada
+            </label>
+            <select
+              value={seasonId}
+              onChange={(e) => setSeasonId(e.target.value)}
+              className="h-9 rounded-lg border border-white/10 bg-[#16130f] px-3 text-sm text-white outline-none focus:border-[#36c2a8] transition-colors"
+            >
+              <option value="">Todas</option>
+              {seasons.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">
+              De
+            </label>
+            <input
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              className="h-9 rounded-lg border border-white/10 bg-[#16130f] px-3 text-sm text-white outline-none focus:border-[#36c2a8] transition-colors"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">
+              Até
+            </label>
+            <input
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              className="h-9 rounded-lg border border-white/10 bg-[#16130f] px-3 text-sm text-white outline-none focus:border-[#36c2a8] transition-colors"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSeasonId("");
+              setFrom("");
+              setTo("");
+              setSelectedVenue("ALL");
+            }}
+            className="h-9 rounded-lg border border-white/10 bg-white/[0.03] px-4 text-xs font-semibold text-[#8fa39b] hover:text-white hover:bg-white/[0.06] transition-all"
           >
-            <option value="">Todas</option>
-            {seasons.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+            Limpar filtros
+          </button>
         </div>
-
-        <div className="space-y-1">
-          <label className="block text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">
-            De
-          </label>
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className="h-9 rounded-lg border border-white/10 bg-[#16130f] px-3 text-sm text-white outline-none focus:border-[#36c2a8] transition-colors"
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="block text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">
-            Até
-          </label>
-          <input
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className="h-9 rounded-lg border border-white/10 bg-[#16130f] px-3 text-sm text-white outline-none focus:border-[#36c2a8] transition-colors"
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            setSeasonId("");
-            setFrom("");
-            setTo("");
-            setSelectedVenue("ALL");
-          }}
-          className="h-9 rounded-lg border border-white/10 bg-white/[0.03] px-4 text-xs font-semibold text-[#8fa39b] hover:text-white hover:bg-white/[0.06] transition-all"
-        >
-          Limpar filtros
-        </button>
-      </div>
+      )}
 
       {/* Tab Navigation */}
       <div className="relative">
         <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide">
-          {tabs.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
@@ -198,12 +216,12 @@ export default function ReportsHub() {
             </button>
           ))}
         </div>
-        {/* Fade edges for scroll indication */}
         <div className="pointer-events-none absolute right-0 top-0 bottom-2 w-12 bg-gradient-to-l from-[var(--bg,#0d0b09)] to-transparent" />
       </div>
 
       {/* Active Report Content */}
       <div className="min-h-[400px]">
+        {activeTab === "compare" && <PlayerComparisonReport />}
         {activeTab === "schedule" && (
           <ScheduleHeatmap
             data={data.schedule}

@@ -9,9 +9,5 @@ export default async function ReportsPage() {
     redirect("/login");
   }
 
-  if (session.user.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
-
-  return <ReportsHub />;
+  return <ReportsHub userRole={session.user.role} />;
 }

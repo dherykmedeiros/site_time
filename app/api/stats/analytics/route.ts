@@ -27,7 +27,6 @@ export const GET = withErrorHandler(async (request: Request) => {
     orderBy: { date: "asc" },
   });
 
-  // Agrupa e calcula as médias por mês/ano
   const monthlyGroups: Record<string, { technical: number; tactical: number; physical: number; discipline: number; count: number }> = {};
   
   evaluations.forEach((evalItem) => {
@@ -65,6 +64,8 @@ export const GET = withErrorHandler(async (request: Request) => {
     DEFENDER: "Zagueiro",
     LEFT_BACK: "Lateral Esq.",
     RIGHT_BACK: "Lateral Dir.",
+    LEFT_WINGBACK: "Ala Esq.",
+    RIGHT_WINGBACK: "Ala Dir.",
     MIDFIELDER: "Meio-camp.",
     DEFENSIVE_MIDFIELDER: "Volante",
     FORWARD: "Atacante",
@@ -85,7 +86,7 @@ export const GET = withErrorHandler(async (request: Request) => {
     _count: { stars: true },
     having: {
       stars: {
-        _count: { gte: 1 }, // mínimo 1 avaliação para aparecer no gráfico
+        _count: { gte: 1 },
       },
     },
     orderBy: {
@@ -106,9 +107,69 @@ export const GET = withErrorHandler(async (request: Request) => {
     Nota: Number((r._avg.stars ?? 0).toFixed(2)),
   }));
 
+  // 4. Sequência Recente & Aproveitamento Mandante/Visitante
+  const completedMatches = await prisma.match.findMany({
+    where: { teamId, status: "COMPLETED" },
+    select: {
+      id: true,
+      opponent: true,
+      homeScore: true,
+      awayScore: true,
+      isHome: true,
+      date: true,
+    },
+    orderBy: { date: "desc" },
+  });
+
+  const formGuide = completedMatches.slice(0, 5).map((m) => {
+    const st = m.isHome ? (m.homeScore ?? 0) : (m.awayScore ?? 0);
+    const so = m.isHome ? (m.awayScore ?? 0) : (m.homeScore ?? 0);
+    let result: "WIN" | "DRAW" | "LOSS" = "DRAW";
+    if (st > so) result = "WIN";
+    else if (st < so) result = "LOSS";
+    return {
+      id: m.id,
+      opponent: m.opponent,
+      scoreTeam: st,
+      scoreOpponent: so,
+      isHome: m.isHome,
+      date: m.date,
+      result,
+    };
+  }).reverse();
+
+  let homeWins = 0, homeDraws = 0, homeLosses = 0, homeGF = 0, homeGA = 0;
+  let awayWins = 0, awayDraws = 0, awayLosses = 0, awayGF = 0, awayGA = 0;
+
+  completedMatches.forEach((m) => {
+    const st = m.isHome ? (m.homeScore ?? 0) : (m.awayScore ?? 0);
+    const so = m.isHome ? (m.awayScore ?? 0) : (m.homeScore ?? 0);
+    if (m.isHome) {
+      homeGF += st;
+      homeGA += so;
+      if (st > so) homeWins++;
+      else if (st === so) homeDraws++;
+      else homeLosses++;
+    } else {
+      awayGF += st;
+      awayGA += so;
+      if (st > so) awayWins++;
+      else if (st === so) awayDraws++;
+      else awayLosses++;
+    }
+  });
+
+  const homeTotal = homeWins + homeDraws + homeLosses;
+  const awayTotal = awayWins + awayDraws + awayLosses;
+
   return NextResponse.json({
     evolution: evolutionData,
     positionDistribution: positionData,
     leaderboard: leaderboardData,
+    formGuide,
+    homeAway: {
+      home: { matches: homeTotal, wins: homeWins, draws: homeDraws, losses: homeLosses, gf: homeGF, ga: homeGA, winRate: homeTotal > 0 ? Number(((homeWins / homeTotal) * 100).toFixed(0)) : 0 },
+      away: { matches: awayTotal, wins: awayWins, draws: awayDraws, losses: awayLosses, gf: awayGF, ga: awayGA, winRate: awayTotal > 0 ? Number(((awayWins / awayTotal) * 100).toFixed(0)) : 0 },
+    },
   });
 });
