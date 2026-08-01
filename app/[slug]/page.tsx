@@ -3,7 +3,6 @@ import { getTeamData, getTeamMatches, getTeamStats } from "@/lib/team-data";
 import PortalView from "@/components/portal/PortalView";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export const revalidate = 60;
@@ -17,23 +16,32 @@ export async function generateMetadata({ params }: SlugPageProps): Promise<Metad
   const { slug } = await params;
   const team = await prisma.team.findUnique({
     where: { slug },
-    select: { name: true, description: true, badgeUrl: true }
+    select: { name: true, description: true, badgeUrl: true, city: true }
   });
+
   if (!team) {
     return { title: "Portal Esportivo | VARzea" };
   }
-  const description = team.description || `Portal oficial do ${team.name}. Confira elenco, estatísticas e envie convites de amistosos.`;
+
+  const description = team.description || `Portal oficial do ${team.name}${team.city ? ` (${team.city})` : ""}. Confira elenco, estatísticas e envie convites de amistosos.`;
+
   return {
     title: `${team.name} — Arena Oficial | VARzea`,
     description,
     openGraph: {
-      title: team.name,
+      title: `${team.name} | Clube de Futebol`,
       description,
       type: "website",
       url: `/${slug}`,
       siteName: "VARzea",
       locale: "pt_BR",
-      ...(team.badgeUrl && { images: [{ url: team.badgeUrl, width: 200, height: 200, alt: `Escudo ${team.name}` }] }),
+      ...(team.badgeUrl && { images: [{ url: team.badgeUrl, width: 600, height: 600, alt: `Escudo ${team.name}` }] }),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: team.name,
+      description,
+      ...(team.badgeUrl && { images: [team.badgeUrl] }),
     },
   };
 }
@@ -56,14 +64,34 @@ export default async function SlugPage({
     getTeamMatches(team.id),
   ]);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SportsTeam",
+    "name": team.name,
+    "description": team.description || `Portal oficial do ${team.name}`,
+    "logo": team.badgeUrl || undefined,
+    "url": `/${team.slug}`,
+    "location": {
+      "@type": "Place",
+      "name": team.defaultVenue || team.city || "Brasil",
+      "address": team.city || undefined,
+    },
+  };
+
   return (
-    <PortalView
-      team={team}
-      stats={stats}
-      scheduledMatches={matches.scheduledMatches}
-      finishedMatches={matches.finishedMatches}
-      session={session}
-      searchParams={resolvedSearchParams}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <PortalView
+        team={team}
+        stats={stats}
+        scheduledMatches={matches.scheduledMatches}
+        finishedMatches={matches.finishedMatches}
+        session={session}
+        searchParams={resolvedSearchParams}
+      />
+    </>
   );
 }
