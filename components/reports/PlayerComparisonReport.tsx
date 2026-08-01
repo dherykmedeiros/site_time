@@ -91,7 +91,8 @@ export default function PlayerComparisonReport() {
       try {
         const res = await fetch("/api/players");
         if (res.ok) {
-          const list: PlayerOption[] = await res.json();
+          const json = await res.json();
+          const list: PlayerOption[] = Array.isArray(json) ? json : json?.players || [];
           setPlayers(list);
           if (list.length >= 2) {
             setP1Id(list[0].id);
