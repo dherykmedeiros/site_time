@@ -20,6 +20,7 @@ export const fineSchema = z.object({
     .optional()
     .nullable(),
   status: z.enum(["ACTIVE", "SERVED", "CANCELLED"]).optional(),
+  suspendedMatchId: z.string().optional().nullable(),
   date: z
     .string()
     .refine((val: string) => !isNaN(Date.parse(val)), "Data inválida"),

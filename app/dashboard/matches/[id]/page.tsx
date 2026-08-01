@@ -8,15 +8,16 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
-import { BordereauCard } from "@/components/dashboard/BordereauCard";
-import { MatchEquipmentCard } from "@/components/dashboard/MatchEquipmentCard";
-import { LiveMatchControl } from "@/components/dashboard/LiveMatchControl";
-import { GuestPlayersManager } from "@/components/dashboard/GuestPlayersManager";
-import { SuggestedLineupCard } from "@/components/dashboard/SuggestedLineupCard";
-import { TeamRecapWidget } from "@/components/dashboard/TeamRecapWidget";
-import { MatchPhotosGallery } from "@/components/dashboard/MatchPhotosGallery";
+import { MatchOverviewTab } from "@/components/matches/MatchOverviewTab";
+import { MatchRsvpTab } from "@/components/matches/MatchRsvpTab";
+import { MatchLineupTab } from "@/components/matches/MatchLineupTab";
+import { MatchBordereauTab } from "@/components/matches/MatchBordereauTab";
+import { MatchLiveTab } from "@/components/matches/MatchLiveTab";
+import { MatchRatingTab } from "@/components/matches/MatchRatingTab";
+import { MatchGalleryTab } from "@/components/matches/MatchGalleryTab";
 import type { BordereauResponse, SuggestedLineupResponse } from "@/lib/validations/match";
-import { Star } from "lucide-react";
+import { Star, Copy, Check, Upload, Eye, FileText, CheckCircle2, XCircle, AlertCircle, Coins, MapPin, Calendar, Users, LayoutGrid, Settings, Trophy, Camera, Radio, UserPlus, MoreVertical, ExternalLink, ChevronDown } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 const PostGameForm = dynamic(
   () => import("@/components/forms/PostGameForm").then((m) => ({ default: m.PostGameForm })),
@@ -33,104 +34,22 @@ const TransactionForm = dynamic(
   { loading: () => <div className="p-4 text-center text-gray-500">Carregando formulário...</div> }
 );
 
-function TeammateRatingRow({
-  player,
-  currentUserPlayerId,
-  userRating,
-  averageRating,
-  totalRatings,
-  canRate,
-  onRate,
-  isSubmitting,
-}: {
-  player: PlayerStat;
-  currentUserPlayerId: string | null;
-  userRating: number | null;
-  averageRating: number;
-  totalRatings: number;
-  canRate: boolean;
-  onRate: (stars: number) => void;
-  isSubmitting: boolean;
-}) {
-  const isSelf = currentUserPlayerId && currentUserPlayerId === player.playerId;
-  const [hoveredStars, setHoveredStars] = useState<number | null>(null);
 
-  const disabled = isSelf || !canRate || isSubmitting;
 
-  return (
-    <div
-      className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-xl border border-white/5 bg-white/[0.01] transition-all duration-300 ${
-        isSelf ? "opacity-60 bg-black/10" : "hover:bg-white/[0.03] hover:border-white/10"
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        <div className="h-9 w-9 flex items-center justify-center rounded-full bg-white/10 text-white font-bold text-sm">
-          {player.playerName.charAt(0).toUpperCase()}
-        </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-white text-sm">{player.playerName}</span>
-            {isSelf && (
-              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase text-white/70">
-                Você
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2 mt-0.5 text-xs text-[#8fa39b]">
-            <span>Média: <strong className="text-white">{averageRating.toFixed(1)}⭐</strong></span>
-            <span>·</span>
-            <span>{totalRatings} {totalRatings === 1 ? "avaliação" : "avaliações"}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-3 sm:mt-0 flex items-center gap-3">
-        <div className="flex items-center gap-1">
-          {[1, 2, 3, 4, 5].map((star) => {
-            const isFilled = hoveredStars !== null ? star <= hoveredStars : star <= (userRating || 0);
-            return (
-              <button
-                key={star}
-                type="button"
-                disabled={disabled}
-                onClick={() => onRate(star)}
-                onMouseEnter={() => !disabled && setHoveredStars(star)}
-                onMouseLeave={() => !disabled && setHoveredStars(null)}
-                className={`transition-all duration-150 focus:outline-none ${
-                  disabled ? "cursor-not-allowed" : "cursor-pointer hover:scale-125"
-                }`}
-              >
-                <Star
-                  className={`h-5 w-5 ${
-                    isFilled
-                      ? "fill-yellow-400 text-yellow-400 animate-none"
-                      : "text-white/20 fill-transparent"
-                  } ${isSubmitting ? "animate-pulse" : ""}`}
-                />
-              </button>
-            );
-          })}
-        </div>
-
-        {userRating && (
-          <span className="text-[10px] font-black uppercase text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded-md border border-yellow-400/20">
-            Sua Nota: {userRating}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-interface RSVP {
+export interface RSVP {
   playerId: string;
   playerName: string;
   status: "PENDING" | "CONFIRMED" | "DECLINED";
   respondedAt: string | null;
+  summoned?: boolean;
+  isGuest?: boolean;
+  guestPlayerId?: string | null;
+  isSuspended?: boolean;
 }
 
-interface PlayerStat {
+export interface PlayerStat {
   playerId: string;
+  guestPlayerId?: string | null;
   playerName: string;
   goals: number;
   assists: number;
@@ -138,7 +57,7 @@ interface PlayerStat {
   redCards: number;
 }
 
-interface MatchDetail {
+export interface MatchDetail {
   id: string;
   date: string;
   venue: string;
@@ -151,23 +70,43 @@ interface MatchDetail {
   status: string;
   shareToken: string;
   shareUrl: string;
+  isPlayerSuspended?: boolean;
+  suspensionReason?: string | null;
   rsvps: RSVP[];
   stats: PlayerStat[];
   canSubmitPostGame: boolean;
+  hasCharge: boolean;
+  chargeAmount: number | null;
+  pixKey: string | null;
   season?: { id: string; name: string; type: string; status: string } | null;
   positionLimits?: Array<{ position: string; maxPlayers: number }>;
+  latitude?: number | null;
+  longitude?: number | null;
+  userAttendance?: { present: boolean; checkedInAt: string | null } | null;
   createdAt: string;
   updatedAt: string;
 }
 
-interface MatchLineupResponse {
+export interface MatchLineupResponse {
   matchId: string;
   generatedAt: string;
   imageUrl: string;
   lineup: SuggestedLineupResponse;
 }
 
-type ScheduledWorkspaceSection = "overview" | "presence" | "lineup" | "operations" | "postgame" | "gallery" | "live" | "guests";
+export type ScheduledWorkspaceSection = "overview" | "presence" | "lineup" | "operations" | "postgame" | "gallery" | "live" | "guests" | "charges";
+
+const sectionIcons: Record<ScheduledWorkspaceSection, React.ReactNode> = {
+  overview: <LayoutGrid className="h-4 w-4" />,
+  presence: <Users className="h-4 w-4" />,
+  lineup: <LayoutGrid className="h-4 w-4" />,
+  operations: <Settings className="h-4 w-4" />,
+  postgame: <Trophy className="h-4 w-4" />,
+  gallery: <Camera className="h-4 w-4" />,
+  live: <Radio className="h-4 w-4" />,
+  guests: <UserPlus className="h-4 w-4" />,
+  charges: <Coins className="h-4 w-4" />,
+};
 
 const statusLabels: Record<string, string> = {
   SCHEDULED: "Agendada",
@@ -225,6 +164,9 @@ export default function MatchDetailPage() {
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [checkInLoading, setCheckInLoading] = useState(false);
+  const [checkInError, setCheckInError] = useState<string | null>(null);
+  const [checkInFeedback, setCheckInFeedback] = useState<string | null>(null);
   const [lineupData, setLineupData] = useState<MatchLineupResponse | null>(null);
   const [lineupLoading, setLineupLoading] = useState(false);
   const [lineupRefreshing, setLineupRefreshing] = useState(false);
@@ -242,6 +184,185 @@ export default function MatchDetailPage() {
   const [ratingsAverages, setRatingsAverages] = useState<Array<{ playerId: string; averageStars: number; totalRatings: number }>>([]);
   const [canRate, setCanRate] = useState(false);
   const [submittingRatingId, setSubmittingRatingId] = useState<string | null>(null);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+
+  // Player of the match votes state
+  const [votesData, setVotesData] = useState<{
+    results: Array<{ playerId: string; playerName: string; photoUrl: string | null; shirtNumber: number; position: string; voteCount: number }>;
+    hasVoted: boolean;
+    votedForId: string | null;
+  } | null>(null);
+  const [votesLoading, setVotesLoading] = useState(false);
+  const [votingForId, setVotingForId] = useState<string>("");
+  const [submitVoteLoading, setSubmitVoteLoading] = useState(false);
+  const [voteError, setVoteError] = useState<string | null>(null);
+
+  // Match Charges state inside the match detail page
+  const [checklistPlayers, setChecklistPlayers] = useState<any[]>([]);
+  const [checklistLoading, setChecklistLoading] = useState(false);
+  const [togglingPlayerId, setTogglingPlayerId] = useState<string | null>(null);
+  const [chargesFeedback, setChargesFeedback] = useState<string | null>(null);
+  const [chargesError, setChargesError] = useState<string | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [previewReceipt, setPreviewReceipt] = useState<{ url: string; playerName: string; playerId: string } | null>(null);
+  const [pixKeyCopied, setPixKeyCopied] = useState(false);
+
+  const loadChecklistPlayers = useCallback(async () => {
+    if (!id) return;
+    setChecklistLoading(true);
+    setChargesError(null);
+    try {
+      const res = await fetch(`/api/matches/${id}/charges`);
+      if (res.ok) {
+        const data = await res.json();
+        setChecklistPlayers(data.players || []);
+      } else {
+        setChargesError("Erro ao carregar pagamentos");
+      }
+    } catch (err) {
+      setChargesError("Erro de conexão ao carregar pagamentos");
+    } finally {
+      setChecklistLoading(false);
+    }
+  }, [id]);
+
+  const handleTogglePayment = async (playerId: string, isPaid: boolean) => {
+    if (!id || !match) return;
+    setTogglingPlayerId(playerId);
+    setChargesError(null);
+    setChargesFeedback(null);
+    try {
+      const method = isPaid ? "POST" : "DELETE";
+      const res = await fetch(`/api/matches/${id}/charges/${playerId}`, {
+        method,
+      });
+      if (res.ok) {
+        setChecklistPlayers((prev) =>
+          prev.map((p) => {
+            if (p.id === playerId) {
+              return {
+                ...p,
+                payment: isPaid ? { amount: match.chargeAmount } : null,
+              };
+            }
+            return p;
+          })
+        );
+        setChargesFeedback(isPaid ? "Pagamento registrado com sucesso!" : "Pagamento estornado com sucesso!");
+        setTimeout(() => setChargesFeedback(null), 3000);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setChargesError(data.error || "Erro ao atualizar pagamento");
+      }
+    } catch (err) {
+      setChargesError("Erro de conexão");
+    } finally {
+      setTogglingPlayerId(null);
+    }
+  };
+
+  const handleUploadReceipt = async (e: React.ChangeEvent<HTMLInputElement>, playerId: string) => {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+
+    setUploadingReceipt(true);
+    setChargesError(null);
+    setChargesFeedback(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+      const uploadData = await uploadRes.json();
+
+      if (!uploadRes.ok) {
+        setChargesError(uploadData.error || "Erro ao enviar arquivo do comprovante");
+        return;
+      }
+
+      const receiptUrl = uploadData.url;
+
+      const res = await fetch(`/api/matches/${id}/charges/receipt`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId, receiptUrl }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setChargesFeedback("Comprovante enviado com sucesso! Aguardando aprovação da administração.");
+        loadChecklistPlayers();
+      } else {
+        setChargesError(data.error || "Erro ao registrar o comprovante");
+      }
+    } catch (err) {
+      setChargesError("Erro ao enviar o comprovante de pagamento");
+    } finally {
+      setUploadingReceipt(false);
+    }
+  };
+
+  const handleApproveReceipt = async (playerId: string) => {
+    if (!id) return;
+    setTogglingPlayerId(playerId);
+    setChargesError(null);
+    setChargesFeedback(null);
+    try {
+      const res = await fetch(`/api/matches/${id}/charges/${playerId}/approve`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setChargesFeedback("Pagamento aprovado com sucesso!");
+        loadChecklistPlayers();
+        setPreviewReceipt(null);
+      } else {
+        setChargesError(data.error || "Erro ao aprovar o comprovante");
+      }
+    } catch (err) {
+      setChargesError("Erro de conexão ao aprovar o comprovante");
+    } finally {
+      setTogglingPlayerId(null);
+    }
+  };
+
+  const handleRejectReceipt = async (playerId: string) => {
+    if (!id) return;
+    setTogglingPlayerId(playerId);
+    setChargesError(null);
+    setChargesFeedback(null);
+    try {
+      const res = await fetch(`/api/matches/${id}/charges/${playerId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setChargesFeedback("Comprovante recusado com sucesso.");
+        loadChecklistPlayers();
+        setPreviewReceipt(null);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setChargesError(data.error || "Erro ao recusar o comprovante");
+      }
+    } catch (err) {
+      setChargesError("Erro de conexão ao recusar o comprovante");
+    } finally {
+      setTogglingPlayerId(null);
+    }
+  };
+
+  const copyPixKey = (key: string) => {
+    navigator.clipboard.writeText(key);
+    setPixKeyCopied(true);
+    setTimeout(() => setPixKeyCopied(false), 2000);
+  };
+
+  useEffect(() => {
+    if (activeSection === "charges") {
+      loadChecklistPlayers();
+    }
+  }, [activeSection, loadChecklistPlayers]);
 
   const fetchMatch = useCallback(async () => {
     setLoading(true);
@@ -394,11 +515,53 @@ export default function MatchDetailPage() {
     }
   }, [id, match]);
 
+  const fetchVotes = useCallback(async () => {
+    if (!match || match.status !== "COMPLETED") return;
+    setVotesLoading(true);
+    setVoteError(null);
+    try {
+      const res = await fetch(`/api/matches/${id}/votes`);
+      if (res.ok) {
+        const data = await res.json();
+        setVotesData(data);
+      }
+    } catch (err) {
+      console.error("Erro ao buscar votos:", err);
+    } finally {
+      setVotesLoading(false);
+    }
+  }, [id, match]);
+
   useEffect(() => {
     if (activeSection === "postgame" && match?.status === "COMPLETED") {
       fetchRatings();
+      fetchVotes();
     }
-  }, [activeSection, match?.status, fetchRatings]);
+  }, [activeSection, match?.status, fetchRatings, fetchVotes]);
+
+  async function handleCastVote() {
+    if (!votingForId) return;
+    setSubmitVoteLoading(true);
+    setVoteError(null);
+    try {
+      const res = await fetch(`/api/matches/${id}/votes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ votedId: votingForId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setVotingForId("");
+        await fetchVotes();
+      } else {
+        setVoteError(data.error || "Erro ao registrar voto");
+      }
+    } catch (err) {
+      setVoteError("Erro de conexão ao enviar voto");
+    } finally {
+      setSubmitVoteLoading(false);
+    }
+  }
 
   async function handleRateTeammate(ratedId: string, stars: number) {
     if (!canRate) return;
@@ -462,10 +625,14 @@ export default function MatchDetailPage() {
       allowedSections.push("guests");
     }
 
+    if (match?.hasCharge) {
+      allowedSections.push("charges");
+    }
+
     if (!allowedSections.includes(activeSection)) {
       setActiveSection("overview");
     }
-  }, [activeSection, isAdmin, isCoachOrAdmin, match?.canSubmitPostGame, match?.status]);
+  }, [activeSection, isAdmin, isCoachOrAdmin, match?.canSubmitPostGame, match?.status, match?.hasCharge]);
 
   function toggleChecklistItem(index: number) {
     setBordereauData((current) => {
@@ -643,6 +810,56 @@ export default function MatchDetailPage() {
     }
   }
 
+  const handleCheckIn = () => {
+    if (!navigator.geolocation) {
+      setCheckInError("Geolocalização não é suportada ou requer conexão segura (HTTPS).");
+      return;
+    }
+
+    setCheckInLoading(true);
+    setCheckInError(null);
+    setCheckInFeedback(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const res = await fetch(`/api/matches/${id}/check-in`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok) {
+            setCheckInFeedback(data.message);
+            await fetchMatch();
+          } else {
+            setCheckInError(data.error || "Erro ao realizar check-in");
+          }
+        } catch {
+          setCheckInError("Erro de conexão com o servidor");
+        } finally {
+          setCheckInLoading(false);
+        }
+      },
+      (error) => {
+        let msg = "Erro ao obter localização";
+        if (error.code === error.PERMISSION_DENIED) {
+          msg = "Permissão de localização negada. Ative a permissão de localização nas configurações do seu navegador (clique no ícone de cadeado ao lado do endereço do site) e tente novamente.";
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          msg = "Localização indisponível no dispositivo";
+        } else if (error.code === error.TIMEOUT) {
+          msg = "Tempo limite esgotado ao obter localização";
+        }
+        setCheckInError(msg);
+        setCheckInLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   async function handleCancelConfirm() {
     setActionLoading(true);
     setActionError(null);
@@ -677,7 +894,7 @@ export default function MatchDetailPage() {
     });
 
     if (res.ok) {
-      router.push("/matches");
+      router.push("/dashboard/matches");
       return;
     }
 
@@ -800,13 +1017,17 @@ export default function MatchDetailPage() {
     ];
 
     if (confirmedNames.length > 0) {
-      lines.push(`✅ Confirmados (${confirmedNames.length}): ${confirmedNames.join(", ")}`);
+      lines.push(`✅ Confirmados (${confirmedNames.length}):`);
+      lines.push(...confirmedNames.map((name) => `▪️ ${name}`));
+      lines.push(``);
     }
     if (pendingNames.length > 0) {
-      lines.push(`⏳ Aguardando (${pendingNames.length}): ${pendingNames.join(", ")}`);
+      lines.push(`⏳ Aguardando (${pendingNames.length}):`);
+      lines.push(...pendingNames.map((name) => `▫️ ${name}`));
+      lines.push(``);
     }
 
-    lines.push(``, `👉 Confirme aqui: ${window.location.origin}/matches/${match.id}?t=${match.shareToken}`);
+    lines.push(`👉 Confirme aqui: ${window.location.origin}/matches/${match.id}?t=${match.shareToken}`);
     return lines.join("\n");
   }
 
@@ -833,7 +1054,8 @@ export default function MatchDetailPage() {
     if (lineupData.lineup.bench.length > 0) {
       lines.push(
         ``,
-        `🪑 Banco: ${lineupData.lineup.bench.map((b) => b.playerName).join(", ")}`
+        `🪑 Banco:`,
+        ...lineupData.lineup.bench.map((b) => `▫️ ${b.playerName}`)
       );
     }
 
@@ -849,19 +1071,24 @@ export default function MatchDetailPage() {
     const result = our > opp ? "✅ Vitória" : our < opp ? "❌ Derrota" : "🟡 Empate";
     const scorers = match.stats
       .filter((s) => s.goals > 0)
-      .map((s) => `${s.playerName} (${s.goals})`)
-      .join(", ");
+      .map((s) => `${s.playerName} (${s.goals})`);
 
     const lines = [
       `⚽ RESULTADO`,
       ``,
       `${result}: ${our} × ${opp}`,
       `🏆 vs ${match.opponent}`,
-      ...(scorers ? [`⚽ Gols: ${scorers}`] : []),
+    ];
+
+    if (scorers.length > 0) {
+      lines.push(``, `⚽ Gols:`, ...scorers.map((s) => `▪️ ${s}`));
+    }
+
+    lines.push(
       ``,
       `🖼️ Card recap: ${getRecapCardUrl()}`,
-      `👉 Ver partida: ${match.shareUrl}`,
-    ];
+      `👉 Ver partida: ${match.shareUrl}`
+    );
     return lines.join("\n");
   }
 
@@ -929,6 +1156,13 @@ export default function MatchDetailPage() {
   const declined = match.rsvps.filter((r) => r.status === "DECLINED").length;
   const pending = match.rsvps.filter((r) => r.status === "PENDING").length;
   const isScheduled = match.status === "SCHEDULED";
+  
+  // Check-in only open starting 1 hour before kickoff
+  const matchTimeMs = new Date(match.date).getTime();
+  const currentTimeMs = new Date().getTime();
+  const oneHourInMs = 1 * 60 * 60 * 1000;
+  const isCheckInOpen = currentTimeMs >= (matchTimeMs - oneHourInMs);
+
   const canSeeLineup = isCoachOrAdmin && isScheduled;
   const canSeeOperations = isAdmin && (isScheduled || match.status === "COMPLETED");
   const canSeePostGame = (isAdmin && match.canSubmitPostGame) || match.status === "COMPLETED";
@@ -939,93 +1173,218 @@ export default function MatchDetailPage() {
     label: string;
     helper: string;
   }> = [
-    { id: "overview", label: "Resumo", helper: "Visao rapida da partida" },
-    { id: "presence", label: "Presenca", helper: "RSVP e lista de respostas" },
+    { id: "overview", label: "Resumo", helper: "Visão rápida da partida" },
+    { id: "presence", label: "Presença", helper: "RSVP e convidados da partida" },
     { id: "gallery", label: "Galeria", helper: "Fotos da partida" },
     ...(canSeeLive
       ? [{ id: "live" as const, label: "Ao Vivo", helper: "Placar e cronômetro em tempo real" }]
       : []),
-    ...(canSeeGuests
-      ? [{ id: "guests" as const, label: "Convidados", helper: "Jogadores convidados do jogo" }]
-      : []),
     ...(canSeeLineup
-      ? [{ id: "lineup" as const, label: "Escalacao", helper: "Sugestao inicial do jogo" }]
+      ? [{ id: "lineup" as const, label: "Escalação", helper: "Sugestão tática do jogo" }]
       : []),
-    ...(canSeeOperations
-      ? [{ id: "operations" as const, label: "Operacao", helper: "Bordero e despesas" }]
+    ...(canSeeOperations || match.hasCharge
+      ? [{ id: "operations" as const, label: "Financeiro", helper: "Bordero e pagamentos" }]
       : []),
     ...(canSeePostGame
-      ? [{ id: "postgame" as const, label: "Pos-jogo", helper: "Placar, estatisticas e compartilhamento" }]
+      ? [{ id: "postgame" as const, label: "Pós-jogo", helper: "Estatísticas e avaliações" }]
       : []),
   ];
 
+
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <button
-            onClick={() => router.push("/matches")}
-            className="mb-2 text-sm text-[var(--brand-neon)] hover:text-white transition-colors"
-          >
-            ← Voltar para Jogos
-          </button>
-          <h1 className="text-2xl font-bold text-[var(--text)]">
-            vs {match.opponent}
-          </h1>
-          <div className="mt-1 flex items-center gap-2">
-            <Badge variant={statusVariants[match.status]}>
-              {statusLabels[match.status]}
-            </Badge>
-            <Badge variant="default">
-              {match.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
-            </Badge>
-          </div>
+    <div className="space-y-5">
+      {/* ── Hero Header ─────────────────────────────────────── */}
+      <div className="relative rounded-[20px] border border-white/[0.06] bg-gradient-to-br from-[#0c1a14] via-[#0a1510] to-[#081210] p-5 sm:p-6">
+        {/* Decorative gradient orbs wrapper (handles overflow-hidden for orbs) */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[20px]">
+          <div className="absolute -top-20 -right-20 h-40 w-40 rounded-full bg-[rgba(16,185,129,0.06)] blur-3xl" />
+          <div className="absolute -bottom-16 -left-16 h-32 w-32 rounded-full bg-[rgba(52,211,153,0.04)] blur-2xl" />
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={handleCopyLink}>
-            🖗 Compartilhar
+
+        {/* Back button */}
+        <button
+          onClick={() => router.push("/dashboard/matches")}
+          className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#34d399] hover:text-white transition-colors tracking-wide uppercase"
+        >
+          ← Voltar para Jogos
+        </button>
+
+        {/* Match title row */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-center gap-4">
+            {match.opponentBadgeUrl ? (
+              <img
+                src={match.opponentBadgeUrl}
+                alt={match.opponent}
+                className="h-14 w-14 rounded-xl border border-white/10 object-cover shadow-lg"
+              />
+            ) : (
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-xl font-black text-white/30">
+                VS
+              </div>
+            )}
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                vs {match.opponent}
+              </h1>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <Badge variant={statusVariants[match.status]}>
+                  {statusLabels[match.status]}
+                </Badge>
+                <Badge variant="default">
+                  {match.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
+                </Badge>
+                <Badge variant="default">
+                  {match.isHome ? "🏠 Casa" : "✈️ Visitante"}
+                </Badge>
+                {match.season && (
+                  <Badge variant="default">{match.season.name}</Badge>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Scoreboard (completed matches) */}
+          {match.status === "COMPLETED" && match.homeScore !== null && match.awayScore !== null && (
+            <div className="flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-black/30 px-5 py-3 backdrop-blur-sm">
+              <div className="text-center">
+                <span className="block text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">
+                  {match.isHome ? "NÓS" : "ADV"}
+                </span>
+                <span className={`block text-3xl font-black mt-0.5 ${match.isHome ? "text-[#6ee7b7]" : "text-[#fca5a5]"}`}>
+                  {match.homeScore}
+                </span>
+              </div>
+              <span className="text-lg font-bold text-white/20">×</span>
+              <div className="text-center">
+                <span className="block text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">
+                  {match.isHome ? "ADV" : "NÓS"}
+                </span>
+                <span className={`block text-3xl font-black mt-0.5 ${match.isHome ? "text-[#fca5a5]" : "text-[#6ee7b7]"}`}>
+                  {match.awayScore}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Meta info strip */}
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-[#8fa39b]">
+          <span className="flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 text-[#34d399]" />
+            {formatMatchDate(match.date)}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5 text-[#34d399]" />
+            {match.venue}
+            {match.latitude && match.longitude && (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${match.latitude},${match.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-0.5 text-[#34d399] hover:underline ml-1"
+              >
+                <ExternalLink className="h-3 w-3" /> Mapa
+              </a>
+            )}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5 text-[#34d399]" />
+            {confirmed} confirmados · {pending} pendentes
+          </span>
+        </div>
+
+        {/* Actions bar */}
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/[0.04] pt-4">
+          <Button size="sm" variant="secondary" onClick={handleCopyLink}>
+            <Copy className="h-3.5 w-3.5 mr-1.5" /> Compartilhar
           </Button>
+
           {isAdmin && (
-            <Button variant="secondary" onClick={() => setShowEditMatch(true)}>
-              Editar partida
-            </Button>
-          )}
-          {isAdmin && match.status === "COMPLETED" && (
-            <Button variant="secondary" onClick={() => setShowEditPostGame(true)}>
-              Editar pos-jogo
-            </Button>
-          )}
-          {isAdmin && match.status === "SCHEDULED" && (
-            <Button
-              variant="secondary"
-              onClick={() => {
-                const next = !showConvocacao;
-                setShowConvocacao(next);
-                if (next && match) {
-                  setConvocacaoText(buildConvocacaoText());
-                }
-              }}
-            >
-              📋 Gerar Convocação
-            </Button>
-          )}
-          {isAdmin && match.status === "SCHEDULED" && (
-            <Button variant="danger" onClick={() => setConfirmCancelOpen(true)}>
-              Cancelar Partida
-            </Button>
-          )}
-          {isAdmin && (
-            <Button variant="danger" onClick={() => setConfirmDeleteOpen(true)}>
-              Excluir
-            </Button>
+            <div className="relative">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setAdminMenuOpen(!adminMenuOpen)}
+              >
+                <MoreVertical className="h-3.5 w-3.5 mr-1.5" /> Ações
+                <ChevronDown className={`h-3 w-3 ml-1 transition-transform ${adminMenuOpen ? "rotate-180" : ""}`} />
+              </Button>
+              {adminMenuOpen && (
+                <div
+                  className="absolute left-0 top-full z-30 mt-1.5 min-w-[200px] rounded-xl border border-white/10 bg-[#0c1a14] shadow-xl backdrop-blur-md overflow-hidden"
+                  onMouseLeave={() => setAdminMenuOpen(false)}
+                >
+                  <button
+                    type="button"
+                    onClick={() => { setShowEditMatch(true); setAdminMenuOpen(false); }}
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-white hover:bg-white/[0.06] transition-colors"
+                  >
+                    ✏️ Editar partida
+                  </button>
+                  {match.status === "COMPLETED" && (
+                    <button
+                      type="button"
+                      onClick={() => { setShowEditPostGame(true); setAdminMenuOpen(false); }}
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-white hover:bg-white/[0.06] transition-colors"
+                    >
+                      📊 Editar pós-jogo
+                    </button>
+                  )}
+                  {match.status === "SCHEDULED" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowConvocacao(true);
+                        setConvocacaoText(buildConvocacaoText());
+                        setAdminMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-white hover:bg-white/[0.06] transition-colors"
+                    >
+                      📋 Gerar Convocação
+                    </button>
+                  )}
+                  <div className="border-t border-white/[0.06]" />
+                  {match.status === "SCHEDULED" && (
+                    <button
+                      type="button"
+                      onClick={() => { setConfirmCancelOpen(true); setAdminMenuOpen(false); }}
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-[#fca5a5] hover:bg-red-500/[0.08] transition-colors"
+                    >
+                      🚫 Cancelar partida
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => { setConfirmDeleteOpen(true); setAdminMenuOpen(false); }}
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-[#fca5a5] hover:bg-red-500/[0.08] transition-colors"
+                  >
+                    🗑️ Excluir partida
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
 
+      {/* ── Feedback / Alerts ──────────────────────────────── */}
       {copyMsg && (
         <div className="rounded-[12px] border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] p-3 text-sm text-[#6ee7b7] font-semibold">
           {copyMsg}
+        </div>
+      )}
+
+      {feedback && (
+        <div className="rounded-[12px] border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] p-3 text-sm text-[#6ee7b7] font-semibold">
+          {feedback}
+        </div>
+      )}
+
+      {actionError && (
+        <div className="rounded-[12px] border border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.1)] p-3 text-sm text-[#fca5a5] font-semibold">
+          {actionError}
         </div>
       )}
 
@@ -1084,702 +1443,238 @@ export default function MatchDetailPage() {
         </Card>
       )}
 
-      {feedback && (
-        <div className="rounded-[12px] border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] p-3 text-sm text-[#6ee7b7] font-semibold">
-          {feedback}
-        </div>
-      )}
+      {/* ── Check-in Banner (Fácil Localização) ──────────────── */}
+      {isScheduled && session?.user?.playerId && (() => {
+        const loggedInPlayerRsvp = match.rsvps.find((r) => r.playerId === session?.user?.playerId);
+        if (loggedInPlayerRsvp?.status !== "CONFIRMED" || match.isPlayerSuspended || !match.latitude || !match.longitude) {
+          return null;
+        }
 
-      {actionError && (
-        <div className="rounded-[12px] border border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.1)] p-3 text-sm text-[#fca5a5] font-semibold">
-          {actionError}
-        </div>
-      )}
+        const matchTimeMs = new Date(match.date).getTime();
+        const oneHourInMs = 1 * 60 * 60 * 1000;
+        const formattedOpenTime = new Intl.DateTimeFormat("pt-BR", {
+          timeStyle: "short",
+          timeZone: "America/Sao_Paulo",
+        }).format(new Date(matchTimeMs - oneHourInMs));
 
-      {/* Match Info */}
-      <Card>
-        <CardHeader>
-          <h2 className="text-lg font-semibold">Informações</h2>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <span className="text-sm text-[var(--text-muted)]">Data</span>
-              <p className="font-medium text-[var(--text)]">{formatMatchDate(match.date)}</p>
-            </div>
-            <div>
-              <span className="text-sm text-[var(--text-muted)]">Local</span>
-              <p className="font-medium text-[var(--text)]">{match.venue}</p>
-            </div>
-            <div>
-              <span className="text-sm text-[var(--text-muted)]">Adversário</span>
-              <p className="font-medium text-[var(--text)]">{match.opponent}</p>
-            </div>
-            <div>
-              <span className="text-sm text-[var(--text-muted)]">Tipo</span>
-              <p className="font-medium text-[var(--text)]">
-                {match.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
-              </p>
-            </div>
-            <div>
-              <span className="text-sm text-[var(--text-muted)]">Mando</span>
-              <p className="font-medium text-[var(--text)]">{match.isHome ? "Casa" : "Visitante"}</p>
-            </div>
-            <div>
-              <span className="text-sm text-[var(--text-muted)]">Escudo adversário</span>
-              <p className="font-medium text-[var(--text)]">{match.opponentBadgeUrl ? "Definido" : "Nao informado"}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        return (
+          <Card className="border-[rgba(16,185,129,0.2)] bg-gradient-to-br from-[#0c1a14] to-[#07130e] shadow-lg">
+            <CardContent className="pt-6">
+              {match.userAttendance?.present ? (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-500/10 text-green-400 border border-green-500/20 shrink-0">
+                      <CheckCircle2 className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-green-400">Presença Confirmada no Local!</h3>
+                      <p className="text-xs text-[var(--text-subtle)] mt-0.5">
+                        Seu check-in foi registrado em{" "}
+                        {match.userAttendance.checkedInAt
+                          ? new Intl.DateTimeFormat("pt-BR", {
+                              timeStyle: "short",
+                              timeZone: "America/Sao_Paulo",
+                            }).format(new Date(match.userAttendance.checkedInAt))
+                          : ""}{" "}
+                        h. Bom jogo!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
+                      <MapPin className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-white">Confirmação de Presença no Local</h3>
+                      <p className="text-xs text-[var(--text-subtle)] mt-1 max-w-xl">
+                        {isCheckInOpen 
+                          ? "Você está confirmado para a partida! Por favor, realize o check-in no local clicando no botão ao lado para confirmar sua presença."
+                          : `Você está confirmado para a partida! A confirmação de presença no local (check-in) será liberada a partir das ${formattedOpenTime}h (1 hora antes do início do jogo).`
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  <div className="shrink-0 w-full sm:w-auto">
+                    {isCheckInOpen ? (
+                      <div className="flex flex-col gap-2 w-full">
+                        {checkInFeedback && (
+                          <p className="text-xs text-green-400 font-semibold">{checkInFeedback}</p>
+                        )}
+                        {checkInError && (
+                          <p className="text-xs text-[#fca5a5] font-semibold max-w-xs">{checkInError}</p>
+                        )}
+                        <Button
+                          onClick={handleCheckIn}
+                          disabled={checkInLoading}
+                          className="w-full sm:w-auto text-xs font-black uppercase tracking-wider text-[#010403] bg-[#10b981] hover:bg-[#34d399]"
+                        >
+                          {checkInLoading ? "Obtendo localização..." : "📍 Confirmar Presença (Check-in)"}
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        disabled
+                        className="w-full sm:w-auto text-xs font-black uppercase tracking-wider text-white/40 bg-white/5 border border-white/10 cursor-not-allowed"
+                      >
+                        ⏳ Check-in Indisponível
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
+      {/* ── Tab Navigation Strip ──────────────────────────── */}
       {(isScheduled || canSeePostGame) && (
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-[var(--text)]">Central da partida</h2>
-                <p className="text-sm text-[var(--text-subtle)]">
-                  Separamos presenca, escalacao e operacao para a pagina ficar mais objetiva.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {sections.map((section) => (
-                  <Button
-                    key={section.id}
-                    type="button"
-                    variant={activeSection === section.id ? "primary" : "ghost"}
-                    size="sm"
-                    onClick={() => setActiveSection(section.id)}
-                  >
-                    {section.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <button
-                type="button"
-                onClick={() => setActiveSection("overview")}
-                className={`rounded-[14px] border p-4 text-left transition-colors ${
-                  activeSection === "overview"
-                    ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                    : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white/[0.07]"
-                }`}
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Resumo</p>
-                <p className="mt-2 text-lg font-semibold text-[var(--text)]">Tudo em contexto</p>
-                <p className="mt-1 text-sm text-[var(--text-subtle)]">Visao rapida da rodada e proximos passos.</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveSection("presence")}
-                className={`rounded-[14px] border p-4 text-left transition-colors ${
-                  activeSection === "presence"
-                    ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                    : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white/[0.07]"
-                }`}
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Presenca</p>
-                <p className="mt-2 text-lg font-semibold text-[var(--text)]">{confirmed} confirmados</p>
-                <p className="mt-1 text-sm text-[var(--text-subtle)]">{pending} pendentes e {declined} recusas.</p>
-              </button>
-
-              {canSeeLineup && (
+        <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
+          <div className="flex items-center gap-1 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-1.5 backdrop-blur-sm min-w-max">
+            {sections.map((section) => {
+              const isActive = activeSection === section.id;
+              return (
                 <button
+              key={section.id}
                   type="button"
-                  onClick={() => setActiveSection("lineup")}
-                  className={`rounded-[14px] border p-4 text-left transition-colors ${
-                    activeSection === "lineup"
-                      ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                      : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white/[0.07]"
+                  onClick={() => setActiveSection(section.id)}
+                  className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 whitespace-nowrap ${
+                    isActive
+                      ? "bg-[rgba(16,185,129,0.12)] border border-[rgba(16,185,129,0.25)] text-[#34d399] shadow-sm"
+                      : "border border-transparent text-[#8fa39b] hover:text-white hover:bg-white/[0.04]"
                   }`}
+                  title={section.helper}
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Escalacao</p>
-                  <p className="mt-2 text-lg font-semibold text-[var(--text)]">
-                    {lineupLoading ? "Calculando..." : `${lineupData?.lineup?.starters?.length ?? 0} titulares`}
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--text-subtle)]">
-                    {lineupError ? "Revise o erro da leitura" : "Veja a sugestao sem inflar a pagina principal."}
-                  </p>
+                  {sectionIcons[section.id]}
+                  {section.label}
                 </button>
-              )}
-
-              {canSeeOperations && (
-                <button
-                  type="button"
-                  onClick={() => setActiveSection("operations")}
-                  className={`rounded-[14px] border p-4 text-left transition-colors ${
-                    activeSection === "operations"
-                      ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                      : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white/[0.07]"
-                  }`}
-                >
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Operacao</p>
-                  <p className="mt-2 text-lg font-semibold text-[var(--text)]">
-                    {bordereauLoading ? "Carregando..." : `${bordereauData?.costSummary?.presentCount ?? 0} presentes`}
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--text-subtle)]">
-                    Bordero e despesas ficam isolados do RSVP.
-                  </p>
-                </button>
-              )}
-
-              {canSeePostGame && (
-                <button
-                  type="button"
-                  onClick={() => setActiveSection("postgame")}
-                  className={`rounded-[14px] border p-4 text-left transition-colors ${
-                    activeSection === "postgame"
-                      ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                      : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white/[0.07]"
-                  }`}
-                >
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Pos-jogo</p>
-                  <p className="mt-2 text-lg font-semibold text-[var(--text)]">
-                    {match.status === "COMPLETED" ? "Partida finalizada" : "Registro pendente"}
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--text-subtle)]">
-                    Placar, estatisticas e compartilhamento em uma area dedicada.
-                  </p>
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setActiveSection("gallery")}
-                className={`rounded-[14px] border p-4 text-left transition-colors ${
-                  activeSection === "gallery"
-                    ? "border-[var(--brand)] bg-[var(--brand-soft)]"
-                    : "border-[var(--border)] bg-[var(--surface-soft)] hover:bg-white/[0.07]"
-                }`}
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Galeria</p>
-                <p className="mt-2 text-lg font-semibold text-[var(--text)]">Fotos do jogo</p>
-                <p className="mt-1 text-sm text-[var(--text-subtle)]">Resenha e fotos da partida.</p>
-              </button>
-            </div>
-
-            <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-              <p className="text-sm font-semibold text-[var(--text)]">
-                {sections.find((section) => section.id === activeSection)?.label ?? ""}
-              </p>
-              <p className="mt-1 text-sm text-[var(--text-subtle)]">
-                {sections.find((section) => section.id === activeSection)?.helper ?? ""}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+              );
+            })}
+          </div>
+        </div>
       )}
 
-      {isScheduled && activeSection === "overview" && (
-        <>
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold text-[var(--text)]">Visao geral do jogo</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 lg:grid-cols-3">
-                <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Confirmacoes</p>
-                  <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{confirmed}</p>
-                  <p className="mt-1 text-sm text-[var(--text-subtle)]">Jogadores que ja confirmaram presenca.</p>
-                </div>
-                <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Pendencias</p>
-                  <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{pending}</p>
-                  <p className="mt-1 text-sm text-[var(--text-subtle)]">Ainda sem resposta no RSVP.</p>
-                </div>
-                <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#2a6f60]">Recusas</p>
-                  <p className="mt-2 text-2xl font-semibold text-[var(--text)]">{declined}</p>
-                  <p className="mt-1 text-sm text-[var(--text-subtle)]">Atletas indisponiveis para esta partida.</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="mt-4">
-            <CardHeader>
-              <h2 className="text-lg font-semibold text-[var(--text)]">Divulgar Pré-Jogo nas Redes Sociais</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-4 py-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-semibold text-[#6ee7b7]">Gerar Imagem de Pré-Jogo</p>
-                  <p className="text-sm text-[var(--text-subtle)]">
-                    Crie um card de preview personalizado com local, horário, convocados e retrospectiva do time para publicar no Instagram e WhatsApp!
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      const pregameUrl = getPregameRecapCardUrl();
-                      if (!pregameUrl) return;
-                      trackPregameCtaClick("open_card");
-                      window.open(
-                        pregameUrl,
-                        "_blank",
-                        "noopener,noreferrer"
-                      );
-                    }}
-                  >
-                    🖼️ Abrir card pré-jogo
-                  </Button>
-                  <Button variant="secondary" onClick={handleCopyPregameRecapLink}>
-                    📋 Copiar link do card
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      trackPregameCtaClick("whatsapp_share");
-                      window.open(
-                        `https://wa.me/?text=${encodeURIComponent(buildConvocacaoText())}`,
-                        "_blank",
-                        "noopener,noreferrer"
-                      );
-                    }}
-                  >
-                    📱 Compartilhar no WhatsApp
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      {/* Score (if completed) */}
-      {activeSection === "postgame" && match.status === "COMPLETED" &&
-        match.homeScore !== null &&
-        match.awayScore !== null && (
-          <Card>
-            <CardHeader>
-              <h2 className="text-lg font-semibold">Placar</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center gap-10 text-3xl font-bold text-center">
-                <div className="space-y-1">
-                  <span className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
-                    {match.isHome ? "Nosso Time (Casa)" : `${match.opponent} (Casa)`}
-                  </span>
-                  <span className={`${match.isHome ? "text-[#6ee7b7]" : "text-[#fca5a5]"} text-4xl block font-black`}>
-                    {match.homeScore}
-                  </span>
-                </div>
-                <span className="text-[var(--text-muted)] self-end pb-1">x</span>
-                <div className="space-y-1">
-                  <span className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
-                    {match.isHome ? `${match.opponent} (Visitante)` : "Nosso Time (Visitante)"}
-                  </span>
-                  <span className={`${match.isHome ? "text-[#fca5a5]" : "text-[#6ee7b7]"} text-4xl block font-black`}>
-                    {match.awayScore}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-      {/* RSVP Summary and Actions */}
-      {match.status === "SCHEDULED" && activeSection === "presence" && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Confirmação de Presença</h2>
-              <div className="flex gap-3 text-sm">
-                <span className="text-green-600">✅ {confirmed}</span>
-                <span className="text-red-600">❌ {declined}</span>
-                <span className="text-yellow-600">⏳ {pending}</span>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* RSVP action buttons for players */}
-            <div className="mb-4 flex gap-3">
-              <Button
-                onClick={() => handleRsvp("CONFIRMED")}
-                disabled={rsvpLoading}
-              >
-                ✅ Confirmar Presença
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => handleRsvp("DECLINED")}
-                disabled={rsvpLoading}
-              >
-                ❌ Recusar
-              </Button>
-            </div>
-
-            {/* RSVP list */}
-            <div className="space-y-2">
-              {match.rsvps.map((rsvp) => (
-                <div
-                  key={rsvp.playerId}
-                  className="flex items-center justify-between rounded-[12px] border border-white/5 bg-white/[0.04] px-4 py-2 hover:bg-white/[0.07] transition-colors"
-                >
-                  <span className="font-medium text-[var(--text)]">
-                    {rsvp.playerName}
-                  </span>
-                  <Badge variant={rsvpStatusVariants[rsvp.status]}>
-                    {rsvpStatusLabels[rsvp.status]}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* RSVP list for non-scheduled matches */}
-      {match.status !== "SCHEDULED" && match.rsvps.length > 0 && activeSection === "presence" && (
-        <Card>
-          <CardHeader>
-            <h2 className="text-lg font-semibold">Presenças</h2>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {match.rsvps.map((rsvp) => (
-                <div
-                  key={rsvp.playerId}
-                  className="flex items-center justify-between rounded-[12px] border border-white/5 bg-white/[0.04] px-4 py-2 hover:bg-white/[0.07] transition-colors"
-                >
-                  <span className="font-medium text-[var(--text)]">
-                    {rsvp.playerName}
-                  </span>
-                  <Badge variant={rsvpStatusVariants[rsvp.status]}>
-                    {rsvpStatusLabels[rsvp.status]}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {canSeeLineup && activeSection === "lineup" && lineupData && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Compartilhar Escalação</h2>
-              <button
-                onClick={() => {
-                  const next = !showLineupShare;
-                  setShowLineupShare(next);
-                  if (next) setLineupShareText(buildLineupShareText());
-                }}
-                className="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--brand-neon)] hover:bg-white/[0.06] transition-colors"
-              >
-                {showLineupShare ? "Fechar" : "📋 Gerar texto"}
-              </button>
-            </div>
-          </CardHeader>
-          {showLineupShare && (
-            <CardContent>
-              <textarea
-                className="min-h-[160px] w-full rounded-lg border border-[var(--border)] bg-[#090f0c] p-4 font-sans text-sm text-[var(--text)] placeholder:text-[var(--text-subtle)] focus:border-[var(--brand)] focus:outline-none focus:ring-1 focus:ring-[var(--brand)]"
-                value={lineupShareText}
-                onChange={(e) => setLineupShareText(e.target.value)}
-                aria-label="Texto da escalação para compartilhar"
-              />
-              <div className="mt-4 flex flex-wrap gap-3">
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    navigator.clipboard.writeText(lineupShareText);
-                    setCopyMsg("Escalação copiada!");
-                    setTimeout(() => setCopyMsg(""), 2500);
-                  }}
-                >
-                  📋 Copiar texto
-                </Button>
-                <Button
-                  onClick={() => {
-                    window.open(
-                      `https://wa.me/?text=${encodeURIComponent(lineupShareText)}`,
-                      "_blank",
-                      "noopener,noreferrer"
-                    );
-                  }}
-                >
-                  📱 Enviar no WhatsApp
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => setLineupShareText(buildLineupShareText())}
-                >
-                  🔄 Regenerar
-                </Button>
-              </div>
-            </CardContent>
-          )}
-        </Card>
-      )}
-
-      {canSeeLineup && activeSection === "lineup" && (
-        <SuggestedLineupCard
-          loading={lineupLoading}
-          error={lineupError}
-          lineup={lineupData?.lineup ?? null}
-          generatedAt={lineupData?.generatedAt ?? null}
-          onRefresh={() => fetchLineup({ refresh: true })}
-          canRefresh={!lineupRefreshing}
-          onSaveLineup={handleSaveLineup}
-          onResetSavedLineup={handleResetSavedLineup}
-          saveLoading={lineupSaving}
-          imageUrl={lineupData?.imageUrl ?? null}
+      {activeSection === "overview" && (
+        <MatchOverviewTab
+          match={match}
+          confirmed={confirmed}
+          pending={pending}
+          declined={declined}
+          isScheduled={isScheduled}
+          getPregameRecapCardUrl={getPregameRecapCardUrl}
+          handleCopyPregameRecapLink={handleCopyPregameRecapLink}
+          buildConvocacaoText={buildConvocacaoText}
+          trackPregameCtaClick={trackPregameCtaClick}
         />
       )}
 
-      {canSeeLive && activeSection === "live" && (
-        <LiveMatchControl matchId={match.id} />
+      {activeSection === "presence" && (
+        <MatchRsvpTab
+          match={match}
+          currentUserId={session?.user?.playerId ?? null}
+          isCoachOrAdmin={isCoachOrAdmin}
+          rsvpLoading={rsvpLoading}
+          handleRsvp={handleRsvp}
+          setMatch={setMatch}
+          fetchMatch={fetchMatch}
+          isCheckInOpen={isCheckInOpen}
+          checkInFeedback={checkInFeedback}
+          checkInError={checkInError}
+          checkInLoading={checkInLoading}
+          handleCheckIn={handleCheckIn}
+        />
       )}
 
-      {canSeeGuests && activeSection === "guests" && (
-        <GuestPlayersManager matchId={match.id} />
+      {canSeeLineup && activeSection === "lineup" && (
+        <MatchLineupTab
+          match={match}
+          lineupData={lineupData}
+          lineupLoading={lineupLoading}
+          lineupError={lineupError}
+          lineupRefreshing={lineupRefreshing}
+          lineupSaving={lineupSaving}
+          fetchLineup={fetchLineup}
+          handleSaveLineup={handleSaveLineup}
+          handleResetSavedLineup={handleResetSavedLineup}
+          buildLineupShareText={buildLineupShareText}
+          showLineupShare={showLineupShare}
+          setShowLineupShare={setShowLineupShare}
+          lineupShareText={lineupShareText}
+          setLineupShareText={setLineupShareText}
+          setCopyMsg={setCopyMsg}
+        />
       )}
 
       {activeSection === "gallery" && (
-        <MatchPhotosGallery matchId={match.id} opponent={match.opponent} />
+        <MatchGalleryTab matchId={match.id} opponent={match.opponent} />
       )}
 
-      {canSeeOperations && activeSection === "operations" && (
-        <div className="space-y-6">
-          <BordereauCard
-            loading={bordereauLoading}
-            saving={bordereauSaving}
-            error={bordereauError}
-            data={bordereauData}
-            onChecklistToggle={toggleChecklistItem}
-            onAttendanceToggle={toggleAttendance}
-            onShirtNumberChange={handleShirtNumberChange}
-            onSave={handleSaveBordereau}
-            onOpenExpense={() => setExpenseModalOpen(true)}
-          />
-          <MatchEquipmentCard matchId={match.id} />
-        </div>
+      {canSeeLive && activeSection === "live" && (
+        <MatchLiveTab matchId={match.id} />
       )}
 
-      {/* Post-game form (T042) — show when canSubmitPostGame is true */}
-      {activeSection === "postgame" && isAdmin && match.canSubmitPostGame && !showPostGame && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent>
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="font-semibold text-orange-800">
-                  Pós-jogo disponível
-                </p>
-                <p className="text-sm text-orange-600">
-                  A data da partida já passou. Registre o placar e as
-                  estatísticas.
-                </p>
-              </div>
-              <Button onClick={() => setShowPostGame(true)}>
-                Registrar Pós-Jogo
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      {(canSeeOperations || match.hasCharge) && activeSection === "operations" && (
+        <MatchBordereauTab
+          match={match}
+          session={session}
+          isAdmin={isAdmin}
+          canSeeOperations={canSeeOperations}
+          togglingPlayerId={togglingPlayerId}
+          checklistLoading={checklistLoading}
+          checklistPlayers={checklistPlayers}
+          chargesFeedback={chargesFeedback}
+          chargesError={chargesError}
+          uploadingReceipt={uploadingReceipt}
+          bordereauLoading={bordereauLoading}
+          bordereauSaving={bordereauSaving}
+          bordereauError={bordereauError}
+          bordereauData={bordereauData}
+          toggleChecklistItem={toggleChecklistItem}
+          toggleAttendance={toggleAttendance}
+          handleShirtNumberChange={handleShirtNumberChange}
+          handleSaveBordereau={handleSaveBordereau}
+          setExpenseModalOpen={setExpenseModalOpen}
+          copyPixKey={copyPixKey}
+          pixKeyCopied={pixKeyCopied}
+          handleUploadReceipt={handleUploadReceipt}
+          handleApproveReceipt={handleApproveReceipt}
+          handleRejectReceipt={handleRejectReceipt}
+          setPreviewReceipt={setPreviewReceipt}
+          handleTogglePayment={handleTogglePayment}
+        />
       )}
 
-      {activeSection === "postgame" && isAdmin && match.canSubmitPostGame && showPostGame && (
-        <Card>
-          <CardHeader>
-            <h2 className="text-lg font-semibold">Registrar Pós-Jogo</h2>
-          </CardHeader>
-          <CardContent>
-            <PostGameForm
-              matchId={match.id}
-              rsvps={match.rsvps}
-              initialIsHome={match.isHome}
-              onSuccess={() => {
-                setShowPostGame(false);
-                fetchMatch();
-              }}
-              onCancel={() => setShowPostGame(false)}
-            />
-          </CardContent>
-        </Card>
+      {canSeePostGame && activeSection === "postgame" && (
+        <MatchRatingTab
+          match={match}
+          session={session}
+          isAdmin={isAdmin}
+          showPostGame={showPostGame}
+          setShowPostGame={setShowPostGame}
+          fetchMatch={fetchMatch}
+          votesLoading={votesLoading}
+          votesData={votesData}
+          votingForId={votingForId}
+          setVotingForId={setVotingForId}
+          submitVoteLoading={submitVoteLoading}
+          voteError={voteError}
+          handleCastVote={handleCastVote}
+          ratingsLoading={ratingsLoading}
+          userRatings={userRatings}
+          ratingsAverages={ratingsAverages}
+          canRate={canRate}
+          submittingRatingId={submittingRatingId}
+          handleRateTeammate={handleRateTeammate}
+          getRecapCardUrl={getRecapCardUrl}
+          handleCopyRecapLink={handleCopyRecapLink}
+          handleCopyLink={handleCopyLink}
+          buildResultText={buildResultText}
+          trackRecapCtaClick={trackRecapCtaClick}
+        />
       )}
-
-      {/* Stats display (when match is COMPLETED and has stats) */}
-      {activeSection === "postgame" && match.status === "COMPLETED" && match.stats.length > 0 && (
-        <Card>
-          <CardHeader>
-            <h2 className="text-lg font-semibold">Estatísticas Individuais</h2>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="pb-2 font-medium text-gray-500">Jogador</th>
-                    <th className="pb-2 text-center font-medium text-gray-500">
-                      Gols
-                    </th>
-                    <th className="pb-2 text-center font-medium text-gray-500">
-                      Assist.
-                    </th>
-                    <th className="pb-2 text-center font-medium text-gray-500">
-                      🟨
-                    </th>
-                    <th className="pb-2 text-center font-medium text-gray-500">
-                      🟥
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {match.stats.map((stat) => (
-                    <tr
-                      key={stat.playerId}
-                      className="border-b border-gray-100"
-                    >
-                      <td className="py-2 font-medium">{stat.playerName}</td>
-                      <td className="py-2 text-center">{stat.goals}</td>
-                      <td className="py-2 text-center">{stat.assists}</td>
-                      <td className="py-2 text-center">{stat.yellowCards}</td>
-                      <td className="py-2 text-center">{stat.redCards}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Teammate Ratings Card */}
-      {activeSection === "postgame" && match.status === "COMPLETED" && match.stats.length > 0 && (
-        <Card className="rounded-[22px] border border-white/5 bg-white/[0.02] backdrop-blur-md overflow-hidden">
-          <CardHeader className="border-b border-white/5 pb-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div>
-                <h2 className="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
-                  <span className="text-[#34d399]">⭐</span> Avaliação dos Companheiros
-                </h2>
-                <p className="text-xs text-[#8fa39b] mt-1">
-                  Atribua notas de 1 a 5 estrelas para os atletas que participaram desta partida.
-                </p>
-              </div>
-              {!canRate && (
-                <span className="rounded-full bg-red-500/10 border border-red-500/20 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-400">
-                  Somente Participantes
-                </span>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            {!canRate && (
-              <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.01] p-4 text-center">
-                <p className="text-sm font-semibold text-white/80">Avaliação Restrita</p>
-                <p className="text-xs text-[#8fa39b] mt-1">
-                  Apenas os administradores, comissão técnica ou jogadores que participaram da partida (súmula ou presença confirmada) podem avaliar o time.
-                </p>
-              </div>
-            )}
-            
-            {ratingsLoading ? (
-              <div className="space-y-3 py-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-16 animate-pulse rounded-xl border border-white/5 bg-white/[0.01]" />
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {match.stats.map((stat) => {
-                  const userRating = userRatings.find((r) => r.playerId === stat.playerId)?.stars ?? null;
-                  const avgData = ratingsAverages.find((r) => r.playerId === stat.playerId);
-                  const averageRating = avgData?.averageStars ?? 0;
-                  const totalRatings = avgData?.totalRatings ?? 0;
-
-                  return (
-                    <TeammateRatingRow
-                      key={stat.playerId}
-                      player={stat}
-                      currentUserPlayerId={session?.user?.playerId ?? null}
-                      userRating={userRating}
-                      averageRating={averageRating}
-                      totalRatings={totalRatings}
-                      canRate={canRate}
-                      onRate={(stars) => handleRateTeammate(stat.playerId, stars)}
-                      isSubmitting={submittingRatingId === stat.playerId}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* F-002: Share result card */}
-      {activeSection === "postgame" && match.status === "COMPLETED" && (
-        <Card>
-          <CardHeader>
-            <h2 className="text-lg font-semibold">Recap da Rodada</h2>
-          </CardHeader>
-          <CardContent>
-            <TeamRecapWidget matchId={match.id} />
-          </CardContent>
-        </Card>
-      )}
-
-      {activeSection === "postgame" && match.status === "COMPLETED" &&
-        match.stats.length > 0 &&
-        match.homeScore !== null &&
-        match.awayScore !== null && (
-          <Card className="border-blue-200 bg-blue-50">
-            <CardContent>
-              <div className="flex flex-col gap-4 py-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-semibold text-blue-800">Compartilhar resultado</p>
-                  <p className="text-sm text-blue-600">
-                    {match.isHome ? match.homeScore : match.awayScore} × {match.isHome ? match.awayScore : match.homeScore} vs {match.opponent} — divulgue o card de resultado!
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      const recapUrl = getRecapCardUrl();
-                      if (!recapUrl) return;
-                      trackRecapCtaClick("open_card");
-                      window.open(
-                        recapUrl,
-                        "_blank",
-                        "noopener,noreferrer"
-                      );
-                    }}
-                  >
-                    🖼️ Abrir card recap
-                  </Button>
-                  <Button variant="secondary" onClick={handleCopyRecapLink}>
-                    📋 Copiar link do recap
-                  </Button>
-                  <Button variant="secondary" onClick={handleCopyLink}>
-                    🔗 Copiar link
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      trackRecapCtaClick("whatsapp_share");
-                      window.open(
-                        `https://wa.me/?text=${encodeURIComponent(buildResultText())}`,
-                        "_blank",
-                        "noopener,noreferrer"
-                      );
-                    }}
-                  >
-                    📱 Compartilhar no WhatsApp
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
       <Modal
         open={isAdmin && confirmCancelOpen}
@@ -1857,6 +1752,9 @@ export default function MatchDetailPage() {
             positionLimits: match.positionLimits,
             homeScore: match.homeScore,
             awayScore: match.awayScore,
+            pixKey: match.pixKey,
+            latitude: match.latitude,
+            longitude: match.longitude,
           }}
           onSuccess={async () => {
             setShowEditMatch(false);
@@ -1912,6 +1810,66 @@ export default function MatchDetailPage() {
             onCancel={() => setExpenseModalOpen(false)}
           />
         )}
+      </Modal>
+
+      <Modal
+        open={!!previewReceipt}
+        onClose={() => setPreviewReceipt(null)}
+        title={`Comprovante de ${previewReceipt?.playerName}`}
+      >
+        <div className="space-y-4">
+          <div className="overflow-hidden rounded-xl border border-white/10 bg-[#090f0c] p-2 flex items-center justify-center min-h-[300px]">
+            {previewReceipt?.url.toLowerCase().endsWith(".pdf") ? (
+              <div className="text-center py-12 space-y-3">
+                <FileText className="mx-auto h-12 w-12 text-white/40" />
+                <p className="text-sm text-[var(--text-muted)]">Este comprovante é um documento PDF.</p>
+                <a
+                  href={previewReceipt.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white hover:bg-white/10"
+                >
+                  Abrir PDF em nova aba
+                </a>
+              </div>
+            ) : (
+              <img
+                src={previewReceipt?.url}
+                alt={`Comprovante de ${previewReceipt?.playerName}`}
+                className="max-h-[500px] w-auto max-w-full rounded-lg object-contain shadow-lg"
+              />
+            )}
+          </div>
+
+          {isAdmin && previewReceipt && (
+            <div className="flex gap-3 justify-end pt-2">
+              <Button
+                onClick={() => handleApproveReceipt(previewReceipt.playerId)}
+                disabled={togglingPlayerId === previewReceipt.playerId}
+                className="bg-[#10b981] hover:bg-[#059669] text-white flex items-center gap-1.5 font-bold"
+              >
+                <Check className="h-4 w-4" />
+                Aprovar Pagamento
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => handleRejectReceipt(previewReceipt.playerId)}
+                disabled={togglingPlayerId === previewReceipt.playerId}
+                className="border border-red-500/25 bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center gap-1.5 font-bold"
+              >
+                <XCircle className="h-4 w-4" />
+                Recusar Comprovante
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setPreviewReceipt(null)}
+                className="font-bold"
+              >
+                Fechar
+              </Button>
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );

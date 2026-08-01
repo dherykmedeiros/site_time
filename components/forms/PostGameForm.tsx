@@ -9,10 +9,13 @@ interface RSVP {
   playerId: string;
   playerName: string;
   status: string;
+  isGuest?: boolean;
+  guestPlayerId?: string | null;
 }
 
 interface PlayerStatInput {
   playerId: string;
+  guestPlayerId?: string | null;
   playerName: string;
   goals: number;
   assists: number;
@@ -87,20 +90,27 @@ export function PostGameForm({
   const confirmedPlayers = rsvps.filter((r) => r.status === "CONFIRMED");
   const initialStatsByPlayer = new Map((initialStats || []).map((item) => [item.playerId, item]));
   const mergedPlayers = [
-    ...confirmedPlayers,
+    ...confirmedPlayers.map((r) => ({
+      playerId: r.playerId,
+      guestPlayerId: r.isGuest ? r.playerId : null,
+      playerName: r.playerName,
+      status: r.status,
+    })),
     ...((initialStats || [])
       .filter((item) => !confirmedPlayers.some((player) => player.playerId === item.playerId))
       .map((item) => ({
         playerId: item.playerId,
+        guestPlayerId: item.guestPlayerId,
         playerName: item.playerName,
         status: "CONFIRMED",
         respondedAt: null,
-      })) as RSVP[]),
+      }))),
   ];
 
   const [playerStats, setPlayerStats] = useState<PlayerStatInput[]>(
     mergedPlayers.map((r) => ({
       playerId: r.playerId,
+      guestPlayerId: r.guestPlayerId || null,
       playerName: r.playerName,
       goals: initialStatsByPlayer.get(r.playerId)?.goals ?? 0,
       assists: initialStatsByPlayer.get(r.playerId)?.assists ?? 0,
@@ -123,6 +133,10 @@ export function PostGameForm({
       updated[index] = { ...updated[index], [field]: value };
       return updated;
     });
+  }
+
+  function removePlayerStat(indexToRemove: number) {
+    setPlayerStats((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   }
 
   async function handleSubmitScore() {
@@ -211,7 +225,8 @@ export function PostGameForm({
 
       const statsPayload = {
         stats: playerStats.map((s) => ({
-          playerId: s.playerId,
+          playerId: s.guestPlayerId ? null : s.playerId,
+          guestPlayerId: s.guestPlayerId || null,
           goals: s.goals,
           assists: s.assists,
           yellowCards: s.yellowCards,
@@ -429,6 +444,7 @@ export function PostGameForm({
                       ...prev,
                       {
                         playerId: player.id,
+                        guestPlayerId: null,
                         playerName: player.name,
                         goals: 0,
                         assists: 0,
@@ -456,14 +472,24 @@ export function PostGameForm({
                   key={stat.playerId}
                   className="rounded-xl border border-white/10 bg-[#090f0c] p-4"
                 >
-                  <p className="mb-3 font-semibold text-white flex items-center gap-2">
-                    <span>{stat.playerName}</span>
-                    {squadPlayers.find((sp) => sp.id === stat.playerId)?.status === "INACTIVE" && (
-                      <span className="text-[10px] font-semibold text-red-400 bg-red-950/50 border border-red-800/30 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                        Inativo
-                      </span>
-                    )}
-                  </p>
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="font-semibold text-white flex items-center gap-2">
+                      <span>{stat.playerName}</span>
+                      {squadPlayers.find((sp) => sp.id === stat.playerId)?.status === "INACTIVE" && (
+                        <span className="text-[10px] font-semibold text-red-400 bg-red-950/50 border border-red-800/30 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          Inativo
+                        </span>
+                      )}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => removePlayerStat(idx)}
+                      className="text-xs text-red-400 hover:text-red-300 font-bold px-2 py-1 hover:bg-red-500/10 rounded-lg transition"
+                      title="Remover jogador"
+                    >
+                      Remover
+                    </button>
+                  </div>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <Input
                       label="Gols"

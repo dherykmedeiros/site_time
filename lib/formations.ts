@@ -139,11 +139,11 @@ const FORMATIONS: Record<FormationName, FormationDefinition> = {
     slots: [
       { x: 50, y: 14, positions: ["GOALKEEPER"] },
       // Five defenders (wingbacks + CBs)
-      { x: 86, y: 41, positions: ["RIGHT_BACK", "RIGHT_WINGER", "MIDFIELDER"] },
-      { x: 68, y: 32, positions: ["DEFENDER", "RIGHT_BACK"] },
+      { x: 86, y: 41, positions: ["RIGHT_WINGBACK", "RIGHT_BACK", "RIGHT_WINGER", "MIDFIELDER"] },
+      { x: 68, y: 32, positions: ["DEFENDER", "RIGHT_BACK", "RIGHT_WINGBACK"] },
       { x: 50, y: 30, positions: ["DEFENDER"] },
-      { x: 32, y: 32, positions: ["DEFENDER", "LEFT_BACK"] },
-      { x: 14, y: 41, positions: ["LEFT_BACK", "LEFT_WINGER", "MIDFIELDER"] },
+      { x: 32, y: 32, positions: ["DEFENDER", "LEFT_BACK", "LEFT_WINGBACK"] },
+      { x: 14, y: 41, positions: ["LEFT_WINGBACK", "LEFT_BACK", "LEFT_WINGER", "MIDFIELDER"] },
       // Three midfielders
       { x: 64, y: 57, positions: ["MIDFIELDER", "DEFENSIVE_MIDFIELDER", "RIGHT_WINGER"] },
       { x: 50, y: 51, positions: ["DEFENSIVE_MIDFIELDER", "MIDFIELDER"] },
@@ -157,10 +157,10 @@ const FORMATIONS: Record<FormationName, FormationDefinition> = {
     label: "4-1-4-1",
     slots: [
       { x: 50, y: 14, positions: ["GOALKEEPER"] },
-      { x: 82, y: 31, positions: ["RIGHT_BACK", "DEFENDER"] },
+      { x: 82, y: 31, positions: ["RIGHT_BACK", "RIGHT_WINGBACK", "DEFENDER"] },
       { x: 61, y: 31, positions: ["DEFENDER", "RIGHT_BACK", "LEFT_BACK"] },
       { x: 39, y: 31, positions: ["DEFENDER", "LEFT_BACK", "RIGHT_BACK"] },
-      { x: 18, y: 31, positions: ["LEFT_BACK", "DEFENDER"] },
+      { x: 18, y: 31, positions: ["LEFT_BACK", "LEFT_WINGBACK", "DEFENDER"] },
       // Holding midfielder
       { x: 50, y: 47, positions: ["DEFENSIVE_MIDFIELDER", "MIDFIELDER"] },
       // Four in midfield
@@ -177,11 +177,11 @@ const FORMATIONS: Record<FormationName, FormationDefinition> = {
     slots: [
       { x: 50, y: 14, positions: ["GOALKEEPER"] },
       // Five defenders (wingbacks + CBs)
-      { x: 86, y: 41, positions: ["RIGHT_BACK", "RIGHT_WINGER", "MIDFIELDER"] },
+      { x: 86, y: 41, positions: ["RIGHT_WINGBACK", "RIGHT_BACK", "RIGHT_WINGER", "MIDFIELDER"] },
       { x: 68, y: 32, positions: ["DEFENDER", "RIGHT_BACK"] },
       { x: 50, y: 30, positions: ["DEFENDER"] },
       { x: 32, y: 32, positions: ["DEFENDER", "LEFT_BACK"] },
-      { x: 14, y: 41, positions: ["LEFT_BACK", "LEFT_WINGER", "MIDFIELDER"] },
+      { x: 14, y: 41, positions: ["LEFT_WINGBACK", "LEFT_BACK", "LEFT_WINGER", "MIDFIELDER"] },
       // Four midfielders
       { x: 80, y: 56, positions: ["RIGHT_WINGER", "MIDFIELDER", "RIGHT_BACK"] },
       { x: 61, y: 57, positions: ["MIDFIELDER", "DEFENSIVE_MIDFIELDER", "RIGHT_WINGER"] },

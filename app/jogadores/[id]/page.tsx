@@ -248,7 +248,7 @@ export default async function PlayerProfilePage({ params }: PlayerPageProps) {
 
   return (
     <div 
-      className="min-h-screen text-[#f0f7f4] relative overflow-hidden bg-[#030708] pb-24 font-sans selection:bg-[var(--team-primary)] selection:text-[#020506] antialiased"
+      className="dark min-h-screen text-[#f0f7f4] relative overflow-hidden bg-[#030708] pb-24 font-sans selection:bg-[var(--team-primary)] selection:text-[#020506] antialiased"
       style={{
         "--team-primary": themePrimary,
         "--team-secondary": themeSecondary,

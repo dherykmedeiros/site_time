@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
-import { playerPositionLabels } from "@/lib/player-positions";
+import { playerPositions, playerPositionLabels } from "@/lib/player-positions";
 
 interface AvailabilityRule {
   id?: string;
@@ -29,6 +29,7 @@ interface SelfProfile {
   name: string;
   fullName: string | null;
   position: string;
+  secondaryPosition?: string | null;
   shirtNumber: number;
   status: "ACTIVE" | "INACTIVE";
   photoUrl: string | null;
@@ -55,10 +56,16 @@ export function PlayerSelfProfileForm({ playerId, canEdit = true }: PlayerSelfPr
   const [availabilityRules, setAvailabilityRules] = useState<AvailabilityRule[]>([]);
 
   const [fullName, setFullName] = useState("");
+  const [secondaryPosition, setSecondaryPosition] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [age, setAge] = useState("");
   const [phone, setPhone] = useState("");
   const [description, setDescription] = useState("");
+
+  const positionOptions = playerPositions.map((position) => ({
+    value: position,
+    label: playerPositionLabels[position],
+  }));
 
   const weekDayOptions = [
     { value: 0, label: "Domingo" },
@@ -147,6 +154,7 @@ export function PlayerSelfProfileForm({ playerId, canEdit = true }: PlayerSelfPr
 
         setProfile(data);
         setFullName(data.fullName || "");
+        setSecondaryPosition(data.secondaryPosition || "");
         setPhotoUrl(data.photoUrl || null);
         setAge(data.age != null ? String(data.age) : "");
         setPhone(data.phone || "");
@@ -223,6 +231,7 @@ export function PlayerSelfProfileForm({ playerId, canEdit = true }: PlayerSelfPr
 
     const payload = {
       fullName: fullName.trim() || null,
+      secondaryPosition: secondaryPosition || null,
       photoUrl,
       age: age.trim() ? Number(age) : null,
       phone: phone.trim() || null,
@@ -328,11 +337,27 @@ export function PlayerSelfProfileForm({ playerId, canEdit = true }: PlayerSelfPr
           <div className="grid gap-4 sm:grid-cols-2">
             <Input label="Nome de jogador (administracao)" value={profile.name} disabled readOnly />
             <Input
-              label="Posicao (administracao)"
+              label="Posicao Principal (administracao)"
               value={playerPositionLabels[profile.position as keyof typeof playerPositionLabels] || profile.position}
               disabled
               readOnly
             />
+            <label className="space-y-1 text-sm font-semibold text-[var(--text)]">
+              <span>Posicao Secundaria</span>
+              <select
+                className="block w-full rounded-[12px] border border-[var(--border)] bg-[#090f0c] px-3 py-2 text-sm text-[var(--text)]"
+                value={secondaryPosition}
+                disabled={!canEdit}
+                onChange={(e) => setSecondaryPosition(e.target.value)}
+              >
+                <option value="">Nenhuma (Apenas Principal)</option>
+                {positionOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <Input label="Numero (administracao)" value={`#${profile.shirtNumber}`} disabled readOnly />
             <Input
               label="Status (administracao)"

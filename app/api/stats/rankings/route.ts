@@ -17,12 +17,18 @@ export async function GET(request: Request) {
   const teamId = session.user.teamId;
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type");
+  const matchType = searchParams.get("matchType") || searchParams.get("match_type") || undefined;
   const limit = Math.min(parseInt(searchParams.get("limit") || "10", 10) || 10, 100);
+
+  const matchWhere: Record<string, unknown> = { teamId };
+  if (matchType && (matchType === "FRIENDLY" || matchType === "CHAMPIONSHIP")) {
+    matchWhere.type = matchType;
+  }
 
   // Top scorers
   const topScorers = await prisma.matchStats.groupBy({
     by: ["playerId"],
-    where: { match: { teamId }, playerId: { not: null } },
+    where: { match: matchWhere, playerId: { not: null } },
     _sum: { goals: true },
     orderBy: { _sum: { goals: "desc" } },
     take: limit,
@@ -38,7 +44,7 @@ export async function GET(request: Request) {
   // Top assisters
   const topAssisters = await prisma.matchStats.groupBy({
     by: ["playerId"],
-    where: { match: { teamId }, playerId: { not: null } },
+    where: { match: matchWhere, playerId: { not: null } },
     _sum: { assists: true },
     orderBy: { _sum: { assists: "desc" } },
     take: limit,
@@ -54,7 +60,7 @@ export async function GET(request: Request) {
   // Most cards
   const mostCards = await prisma.matchStats.groupBy({
     by: ["playerId"],
-    where: { match: { teamId }, playerId: { not: null } },
+    where: { match: matchWhere, playerId: { not: null } },
     _sum: { yellowCards: true, redCards: true },
     orderBy: [{ _sum: { redCards: "desc" } }, { _sum: { yellowCards: "desc" } }],
     take: limit,
@@ -69,7 +75,7 @@ export async function GET(request: Request) {
 
   // Team record: only COMPLETED matches
   const completedMatches = await prisma.match.findMany({
-    where: { teamId, status: "COMPLETED" },
+    where: { ...matchWhere, status: "COMPLETED" },
     select: { homeScore: true, awayScore: true, isHome: true },
   });
 

@@ -241,6 +241,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const opponent = match.opponent;
   const formattedDate = new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
+    timeZone: "America/Sao_Paulo",
   }).format(match.date);
 
   const title = `Recap: ${teamName} x ${opponent} | Portal do Time`;
@@ -258,17 +259,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-const positionLabels: Record<string, string> = {
-  GOALKEEPER: "Goleiro",
-  DEFENDER: "Zagueiro",
-  LEFT_BACK: "Lateral Esquerdo",
-  RIGHT_BACK: "Lateral Direito",
-  MIDFIELDER: "Meio-campista",
-  DEFENSIVE_MIDFIELDER: "Volante",
-  FORWARD: "Atacante",
-  LEFT_WINGER: "Ponta Esquerda",
-  RIGHT_WINGER: "Ponta Direita",
-};
+import { playerPositionLabels } from "@/lib/player-positions";
+
+const positionLabels: Record<string, string> = playerPositionLabels;
 
 export default async function PublicRecapPage({ params }: PageProps) {
   const { id } = await params;
@@ -305,10 +298,12 @@ export default async function PublicRecapPage({ params }: PageProps) {
 
   const formattedDate = new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "full",
+    timeZone: "America/Sao_Paulo",
   }).format(match.date);
 
   const formattedTime = new Intl.DateTimeFormat("pt-BR", {
     timeStyle: "short",
+    timeZone: "America/Sao_Paulo",
   }).format(match.date);
 
   // Extract scorers and assistants

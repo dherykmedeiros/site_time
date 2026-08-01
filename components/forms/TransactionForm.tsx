@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
+import { toInputDateString, toApiIsoDate } from "@/lib/utils";
 
 interface TransactionFormProps {
   onSuccess: () => void;
@@ -40,7 +41,7 @@ export function TransactionForm({
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState(defaultCategory);
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(toInputDateString(new Date()));
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -61,7 +62,7 @@ export function TransactionForm({
           amount: parseFloat(amount),
           description: payloadDescription,
           category,
-          date: new Date(date).toISOString(),
+          date: toApiIsoDate(date),
           matchId,
         }),
       });
@@ -151,7 +152,7 @@ export function TransactionForm({
         type="date"
         value={date}
         onChange={(e) => setDate(e.target.value)}
-        max={new Date().toISOString().split("T")[0]}
+        max={toInputDateString(new Date())}
         required
       />
 

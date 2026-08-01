@@ -60,6 +60,14 @@ export const createMatchSchema = z.object({
     .min(0, "Placar deve ser >= 0")
     .optional()
     .nullable(),
+  pixKey: z
+    .string()
+    .max(200, "Chave Pix deve ter no máximo 200 caracteres")
+    .optional()
+    .nullable(),
+  latitude: z.coerce.number().min(-90, "Latitude deve ser >= -90").max(90, "Latitude deve ser <= 90").optional().nullable(),
+  longitude: z.coerce.number().min(-180, "Longitude deve ser >= -180").max(180, "Longitude deve ser <= 180").optional().nullable(),
+  mapsUrl: z.string().trim().optional().nullable(),
 });
 
 export const updateMatchSchema = z.object({
@@ -105,6 +113,14 @@ export const updateMatchSchema = z.object({
     .min(0, "Placar deve ser >= 0")
     .optional()
     .nullable(),
+  pixKey: z
+    .string()
+    .max(200, "Chave Pix deve ter no máximo 200 caracteres")
+    .optional()
+    .nullable(),
+  latitude: z.coerce.number().min(-90, "Latitude deve ser >= -90").max(90, "Latitude deve ser <= 90").optional().nullable(),
+  longitude: z.coerce.number().min(-180, "Longitude deve ser >= -180").max(180, "Longitude deve ser <= 180").optional().nullable(),
+  mapsUrl: z.string().trim().optional().nullable(),
 });
 
 export const rsvpResponseSchema = z.object({

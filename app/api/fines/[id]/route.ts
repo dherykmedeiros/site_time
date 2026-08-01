@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireCoachOrAdmin } from "@/lib/auth";
 import { fineSchema } from "@/lib/validations/fine";
 import { withErrorHandler } from "@/lib/api-handler";
+import { trackOperationalEvent } from "@/lib/telemetry";
+import { parseLocalDate } from "@/lib/utils";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -35,7 +37,7 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
     );
   }
 
-  const { playerId, ruleId, punishmentTypeId, description, severity, matchesSuspended, status = "ACTIVE", date } = parsed.data;
+  const { playerId, ruleId, punishmentTypeId, description, severity, matchesSuspended, status = "ACTIVE", date, suspendedMatchId } = parsed.data;
 
   // Verify the player belongs to this team
   const playerExists = await prisma.player.findFirst({
@@ -66,6 +68,16 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
     }
   }
 
+  // If suspendedMatchId is provided, verify it belongs to this team
+  if (suspendedMatchId) {
+    const matchExists = await prisma.match.findFirst({
+      where: { id: suspendedMatchId, teamId: session.user.teamId },
+    });
+    if (!matchExists) {
+      return NextResponse.json({ error: "Partida não encontrada no time" }, { status: 404 });
+    }
+  }
+
   const fine = await prisma.fine.update({
     where: { id },
     data: {
@@ -76,7 +88,8 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
       severity,
       matchesSuspended: severity === "SUSPENSION" ? matchesSuspended : null,
       status,
-      date: new Date(date),
+      suspendedMatchId: suspendedMatchId || null,
+      date: parseLocalDate(date) || new Date(date),
     },
     include: {
       player: {
@@ -93,8 +106,63 @@ export const PATCH = withErrorHandler(async (request: Request, context: RoutePar
         },
       },
       punishmentType: true,
+      suspendedMatch: true,
     },
   });
+
+  // Auto RSVP Decline if suspended for a specific match
+  if (severity === "SUSPENSION" && status === "ACTIVE" && suspendedMatchId) {
+    const existingRsvp = await prisma.rSVP.findUnique({
+      where: {
+        playerId_matchId: {
+          playerId,
+          matchId: suspendedMatchId,
+        },
+      },
+      select: { id: true, status: true },
+    });
+
+    const rsvp = await prisma.rSVP.upsert({
+      where: {
+        playerId_matchId: {
+          playerId,
+          matchId: suspendedMatchId,
+        },
+      },
+      update: {
+        status: "DECLINED",
+        respondedAt: new Date(),
+      },
+      create: {
+        playerId,
+        matchId: suspendedMatchId,
+        status: "DECLINED",
+        respondedAt: new Date(),
+      },
+    });
+
+    if (!existingRsvp || existingRsvp.status !== "DECLINED") {
+      await prisma.rSVPStatusLog.create({
+        data: {
+          rsvpId: rsvp.id,
+          playerId,
+          matchId: suspendedMatchId,
+          oldStatus: existingRsvp?.status ?? null,
+          newStatus: "DECLINED",
+        },
+      });
+
+      trackOperationalEvent("player_rsvp_status_changed", {
+        rsvpId: rsvp.id,
+        playerId,
+        playerName: playerExists.name,
+        matchId: suspendedMatchId,
+        oldStatus: existingRsvp?.status ?? null,
+        newStatus: "DECLINED",
+        reason: "SUSPENSION",
+      });
+    }
+  }
 
   return NextResponse.json({ fine });
 });

@@ -20,6 +20,8 @@ enum PlayerPosition {
   DEFENDER
   LEFT_BACK
   RIGHT_BACK
+  LEFT_WINGBACK
+  RIGHT_WINGBACK
   MIDFIELDER
   DEFENSIVE_MIDFIELDER
   FORWARD
@@ -104,6 +106,13 @@ enum TransactionCategory {
   OTHER
 }
 
+enum TransactionStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
 enum AchievementType {
   HAT_TRICK
   TOP_SCORER_ROUND
@@ -167,6 +176,7 @@ model User {
   passwordHash String
   name         String
   role         Role     @default(PLAYER)
+  mustChangePassword Boolean  @default(false)
   teamId       String?
   team         Team?    @relation(fields: [teamId], references: [id])
   playerId     String?  @unique
@@ -178,9 +188,13 @@ model User {
   messageReactions TeamMessageReaction[]
   notifications    Notification[]
   photos           MatchPhoto[]
+  tacticalPlays    TacticalPlay[]
+  activityEvents   ActivityEvent[]
+  notificationPreferences NotificationPreference[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  @@index([teamId])
   @@map("users")
 }
 
@@ -228,10 +242,16 @@ model Team {
   photos           MatchPhoto[]
   recruitmentRequests RecruitmentRequest[]
   guestPlayers       GuestPlayer[]
+  tacticalPlays      TacticalPlay[]
+  activityEvents     ActivityEvent[]
+  notifications      Notification[]
 
   defaultFormation   MatchLineupFormation?
   defaultBlockPreset MatchLineupBlockPreset?
   defaultLineup      DefaultLineupSelection[]
+
+  defaultPositionLimitsEnabled Boolean @default(false)
+  defaultPositionLimits        Json?
 
   @@map("teams")
 }
@@ -240,7 +260,8 @@ model Player {
   id           String         @id @default(cuid())
   name         String
   fullName     String?
-  position     PlayerPosition
+  position          PlayerPosition
+  secondaryPosition PlayerPosition?
   shirtNumber  Int
   photoUrl     String?
   age          Int?
@@ -265,6 +286,9 @@ model Player {
   receivedRatings MatchPlayerRating[]
   pollVotes    DatePollVote[]
   liveEvents   MatchLiveEvent[]
+  rsvpStatusLogs RSVPStatusLog[]
+  votesGiven    MatchVote[] @relation("votesGiven")
+  votesReceived MatchVote[] @relation("votesReceived")
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -319,6 +343,9 @@ model Match {
   achievements Achievement[]
   hasCharge    Boolean     @default(false)
   chargeAmount Decimal?    @db.Decimal(10, 2)
+  pixKey       String?
+  latitude     Float?
+  longitude    Float?
   matchPayments MatchPayment[]
   datePoll     DatePoll?
   photos       MatchPhoto[]
@@ -326,12 +353,16 @@ model Match {
   matchLive    MatchLive?
   guestPlayers GuestPlayer[]
   matchEquipments MatchEquipment[]
+  suspensions  Fine[]      @relation("MatchSuspensions")
+  rsvpStatusLogs RSVPStatusLog[]
+  votes        MatchVote[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
   @@index([teamId])
   @@index([seasonId])
   @@index([teamId, status])
+  @@index([teamId, date])
   @@map("matches")
 }
 
@@ -373,20 +404,40 @@ model MatchPositionLimit {
 }
 
 model RSVP {
-  id          String     @id @default(cuid())
-  status      RSVPStatus @default(PENDING)
+  id          String          @id @default(cuid())
+  status      RSVPStatus      @default(PENDING)
   playerId    String
-  player      Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  player      Player          @relation(fields: [playerId], references: [id], onDelete: Cascade)
   matchId     String
-  match       Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  match       Match           @relation(fields: [matchId], references: [id], onDelete: Cascade)
   respondedAt DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @default(now()) @updatedAt
+  summoned    Boolean         @default(true)
+  statusLogs  RSVPStatusLog[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @default(now()) @updatedAt
 
   @@unique([playerId, matchId])
   @@index([matchId])
   @@index([matchId, status])
   @@map("rsvps")
+}
+
+model RSVPStatusLog {
+  id         String      @id @default(cuid())
+  rsvpId     String
+  rsvp       RSVP        @relation(fields: [rsvpId], references: [id], onDelete: Cascade)
+  playerId   String
+  player     Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  matchId    String
+  match      Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  oldStatus  RSVPStatus?
+  newStatus  RSVPStatus
+  createdAt  DateTime    @default(now())
+
+  @@index([rsvpId])
+  @@index([playerId])
+  @@index([matchId])
+  @@map("rsvp_status_logs")
 }
 
 model MatchStats {
@@ -455,6 +506,8 @@ model Transaction {
   description String
   category    TransactionCategory
   date        DateTime
+  status      TransactionStatus   @default(PAID)
+  externalId  String?             @unique
   teamId      String
   matchId     String?
   team        Team                @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -548,6 +601,8 @@ model MatchPayment {
   amount        Decimal      @db.Decimal(10, 2)
   paidAt        DateTime     @default(now())
   transactionId String?      @unique
+  status        String       @default("PAID")
+  receiptUrl    String?
   player        Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
   match         Match        @relation(fields: [matchId], references: [id], onDelete: Cascade)
   team          Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -642,12 +697,17 @@ model Fine {
   team             Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
   punishmentTypeId String?
   punishmentType   PunishmentType? @relation(fields: [punishmentTypeId], references: [id], onDelete: SetNull)
+  suspendedMatchId String?
+  suspendedMatch   Match?    @relation("MatchSuspensions", fields: [suspendedMatchId], references: [id], onDelete: SetNull)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   @@index([teamId])
   @@index([playerId])
   @@index([ruleId])
+  @@index([suspendedMatchId])
+  @@index([teamId, status])
+  @@index([playerId, status])
   @@map("fines")
 }
 
@@ -678,21 +738,25 @@ model PlayerEvaluation {
 }
 
 model MatchPlayerRating {
-  id          String   @id @default(cuid())
-  matchId     String
-  match       Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  raterId     String   // ID do User que avaliou
-  rater       User     @relation(fields: [raterId], references: [id], onDelete: Cascade)
-  ratedId     String   // ID do Player avaliado
-  rated       Player   @relation(fields: [ratedId], references: [id], onDelete: Cascade)
-  stars       Int      // 1 a 5 estrelas
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String       @id @default(cuid())
+  matchId        String
+  match          Match        @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  raterId        String       // ID do User que avaliou
+  rater          User         @relation(fields: [raterId], references: [id], onDelete: Cascade)
+  ratedId        String?      // ID do Player avaliado
+  rated          Player?      @relation(fields: [ratedId], references: [id], onDelete: Cascade)
+  ratedGuestId   String?      // ID do GuestPlayer avaliado
+  ratedGuest     GuestPlayer? @relation(fields: [ratedGuestId], references: [id], onDelete: Cascade)
+  stars          Int          // 1 a 5 estrelas
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@unique([matchId, raterId, ratedId])
+  @@unique([matchId, raterId, ratedGuestId])
   @@index([matchId])
   @@index([raterId])
   @@index([ratedId])
+  @@index([ratedGuestId])
   @@map("match_player_ratings")
 }
 
@@ -750,6 +814,7 @@ model TeamMessage {
 
   @@index([teamId])
   @@index([teamId, pinned])
+  @@index([teamId, createdAt])
   @@map("team_messages")
 }
 
@@ -812,16 +877,25 @@ model DatePollVote {
 model Notification {
   id        String   @id @default(cuid())
   userId    String
+  teamId    String?
   type      String   // MATCH_CREATED, FINE_APPLIED, PAYMENT_DUE, MESSAGE_PINNED, RSVP_REMINDER, RECAP_READY
   title     String
   body      String
   link      String?
   read      Boolean  @default(false)
+  readAt    DateTime?
+  metadata  Json?
+  entityType String?
+  entityId   String?
+  category   String?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team      Team?    @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, read])
+  @@index([userId, createdAt])
+  @@index([teamId])
   @@map("notifications")
 }
 
@@ -840,6 +914,7 @@ model MatchPhoto {
 
   @@index([teamId])
   @@index([matchId])
+  @@index([teamId, createdAt])
   @@map("match_photos")
 }
 
@@ -973,6 +1048,7 @@ model GuestPlayer {
   liveEvents  MatchLiveEvent[]
   matchStats  MatchStats[]
   lineupSelections MatchLineupSelection[]
+  receivedRatings MatchPlayerRating[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
@@ -999,4 +1075,79 @@ model MatchEquipment {
   @@index([matchId])
   @@index([equipmentId])
   @@map("match_equipments")
+}
+
+// ─── Match Voting ──────────────────────────────────────────
+
+model MatchVote {
+  id        String   @id @default(cuid())
+  matchId   String
+  voterId   String
+  votedId   String
+  createdAt DateTime @default(now())
+
+  match Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  voter Player @relation("votesGiven", fields: [voterId], references: [id], onDelete: Cascade)
+  voted Player @relation("votesReceived", fields: [votedId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, voterId])
+  @@index([matchId])
+  @@index([votedId])
+  @@map("match_votes")
+}
+
+// ─── Tactical Plays ────────────────────────────────────────
+
+model TacticalPlay {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String   @default("CORNER_KICK")
+  movements   Json
+  teamId      String
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  team      Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@map("tactical_plays")
+}
+
+// ─── Activity Events ────────────────────────────────────────
+
+model ActivityEvent {
+  id          String   @id @default(cuid())
+  teamId      String
+  userId      String?
+  type        String   // MATCH_CREATED, PLAYER_ADDED, TRANSACTION_LOGGED, POLL_CREATED, etc.
+  description String
+  metadata    Json?    // Dynamic variables
+  createdAt   DateTime @default(now())
+
+  team        Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user        User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([teamId])
+  @@index([teamId, createdAt])
+  @@map("activity_events")
+}
+
+// ─── Notification Preferences ─────────────────────────────────
+
+model NotificationPreference {
+  id        String   @id @default(cuid())
+  userId    String
+  category  String   // MATCHES, FINANCES, DISCIPLINARY, COMMUNICATION
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category])
+  @@index([userId])
+  @@map("notification_preferences")
 }

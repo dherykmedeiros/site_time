@@ -35,6 +35,11 @@ async function getMatchData(matchId: string, token?: string) {
         },
         orderBy: { createdAt: "asc" },
       },
+      guestPlayers: {
+        select: {
+          id: true,
+        },
+      },
       matchStats: {
         include: {
           player: { select: { name: true, position: true } },
@@ -184,7 +189,7 @@ export default async function PublicMatchPage({
     timeZone: "America/Sao_Paulo",
   }).format(match.date);
 
-  const confirmed = match.rsvps.filter((r) => r.status === "CONFIRMED").length;
+  const confirmed = match.rsvps.filter((r) => r.status === "CONFIRMED").length + (match.guestPlayers?.length || 0);
   const declined = match.rsvps.filter((r) => r.status === "DECLINED").length;
   const pending = match.rsvps.filter((r) => r.status === "PENDING").length;
 
@@ -265,7 +270,19 @@ export default async function PublicMatchPage({
               <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
                 Local
               </span>
-              <p className="mt-1 font-extrabold text-[var(--text)] text-sm">{match.venue}</p>
+              <p className="mt-1 font-extrabold text-[var(--text)] text-sm flex flex-wrap items-center gap-2">
+                {match.venue}
+                {match.latitude && match.longitude && (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${match.latitude},${match.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-xs text-[#34d399] hover:underline font-semibold"
+                  >
+                    🗺️ Ver no mapa
+                  </a>
+                )}
+              </p>
             </div>
             <div className="p-3 bg-[var(--bg)] rounded-xl border border-[var(--border)]">
               <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">

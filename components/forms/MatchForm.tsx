@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
@@ -55,6 +55,9 @@ interface MatchFormProps {
     positionLimits?: Array<{ position: string; maxPlayers: number }>;
     homeScore?: number | null;
     awayScore?: number | null;
+    pixKey?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   };
   onSuccess?: () => void;
   onCancel?: () => void;
@@ -74,9 +77,18 @@ const typeLabels: Record<string, string> = {
 export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps) {
   const isEditing = !!defaultValues?.id;
   const [loading, setLoading] = useState(false);
+interface SavedVenue {
+  venue: string;
+  latitude: number | null;
+  longitude: number | null;
+  mapsUrl: string | null;
+  matchCount: number;
+}
+
   const [uploadingBadge, setUploadingBadge] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [seasons, setSeasons] = useState<Season[]>([]);
+  const [savedVenues, setSavedVenues] = useState<SavedVenue[]>([]);
   const [availabilitySnapshot, setAvailabilitySnapshot] = useState<MatchAvailabilityResponse | null>(null);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
@@ -116,6 +128,13 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         }
       })
       .catch(() => {});
+
+    fetch("/api/matches/venues")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.venues) setSavedVenues(d.venues);
+      })
+      .catch(() => {});
   }, [defaultValues?.seasonId]);
 
   // Format date for datetime-local input
@@ -145,8 +164,58 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
       type: (defaultValues?.type as "FRIENDLY" | "CHAMPIONSHIP") || undefined,
       homeScore: defaultValues?.homeScore !== null ? defaultValues?.homeScore : undefined,
       awayScore: defaultValues?.awayScore !== null ? defaultValues?.awayScore : undefined,
+      pixKey: defaultValues?.pixKey || "",
+      mapsUrl: (defaultValues?.latitude !== undefined && defaultValues?.latitude !== null &&
+                defaultValues?.longitude !== undefined && defaultValues?.longitude !== null)
+        ? `https://www.google.com/maps/search/?api=1&query=${defaultValues.latitude},${defaultValues.longitude}`
+        : "",
     },
   });
+
+  const watchedVenue = watch("venue");
+  const prevVenueRef = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (watchedVenue === undefined) return;
+
+    if (prevVenueRef.current !== undefined && prevVenueRef.current !== watchedVenue) {
+      const trimmed = watchedVenue.trim().toLowerCase();
+      const matched = savedVenues.find((v) => v.venue.trim().toLowerCase() === trimmed);
+      if (matched) {
+        setValue("mapsUrl", matched.mapsUrl || "", { shouldValidate: true });
+      } else {
+        setValue("mapsUrl", "", { shouldValidate: true });
+      }
+    }
+    prevVenueRef.current = watchedVenue;
+  }, [watchedVenue, savedVenues, setValue]);
+
+  useEffect(() => {
+    if (!isEditing && !defaultValues?.positionLimits?.length) {
+      fetch("/api/teams")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((team) => {
+          if (team) {
+            if (team.defaultVenue && !defaultValues?.venue) {
+              setValue("venue", team.defaultVenue);
+            }
+            if (team.defaultPositionLimitsEnabled && team.defaultPositionLimits) {
+              setPositionLimitsEnabled(true);
+              setPositionLimits((prev) => {
+                const updated = { ...prev };
+                for (const pos of playerPositions) {
+                  if (team.defaultPositionLimits[pos] !== undefined && team.defaultPositionLimits[pos] !== null) {
+                    updated[pos] = String(team.defaultPositionLimits[pos]);
+                  }
+                }
+                return updated;
+              });
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isEditing, defaultValues, setValue]);
 
   const watchedDate = watch("date");
   const watchedOpponentBadgeUrl = watch("opponentBadgeUrl");
@@ -278,6 +347,8 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         ...data,
         date: new Date(data.date).toISOString(),
         opponentBadgeUrl: data.opponentBadgeUrl?.trim() ? data.opponentBadgeUrl.trim() : null,
+        pixKey: data.pixKey?.trim() ? data.pixKey.trim() : null,
+        mapsUrl: data.mapsUrl?.trim() || null,
         status: recordType,
       };
 
@@ -467,12 +538,39 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         </div>
       )}
 
-      <Input
-        label="Local"
-        placeholder="Ex: Campo do Parque"
-        error={errors.venue?.message}
-        {...register("venue")}
-      />
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-[var(--text-subtle)]">
+          Local / Campo
+        </label>
+        <input
+          list="saved-venues-list"
+          placeholder="Selecione um campo cadastrado ou digite um novo local..."
+          className="w-full rounded-lg border border-white/10 bg-[#16130f] px-3.5 py-2 text-sm text-white placeholder:text-[#8fa39b] outline-none focus:border-[#36c2a8] transition-colors"
+          {...register("venue")}
+        />
+        <datalist id="saved-venues-list">
+          {savedVenues.map((v) => (
+            <option key={v.venue} value={v.venue}>
+              {v.matchCount > 1 ? `${v.matchCount} jogos realizados` : "1 jogo realizado"}
+            </option>
+          ))}
+        </datalist>
+        {errors.venue?.message && (
+          <p className="text-xs text-[#f87171]">{errors.venue.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-1">
+        <Input
+          label="Link do Google Maps (opcional)"
+          placeholder="Ex: https://maps.app.goo.gl/XYZ ou coordenadas"
+          error={errors.mapsUrl?.message}
+          {...register("mapsUrl")}
+        />
+        <p className="text-[11px] text-[var(--text-subtle)] leading-relaxed">
+          Cole o link compartilhado do Google Maps (ex: <code>https://maps.app.goo.gl/...</code> ou coordenadas diretas no formato <code>latitude, longitude</code>) para habilitar o check-in automático a 500m dos atletas.
+        </p>
+      </div>
 
       <Input
         label="Adversário"
@@ -546,6 +644,13 @@ export function MatchForm({ defaultValues, onSuccess, onCancel }: MatchFormProps
         placeholder="Selecione o tipo"
         error={errors.type?.message}
         {...register("type")}
+      />
+
+      <Input
+        label="Chave Pix para Pagamento da Taxa (opcional)"
+        placeholder="Ex: Celular, E-mail, CPF ou Chave Aleatória"
+        error={errors.pixKey?.message}
+        {...register("pixKey")}
       />
 
       {seasons.length > 0 && (

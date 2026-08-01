@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDateOnly } from "@/lib/utils";
 import type { BordereauResponse } from "@/lib/validations/match";
 
 interface BordereauCardProps {
@@ -112,6 +112,7 @@ export function BordereauCard({
                                 Check-in {new Date(item.checkedInAt).toLocaleTimeString("pt-BR", {
                                   hour: "2-digit",
                                   minute: "2-digit",
+                                  timeZone: "America/Sao_Paulo",
                                 })}
                               </span>
                             )}
@@ -173,7 +174,7 @@ export function BordereauCard({
                     <div>
                       <p className="font-semibold text-[var(--text)]">{expense.description}</p>
                       <p className="text-sm text-[var(--text-subtle)]">
-                        {expense.category} • {new Date(expense.date).toLocaleDateString("pt-BR")}
+                        {expense.category} • {formatDateOnly(expense.date, { dateStyle: "short" })}
                       </p>
                     </div>
                     <span className="font-semibold text-[var(--text)]">{formatCurrency(expense.amount)}</span>

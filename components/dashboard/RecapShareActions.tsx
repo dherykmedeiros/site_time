@@ -1,6 +1,34 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
+
+function isColorLight(colorStr: string): boolean {
+  if (!colorStr) return false;
+  
+  let r = 0, g = 0, b = 0;
+  
+  const rgbMatch = colorStr.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
+  if (rgbMatch) {
+    r = parseInt(rgbMatch[1], 10);
+    g = parseInt(rgbMatch[2], 10);
+    b = parseInt(rgbMatch[3], 10);
+  } else {
+    const cleanHex = colorStr.replace("#", "").trim();
+    if (cleanHex.length !== 6 && cleanHex.length !== 3) return false;
+    if (cleanHex.length === 6) {
+      r = parseInt(cleanHex.substring(0, 2), 16);
+      g = parseInt(cleanHex.substring(2, 4), 16);
+      b = parseInt(cleanHex.substring(4, 6), 16);
+    } else {
+      r = parseInt(cleanHex.substring(0, 1) + cleanHex.substring(0, 1), 16);
+      g = parseInt(cleanHex.substring(1, 2) + cleanHex.substring(1, 2), 16);
+      b = parseInt(cleanHex.substring(2, 3) + cleanHex.substring(2, 3), 16);
+    }
+  }
+  
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 135; // slightly higher threshold to ensure high readability
+}
 
 type RecapShareContext = "public_match" | "public_player" | "dashboard_match_postgame";
 
@@ -28,9 +56,32 @@ export function RecapShareActions({
   format: formatProp,
   theme: themeProp,
 }: RecapShareActionsProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<OgFormat>(formatProp ?? "landscape");
   const [selectedTheme, setSelectedTheme] = useState<OgTheme>(themeProp ?? "classic");
+  const [isBrandLight, setIsBrandLight] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const getBrandProp = () => {
+        if (containerRef.current) {
+          const compBrand = window.getComputedStyle(containerRef.current).getPropertyValue("--brand").trim();
+          if (compBrand) return compBrand;
+        }
+        const docBrand = window.getComputedStyle(document.documentElement).getPropertyValue("--brand").trim();
+        if (docBrand) return docBrand;
+        const bodyBrand = window.getComputedStyle(document.body).getPropertyValue("--brand").trim();
+        if (bodyBrand) return bodyBrand;
+        return null;
+      };
+      
+      const brandVal = getBrandProp();
+      if (brandVal) {
+        setIsBrandLight(isColorLight(brandVal));
+      }
+    }
+  }, []);
 
   const recapRouteSegment = entityType === "match" ? "team-recap" : "player-recap";
 
@@ -142,20 +193,22 @@ export function RecapShareActions({
     }
   }
 
+  const brandTextColor = isBrandLight ? "text-slate-950 font-black" : "text-white font-bold";
+
   return (
-    <div className="space-y-3">
+    <div ref={containerRef} className="space-y-3">
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={handleDownload}
-          className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--brand)] px-4 text-sm font-semibold text-white transition hover:opacity-90"
+          className={`inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--brand)] px-4 text-sm transition hover:opacity-90 ${brandTextColor}`}
         >
           Baixar PNG
         </button>
         <button
           type="button"
           onClick={supportsNativeShare ? handleNativeShare : handleCopyLink}
-          className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--brand)] px-4 text-sm font-semibold text-white transition hover:opacity-90"
+          className={`inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--brand)] px-4 text-sm transition hover:opacity-90 ${brandTextColor}`}
         >
           Compartilhar
         </button>
@@ -193,7 +246,7 @@ export function RecapShareActions({
               onClick={() => setSelectedFormat(val)}
               className={`rounded-full px-3 py-1 font-semibold transition ${
                 selectedFormat === val
-                  ? "bg-[var(--brand)] text-white"
+                  ? `bg-[var(--brand)] ${brandTextColor}`
                   : "border border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-soft)]"
               }`}
             >
@@ -210,7 +263,7 @@ export function RecapShareActions({
               onClick={() => setSelectedTheme(val)}
               className={`rounded-full px-3 py-1 font-semibold transition ${
                 selectedTheme === val
-                  ? "bg-[var(--brand)] text-white"
+                  ? `bg-[var(--brand)] ${brandTextColor}`
                   : "border border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-soft)]"
               }`}
             >

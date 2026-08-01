@@ -140,7 +140,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const placements = buildLineupFieldPlacements(snapshot.lineup.starters);
   const primaryColor = safeHex(match.team.primaryColor, "#1d7a61");
   const secondaryColor = safeHex(match.team.secondaryColor, "#0f172a");
-  const dateStr = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(match.date);
+  const dateStr = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(match.date);
 
   const sourceLabel = snapshot.lineup.meta.source === "SAVED" ? "Escalacao manual salva" : "Escalacao sugerida";
 

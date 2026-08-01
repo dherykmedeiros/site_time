@@ -42,8 +42,19 @@ export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
                 <span className="text-xs font-normal text-red-500 group-open:hidden">(clique para expandir)</span>
               </summary>
               <div className="mt-3 overflow-x-auto rounded bg-red-100/50 p-3 font-mono text-xs text-red-900 border border-red-200/50 max-h-60 whitespace-pre-wrap">
-                <p className="font-bold mb-1">{error.name}: {error.message}</p>
-                {error.stack && <p className="opacity-80 mt-1 text-[10px] leading-relaxed">{error.stack}</p>}
+                {process.env.NODE_ENV === "development" ? (
+                  <>
+                    <p className="font-bold mb-1">{error.name}: {error.message}</p>
+                    {error.stack && <p className="opacity-80 mt-1 text-[10px] leading-relaxed">{error.stack}</p>}
+                  </>
+                ) : (
+                  <>
+                    <p className="font-bold mb-1">Ocorreu um erro no servidor.</p>
+                    {error.digest && (
+                      <p className="opacity-80 mt-1">ID do erro: <span className="font-bold">{error.digest}</span></p>
+                    )}
+                  </>
+                )}
               </div>
             </details>
           </div>

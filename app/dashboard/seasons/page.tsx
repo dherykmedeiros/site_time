@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import { formatDateOnly, toInputDateString, toApiIsoDate } from "@/lib/utils";
 
 type SeasonType = "LEAGUE" | "CUP" | "TOURNAMENT";
 type SeasonStatus = "ACTIVE" | "FINISHED";
@@ -45,7 +46,7 @@ export default function SeasonsPage() {
   const [name, setName] = useState("");
   const [type, setType] = useState<SeasonType>("LEAGUE");
   const [startDate, setStartDate] = useState(
-    () => new Date().toISOString().substring(0, 10)
+    () => toInputDateString(new Date())
   );
   const [endDate, setEndDate] = useState("");
 
@@ -80,7 +81,7 @@ export default function SeasonsPage() {
       const res = await fetch("/api/seasons", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, type, startDate, endDate: endDate || null }),
+        body: JSON.stringify({ name, type, startDate: toApiIsoDate(startDate), endDate: endDate ? toApiIsoDate(endDate) : null }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -90,7 +91,7 @@ export default function SeasonsPage() {
       setShowForm(false);
       setName("");
       setType("LEAGUE");
-      setStartDate(new Date().toISOString().substring(0, 10));
+      setStartDate(toInputDateString(new Date()));
       setEndDate("");
       await load();
       toast("Temporada criada com sucesso!");
@@ -268,14 +269,8 @@ export default function SeasonsPage() {
         <div className="space-y-3">
           {seasons.map((s) => {
             const st = statusLabels[s.status];
-            const startFmt = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(
-              new Date(s.startDate)
-            );
-            const endFmt = s.endDate
-              ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(
-                  new Date(s.endDate)
-                )
-              : null;
+            const startFmt = formatDateOnly(s.startDate, { dateStyle: "short" });
+            const endFmt = s.endDate ? formatDateOnly(s.endDate, { dateStyle: "short" }) : null;
 
             return (
               <div

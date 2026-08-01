@@ -4,6 +4,7 @@ import { requireAdmin, requireCoachOrAdmin, requireAuth } from "@/lib/auth";
 import { createPlayerSchema } from "@/lib/validations/player";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
+import { logActivity } from "@/lib/activity-logger";
 
 // GET /api/players — List players for the team
 export async function GET(request: Request) {
@@ -41,6 +42,7 @@ export async function GET(request: Request) {
       id: p.id,
       name: p.name,
       position: p.position,
+      secondaryPosition: p.secondaryPosition,
       shirtNumber: p.shirtNumber,
       photoUrl: p.photoUrl,
       status: p.status,
@@ -94,7 +96,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { name, position, shirtNumber, status } = parsed.data;
+  const { name, position, secondaryPosition, shirtNumber, status } = parsed.data;
 
   let finalShirtNumber = shirtNumber;
   if (finalShirtNumber === undefined || finalShirtNumber === null) {
@@ -127,11 +129,20 @@ export async function POST(request: Request) {
     data: {
       name,
       position,
+      secondaryPosition: secondaryPosition || null,
       shirtNumber: finalShirtNumber,
       status,
       teamId: session.user.teamId,
     },
   });
+
+  await logActivity(
+    session.user.teamId,
+    "PLAYER_ADDED",
+    `Adicionou o jogador ${name} (#${finalShirtNumber}) ao elenco`,
+    session.user.id,
+    { playerId: player.id }
+  );
 
   // Auto-create PENDING RSVPs for all future SCHEDULED matches
   // so the new player appears without needing to recreate the game
@@ -142,7 +153,7 @@ export async function POST(request: Request) {
         status: "SCHEDULED",
         date: { gte: new Date() },
       },
-      select: { id: true },
+      select: { id: true, type: true },
     });
 
     if (futureMatches.length > 0) {
@@ -151,6 +162,7 @@ export async function POST(request: Request) {
           playerId: player.id,
           matchId: match.id,
           status: "PENDING" as const,
+          summoned: match.type === "FRIENDLY",
         })),
         skipDuplicates: true,
       });
@@ -162,6 +174,7 @@ export async function POST(request: Request) {
       id: player.id,
       name: player.name,
       position: player.position,
+      secondaryPosition: player.secondaryPosition,
       shirtNumber: player.shirtNumber,
       photoUrl: player.photoUrl,
       status: player.status,

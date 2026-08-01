@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { formatDate } from "@/lib/utils";
 
 interface Uploader {
   id: string;
@@ -171,7 +172,7 @@ export default function GeneralGalleryPage() {
                   <option value="">Todos os Jogos</option>
                   {matches.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {new Date(m.date).toLocaleDateString("pt-BR")} - vs {m.opponent}
+                      {formatDate(m.date)} - vs {m.opponent}
                     </option>
                   ))}
                 </select>
@@ -260,7 +261,7 @@ export default function GeneralGalleryPage() {
                     Por {photo.uploadedBy.name}
                   </p>
                   <div className="flex justify-between items-center text-[9px] text-[#8fa39b] font-mono pt-1">
-                    <span>{new Date(photo.match.date).toLocaleDateString("pt-BR")}</span>
+                    <span>{formatDate(photo.match.date)}</span>
                     <Link
                       href={`/dashboard/matches/${photo.match.id}`}
                       className="text-[#34d399] hover:underline"
@@ -301,7 +302,7 @@ export default function GeneralGalleryPage() {
               <span className="text-gray-500">|</span>
               <span>Por {selectedPhoto.uploadedBy.name}</span>
               <span className="text-gray-500">|</span>
-              <span>{new Date(selectedPhoto.match.date).toLocaleDateString("pt-BR")}</span>
+              <span>{formatDate(selectedPhoto.match.date)}</span>
             </div>
             
             <div className="flex gap-2">

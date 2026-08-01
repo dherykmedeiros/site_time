@@ -52,7 +52,7 @@ export async function GET(request: Request, context: RouteContext) {
     const primary = safeHex(recap.team.primaryColor, "#1d7a61");
     const secondary = safeHex(recap.team.secondaryColor, "#0f172a");
 
-    const dateLabel = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(recap.match.date);
+    const dateLabel = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(recap.match.date);
 
     trackOperationalEvent("recap_pregame_card_viewed", {
       matchId,
@@ -91,9 +91,9 @@ export async function GET(request: Request, context: RouteContext) {
 
     let content: string;
     if (isStories) {
-      const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(recap.match.date).toUpperCase();
-      const dayMonth = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short" }).format(recap.match.date).toUpperCase().replace(".", "");
-      const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(recap.match.date);
+      const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "long", timeZone: "America/Sao_Paulo" }).format(recap.match.date).toUpperCase();
+      const dayMonth = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", timeZone: "America/Sao_Paulo" }).format(recap.match.date).toUpperCase().replace(".", "");
+      const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }).format(recap.match.date);
       const headerDateText = `${dayMonth} | ${weekday} | ${time}H`;
 
       content = `
@@ -187,9 +187,9 @@ export async function GET(request: Request, context: RouteContext) {
 
         </div>`;
     } else {
-      const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "long" }).format(recap.match.date).toUpperCase();
-      const dayMonth = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short" }).format(recap.match.date).toUpperCase().replace(".", "");
-      const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(recap.match.date);
+      const weekday = new Intl.DateTimeFormat("pt-BR", { weekday: "long", timeZone: "America/Sao_Paulo" }).format(recap.match.date).toUpperCase();
+      const dayMonth = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", timeZone: "America/Sao_Paulo" }).format(recap.match.date).toUpperCase().replace(".", "");
+      const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }).format(recap.match.date);
       const headerDateText = `${dayMonth} | ${weekday} | ${time}H`;
 
       content = `

@@ -53,6 +53,7 @@ export async function GET(request: Request, context: RouteContext) {
     name: player.name,
     fullName: player.fullName,
     position: player.position,
+    secondaryPosition: player.secondaryPosition,
     shirtNumber: player.shirtNumber,
     photoUrl: player.photoUrl,
     age: player.age,
@@ -171,7 +172,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         // Exclude matches where they already have an RSVP
         rsvps: { none: { playerId: id } },
       },
-      select: { id: true },
+      select: { id: true, type: true },
     });
 
     if (futureMatches.length > 0) {
@@ -180,6 +181,7 @@ export async function PATCH(request: Request, context: RouteContext) {
           playerId: id,
           matchId: match.id,
           status: "PENDING" as const,
+          summoned: match.type === "FRIENDLY",
         })),
         skipDuplicates: true,
       });
@@ -202,6 +204,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     name: updated.name,
     fullName: updated.fullName,
     position: updated.position,
+    secondaryPosition: updated.secondaryPosition,
     shirtNumber: updated.shirtNumber,
     photoUrl: updated.photoUrl,
     age: updated.age,

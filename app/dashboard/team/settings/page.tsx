@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { TeamForm } from "@/components/forms/TeamForm";
 import { DefaultLineupCard } from "@/components/dashboard/DefaultLineupCard";
+import { playerPositions, playerPositionLabels } from "@/lib/player-positions";
 
 interface TeamData {
   id?: string;
@@ -25,6 +26,8 @@ interface TeamData {
   kitAwayUrl?: string | null;
   kitGkUrl?: string | null;
   monthlyFeesEnabled?: boolean;
+  defaultPositionLimitsEnabled?: boolean;
+  defaultPositionLimits?: Record<string, number> | null;
 }
 
 interface TeamDiscoverySettings {
@@ -244,6 +247,45 @@ export default function TeamSettingsPage() {
     }
   }, [hasTeam, isAdmin]);
 
+  // State para limites padrão de posições
+  const [defaultPositionLimitsEnabled, setDefaultPositionLimitsEnabled] = useState(false);
+  const [defaultPositionLimits, setDefaultPositionLimits] = useState<Record<string, string>>({});
+  const [savingPositionLimits, setSavingPositionLimits] = useState(false);
+
+  async function handleSavePositionLimits() {
+    setSavingPositionLimits(true);
+    setFeedback(null);
+    try {
+      const formattedLimits: Record<string, number> = {};
+      for (const pos of playerPositions) {
+        const val = defaultPositionLimits[pos];
+        if (val !== undefined && val !== "" && !isNaN(Number(val))) {
+          formattedLimits[pos] = Number(val);
+        }
+      }
+
+      const res = await fetch("/api/teams", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          defaultPositionLimitsEnabled,
+          defaultPositionLimits: formattedLimits,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Erro ao salvar limites de posições.");
+      }
+
+      setFeedback("Limites padrão de posições por partida salvos com sucesso!");
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Erro ao salvar limites de posições.");
+    } finally {
+      setSavingPositionLimits(false);
+    }
+  }
+
   async function loadTeam() {
     try {
       const res = await fetch("/api/teams");
@@ -255,6 +297,16 @@ export default function TeamSettingsPage() {
         const data = await res.json();
         setTeam(data);
         setHasTeam(true);
+        setDefaultPositionLimitsEnabled(Boolean(data.defaultPositionLimitsEnabled));
+        if (data.defaultPositionLimits) {
+          const initial: Record<string, string> = {};
+          for (const pos of playerPositions) {
+            if (data.defaultPositionLimits[pos] !== undefined && data.defaultPositionLimits[pos] !== null) {
+              initial[pos] = String(data.defaultPositionLimits[pos]);
+            }
+          }
+          setDefaultPositionLimits(initial);
+        }
       }
     } catch {
       setHasTeam(false);
@@ -520,6 +572,72 @@ export default function TeamSettingsPage() {
                 />
                 <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand)]"></div>
               </label>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {hasTeam && (
+        <Card className="rounded-[18px]">
+          <CardHeader>
+            <h2 className="text-lg font-semibold text-[var(--text)]">🎯 Limites Padrão de Posições por Partida</h2>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <p className="text-xs text-[var(--text-muted)]">
+              Defina a quantidade máxima padrão de convocações/vagas por posição para os jogos da sua equipe. Novas partidas já iniciarão com esse limite preenchido, mas você poderá ajustar individualmente em cada jogo.
+            </p>
+
+            <div className="flex items-center justify-between rounded-[12px] border border-white/5 bg-white/[0.02] p-4">
+              <div>
+                <p className="text-sm font-semibold text-white">Ativar limite padrão de vagas por posição</p>
+                <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                  Ao criar uma nova partida, os limites abaixo serão pré-preenchidos automaticamente.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={defaultPositionLimitsEnabled}
+                  onChange={(e) => setDefaultPositionLimitsEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--brand)]"></div>
+              </label>
+            </div>
+
+            {defaultPositionLimitsEnabled && (
+              <div className="space-y-4 pt-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#34d399]">
+                  Vagas Máximas por Posição (Deixe em branco para sem limite)
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {playerPositions.map((pos) => (
+                    <div key={pos} className="rounded-xl border border-white/5 bg-white/[0.02] p-3 space-y-1.5">
+                      <label className="block text-xs font-bold text-white truncate">
+                        {playerPositionLabels[pos]}
+                      </label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="Sem limite"
+                        value={defaultPositionLimits[pos] || ""}
+                        onChange={(e) =>
+                          setDefaultPositionLimits((prev) => ({
+                            ...prev,
+                            [pos]: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="pt-2">
+              <Button onClick={handleSavePositionLimits} loading={savingPositionLimits}>
+                Salvar Limites Padrão
+              </Button>
             </div>
           </CardContent>
         </Card>

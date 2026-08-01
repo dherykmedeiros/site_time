@@ -51,6 +51,7 @@ export const GET = withErrorHandler(async () => {
     name: player.name,
     fullName: player.fullName,
     position: player.position,
+    secondaryPosition: player.secondaryPosition,
     shirtNumber: player.shirtNumber,
     status: player.status,
     photoUrl: player.photoUrl,
@@ -118,6 +119,7 @@ export const PATCH = withErrorHandler(async (request: Request) => {
     where: { id: player.id },
     data: {
       fullName: payload.fullName === undefined ? undefined : payload.fullName,
+      secondaryPosition: payload.secondaryPosition === undefined ? undefined : payload.secondaryPosition,
       photoUrl: payload.photoUrl === undefined ? undefined : payload.photoUrl,
       age: payload.age === undefined ? undefined : payload.age,
       phone: payload.phone === undefined ? undefined : payload.phone,
@@ -130,6 +132,7 @@ export const PATCH = withErrorHandler(async (request: Request) => {
     name: updated.name,
     fullName: updated.fullName,
     position: updated.position,
+    secondaryPosition: updated.secondaryPosition,
     shirtNumber: updated.shirtNumber,
     status: updated.status,
     photoUrl: updated.photoUrl,

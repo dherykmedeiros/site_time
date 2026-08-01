@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/Toast";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
+import { formatDateOnly } from "@/lib/utils";
 import { 
   Package, 
   Plus, 
@@ -791,7 +792,7 @@ export default function EquipmentPage() {
                     )}
 
                     <div className="text-[10px] text-[var(--text-muted)] font-semibold font-mono">
-                      Solicitado em: {new Date(ord.createdAt).toLocaleDateString("pt-BR")}
+                      Solicitado em: {formatDateOnly(ord.createdAt, { dateStyle: "short" })}
                     </div>
                   </div>
 

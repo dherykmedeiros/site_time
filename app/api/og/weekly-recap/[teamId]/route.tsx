@@ -36,8 +36,8 @@ export async function GET(request: Request, context: RouteContext) {
     const topScorerLabel = recap.leaders.topScorer
       ? `${recap.leaders.topScorer.name} (${recap.leaders.topScorer.goals})`
       : "—";
-    const sinceLabel = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(recap.period.since);
-    const untilLabel = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(recap.period.until);
+    const sinceLabel = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "America/Sao_Paulo" }).format(recap.period.since);
+    const untilLabel = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "America/Sao_Paulo" }).format(recap.period.until);
 
     const badgeHtml = badgeUrl
       ? `<div class="badge badge-xl"><img src="${esc(badgeUrl)}" alt="${esc(recap.team.name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`

@@ -86,7 +86,7 @@ export async function GET(request: Request, context: RouteContext) {
       const primary = safeHex(matchRecap.team.primaryColor, "#1d7a61");
       const secondary = safeHex(matchRecap.team.secondaryColor, "#0f172a");
       const teamLabel = matchRecap.team.shortName || cut(matchRecap.team.name, 40);
-      const dateLabel = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(matchRecap.match.date);
+      const dateLabel = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeZone: "America/Sao_Paulo" }).format(matchRecap.match.date);
       const scoreLabel = matchRecap.match.isHome
         ? `${matchRecap.match.homeScore ?? 0} x ${matchRecap.match.awayScore ?? 0}`
         : `${matchRecap.match.awayScore ?? 0} x ${matchRecap.match.homeScore ?? 0}`;

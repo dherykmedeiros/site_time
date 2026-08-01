@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
+import { formatDateOnly, toInputDateString, toApiIsoDate } from "@/lib/utils";
 
 interface Player {
   id: string;
@@ -39,6 +40,13 @@ interface Fine {
   severity: "WARNING" | "SUSPENSION";
   matchesSuspended: number | null;
   status: "ACTIVE" | "SERVED" | "CANCELLED";
+  suspendedMatchId: string | null;
+  suspendedMatch?: {
+    id: string;
+    opponent: string;
+    date: string;
+    type: string;
+  } | null;
   date: string;
   createdAt: string;
 }
@@ -75,7 +83,9 @@ export default function FinesPage() {
   const [severity, setSeverity] = useState<"WARNING" | "SUSPENSION">("WARNING");
   const [matchesSuspended, setMatchesSuspended] = useState("1");
   const [status, setStatus] = useState<"ACTIVE" | "SERVED" | "CANCELLED">("ACTIVE");
-  const [date, setDate] = useState(() => new Date().toISOString().substring(0, 10));
+  const [date, setDate] = useState(() => toInputDateString(new Date()));
+  const [scheduledMatches, setScheduledMatches] = useState<any[]>([]);
+  const [suspendedMatchId, setSuspendedMatchId] = useState("");
 
   // Delete & Serve confirmation Modals
   const [confirmModal, setConfirmModal] = useState<{
@@ -90,12 +100,13 @@ export default function FinesPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const [finesRes, playersRes, rulesRes, typesRes, accumulationRes] = await Promise.all([
+      const [finesRes, playersRes, rulesRes, typesRes, accumulationRes, matchesRes] = await Promise.all([
         fetch("/api/fines"),
         fetch("/api/players?status=ACTIVE"),
         fetch("/api/rules"),
         fetch("/api/teams/punishment-types"),
         fetch("/api/teams/accumulation-rules"),
+        fetch("/api/matches?status=SCHEDULED"),
       ]);
 
       if (finesRes.ok) {
@@ -117,6 +128,10 @@ export default function FinesPage() {
       if (accumulationRes.ok) {
         const data = await accumulationRes.json();
         setAccumulationRules(data.accumulationRules || []);
+      }
+      if (matchesRes.ok) {
+        const data = await matchesRes.json();
+        setScheduledMatches(data.matches || []);
       }
     } catch {
       toast("Erro ao carregar dados");
@@ -164,7 +179,10 @@ export default function FinesPage() {
         playerSuspensions.forEach((s) => {
           const typeName = (s as any).punishmentType?.name || "Suspensão";
           const matches = s.matchesSuspended ? `${s.matchesSuspended} ${s.matchesSuspended === 1 ? "jogo" : "jogos"}` : "1 jogo";
-          suspensionsText += `  ↳ 🟥 *${typeName}* (${matches}): ${s.description}\n`;
+          const matchDetail = s.suspendedMatch 
+            ? ` (Jogo: vs ${s.suspendedMatch.opponent} em ${formatDate(s.suspendedMatch.date)})`
+            : "";
+          suspensionsText += `  ↳ 🟥 *${typeName}* (${matches})${matchDetail}: ${s.description}\n`;
         });
         suspensionsText += `\n`;
       }
@@ -235,7 +253,8 @@ export default function FinesPage() {
     setPunishmentTypeId("");
     setMatchesSuspended("1");
     setStatus("ACTIVE");
-    setDate(new Date().toISOString().substring(0, 10));
+    setDate(toInputDateString(new Date()));
+    setSuspendedMatchId("");
     setFormError("");
     setShowModal(true);
   }
@@ -246,10 +265,16 @@ export default function FinesPage() {
     setRuleId(fine.ruleId || "");
     setDescription(fine.description);
     setSeverity(fine.severity);
-    setPunishmentTypeId((fine as any).punishmentTypeId || "");
+    
+    // Auto-select type based on existing ID or fallback to first type of same severity
+    const existingTypeId = (fine as any).punishmentTypeId;
+    const fallbackType = punishmentTypes.find((t) => t.severity === fine.severity);
+    setPunishmentTypeId(existingTypeId || fallbackType?.id || "");
+    
     setMatchesSuspended(fine.matchesSuspended !== null ? String(fine.matchesSuspended) : "1");
     setStatus(fine.status);
-    setDate(new Date(fine.date).toISOString().substring(0, 10));
+    setDate(toInputDateString(fine.date));
+    setSuspendedMatchId(fine.suspendedMatchId || "");
     setFormError("");
     setShowModal(true);
   }
@@ -267,7 +292,8 @@ export default function FinesPage() {
       severity,
       matchesSuspended: severity === "SUSPENSION" ? parseInt(matchesSuspended) : null,
       status,
-      date: new Date(date).toISOString(),
+      suspendedMatchId: severity === "SUSPENSION" ? (suspendedMatchId || null) : null,
+      date: toApiIsoDate(date),
     };
 
     try {
@@ -341,6 +367,7 @@ export default function FinesPage() {
             severity: fine.severity,
             matchesSuspended: fine.matchesSuspended,
             status: "SERVED",
+            suspendedMatchId: fine.suspendedMatchId,
             date: fine.date,
           };
 
@@ -381,9 +408,7 @@ export default function FinesPage() {
   });
 
   function formatDate(isoString: string) {
-    return new Intl.DateTimeFormat("pt-BR", {
-      dateStyle: "medium",
-    }).format(new Date(isoString));
+    return formatDateOnly(isoString);
   }
 
   function getSeverityLabel(fine: Fine) {
@@ -561,6 +586,14 @@ export default function FinesPage() {
                   <p className="text-sm text-[var(--text-subtle)] leading-relaxed">
                     {fine.description}
                   </p>
+                  {fine.suspendedMatch && (
+                    <p className="text-xs text-red-400 font-medium flex items-center gap-1 mt-1">
+                      <span>🟥 Suspenso no jogo contra:</span>
+                      <strong className="underline">
+                        {fine.suspendedMatch.opponent} ({formatDate(fine.suspendedMatch.date)})
+                      </strong>
+                    </p>
+                  )}
                   <p className="text-xs text-[var(--text-muted)]">
                     Aplicada em: {formatDate(fine.date)}
                   </p>
@@ -687,16 +720,40 @@ export default function FinesPage() {
           </div>
 
           {severity === "SUSPENSION" && (
-            <Input
-              label="Quantidade de jogos de suspensão *"
-              placeholder="Ex: 1"
-              type="number"
-              min="1"
-              max="100"
-              value={matchesSuspended}
-              onChange={(e) => setMatchesSuspended(e.target.value)}
-              required
-            />
+            <>
+              <Input
+                label="Quantidade de jogos de suspensão *"
+                placeholder="Ex: 1"
+                type="number"
+                min="1"
+                max="100"
+                value={matchesSuspended}
+                onChange={(e) => setMatchesSuspended(e.target.value)}
+                required
+              />
+              <div className="mb-4">
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--text-subtle)]">
+                  Partida da Suspensão (Opcional)
+                </label>
+                <select
+                  value={suspendedMatchId}
+                  onChange={(e) => setSuspendedMatchId(e.target.value)}
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]"
+                >
+                  <option value="">— Sem partida específica (Cumpre em jogos futuros) —</option>
+                  {editingFine?.suspendedMatch && !scheduledMatches.some((m) => m.id === editingFine.suspendedMatchId) && (
+                    <option key={editingFine.suspendedMatch.id} value={editingFine.suspendedMatch.id}>
+                      {formatDate(editingFine.suspendedMatch.date)} - vs {editingFine.suspendedMatch.opponent} ({editingFine.suspendedMatch.type === "CHAMPIONSHIP" ? "Campeonato" : "Amistoso"}) [Histórico]
+                    </option>
+                  )}
+                  {scheduledMatches.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {formatDate(m.date)} - vs {m.opponent} ({m.type === "CHAMPIONSHIP" ? "Campeonato" : "Amistoso"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
           )}
 
           <div>

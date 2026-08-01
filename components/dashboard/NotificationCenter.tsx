@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface Notification {
   id: string;
@@ -218,6 +219,17 @@ export default function NotificationCenter() {
                 </div>
               ))
             )}
+          </div>
+
+          {/* Footer */}
+          <div className="border-t border-[var(--border)] bg-[var(--bg-elevated)] p-2.5 text-center">
+            <Link
+              href="/dashboard/notifications"
+              onClick={() => setIsOpen(false)}
+              className="inline-block text-xs font-bold text-[var(--brand)] hover:underline"
+            >
+              Ver todas as notificações ➔
+            </Link>
           </div>
         </div>
       )}

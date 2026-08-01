@@ -1,112 +1,43 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/Button";
-import { StatsCard } from "@/components/dashboard/StatsCard";
-import { PushSubscriptionCard } from "@/components/dashboard/PushSubscriptionCard";
-import { formatCurrency } from "@/lib/utils";
-import { CardSkeleton, TableSkeleton } from "@/components/ui/Skeleton";
+import Link from "next/link";
 
-interface TeamOverview {
-  id: string;
-  name: string;
-  slug: string;
-  badgeUrl: string | null;
-  primaryColor: string | null;
-  _count: {
-    players: number;
-    matches: number;
-  };
-}
+import AdminDashboard from "@/components/dashboard/AdminDashboard";
+import CoachDashboard from "@/components/dashboard/CoachDashboard";
+import PlayerDashboard from "@/components/dashboard/PlayerDashboard";
+import MaterialDirectorDashboard from "@/components/dashboard/MaterialDirectorDashboard";
 
-interface RankingsData {
-  rankings: {
-    topScorers?: Array<{ playerId: string; playerName: string; total: number }>;
-    topAssisters?: Array<{ playerId: string; playerName: string; total: number }>;
-    mostCards?: Array<{ playerId: string; playerName: string; yellowCards: number; redCards: number }>;
-  };
-  teamRecord: {
-    totalMatches: number;
-    wins: number;
-    draws: number;
-    losses: number;
-    winRate: number;
-    goalsScored: number;
-    goalsConceded: number;
-  };
-}
-
-type TabType = "scorers" | "assisters" | "cards";
-
-export default function DashboardHomePage() {
-  const [team, setTeam] = useState<TeamOverview | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [hasTeam, setHasTeam] = useState(true);
-  const [rankings, setRankings] = useState<RankingsData | null>(null);
-  const [balance, setBalance] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>("scorers");
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch("/api/teams");
-        if (res.status === 404 || res.status === 403) {
-          setHasTeam(false);
-          return;
-        }
-        if (res.ok) {
-          const data = await res.json();
-          setTeam(data);
-
-          // Load rankings and balance in parallel
-          const [rankingsRes, financeRes] = await Promise.all([
-            fetch("/api/stats/rankings?limit=5").catch(() => null),
-            fetch("/api/finances?limit=1").catch(() => null),
-          ]);
-
-          if (rankingsRes?.ok) {
-            setRankings(await rankingsRes.json());
-          }
-          if (financeRes?.ok) {
-            const finData = await financeRes.json();
-            setBalance(finData.balance);
-          }
-        }
-      } catch {
-        setHasTeam(false);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <div className="h-16 w-16 animate-pulse rounded-lg bg-white/5 border border-white/10" />
-          <div>
-            <div className="mb-2 h-6 w-48 animate-pulse rounded bg-white/5" />
-            <div className="h-4 w-32 animate-pulse rounded bg-white/5" />
-          </div>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
-        </div>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <TableSkeleton rows={5} />
-          <TableSkeleton rows={5} />
-        </div>
-      </div>
-    );
+export default async function DashboardPage() {
+  const session = await getSession();
+  
+  if (!session?.user?.teamId) {
+    redirect("/login");
   }
 
-  if (!hasTeam || !team) {
+  const teamId = session.user.teamId;
+  const role = session.user.role;
+  const playerId = session.user.playerId;
+
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      badgeUrl: true,
+      primaryColor: true,
+      _count: {
+        select: {
+          players: true,
+          matches: true,
+        },
+      },
+    },
+  });
+
+  if (!team) {
     return (
       <div className="mx-auto max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)]/90 px-8 py-14 text-center shadow-xl backdrop-blur-xl space-y-6">
         <span className="text-4xl animate-bounce inline-block">⚽</span>
@@ -123,362 +54,288 @@ export default function DashboardHomePage() {
     );
   }
 
-  const record = rankings?.teamRecord;
-  const playersCount = team?._count?.players ?? 0;
-  const matchesCount = team?._count?.matches ?? 0;
-  const topScorers = rankings?.rankings?.topScorers || [];
-  const topAssisters = rankings?.rankings?.topAssisters || [];
-  const mostCards = rankings?.rankings?.mostCards || [];
+  if (role === "ADMIN") {
+    const [balanceAgg, overdue, activePlayersCount, pendingAmistososCount, transactionsRaw, friendlyRequests, nextMatchData] = await Promise.all([
+      prisma.transaction.groupBy({
+        by: ["type"],
+        where: { teamId },
+        _sum: { amount: true },
+      }),
+      prisma.membershipPayment.findMany({
+        where: { teamId, transactionId: null },
+        include: { player: { select: { name: true } } }
+      }),
+      prisma.player.count({ where: { teamId, status: "ACTIVE" } }),
+      prisma.friendlyRequest.count({ where: { teamId, status: "PENDING" } }),
+      prisma.transaction.findMany({
+        where: { teamId },
+        orderBy: { date: "desc" },
+        take: 5
+      }),
+      prisma.friendlyRequest.findMany({
+        where: { teamId, status: "PENDING" },
+        orderBy: { createdAt: "desc" },
+        take: 5
+      }),
+      prisma.match.findFirst({
+        where: { teamId, status: "SCHEDULED", date: { gte: new Date() } },
+        orderBy: { date: "asc" },
+      })
+    ]);
 
-  const quickActions = [
-    {
-      href: "/dashboard/squad",
-      title: "Gerenciar Elenco",
-      description: "Cadastro de atletas, posições e números de camisa.",
-      icon: "👥",
-    },
-    {
-      href: "/dashboard/matches",
-      title: "Agenda & Partidas",
-      description: "Planejar jogos amistosos, oficiais e registrar placares.",
-      icon: "⚽",
-    },
-    {
-      href: "/dashboard/finances",
-      title: "Caixinha do Time",
-      description: "Lançamento de mensalidades, despesas e saldo geral.",
-      icon: "💰",
-    },
-    {
-      href: "/dashboard/friendly-requests",
-      title: "Desafios Recebidos",
-      description: "Negociar datas e responder solicitações de amistosos.",
-      icon: "🤝",
-    },
-    {
-      href: "/dashboard/team/settings",
-      title: "Identidade & Cores",
-      description: "Ajustar escudo, uniformes e detalhes de contato do time.",
-      icon: "⚙",
-    },
-  ];
+    let totalIncome = 0;
+    let totalExpense = 0;
+    for (const entry of balanceAgg) {
+      if (entry.type === "INCOME") totalIncome = Number(entry._sum.amount || 0);
+      else if (entry.type === "EXPENSE") totalExpense = Number(entry._sum.amount || 0);
+    }
+    const balance = totalIncome - totalExpense;
 
-  return (
-    <div className="space-y-8">
-      {/* Team Hub Banner (Editorial Layout) */}
-      <section className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)]/60 backdrop-blur-xl p-6 shadow-sm sm:p-8">
-        <div className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[var(--brand)] opacity-5 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[var(--brand)] to-transparent opacity-40 animate-pulse" />
+    let overdueAmount = 0;
+    const overduePlayersMap = new Map<string, { name: string; amount: number; months: number }>();
+    for (const p of overdue) {
+      const amt = Number(p.amount);
+      overdueAmount += amt;
+      const existing = overduePlayersMap.get(p.playerId);
+      if (existing) {
+        existing.amount += amt;
+        existing.months += 1;
+      } else {
+        overduePlayersMap.set(p.playerId, { name: p.player.name, amount: amt, months: 1 });
+      }
+    }
 
-        <div className="relative grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-center">
-          <div className="space-y-6">
-            <div className="flex items-center gap-4.5">
-              {team.badgeUrl ? (
-                <img
-                  src={team.badgeUrl}
-                  alt={`Escudo ${team.name}`}
-                  className="h-16 w-16 rounded-2xl border border-[var(--border)] object-cover shadow-sm"
-                />
-              ) : (
-                <div
-                  className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[var(--border)] text-3xl text-[var(--brand)] shadow-sm bg-[var(--brand-soft)]"
-                >
-                  ⚽
-                </div>
-              )}
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[var(--brand)]">
-                  Painel de Controle
-                </p>
-                <h1 className="text-3xl font-bold text-[var(--text)] tracking-tight uppercase font-serif">{team.name}</h1>
-              </div>
-            </div>
+    const overduePayments = Array.from(overduePlayersMap.entries()).map(([id, data]) => ({
+      playerId: id,
+      playerName: data.name,
+      amount: data.amount,
+      monthsOverdue: data.months
+    }));
 
-            <p className="max-w-xl text-sm leading-relaxed text-[var(--text-muted)] font-medium">
-              Bem-vindo ao centro operacional do seu time. Acompanhe a saúde financeira, o desempenho técnico dos atletas e responda aos desafios de amistosos recebidos da comunidade.
-            </p>
+    return (
+      <AdminDashboard 
+        team={team}
+        metrics={{ balance, overdueAmount, activePlayersCount, pendingAmistososCount }}
+        transactions={transactionsRaw.map(t => ({
+          id: t.id,
+          date: t.date,
+          description: t.description,
+          amount: Number(t.amount),
+          type: t.type
+        }))}
+        friendlyRequests={friendlyRequests.map(r => ({
+          id: r.id,
+          opponentName: r.requesterTeamName,
+          date: new Date(r.suggestedDates.split(",")[0] || Date.now()), // Simplification
+          status: r.status
+        }))}
+        overduePayments={overduePayments}
+        nextMatch={nextMatchData ? { id: nextMatchData.id, date: nextMatchData.date, opponentName: nextMatchData.opponent, venue: nextMatchData.venue } : null}
+      />
+    );
+  }
 
-            <div className="flex flex-wrap gap-3">
-              <a
-                href="/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] hover:bg-[var(--brand-soft)]/20 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-[var(--text)] transition-all duration-150"
-              >
-                Acessar Portal Público &rarr;
-              </a>
-              <Link href="/dashboard/matches">
-                <Button className="rounded-xl px-5 py-2.5 text-xs uppercase tracking-wider font-bold">
-                  Registrar Jogo
-                </Button>
-              </Link>
-            </div>
-          </div>
+  if (role === "COACH") {
+    const limit = 5;
+    const [completedMatches, nextMatchData, topScorersRaw, topAssistersRaw, pendingEvaluationsCount] = await Promise.all([
+      prisma.match.findMany({
+        where: { teamId, status: "COMPLETED" },
+        select: { homeScore: true, awayScore: true, isHome: true },
+        orderBy: { date: "desc" },
+        take: 5
+      }),
+      prisma.match.findFirst({
+        where: { teamId, status: "SCHEDULED", date: { gte: new Date() } },
+        orderBy: { date: "asc" },
+        include: { rsvps: true }
+      }),
+      prisma.matchStats.groupBy({
+        by: ["playerId"],
+        where: { match: { teamId }, playerId: { not: null } },
+        _sum: { goals: true },
+        orderBy: { _sum: { goals: "desc" } },
+        take: limit,
+      }),
+      prisma.matchStats.groupBy({
+        by: ["playerId"],
+        where: { match: { teamId }, playerId: { not: null } },
+        _sum: { assists: true },
+        orderBy: { _sum: { assists: "desc" } },
+        take: limit,
+      }),
+      prisma.player.count({ where: { teamId, evaluations: { none: {} } } }) // Simplification for pending evaluations
+    ]);
 
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-elevated)]/40 p-5 shadow-sm space-y-4">
-            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--text-subtle)] border-b border-[var(--border)] pb-2">
-              Resumo Operacional
-            </p>
-            <dl className="space-y-3.5 text-xs font-semibold">
-              <div className="flex items-center justify-between">
-                <dt className="text-[var(--text-muted)]">Jogadores no Elenco</dt>
-                <dd className="text-[var(--text)] font-bold">{playersCount}</dd>
-              </div>
-              <div className="flex items-center justify-between">
-                <dt className="text-[var(--text-muted)]">Total de Partidas</dt>
-                <dd className="text-[var(--text)] font-bold">{matchesCount}</dd>
-              </div>
-              <div className="flex items-center justify-between">
-                <dt className="text-[var(--text-muted)]">Caixa do Time</dt>
-                <dd className={`font-black ${balance != null && balance >= 0 ? "text-[var(--badge-success-text)]" : "text-[var(--danger)]"}`}>
-                  {balance != null ? formatCurrency(balance) : "—"}
-                </dd>
-              </div>
-              <div className="flex items-center justify-between">
-                <dt className="text-[var(--text-muted)]">Aproveitamento Técnico</dt>
-                <dd className="text-[var(--text)] font-bold">{record ? `${record.winRate}%` : "—"}</dd>
-              </div>
-            </dl>
-          </div>
-        </div>
-      </section>
+    let wins = 0;
+    let goalsScored = 0;
+    let goalsConceded = 0;
+    const performanceHistory: ("W" | "D" | "L")[] = [];
 
-      {/* Stats Cards Row */}
-      <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
-          label="Atletas Oficiais"
-          value={playersCount}
-          icon="👥"
-          color="blue"
-        />
-        <StatsCard
-          label="Partidas Disputadas"
-          value={record?.totalMatches ?? 0}
-          icon="⚽"
-          color="green"
-        />
-        <StatsCard
-          label="Aproveitamento"
-          value={record ? `${record.winRate}%` : "—"}
-          icon="📊"
-          color="yellow"
-          sublabel={
-            record
-              ? `${record.wins}V ${record.draws}E ${record.losses}D`
-              : undefined
-          }
-        />
-        <StatsCard
-          label="Caixinha Geral"
-          value={balance != null ? formatCurrency(balance) : "—"}
-          icon="💰"
-          color={balance != null && balance >= 0 ? "green" : "red"}
-        />
-      </section>
+    for (const m of completedMatches.reverse()) {
+      const teamGoalsFor = m.isHome ? m.homeScore ?? 0 : m.awayScore ?? 0;
+      const teamGoalsAgainst = m.isHome ? m.awayScore ?? 0 : m.homeScore ?? 0;
+      goalsScored += teamGoalsFor;
+      goalsConceded += teamGoalsAgainst;
+      if (teamGoalsFor > teamGoalsAgainst) {
+        wins++;
+        performanceHistory.push("W");
+      }
+      else if (teamGoalsFor < teamGoalsAgainst) {
+        performanceHistory.push("L");
+      }
+      else {
+        performanceHistory.push("D");
+      }
+    }
 
-      {/* Retrospect Panel */}
-      {record && record.totalMatches > 0 && (
-        <section className="app-surface p-6 sm:p-8 space-y-6 bg-[var(--bg-elevated)]/40">
-          <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-            <div>
-              <h2 className="text-lg font-bold uppercase text-[var(--text)] tracking-tight font-serif">Retrospecto Detalhado</h2>
-              <p className="text-xs text-[var(--text-subtle)] mt-0.5">Indicadores e gols na temporada oficial</p>
-            </div>
-            <span className="text-xs font-black uppercase tracking-wider text-[var(--brand)]">Saldo Geral</span>
-          </div>
+    const winRate = completedMatches.length > 0 ? Math.round((wins / completedMatches.length) * 100) : 0;
+    const avgGoalsScored = completedMatches.length > 0 ? goalsScored / completedMatches.length : 0;
+    const avgGoalsConceded = completedMatches.length > 0 ? goalsConceded / completedMatches.length : 0;
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border border-[var(--badge-success-border)] bg-[var(--badge-success-bg)] p-4 text-center">
-              <p className="text-2xl font-black text-[var(--badge-success-text)]">{record.wins}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--badge-success-text)] mt-1">Vitórias</p>
-            </div>
-            <div className="rounded-xl border border-[var(--badge-warning-border)] bg-[var(--badge-warning-bg)] p-4 text-center">
-              <p className="text-2xl font-black text-[var(--badge-warning-text)]">{record.draws}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--badge-warning-text)] mt-1">Empates</p>
-            </div>
-            <div className="rounded-xl border border-[var(--badge-danger-border)] bg-[var(--badge-danger-bg)] p-4 text-center">
-              <p className="text-2xl font-black text-[var(--badge-danger-text)]">{record.losses}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--badge-danger-text)] mt-1">Derrotas</p>
-            </div>
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)]/20 p-4 text-center">
-              <p className="text-2xl font-black text-[var(--text)]">
-                {record.goalsScored} <span className="text-xs font-semibold text-[var(--text-subtle)]">x</span> {record.goalsConceded}
-              </p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mt-1">Gols Pró : Contra</p>
-            </div>
-          </div>
-        </section>
-      )}
+    const rsvpSummary = { confirmed: 0, declined: 0, tentative: 0, noResponse: 0, list: [] };
+    if (nextMatchData) {
+      const totalPlayers = await prisma.player.count({ where: { teamId, status: "ACTIVE" } });
+      let responded = 0;
+      for (const r of nextMatchData.rsvps) {
+        if (r.status === "CONFIRMED") rsvpSummary.confirmed++;
+        else if (r.status === "DECLINED") rsvpSummary.declined++;
+        else if (r.status === "PENDING") rsvpSummary.tentative++;
+        responded++;
+      }
+      rsvpSummary.noResponse = Math.max(0, totalPlayers - responded);
+    }
 
-      {/* Rankings Section (Abas Animadas Interativas!) */}
-      {rankings && (
-        <section className="app-surface p-6 sm:p-8 space-y-6 bg-[var(--bg-elevated)]/40">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border)] pb-4">
-            <div>
-              <h2 className="text-lg font-bold uppercase text-[var(--text)] tracking-tight font-serif">Desempenho de Atletas</h2>
-              <p className="text-xs text-[var(--text-subtle)] mt-0.5">Estatísticas acumuladas individuais do elenco</p>
-            </div>
+    const scorerPlayerIds = topScorersRaw.map((s) => s.playerId).filter(Boolean) as string[];
+    const scorerPlayers = await prisma.player.findMany({ where: { id: { in: scorerPlayerIds } }, select: { id: true, name: true } });
+    const scorerMap = new Map(scorerPlayers.map((p) => [p.id, p.name]));
+    const topScorers = topScorersRaw.filter((s) => (s._sum.goals ?? 0) > 0).map((s) => ({
+      playerName: scorerMap.get(s.playerId as string) || "Desconhecido",
+      total: s._sum.goals ?? 0,
+    }));
 
-            {/* Tab Controller Buttons */}
-            <div className="flex rounded-lg bg-[var(--bg-elevated)]/80 p-1 border border-[var(--border)]">
-              <button
-                onClick={() => setActiveTab("scorers")}
-                className={`rounded-md px-3.5 py-1.5 text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                  activeTab === "scorers"
-                    ? "bg-[var(--brand)] text-[var(--bg)] shadow-sm"
-                    : "text-[var(--text-muted)] hover:text-[var(--text)]"
-                }`}
-              >
-                ⚽ Artilharia
-              </button>
-              <button
-                onClick={() => setActiveTab("assisters")}
-                className={`rounded-md px-3.5 py-1.5 text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                  activeTab === "assisters"
-                    ? "bg-[var(--brand)] text-[var(--bg)] shadow-sm"
-                    : "text-[var(--text-muted)] hover:text-[var(--text)]"
-                }`}
-              >
-                🅰️ Assistências
-              </button>
-              <button
-                onClick={() => setActiveTab("cards")}
-                className={`rounded-md px-3.5 py-1.5 text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                  activeTab === "cards"
-                    ? "bg-[var(--brand)] text-[var(--bg)] shadow-sm"
-                    : "text-[var(--text-muted)] hover:text-[var(--text)]"
-                }`}
-              >
-                🟨 Cartões
-              </button>
-            </div>
-          </div>
+    const assisterPlayerIds = topAssistersRaw.map((s) => s.playerId).filter(Boolean) as string[];
+    const assisterPlayers = await prisma.player.findMany({ where: { id: { in: assisterPlayerIds } }, select: { id: true, name: true } });
+    const assisterMap = new Map(assisterPlayers.map((p) => [p.id, p.name]));
+    const topAssisters = topAssistersRaw.filter((s) => (s._sum.assists ?? 0) > 0).map((s) => ({
+      playerName: assisterMap.get(s.playerId as string) || "Desconhecido",
+      total: s._sum.assists ?? 0,
+    }));
 
-          {/* Render Tab Contents based on Active Selection */}
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-            {activeTab === "scorers" && (
-              <div className="overflow-x-auto rounded-xl border border-white/5 bg-transparent shadow-inner">
-                <table className="w-full text-left text-sm divide-y divide-white/5">
-                  <thead className="bg-white/[0.02] text-[10px] font-black uppercase tracking-widest text-[#8fa39b]">
-                    <tr>
-                      <th className="px-5 py-3.5">Posição</th>
-                      <th className="px-5 py-3.5">Jogador</th>
-                      <th className="px-5 py-3.5 text-right">Gols Assinalados</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {topScorers.length > 0 ? (
-                      topScorers.map((entry, idx) => (
-                        <tr key={entry.playerId} className="hover:bg-white/[0.01]">
-                          <td className="px-5 py-3.5 font-black text-[#8fa39b]">{idx + 1}</td>
-                          <td className="px-5 py-3.5 font-extrabold text-white">{entry.playerName}</td>
-                          <td className="px-5 py-3.5 text-right font-black text-[#10b981] text-base">{entry.total}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={3} className="px-5 py-8 text-center text-xs text-[#8fa39b] font-medium">Sem dados de artilharia disponíveis.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+    return (
+      <CoachDashboard 
+        team={team}
+        metrics={{ winRate, avgGoalsScored, avgGoalsConceded, pendingEvaluationsCount }}
+        nextMatch={nextMatchData ? { id: nextMatchData.id, date: nextMatchData.date, opponentName: nextMatchData.opponent, venue: nextMatchData.venue, type: nextMatchData.type } : null}
+        rsvpSummary={rsvpSummary}
+        performanceHistory={performanceHistory}
+        topScorers={topScorers}
+        topAssisters={topAssisters}
+      />
+    );
+  }
 
-            {activeTab === "assisters" && (
-              <div className="overflow-x-auto rounded-xl border border-white/5 bg-transparent shadow-inner">
-                <table className="w-full text-left text-sm divide-y divide-white/5">
-                  <thead className="bg-white/[0.02] text-[10px] font-black uppercase tracking-widest text-[#8fa39b]">
-                    <tr>
-                      <th className="px-5 py-3.5">Posição</th>
-                      <th className="px-5 py-3.5">Jogador</th>
-                      <th className="px-5 py-3.5 text-right">Assistências Efetuadas</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {topAssisters.length > 0 ? (
-                      topAssisters.map((entry, idx) => (
-                        <tr key={entry.playerId} className="hover:bg-white/[0.01]">
-                          <td className="px-5 py-3.5 font-black text-[#8fa39b]">{idx + 1}</td>
-                          <td className="px-5 py-3.5 font-extrabold text-white">{entry.playerName}</td>
-                          <td className="px-5 py-3.5 text-right font-black text-[#10b981] text-base">{entry.total}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={3} className="px-5 py-8 text-center text-xs text-[#8fa39b] font-medium">Sem dados de assistências disponíveis.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+  if (role === "PLAYER") {
+    if (!playerId) {
+      return <div>Jogador não associado à conta.</div>;
+    }
 
-            {activeTab === "cards" && (
-              <div className="overflow-x-auto rounded-xl border border-white/5 bg-transparent shadow-inner">
-                <table className="w-full text-left text-sm divide-y divide-white/5">
-                  <thead className="bg-white/[0.02] text-[10px] font-black uppercase tracking-widest text-[#8fa39b]">
-                    <tr>
-                      <th className="px-5 py-3.5">Posição</th>
-                      <th className="px-5 py-3.5">Jogador</th>
-                      <th className="px-5 py-3.5 text-center">Cartões Amarelos 🟨</th>
-                      <th className="px-5 py-3.5 text-center">Cartões Vermelhos 🟥</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5 text-center">
-                    {mostCards.length > 0 ? (
-                      mostCards.map((entry, idx) => (
-                        <tr key={entry.playerId} className="hover:bg-white/[0.01] text-left">
-                          <td className="px-5 py-3.5 font-black text-[#8fa39b]">{idx + 1}</td>
-                          <td className="px-5 py-3.5 font-extrabold text-white">{entry.playerName}</td>
-                          <td className="px-5 py-3.5 text-center font-bold text-white">{entry.yellowCards || 0}</td>
-                          <td className="px-5 py-3.5 text-center font-bold text-white">{entry.redCards || 0}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="px-5 py-8 text-center text-xs text-[#8fa39b] font-medium">Sem dados de cartões e disciplina.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
+    const [statsRaw, rsvps, nextMatchData, recentEvaluations, fines] = await Promise.all([
+      prisma.matchStats.aggregate({
+        where: { playerId },
+        _sum: { goals: true, assists: true }
+      }),
+      prisma.rSVP.findMany({ where: { playerId } }),
+      prisma.match.findFirst({
+        where: { teamId, status: "SCHEDULED", date: { gte: new Date() } },
+        orderBy: { date: "asc" },
+        include: { rsvps: { where: { playerId } } }
+      }),
+      prisma.playerEvaluation.findMany({
+        where: { playerId },
+        orderBy: { date: "desc" },
+        take: 3
+      }),
+      prisma.fine.findMany({
+        where: { playerId, status: "ACTIVE" }
+      })
+    ]);
 
-      {/* Push Notification Toggle widget */}
-      <PushSubscriptionCard />
+    let rsvpRate = 0;
+    if (rsvps.length > 0) {
+      const confirmed = rsvps.filter(r => r.status === "CONFIRMED").length;
+      rsvpRate = Math.round((confirmed / rsvps.length) * 100);
+    }
 
-      {/* Shortcuts grid */}
-      <section className="app-surface p-6 sm:p-8 space-y-6 bg-[var(--bg-elevated)]/40">
-        <div>
-          <h2 className="text-lg font-bold uppercase text-[var(--text)] tracking-tight font-serif">Atalhos Operacionais</h2>
-          <p className="text-xs text-[var(--text-subtle)] mt-0.5">Gerenciamento direto dos módulos do portal</p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {quickActions.map((action) => (
-            <Link
-              key={action.href}
-              href={action.href}
-              className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5 transition-all duration-300 hover:border-[var(--brand)]/40 hover:bg-[var(--brand-soft)]/20 shadow-sm hover:shadow-md"
-            >
-              <div className="flex items-start gap-4">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)] text-xl transition-transform group-hover:scale-110 duration-200">
-                  {action.icon}
-                </span>
-                <div className="space-y-1">
-                  <p className="text-sm font-bold text-[var(--text)] uppercase group-hover:text-[var(--brand)] font-serif transition-colors duration-150 tracking-tight">
-                    {action.title}
-                  </p>
-                  <p className="text-xs text-[var(--text-muted)] leading-relaxed font-semibold">{action.description}</p>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
+    let avgRating = 0;
+    if (recentEvaluations.length > 0) {
+      const sum = recentEvaluations.reduce((acc, curr) => acc + curr.technical + curr.tactical + curr.physical + curr.discipline, 0);
+      avgRating = sum / (recentEvaluations.length * 4);
+    }
+
+    const pendingPaymentsAmount = fines.length * 50; // Stub, adapt to your business logic
+
+    return (
+      <PlayerDashboard 
+        team={team}
+        metrics={{ rsvpRate, goals: statsRaw._sum.goals ?? 0, assists: statsRaw._sum.assists ?? 0, avgRating, pendingPaymentsAmount }}
+        nextMatch={nextMatchData ? { id: nextMatchData.id, date: nextMatchData.date, opponentName: nextMatchData.opponent, venue: nextMatchData.venue } : null}
+        myRsvpStatus={nextMatchData?.rsvps[0]?.status || null}
+        recentEvaluations={recentEvaluations}
+        pendingFinesAndFees={fines.map(f => ({ id: f.id, description: f.description, amount: 50, dueDate: f.date }))}
+      />
+    );
+  }
+
+  if (role === "MATERIAL_DIRECTOR") {
+    const [equipments, matchEquipments, pendingOrdersRaw] = await Promise.all([
+      prisma.equipment.findMany({ where: { teamId } }),
+      prisma.matchEquipment.findMany({
+        where: { match: { teamId } },
+        include: { match: { select: { date: true, opponent: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 10
+      }),
+      prisma.equipmentOrder.findMany({
+        where: { teamId, status: "PENDING" },
+        orderBy: { createdAt: "desc" },
+        take: 10
+      })
+    ]);
+
+    const totalItems = equipments.reduce((acc, eq) => acc + eq.totalQty, 0);
+    const lowStockItems = equipments.filter(eq => eq.availableQty < eq.minQty).map(eq => ({
+      id: eq.id,
+      name: eq.name,
+      availableQty: eq.availableQty,
+      minQty: eq.minQty
+    }));
+    
+    const activeLoansCount = matchEquipments.filter(mq => !mq.returned).length;
+    
+    const recentMovements = matchEquipments.map(mq => ({
+      id: mq.id,
+      playerName: `Partida vs ${mq.match.opponent}`,
+      equipmentName: mq.name,
+      date: mq.match.date,
+      status: (mq.returned ? "RETURNED" : "BORROWED") as "BORROWED" | "RETURNED"
+    }));
+
+    return (
+      <MaterialDirectorDashboard 
+        team={team}
+        metrics={{ totalItems, lowStockCount: lowStockItems.length, activeLoansCount, pendingOrdersCount: pendingOrdersRaw.length }}
+        lowStockItems={lowStockItems}
+        recentMovements={recentMovements}
+        pendingOrders={pendingOrdersRaw.map(po => ({
+          id: po.id,
+          equipmentName: po.name,
+          requestedBy: "Equipe",
+          date: po.createdAt
+        }))}
+      />
+    );
+  }
+
+  // Fallback to overview if role doesn't match above or isn't specific
+  return <div>Role not recognized or not implemented for dashboard.</div>;
 }

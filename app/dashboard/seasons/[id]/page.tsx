@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { formatDateOnly, formatDate } from "@/lib/utils";
 
 type SeasonType = "LEAGUE" | "CUP" | "TOURNAMENT";
 type SeasonStatus = "ACTIVE" | "FINISHED";
@@ -105,11 +106,9 @@ export default function SeasonDetailPage() {
     );
   }
 
-  const startFmt = new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(
-    new Date(season.startDate)
-  );
+  const startFmt = formatDateOnly(season.startDate);
   const endFmt = season.endDate
-    ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(season.endDate))
+    ? formatDateOnly(season.endDate)
     : "Em andamento";
 
   return (
@@ -246,9 +245,7 @@ export default function SeasonDetailPage() {
           ) : (
             <div className="space-y-2">
               {season.matches.map((m) => {
-                const dateFmt = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(
-                  new Date(m.date)
-                );
+                const dateFmt = formatDate(m.date);
                 const resultText =
                   m.homeScore !== null && m.awayScore !== null
                     ? m.isHome

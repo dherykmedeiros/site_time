@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth";
 import { rsvpResponseSchema } from "@/lib/validations/match";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
+import { trackOperationalEvent } from "@/lib/telemetry";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -48,7 +49,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   // Check player is active
   const player = await prisma.player.findUnique({
     where: { id: user.playerId },
-    select: { id: true, status: true, teamId: true, position: true },
+    select: { id: true, status: true, teamId: true, position: true, name: true },
   });
 
   if (!player || player.status !== "ACTIVE") {
@@ -83,6 +84,29 @@ export async function POST(request: Request, { params }: RouteParams) {
       { error: "Partida não encontrada", code: "NOT_FOUND" },
       { status: 404 }
     );
+  }
+
+  // Check if player is summoned for championship matches
+  if (match.type === "CHAMPIONSHIP") {
+    const existingRsvp = await prisma.rSVP.findUnique({
+      where: {
+        playerId_matchId: {
+          playerId: player.id,
+          matchId,
+        },
+      },
+      select: { summoned: true },
+    });
+
+    if (!existingRsvp || !existingRsvp.summoned) {
+      return NextResponse.json(
+        {
+          error: "Apenas jogadores convocados para este jogo podem registrar presença.",
+          code: "NOT_SUMMONED",
+        },
+        { status: 403 }
+      );
+    }
   }
 
   // Check match hasn't passed (FR-013)
@@ -125,6 +149,27 @@ export async function POST(request: Request, { params }: RouteParams) {
 
   const { status } = parsed.data;
 
+  // Check if player has an active suspension for this match
+  const activeSuspension = await prisma.fine.findFirst({
+    where: {
+      playerId: player.id,
+      severity: "SUSPENSION",
+      status: "ACTIVE",
+      suspendedMatchId: matchId,
+    },
+    select: { id: true, description: true }
+  });
+
+  if (activeSuspension && status === "CONFIRMED") {
+    return NextResponse.json(
+      {
+        error: `Você está suspenso para esta partida: ${activeSuspension.description}`,
+        code: "PLAYER_SUSPENDED",
+      },
+      { status: 403 }
+    );
+  }
+
   if (status === "CONFIRMED") {
     const positionLimit = match.positionLimits.find((l) => l.position === player.position);
 
@@ -162,6 +207,17 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
   }
 
+  // Get existing RSVP to record status transition
+  const existingRsvp = await prisma.rSVP.findUnique({
+    where: {
+      playerId_matchId: {
+        playerId: player.id,
+        matchId,
+      },
+    },
+    select: { id: true, status: true },
+  });
+
   // Upsert the RSVP for this player+match
   const rsvp = await prisma.rSVP.upsert({
     where: {
@@ -181,6 +237,28 @@ export async function POST(request: Request, { params }: RouteParams) {
       respondedAt: new Date(),
     },
   });
+
+  // Log status change history
+  if (!existingRsvp || existingRsvp.status !== status) {
+    await prisma.rSVPStatusLog.create({
+      data: {
+        rsvpId: rsvp.id,
+        playerId: player.id,
+        matchId,
+        oldStatus: existingRsvp?.status ?? null,
+        newStatus: status,
+      },
+    });
+
+    trackOperationalEvent("player_rsvp_status_changed", {
+      rsvpId: rsvp.id,
+      playerId: player.id,
+      playerName: player.name,
+      matchId,
+      oldStatus: existingRsvp?.status ?? null,
+      newStatus: status,
+    });
+  }
 
   return NextResponse.json({
     playerId: rsvp.playerId,

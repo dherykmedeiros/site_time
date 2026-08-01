@@ -16,10 +16,14 @@ export async function GET(request: Request) {
   const teamId = session.user.teamId;
   const { searchParams } = new URL(request.url);
   const seasonId = searchParams.get("seasonId") || undefined;
+  const matchType = searchParams.get("matchType") || searchParams.get("type") || undefined;
 
   // Build the match filter
   const matchWhere: any = { teamId };
   if (seasonId) matchWhere.seasonId = seasonId;
+  if (matchType && (matchType === "FRIENDLY" || matchType === "CHAMPIONSHIP")) {
+    matchWhere.type = matchType;
+  }
 
   // Fetch all ratings for this team/season
   const ratings = await prisma.matchPlayerRating.findMany({

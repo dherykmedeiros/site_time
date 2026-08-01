@@ -1,13 +1,14 @@
-import { ReactNode } from "react";
+import { ReactNode, HTMLAttributes } from "react";
 
-interface CardProps {
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   className?: string;
 }
 
-export function Card({ children, className = "" }: CardProps) {
+export function Card({ children, className = "", ...props }: CardProps) {
+  const hasOverflowOverride = className.includes("overflow-");
   return (
-    <div className={`app-surface overflow-hidden ${className}`}>
+    <div className={`app-surface ${hasOverflowOverride ? "" : "overflow-hidden"} ${className}`} {...props}>
       {children}
     </div>
   );
@@ -23,6 +24,19 @@ export function CardHeader({ children, className = "" }: CardHeaderProps) {
     <div className={`border-b border-[var(--border)] px-6 py-4 ${className}`}>
       {children}
     </div>
+  );
+}
+
+interface CardTitleProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export function CardTitle({ children, className = "" }: CardTitleProps) {
+  return (
+    <h3 className={`text-lg font-semibold text-[var(--text)] tracking-tight ${className}`}>
+      {children}
+    </h3>
   );
 }
 

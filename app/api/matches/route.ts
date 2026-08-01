@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireAuth } from "@/lib/auth";
-import { generateUUID } from "@/lib/utils";
+import { generateUUID, resolveGoogleMapsUrl, extractCoordsFromGoogleMaps } from "@/lib/utils";
 import { createMatchSchema, matchListQuerySchema } from "@/lib/validations/match";
 import { notifyScheduledMatch } from "@/lib/push";
 import { rateLimitMutation } from "@/lib/rate-limit";
@@ -67,13 +67,16 @@ export const GET = withErrorHandler(async (request: Request) => {
       positionLimits: {
         select: { position: true, maxPlayers: true },
       },
+      guestPlayers: {
+        select: { id: true },
+      },
     },
     orderBy: { date: "asc" },
     take: 500,
   });
 
   const result = matches.map((match) => {
-    const confirmed = match.rsvps.filter((r) => r.status === "CONFIRMED").length;
+    const confirmed = match.rsvps.filter((r) => r.status === "CONFIRMED").length + match.guestPlayers.length;
     const declined = match.rsvps.filter((r) => r.status === "DECLINED").length;
     const pending = match.rsvps.filter((r) => r.status === "PENDING").length;
 
@@ -93,6 +96,9 @@ export const GET = withErrorHandler(async (request: Request) => {
       rsvpSummary: { confirmed, declined, pending },
       hasCharge: match.hasCharge,
       chargeAmount: match.chargeAmount ? Number(match.chargeAmount) : null,
+      pixKey: match.pixKey,
+      latitude: match.latitude,
+      longitude: match.longitude,
       createdAt: match.createdAt.toISOString(),
     };
   });
@@ -155,8 +161,24 @@ export const POST = withErrorHandler(async (request: Request) => {
     status,
     homeScore,
     awayScore,
+    pixKey,
+    latitude,
+    longitude,
+    mapsUrl,
   } = parsed.data;
   const matchDate = new Date(date);
+
+  let finalLat = latitude ?? null;
+  let finalLon = longitude ?? null;
+
+  if (mapsUrl) {
+    const resolvedUrl = await resolveGoogleMapsUrl(mapsUrl);
+    const coords = extractCoordsFromGoogleMaps(resolvedUrl);
+    if (coords) {
+      finalLat = coords.latitude;
+      finalLon = coords.longitude;
+    }
+  }
 
   const uniquePositions = new Set(positionLimits.map((l) => l.position));
   if (uniquePositions.size !== positionLimits.length) {
@@ -209,6 +231,9 @@ export const POST = withErrorHandler(async (request: Request) => {
         status: calculatedStatus,
         homeScore: homeScore !== undefined ? homeScore : null,
         awayScore: awayScore !== undefined ? awayScore : null,
+        pixKey: pixKey || null,
+        latitude: finalLat,
+        longitude: finalLon,
         ...(seasonId && { seasonId }),
       },
     });
@@ -226,6 +251,7 @@ export const POST = withErrorHandler(async (request: Request) => {
           playerId: player.id,
           matchId: newMatch.id,
           status: "PENDING" as const,
+          summoned: type === "FRIENDLY",
         })),
       });
     }
@@ -264,6 +290,9 @@ export const POST = withErrorHandler(async (request: Request) => {
       status: match.status,
       shareToken: match.shareToken,
       shareUrl,
+      pixKey: match.pixKey,
+      latitude: match.latitude,
+      longitude: match.longitude,
       createdAt: match.createdAt.toISOString(),
     },
     { status: 201 }

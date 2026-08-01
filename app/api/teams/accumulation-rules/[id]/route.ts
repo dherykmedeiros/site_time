@@ -8,7 +8,7 @@ import { withErrorHandler } from "@/lib/api-handler";
 // DELETE /api/teams/accumulation-rules/[id] — Delete an accumulation rule (ADMIN/COACH)
 export const DELETE = withErrorHandler(async (
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) => {
   const { session, error } = await requireCoachOrAdmin();
   if (error) return error;
@@ -18,7 +18,7 @@ export const DELETE = withErrorHandler(async (
     return NextResponse.json({ error: "Usuário não possui time vinculado" }, { status: 403 });
   }
 
-  const { id } = params;
+  const { id } = await params;
 
   const ip = extractClientIp(request);
   const rl = await rateLimitMutation(ip);

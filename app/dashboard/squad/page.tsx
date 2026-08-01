@@ -11,6 +11,8 @@ import { PlayerSelfProfileForm } from "@/components/forms/PlayerSelfProfileForm"
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 
+import { playerPositionLabels } from "@/lib/player-positions";
+
 const PlayerForm = dynamic(
   () => import("@/components/forms/PlayerForm").then((m) => ({ default: m.PlayerForm })),
   { loading: () => <div className="p-4 text-center text-gray-500">Carregando formulário...</div> }
@@ -20,6 +22,7 @@ interface Player {
   id: string;
   name: string;
   position: string;
+  secondaryPosition?: string | null;
   shirtNumber: number;
   photoUrl: string | null;
   status: "ACTIVE" | "INACTIVE";
@@ -33,17 +36,7 @@ interface ProfileTarget {
   name: string;
 }
 
-const positionLabels: Record<string, string> = {
-  GOALKEEPER: "Goleiro",
-  DEFENDER: "Zagueiro",
-  LEFT_BACK: "Lateral esquerdo",
-  RIGHT_BACK: "Lateral direito",
-  MIDFIELDER: "Meio-campista",
-  DEFENSIVE_MIDFIELDER: "Volante",
-  FORWARD: "Atacante",
-  LEFT_WINGER: "Ponta esquerda",
-  RIGHT_WINGER: "Ponta direita",
-};
+const positionLabels: Record<string, string> = playerPositionLabels;
 
 export default function SquadPage() {
   const { data: session } = useSession();
@@ -65,11 +58,12 @@ export default function SquadPage() {
   const [search, setSearch] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [confirmAction, setConfirmAction] = useState<"delete" | "promote" | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"delete" | "promote" | "resetPassword" | null>(null);
   const [actionPlayer, setActionPlayer] = useState<Player | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<"ADMIN" | "COACH" | "MATERIAL_DIRECTOR" | "PLAYER">("PLAYER");
   const [monthlyFeesEnabled, setMonthlyFeesEnabled] = useState(true);
+  const [openMenuPlayerId, setOpenMenuPlayerId] = useState<string | null>(null);
 
   const roleLabels: Record<string, { label: string; variant: "success" | "warning" | "danger" | "info" | "default" }> = {
     ADMIN: { label: "Admin", variant: "danger" },
@@ -164,6 +158,19 @@ export default function SquadPage() {
     }
   }
 
+  async function handleResetPassword(player: Player) {
+    const res = await fetch(`/api/players/${player.id}/reset-password`, {
+      method: "POST",
+    });
+
+    if (res.ok) {
+      setFeedback(`Senha do jogador ${player.name} foi resetada para a senha padrão "123456" com sucesso.`);
+    } else {
+      const data = await res.json().catch(() => ({}));
+      setActionError(data.error || "Erro ao resetar senha");
+    }
+  }
+
   async function handleConfirmAction() {
     if (!actionPlayer || !confirmAction) return;
 
@@ -172,6 +179,8 @@ export default function SquadPage() {
 
     if (confirmAction === "delete") {
       await handleDelete(actionPlayer);
+    } else if (confirmAction === "resetPassword") {
+      await handleResetPassword(actionPlayer);
     } else {
       await handlePromote(actionPlayer, selectedRole);
     }
@@ -310,7 +319,12 @@ export default function SquadPage() {
       ) : (
         <div className="space-y-3">
           {filteredPlayers.map((player) => (
-            <Card key={player.id} className="rounded-[18px]">
+            <Card
+              key={player.id}
+              className={`rounded-[18px] overflow-visible relative transition-all ${
+                openMenuPlayerId === player.id ? "z-30 ring-1 ring-white/10" : "z-10"
+              }`}
+            >
               <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-4">
                   {player.photoUrl ? (
@@ -330,6 +344,11 @@ export default function SquadPage() {
                     </p>
                     <p className="text-sm text-[var(--text-muted)]">
                       {positionLabels[player.position] || player.position}
+                      {player.secondaryPosition && (
+                        <span className="ml-1 text-xs opacity-75 font-medium">
+                          (Sec: {positionLabels[player.secondaryPosition] || player.secondaryPosition})
+                        </span>
+                      )}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-2 sm:hidden">
                       <Badge variant={player.status === "ACTIVE" ? "success" : "warning"}>
@@ -360,82 +379,254 @@ export default function SquadPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {player.id === selfPlayerId && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setProfileTarget({ id: player.id, name: player.name })}
+                {(() => {
+                  const isSelf = player.id === selfPlayerId;
+
+                  const mainActionButtons: React.ReactNode[] = [];
+
+                  if (isSelf) {
+                    mainActionButtons.push(
+                      <Button
+                        key="my-profile"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setProfileTarget({ id: player.id, name: player.name })}
+                      >
+                        Meu perfil
+                      </Button>
+                    );
+                    mainActionButtons.push(
+                      <Link
+                        key="my-feedback"
+                        href="/dashboard/evaluations"
+                        className="inline-flex items-center justify-center rounded-lg border border-[rgba(59,130,246,0.3)] bg-[rgba(59,130,246,0.08)] px-3 py-1.5 text-xs font-bold text-blue-400 transition hover:bg-[rgba(59,130,246,0.15)] hover:border-[rgba(59,130,246,0.5)]"
+                      >
+                        📈 Meu Feedback
+                      </Link>
+                    );
+                  }
+
+                  mainActionButtons.push(
+                    <Link
+                      key="view-profile"
+                      href={`/dashboard/squad/${player.id}`}
+                      className="inline-flex items-center justify-center rounded-lg border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] px-3 py-1.5 text-xs font-bold text-[#34d399] transition hover:bg-[rgba(16,185,129,0.15)] hover:border-[rgba(16,185,129,0.5)]"
                     >
-                      Meu perfil
-                    </Button>
-                  )}
-                  {/* Link to full individual profile page */}
-                  <Link
-                    href={`/dashboard/squad/${player.id}`}
-                    className="inline-flex items-center justify-center rounded-lg border border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.08)] px-3 py-1.5 text-xs font-bold text-[#34d399] transition hover:bg-[rgba(16,185,129,0.15)] hover:border-[rgba(16,185,129,0.5)]"
-                  >
-                    🏅 Ver Perfil
-                  </Link>
-                  {isCoachOrAdmin && player.id !== selfPlayerId && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setProfileTarget({ id: player.id, name: player.name })}
-                    >
-                      Perfil
-                    </Button>
-                  )}
-                  {isCoachOrAdmin && !player.hasAccount && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
+                      🏅 Ver Perfil
+                    </Link>
+                  );
+
+                  interface SecondaryAction {
+                    key: string;
+                    label: string;
+                    icon: string;
+                    danger?: boolean;
+                    className?: string;
+                    onClick: () => void;
+                    inlineRender: React.ReactNode;
+                  }
+
+                  const secActions: SecondaryAction[] = [];
+
+                  if (isCoachOrAdmin && !isSelf) {
+                    secActions.push({
+                      key: "profile-modal",
+                      label: "Perfil",
+                      icon: "👤",
+                      onClick: () => setProfileTarget({ id: player.id, name: player.name }),
+                      inlineRender: (
+                        <Button
+                          key="profile-modal"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setProfileTarget({ id: player.id, name: player.name })}
+                        >
+                          Perfil
+                        </Button>
+                      ),
+                    });
+                  }
+
+                  if (isCoachOrAdmin && !player.hasAccount) {
+                    secActions.push({
+                      key: "invite",
+                      label: "Convidar",
+                      icon: "✉️",
+                      onClick: () => {
                         setInviteModal(player);
                         setInviteEmail("");
                         setInviteMsg("");
-                      }}
-                    >
-                      Convidar
-                    </Button>
-                  )}
-                  {isAdmin && player.hasAccount && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
+                      },
+                      inlineRender: (
+                        <Button
+                          key="invite"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setInviteModal(player);
+                            setInviteEmail("");
+                            setInviteMsg("");
+                          }}
+                        >
+                          Convidar
+                        </Button>
+                      ),
+                    });
+                  }
+
+                  if (isAdmin && player.hasAccount) {
+                    secActions.push({
+                      key: "promote",
+                      label: "Permissão",
+                      icon: "🛡️",
+                      onClick: () => {
                         setActionPlayer(player);
                         setConfirmAction("promote");
                         setSelectedRole(player.role || "PLAYER");
                         setActionError(null);
-                      }}
-                    >
-                      Permissão
-                    </Button>
-                  )}
-                  {isCoachOrAdmin && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setEditingPlayer(player)}
-                    >
-                      Editar
-                    </Button>
-                  )}
-                  {isCoachOrAdmin && player.status === "ACTIVE" && (
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => {
+                      },
+                      inlineRender: (
+                        <Button
+                          key="promote"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setActionPlayer(player);
+                            setConfirmAction("promote");
+                            setSelectedRole(player.role || "PLAYER");
+                            setActionError(null);
+                          }}
+                        >
+                          Permissão
+                        </Button>
+                      ),
+                    });
+
+                    secActions.push({
+                      key: "resetPassword",
+                      label: "Resetar Senha",
+                      icon: "🔑",
+                      className: "text-amber-400 hover:text-amber-300",
+                      onClick: () => {
+                        setActionPlayer(player);
+                        setConfirmAction("resetPassword");
+                        setActionError(null);
+                      },
+                      inlineRender: (
+                        <Button
+                          key="resetPassword"
+                          variant="ghost"
+                          size="sm"
+                          className="text-amber-500 hover:text-amber-400"
+                          onClick={() => {
+                            setActionPlayer(player);
+                            setConfirmAction("resetPassword");
+                            setActionError(null);
+                          }}
+                        >
+                          Resetar Senha
+                        </Button>
+                      ),
+                    });
+                  }
+
+                  if (isCoachOrAdmin) {
+                    secActions.push({
+                      key: "edit",
+                      label: "Editar",
+                      icon: "✏️",
+                      onClick: () => setEditingPlayer(player),
+                      inlineRender: (
+                        <Button
+                          key="edit"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingPlayer(player)}
+                        >
+                          Editar
+                        </Button>
+                      ),
+                    });
+                  }
+
+                  if (isCoachOrAdmin && player.status === "ACTIVE") {
+                    secActions.push({
+                      key: "delete",
+                      label: "Remover",
+                      icon: "🗑️",
+                      danger: true,
+                      onClick: () => {
                         setActionPlayer(player);
                         setConfirmAction("delete");
                         setActionError(null);
-                      }}
-                    >
-                      Remover
-                    </Button>
-                  )}
-                </div>
+                      },
+                      inlineRender: (
+                        <Button
+                          key="delete"
+                          variant="danger"
+                          size="sm"
+                          onClick={() => {
+                            setActionPlayer(player);
+                            setConfirmAction("delete");
+                            setActionError(null);
+                          }}
+                        >
+                          Remover
+                        </Button>
+                      ),
+                    });
+                  }
+
+                  const totalActions = mainActionButtons.length + secActions.length;
+                  const useDropdown = totalActions > 4;
+
+                  return (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {mainActionButtons}
+                      {!useDropdown && secActions.map((a) => a.inlineRender)}
+                      {useDropdown && secActions.length > 0 && (
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setOpenMenuPlayerId(openMenuPlayerId === player.id ? null : player.id)}
+                            className="inline-flex items-center justify-center rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-bold text-white transition hover:bg-white/10 hover:border-white/20 active:scale-95 cursor-pointer"
+                            title="Mais opções"
+                          >
+                            <span className="text-base leading-none">⋮</span>
+                          </button>
+                          {openMenuPlayerId === player.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-40"
+                                onClick={() => setOpenMenuPlayerId(null)}
+                              />
+                              <div className="absolute right-0 top-full mt-1.5 z-50 w-48 rounded-xl border border-emerald-500/20 bg-[#0d221c] p-1.5 shadow-[0_10px_38px_rgba(0,0,0,0.8)] backdrop-blur-xl space-y-0.5 ring-1 ring-white/10">
+                                {secActions.map((act) => (
+                                  <button
+                                    key={act.key}
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenMenuPlayerId(null);
+                                      act.onClick();
+                                    }}
+                                    className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition text-left cursor-pointer ${
+                                      act.danger
+                                        ? "text-red-400 hover:bg-red-500/10"
+                                        : act.className || "text-white/90 hover:bg-white/10 hover:text-white"
+                                    }`}
+                                  >
+                                    <span>{act.icon}</span>
+                                    <span>{act.label}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </Card>
           ))}
@@ -469,6 +660,7 @@ export default function SquadPage() {
               id: editingPlayer.id,
               name: editingPlayer.name,
               position: editingPlayer.position,
+              secondaryPosition: editingPlayer.secondaryPosition,
               shirtNumber: editingPlayer.shirtNumber,
               status: editingPlayer.status,
             }}
@@ -537,18 +729,22 @@ export default function SquadPage() {
       </Modal>
 
       <Modal
-        open={((confirmAction === "promote" ? isAdmin : isCoachOrAdmin)) && !!confirmAction && !!actionPlayer}
+        open={((confirmAction === "promote" ? isAdmin : confirmAction === "resetPassword" ? isAdmin : isCoachOrAdmin)) && !!confirmAction && !!actionPlayer}
         onClose={() => {
           if (actionLoading) return;
           setConfirmAction(null);
           setActionPlayer(null);
         }}
-        title={confirmAction === "delete" ? "Remover jogador" : "Alterar Nível de Autoridade"}
+        title={confirmAction === "delete" ? "Remover jogador" : confirmAction === "resetPassword" ? "Resetar Senha" : "Alterar Nível de Autoridade"}
       >
         <div className="space-y-4">
           {confirmAction === "delete" ? (
             <p className="text-sm text-gray-400">
               Remover {actionPlayer?.name} do elenco? O jogador será marcado como inativo.
+            </p>
+          ) : confirmAction === "resetPassword" ? (
+            <p className="text-sm text-gray-300">
+              Tem certeza que deseja resetar a senha de <strong>{actionPlayer?.name}</strong>? A nova senha dele será definida para a senha padrão <strong>123456</strong> e ele precisará alterá-la no próximo acesso.
             </p>
           ) : (
             <div className="space-y-4">

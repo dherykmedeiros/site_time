@@ -6,6 +6,8 @@ import { updateMatchSchema } from "@/lib/validations/match";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
 import { withErrorHandler } from "@/lib/api-handler";
+import { resolveGoogleMapsUrl, extractCoordsFromGoogleMaps } from "@/lib/utils";
+
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -50,6 +52,7 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
       },
       team: { select: { slug: true } },
       season: { select: { id: true, name: true, type: true, status: true } },
+      guestPlayers: true,
     },
   });
 
@@ -161,6 +164,7 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
           },
           team: { select: { slug: true } },
           season: { select: { id: true, name: true, type: true, status: true } },
+          guestPlayers: true,
         },
       });
 
@@ -170,46 +174,26 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
     }
   }
 
-  const canSubmitPostGame =
-    finalMatch.date < new Date() && finalMatch.status === "SCHEDULED";
+  let userAttendance = null;
+  if (session?.user?.playerId) {
+    const att = await prisma.matchAttendance.findUnique({
+      where: {
+        matchId_playerId: {
+          matchId: id,
+          playerId: session.user.playerId,
+        },
+      },
+      select: { present: true, checkedInAt: true },
+    });
+    if (att) {
+      userAttendance = {
+        present: att.present,
+        checkedInAt: att.checkedInAt?.toISOString() ?? null,
+      };
+    }
+  }
 
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-  const shareUrl = `${baseUrl}/matches/${finalMatch.id}?t=${finalMatch.shareToken}`;
-
-  return NextResponse.json({
-    id: finalMatch.id,
-    date: finalMatch.date.toISOString(),
-    venue: finalMatch.venue,
-    opponent: finalMatch.opponent,
-    isHome: finalMatch.isHome,
-    opponentBadgeUrl: finalMatch.opponentBadgeUrl,
-    type: finalMatch.type,
-    homeScore: finalMatch.homeScore,
-    awayScore: finalMatch.awayScore,
-    status: finalMatch.status,
-    season: finalMatch.season,
-    positionLimits: finalMatch.positionLimits,
-    shareToken: finalMatch.shareToken,
-    shareUrl,
-    rsvps: finalMatch.rsvps.map((rsvp) => ({
-      playerId: rsvp.playerId,
-      playerName: rsvp.player.name,
-      status: rsvp.status,
-      respondedAt: rsvp.respondedAt?.toISOString() ?? null,
-    })),
-    stats: finalMatch.matchStats.map((stat) => ({
-      playerId: stat.playerId || stat.guestPlayerId,
-      guestPlayerId: stat.guestPlayerId,
-      playerName: stat.player?.name ?? stat.guestPlayer?.name ?? "Convidado",
-      goals: stat.goals,
-      assists: stat.assists,
-      yellowCards: stat.yellowCards,
-      redCards: stat.redCards,
-    })),
-    canSubmitPostGame,
-    createdAt: finalMatch.createdAt.toISOString(),
-    updatedAt: finalMatch.updatedAt.toISOString(),
-  });
+  return await buildMatchDetailResponse(finalMatch, userAttendance, session.user.playerId);
 });
 
 // PATCH /api/matches/:id - Update match (ADMIN only)
@@ -344,10 +328,11 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
         },
         team: { select: { slug: true } },
         season: { select: { id: true, name: true, type: true, status: true } },
+        guestPlayers: true,
       },
     });
 
-    return buildMatchDetailResponse(updated);
+    return await buildMatchDetailResponse(updated, null, session.user.playerId);
   }
 
   // Handle score submission (triggers COMPLETED)
@@ -395,10 +380,11 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
         },
         team: { select: { slug: true } },
         season: { select: { id: true, name: true, type: true, status: true } },
+        guestPlayers: true,
       },
     });
 
-    return buildMatchDetailResponse(updated);
+    return await buildMatchDetailResponse(updated, null, session.user.playerId);
   }
 
   // Basic field updates
@@ -413,6 +399,24 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
   if (data.homeScore !== undefined) updateData.homeScore = data.homeScore;
   if (data.awayScore !== undefined) updateData.awayScore = data.awayScore;
   if (data.status) updateData.status = data.status;
+  if (data.pixKey !== undefined) updateData.pixKey = data.pixKey;
+  
+  if (data.mapsUrl !== undefined) {
+    if (data.mapsUrl === null || data.mapsUrl === "") {
+      updateData.latitude = null;
+      updateData.longitude = null;
+    } else {
+      const resolvedUrl = await resolveGoogleMapsUrl(data.mapsUrl);
+      const coords = extractCoordsFromGoogleMaps(resolvedUrl);
+      if (coords) {
+        updateData.latitude = coords.latitude;
+        updateData.longitude = coords.longitude;
+      }
+    }
+  } else {
+    if (data.latitude !== undefined) updateData.latitude = data.latitude;
+    if (data.longitude !== undefined) updateData.longitude = data.longitude;
+  }
 
   const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     if (data.positionLimits) {
@@ -451,11 +455,12 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
         },
         team: { select: { slug: true } },
         season: { select: { id: true, name: true, type: true, status: true } },
+        guestPlayers: true,
       },
     });
   });
 
-  return buildMatchDetailResponse(updated);
+  return await buildMatchDetailResponse(updated, null, session.user.playerId);
 });
 
 // DELETE /api/matches/:id - Delete match (ADMIN only)
@@ -511,7 +516,7 @@ export const DELETE = withErrorHandler(async (request: Request, { params }: Rout
 });
 
 // Helper to build match detail response
-function buildMatchDetailResponse(
+async function buildMatchDetailResponse(
   match: {
     id: string;
     date: Date;
@@ -526,14 +531,25 @@ function buildMatchDetailResponse(
     season: { id: string; name: string; type: string; status: string } | null;
     positionLimits: Array<{ position: string; maxPlayers: number }>;
     shareToken: string;
+    hasCharge: boolean;
+    chargeAmount: Prisma.Decimal | null | number;
+    pixKey: string | null;
+    latitude: number | null;
+    longitude: number | null;
     createdAt: Date;
     updatedAt: Date;
     team: { slug: string };
+    guestPlayers?: Array<{
+      id: string;
+      name: string;
+      createdAt: Date;
+    }>;
     rsvps: Array<{
       playerId: string;
       player: { name: string };
       status: string;
       respondedAt: Date | null;
+      summoned: boolean;
     }>;
     matchStats: Array<{
       playerId: string | null;
@@ -545,12 +561,32 @@ function buildMatchDetailResponse(
       yellowCards: number;
       redCards: number;
     }>;
-  }
+  },
+  userAttendance?: { present: boolean; checkedInAt: string | null } | null,
+  playerId?: string | null
 ) {
   const canSubmitPostGame =
     match.date < new Date() && match.status === "SCHEDULED";
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
   const shareUrl = `${baseUrl}/matches/${match.id}?t=${match.shareToken}`;
+
+  // Fetch suspensions for this match
+  const matchSuspensions = await prisma.fine.findMany({
+    where: {
+      suspendedMatchId: match.id,
+      severity: "SUSPENSION",
+      status: "ACTIVE",
+    },
+    select: {
+      playerId: true,
+      description: true,
+    },
+  });
+
+  const suspendedPlayerIds = new Set(matchSuspensions.map((s) => s.playerId));
+  const playerSuspension = playerId
+    ? matchSuspensions.find((s) => s.playerId === playerId)
+    : null;
 
   return NextResponse.json({
     id: match.id,
@@ -567,12 +603,31 @@ function buildMatchDetailResponse(
     positionLimits: match.positionLimits,
     shareToken: match.shareToken,
     shareUrl,
-    rsvps: match.rsvps.map((rsvp) => ({
-      playerId: rsvp.playerId,
-      playerName: rsvp.player.name,
-      status: rsvp.status,
-      respondedAt: rsvp.respondedAt?.toISOString() ?? null,
-    })),
+    hasCharge: match.hasCharge,
+    chargeAmount: match.chargeAmount ? Number(match.chargeAmount) : null,
+    pixKey: match.pixKey,
+    isPlayerSuspended: !!playerSuspension,
+    suspensionReason: playerSuspension?.description || null,
+    rsvps: [
+      ...match.rsvps.map((rsvp) => ({
+        playerId: rsvp.playerId,
+        playerName: rsvp.player.name,
+        status: rsvp.status,
+        respondedAt: rsvp.respondedAt?.toISOString() ?? null,
+        summoned: rsvp.summoned,
+        isSuspended: suspendedPlayerIds.has(rsvp.playerId),
+      })),
+      ...(match.guestPlayers || []).map((guest) => ({
+        playerId: guest.id,
+        playerName: `${guest.name} (Convidado)`,
+        status: "CONFIRMED",
+        respondedAt: guest.createdAt.toISOString(),
+        summoned: true,
+        isGuest: true,
+        guestPlayerId: guest.id,
+        isSuspended: false,
+      })),
+    ],
     stats: match.matchStats.map((stat) => ({
       playerId: stat.playerId || stat.guestPlayerId,
       guestPlayerId: stat.guestPlayerId,
@@ -583,6 +638,9 @@ function buildMatchDetailResponse(
       redCards: stat.redCards,
     })),
     canSubmitPostGame,
+    latitude: match.latitude,
+    longitude: match.longitude,
+    userAttendance: userAttendance ?? null,
     createdAt: match.createdAt.toISOString(),
     updatedAt: match.updatedAt.toISOString(),
   });
