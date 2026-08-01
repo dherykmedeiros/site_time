@@ -42,3 +42,5 @@ public/uploads/*
 *.tmp
 
 /app/generated/prisma
+.codex/
+get-shit-done/

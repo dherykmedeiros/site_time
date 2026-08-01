@@ -102,7 +102,7 @@ export const GET = withErrorHandler(async (request: Request) => {
   const playerMap = new Map(players.map((p) => [p.id, p.name]));
 
   const leaderboardData = ratingsAgg.map((r) => ({
-    name: playerMap.get(r.ratedId) || "Desconhecido",
+    name: (r.ratedId ? playerMap.get(r.ratedId) : undefined) || "Desconhecido",
     Nota: Number((r._avg.stars ?? 0).toFixed(2)),
   }));
 
