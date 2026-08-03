@@ -14,7 +14,7 @@ import {
   MessageSquare, Megaphone, Vote, Image as ImageIcon,
   Wallet, DollarSign, CreditCard, Gavel,
   Package, Shirt,
-  Settings, Handshake, FileBarChart, BookOpen, Cog,
+  Settings, Handshake, FileBarChart, FileText, BookOpen, Cog,
   Search, ChevronRight, Menu, X, Plus, LogOut
 } from "lucide-react";
 
