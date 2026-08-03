@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { PwaRegister } from "./PwaRegister";
+import { PwaInstallPrompt } from "./PwaInstallPrompt";
+import { OfflineIndicator } from "./OfflineIndicator";
 
 export function PwaInit() {
-  useEffect(() => {
-    if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
-      return;
-    }
-
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
-  }, []);
-
-  return null;
+  return (
+    <>
+      <PwaRegister />
+      <PwaInstallPrompt />
+      <OfflineIndicator />
+    </>
+  );
 }

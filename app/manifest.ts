@@ -2,26 +2,32 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "VARzea",
-    short_name: "VARzea",
-    description: "Gestão de times esportivos amadores",
+    name: "Site Time - Gestão de Time de Futebol",
+    short_name: "Site Time",
+    description: "Plataforma completa de gestão de times esportivos amadores, presença, partidas, finanças e estatísticas.",
     start_url: "/",
     display: "standalone",
-    background_color: "#f5f7f6",
-    theme_color: "#0a584b",
-    lang: "pt-BR",
+    background_color: "#0d1117",
+    theme_color: "#0d1117",
+    orientation: "portrait",
     icons: [
       {
-        src: "/next.svg",
+        src: "/icons/icon-192x192.png",
         sizes: "192x192",
-        type: "image/svg+xml",
+        type: "image/png",
         purpose: "any",
       },
       {
-        src: "/next.svg",
+        src: "/icons/icon-512x512.png",
         sizes: "512x512",
-        type: "image/svg+xml",
+        type: "image/png",
         purpose: "any",
+      },
+      {
+        src: "/icons/icon-maskable-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
       },
     ],
   };

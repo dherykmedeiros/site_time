@@ -35,13 +35,18 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
-  title: "VARzea - Gestao de Times Esportivos",
+  title: "Site Time - Gestão de Times Esportivos",
   description: "Plataforma para gestão de times esportivos amadores",
-  manifest: "/manifest.webmanifest",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Site Time",
+  },
 };
 
 export const viewport = {
-  themeColor: "#0a584b",
+  themeColor: "#0d1117",
 };
 
 export default function RootLayout({
