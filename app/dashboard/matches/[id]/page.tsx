@@ -794,21 +794,31 @@ export default function MatchDetailPage() {
 
   async function handleRsvp(status: "CONFIRMED" | "DECLINED", docDetails?: { fullName?: string; cpf?: string }) {
     setRsvpLoading(true);
+    setActionError(null);
+    setFeedback(null);
     try {
       const res = await fetch(`/api/matches/${id}/rsvp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status, ...docDetails }),
       });
+      const data = await res.json();
       if (res.ok) {
         fetchMatch();
         setFeedback("Presença registrada com sucesso.");
       } else {
-        const data = await res.json();
-        setActionError(data.error || "Erro ao registrar presença");
+        const errorMsg = data.error || "Erro ao registrar presença";
+        setActionError(errorMsg);
+        if (data.code === "DOCUMENT_REQUIRED" || data.requiresDocument) {
+          setShowDocModal(true);
+        }
+        throw new Error(errorMsg);
       }
-    } catch {
-      setActionError("Erro de conexão");
+    } catch (err: any) {
+      if (!actionError) {
+        setActionError(err.message || "Erro de conexão ao registrar presença");
+      }
+      throw err;
     } finally {
       setRsvpLoading(false);
     }
