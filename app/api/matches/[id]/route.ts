@@ -542,6 +542,7 @@ async function buildMatchDetailResponse(
     shareToken: string;
     hasCharge: boolean;
     chargeAmount: Prisma.Decimal | null | number;
+    requiresDocumentDetails?: boolean;
     pixKey: string | null;
     latitude: number | null;
     longitude: number | null;
@@ -614,6 +615,7 @@ async function buildMatchDetailResponse(
     shareUrl,
     hasCharge: match.hasCharge,
     chargeAmount: match.chargeAmount ? Number(match.chargeAmount) : null,
+    requiresDocumentDetails: match.requiresDocumentDetails ?? false,
     pixKey: match.pixKey,
     isPlayerSuspended: !!playerSuspension,
     suspensionReason: playerSuspension?.description || null,

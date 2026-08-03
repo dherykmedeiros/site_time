@@ -129,6 +129,8 @@ export const rsvpResponseSchema = z.object({
   status: z.enum(["CONFIRMED", "DECLINED"], {
     message: "Status deve ser CONFIRMED ou DECLINED",
   }),
+  fullName: z.string().trim().optional().nullable(),
+  cpf: z.string().trim().optional().nullable(),
 });
 
 export const lineupConfidenceSchema = z.enum(["LOW", "MEDIUM", "HIGH"]);
