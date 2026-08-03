@@ -311,11 +311,20 @@ export default function FinancesPage() {
           </p>
           <h1 className="text-2xl font-black uppercase tracking-tight text-white">Finanças</h1>
         </div>
-        {isAllowed ? (
-          <Button onClick={() => setShowForm(true)} className="rounded-xl px-4 py-2.5 text-xs font-black uppercase tracking-wider text-[#010403] bg-[#10b981] hover:bg-[#34d399]">
-            + Nova Transação
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="/api/finances/export"
+            download
+            className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-white/10"
+          >
+            📊 Exportar Excel
+          </a>
+          {isAllowed ? (
+            <Button onClick={() => setShowForm(true)} className="rounded-xl px-4 py-2.5 text-xs font-black uppercase tracking-wider text-[#010403] bg-[#10b981] hover:bg-[#34d399]">
+              + Nova Transação
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {feedback && (

@@ -129,13 +129,34 @@ export default function ReportsHub({ userRole }: { userRole?: string }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-black text-white tracking-tight">
-          Central de Relatórios & Estatísticas
-        </h1>
-        <p className="mt-1 text-sm text-[#8fa39b]">
-          Análise de desempenho, comparações entre atletas e estatísticas completas
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-white tracking-tight">
+            Central de Relatórios & Estatísticas
+          </h1>
+          <p className="mt-1 text-sm text-[#8fa39b]">
+            Análise de desempenho, comparações entre atletas e estatísticas completas
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="/api/players/export"
+            download
+            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2 text-xs font-bold text-emerald-400 hover:bg-emerald-500/20 transition-colors shadow-sm"
+          >
+            📊 Exportar Elenco & Stats (Excel)
+          </a>
+          {userRole === "ADMIN" && (
+            <a
+              href="/api/finances/export"
+              download
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-bold text-white hover:bg-white/10 transition-colors"
+            >
+              💰 Exportar Finanças
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Filters */}

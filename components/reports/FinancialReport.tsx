@@ -79,6 +79,29 @@ export default function FinancialReport({
 
   return (
     <div className="space-y-6">
+      {/* Action Header for Export */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#16130f] p-4 print:hidden">
+        <div>
+          <h3 className="text-sm font-bold text-white">Relatório Financeiro do Time</h3>
+          <p className="text-xs text-[#8fa39b]">Exporte o fluxo de caixa consolidado para planilhas ou impressão em PDF</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <a
+            href="/api/finances/export"
+            download
+            className="inline-flex items-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+          >
+            📊 Baixar Planilha CSV (Excel)
+          </a>
+          <button
+            onClick={() => window.print()}
+            className="inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/10 transition-colors"
+          >
+            🖨️ Imprimir PDF
+          </button>
+        </div>
+      </div>
+
       {/* KPIs */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-white/[0.06] bg-[#16130f] p-4">

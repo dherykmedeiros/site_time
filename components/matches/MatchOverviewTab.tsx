@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { CheckCircle2, AlertCircle, XCircle } from "lucide-react";
@@ -112,6 +113,36 @@ export function MatchOverviewTab({
               >
                 📱 Compartilhar no WhatsApp
               </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <h2 className="text-lg font-semibold text-[var(--text)]">Súmula e Documentos Oficiais</h2>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 py-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold text-[#6ee7b7]">Imprimir Súmula da Partida (PDF)</p>
+              <p className="text-sm text-[var(--text-subtle)]">
+                Gere a súmula oficial formatada para impressão/PDF com escalação, banco de reservas e campo de assinaturas.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href={`/dashboard/matches/${match.id}/sumula`}
+                className="inline-flex items-center rounded-xl bg-emerald-500 hover:bg-emerald-600 px-4 py-2 text-xs font-bold text-black transition-colors shadow-sm"
+              >
+                📄 Ver Súmula Oficial (PDF)
+              </Link>
+              <a
+                href={`/api/matches/${match.id}/export/sumula?format=csv`}
+                download
+                className="inline-flex items-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-2 text-xs font-bold text-white transition-colors"
+              >
+                📊 Baixar CSV (Excel)
+              </a>
             </div>
           </div>
         </CardContent>

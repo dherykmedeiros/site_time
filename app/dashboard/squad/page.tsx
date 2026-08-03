@@ -237,6 +237,13 @@ export default function SquadPage() {
           <h1 className="text-2xl font-black uppercase tracking-tight text-white">Elenco</h1>
         </div>
         <div className="flex flex-wrap gap-2">
+          <a
+            href="/api/players/export"
+            download
+            className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-white/10"
+          >
+            📊 Exportar Excel
+          </a>
           {isCoachOrAdmin && (
             <>
               {monthlyFeesEnabled && (
