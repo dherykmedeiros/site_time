@@ -166,6 +166,7 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
           team: { select: { slug: true } },
           season: { select: { id: true, name: true, type: true, status: true } },
           guestPlayers: true,
+          coachPlayer: { select: { id: true, name: true, fullName: true, photoUrl: true, position: true, shirtNumber: true } },
         },
       });
 
