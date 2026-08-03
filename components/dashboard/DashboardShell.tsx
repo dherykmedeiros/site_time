@@ -57,6 +57,7 @@ const NAV_GROUPS: NavGroup[] = [
     icon: Trophy,
     items: [
       { href: "/dashboard/matches", label: "Jogos", icon: CalendarDays, badgeKey: "upcomingMatches" },
+      { href: "/dashboard/slots", label: "Vagas & Desafios", icon: Handshake },
       { href: "/dashboard/calendar", label: "Calendário", icon: Calendar },
       { href: "/dashboard/seasons", label: "Temporadas", icon: Award, permission: "season:manage" },
       { href: "/dashboard/tactical-plays", label: "Prancheta Tática", icon: PenTool, permission: "tactical:view" }
