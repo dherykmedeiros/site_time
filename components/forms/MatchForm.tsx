@@ -181,10 +181,8 @@ interface SavedVenue {
     if (prevVenueRef.current !== undefined && prevVenueRef.current !== watchedVenue) {
       const trimmed = watchedVenue.trim().toLowerCase();
       const matched = savedVenues.find((v) => v.venue.trim().toLowerCase() === trimmed);
-      if (matched) {
-        setValue("mapsUrl", matched.mapsUrl || "", { shouldValidate: true });
-      } else {
-        setValue("mapsUrl", "", { shouldValidate: true });
+      if (matched && matched.mapsUrl) {
+        setValue("mapsUrl", matched.mapsUrl, { shouldValidate: true });
       }
     }
     prevVenueRef.current = watchedVenue;

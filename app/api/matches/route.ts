@@ -177,6 +177,14 @@ export const POST = withErrorHandler(async (request: Request) => {
     if (coords) {
       finalLat = coords.latitude;
       finalLon = coords.longitude;
+    } else {
+      return NextResponse.json(
+        {
+          error: "Não foi possível extrair a localização do link informado. Por favor, verifique se é um link válido do Google Maps.",
+          code: "INVALID_MAPS_URL",
+        },
+        { status: 400 }
+      );
     }
   }
 

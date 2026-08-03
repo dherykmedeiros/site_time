@@ -115,83 +115,147 @@ export function isSafeUrl(value: string): boolean {
 }
 
 /**
- * Safely resolves a short Google Maps URL to its final redirected URL.
- * Only follows redirects for allowed Google domains to prevent SSRF.
- */
-export async function resolveGoogleMapsUrl(url: string): Promise<string> {
-  if (!url) return url;
-  try {
-    const parsedUrl = new URL(url);
-    const hostname = parsedUrl.hostname.toLowerCase();
-    
-    // Only follow redirects for trusted google domains
-    const isGoogleDomain = 
-      hostname === "maps.app.goo.gl" || 
-      hostname === "goo.gl" || 
-      hostname.endsWith(".google.com") || 
-      hostname.endsWith(".google.com.br") ||
-      hostname === "google.com" ||
-      hostname === "google.com.br";
-      
-    if (!isGoogleDomain) {
-      return url;
-    }
-
-    // Call HEAD request to follow redirects
-    const res = await fetch(url, {
-      method: "HEAD",
-      redirect: "follow",
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-      }
-    });
-    return res.url;
-  } catch (error) {
-    console.error("Error resolving short URL:", error);
-    return url;
-  }
-}
-
-/**
- * Extracts latitude and longitude from a Google Maps URL or a simple coordinate string.
+ * Extracts latitude and longitude from a Google Maps URL, Apple Maps, Waze, or simple coordinate string.
+ * Supports text containing URLs pasted from mobile share sheets.
  */
 export function extractCoordsFromGoogleMaps(url: string): { latitude: number; longitude: number } | null {
   if (!url) return null;
 
-  // Pattern for direct "lat, lon" or "lat,lon" input
+  // Extract clean URL if text surrounds it (e.g. from mobile share sheet)
+  const urlMatch = url.match(/(https?:\/\/[^\s>"]+)/i);
+  const targetStr = (urlMatch ? urlMatch[1] : url).trim();
+
+  // Pattern 0: Direct "lat, lon" or "lat,lon" input
   const simpleCoordsRegex = /^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/;
-  const simpleMatch = url.trim().match(simpleCoordsRegex);
+  const simpleMatch = targetStr.match(simpleCoordsRegex);
   if (simpleMatch) {
     const lat = parseFloat(simpleMatch[1]);
     const lon = parseFloat(simpleMatch[2]);
-    if (!isNaN(lat) && !isNaN(lon)) {
+    if (isValidLatLon(lat, lon)) {
       return { latitude: lat, longitude: lon };
     }
   }
 
-  // Patterns for coordinates inside Google Maps URLs
-  const patterns = [
+  // Decode URL components if query string exists (to handle %2C for commas)
+  let decodedStr = targetStr;
+  try {
+    decodedStr = decodeURIComponent(targetStr);
+  } catch {}
+
+  const patterns: Array<{ regex: RegExp; latIndex: number; lonIndex: number }> = [
     // Pattern 1: /@(-?\d+\.\d+),(-?\d+\.\d+)/ (most common in web search/maps)
-    /@(-?\d+\.\d+),(-?\d+\.\d+)/,
+    { regex: /@(-?\d+\.\d+),(-?\d+\.\d+)/, latIndex: 1, lonIndex: 2 },
     // Pattern 2: /place/(-?\d+\.\d+),(-?\d+\.\d+)/
-    /\/place\/(-?\d+\.\d+),(-?\d+\.\d+)/,
-    // Pattern 3: q=(-?\d+\.\d+),(-?\d+\.\d+)
-    /[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/,
-    // Pattern 4: ll=(-?\d+\.\d+),(-?\d+\.\d+)
-    /[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/,
+    { regex: /\/place\/(-?\d+\.\d+),(-?\d+\.\d+)/, latIndex: 1, lonIndex: 2 },
+    // Pattern 3: Protobuf !3d(lat)!4d(lon) - standard in Google Maps mobile/desktop place links
+    { regex: /!3d(-?\d+\.\d+).*?!4d(-?\d+\.\d+)/, latIndex: 1, lonIndex: 2 },
+    // Pattern 4: Protobuf !2d(lon)!3d(lat)
+    { regex: /!2d(-?\d+\.\d+).*?!3d(-?\d+\.\d+)/, latIndex: 2, lonIndex: 1 },
+    // Pattern 5: q=, query=, ll=, destination=, daddr=, saddr=, center=, cbll= in URL query params
+    { regex: /[?&](?:q|query|daddr|saddr|destination|center|cbll|ll)=(-?\d+\.\d+)(?:%2C|,|\s+)(-?\d+\.\d+)/i, latIndex: 1, lonIndex: 2 },
+    // Pattern 6: /search/(-?\d+\.\d+),(-?\d+\.\d+)
+    { regex: /\/search\/(-?\d+\.\d+)(?:%2C|,|\s+)(-?\d+\.\d+)/i, latIndex: 1, lonIndex: 2 },
+    // Pattern 7: Waze to=ll.lat,lon
+    { regex: /to=ll\.(-?\d+\.\d+)(?:%2C|,)(-?\d+\.\d+)/i, latIndex: 1, lonIndex: 2 },
   ];
 
-  for (const pattern of patterns) {
-    const match = url.match(pattern);
-    if (match) {
-      const lat = parseFloat(match[1]);
-      const lon = parseFloat(match[2]);
-      if (!isNaN(lat) && !isNaN(lon)) {
-        return { latitude: lat, longitude: lon };
+  for (const strToTest of [targetStr, decodedStr]) {
+    for (const { regex, latIndex, lonIndex } of patterns) {
+      const match = strToTest.match(regex);
+      if (match) {
+        const lat = parseFloat(match[latIndex]);
+        const lon = parseFloat(match[lonIndex]);
+        if (isValidLatLon(lat, lon)) {
+          return { latitude: lat, longitude: lon };
+        }
       }
     }
   }
 
   return null;
 }
+
+function isValidLatLon(lat: number, lon: number): boolean {
+  return !isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+}
+
+/**
+ * Safely resolves a short Google Maps URL (or mobile share link) to its final redirected URL or extracts coordinates.
+ * Only follows redirects for allowed map/google domains to prevent SSRF.
+ */
+export async function resolveGoogleMapsUrl(url: string): Promise<string> {
+  if (!url) return url;
+
+  // Extract clean URL if text surrounds it (e.g. from mobile share sheet)
+  const urlMatch = url.match(/(https?:\/\/[^\s>"]+)/i);
+  const cleanUrl = (urlMatch ? urlMatch[1] : url).trim();
+
+  // If coordinates are already extractable from the URL directly, no need to resolve network call
+  if (extractCoordsFromGoogleMaps(cleanUrl)) {
+    return cleanUrl;
+  }
+
+  try {
+    const parsedUrl = new URL(cleanUrl);
+    const hostname = parsedUrl.hostname.toLowerCase();
+    
+    // Only follow redirects for trusted google/map domains
+    const isMapDomain = 
+      hostname === "maps.app.goo.gl" || 
+      hostname === "goo.gl" || 
+      hostname.endsWith(".google.com") || 
+      hostname.endsWith(".google.com.br") ||
+      hostname === "google.com" ||
+      hostname === "google.com.br" ||
+      hostname === "waze.com" ||
+      hostname.endsWith(".waze.com") ||
+      hostname === "maps.apple.com";
+      
+    if (!isMapDomain) {
+      return cleanUrl;
+    }
+
+    // Call GET request with browser/mobile User-Agent to follow full redirects
+    const res = await fetch(cleanUrl, {
+      method: "GET",
+      redirect: "follow",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+      }
+    });
+
+    const finalUrl = res.url;
+    if (extractCoordsFromGoogleMaps(finalUrl)) {
+      return finalUrl;
+    }
+
+    // Fallback: Check response HTML if redirect stopped at an HTML landing/preview page
+    const html = await res.text();
+    
+    // Check canonical / og:url / meta refresh in HTML
+    const ogUrlMatch = html.match(/<meta[^>]+property=["']og:url["'][^>]+content=["']([^"']+)["']/i) ||
+                       html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:url["']/i) ||
+                       html.match(/<meta[^>]+http-equiv=["']refresh["'][^>]+content=["'][^"']*url=([^"']+)["']/i);
+    if (ogUrlMatch && ogUrlMatch[1]) {
+      const canonicalUrl = ogUrlMatch[1];
+      if (extractCoordsFromGoogleMaps(canonicalUrl)) {
+        return canonicalUrl;
+      }
+    }
+
+    // Check static map or center parameter inside HTML
+    const htmlCoordMatch = html.match(/center=(-?\d+\.\d+)(?:%2C|,)(-?\d+\.\d+)/i) ||
+                           html.match(/!3d(-?\d+\.\d+).*?!4d(-?\d+\.\d+)/i) ||
+                           html.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/i);
+    if (htmlCoordMatch) {
+      return `https://www.google.com/maps/@${htmlCoordMatch[1]},${htmlCoordMatch[2]},17z`;
+    }
+
+    return finalUrl;
+  } catch (error) {
+    console.error("Error resolving short URL:", error);
+    return cleanUrl;
+  }
+}
+
 
