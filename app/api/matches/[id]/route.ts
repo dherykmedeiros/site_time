@@ -545,6 +545,8 @@ async function buildMatchDetailResponse(
     hasCharge: boolean;
     chargeAmount: Prisma.Decimal | null | number;
     requiresDocumentDetails?: boolean;
+    coachPlayerId?: string | null;
+    coachPlayer?: { id: string; name: string; fullName?: string | null; photoUrl?: string | null; position?: string; shirtNumber?: number } | null;
     pixKey: string | null;
     latitude: number | null;
     longitude: number | null;
