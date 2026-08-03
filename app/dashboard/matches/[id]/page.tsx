@@ -1565,6 +1565,8 @@ export default function MatchDetailPage() {
           pending={pending}
           declined={declined}
           isScheduled={isScheduled}
+          isAdmin={isAdmin}
+          isCoachOrAdmin={isCoachOrAdmin}
           getPregameRecapCardUrl={getPregameRecapCardUrl}
           handleCopyPregameRecapLink={handleCopyPregameRecapLink}
           buildConvocacaoText={buildConvocacaoText}

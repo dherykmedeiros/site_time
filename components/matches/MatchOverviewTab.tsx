@@ -13,6 +13,8 @@ interface MatchOverviewTabProps {
   pending: number;
   declined: number;
   isScheduled: boolean;
+  isAdmin?: boolean;
+  isCoachOrAdmin?: boolean;
   getPregameRecapCardUrl: () => string;
   handleCopyPregameRecapLink: () => void;
   buildConvocacaoText: () => string;
@@ -25,6 +27,8 @@ export function MatchOverviewTab({
   pending,
   declined,
   isScheduled,
+  isAdmin,
+  isCoachOrAdmin,
   getPregameRecapCardUrl,
   handleCopyPregameRecapLink,
   buildConvocacaoText,
@@ -143,13 +147,15 @@ export function MatchOverviewTab({
               >
                 📊 Baixar CSV (Excel)
               </a>
-              <a
-                href={`/api/matches/${match.id}/export/documents`}
-                download
-                className="inline-flex items-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-4 py-2 text-xs font-bold text-emerald-400 transition-colors"
-              >
-                📋 Lista CPF/Documentos (Excel)
-              </a>
+              {(isAdmin || isCoachOrAdmin) && (
+                <a
+                  href={`/api/matches/${match.id}/export/documents`}
+                  download
+                  className="inline-flex items-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-4 py-2 text-xs font-bold text-emerald-400 transition-colors"
+                >
+                  📋 Lista CPF/Documentos (Excel)
+                </a>
+              )}
             </div>
           </div>
         </CardContent>

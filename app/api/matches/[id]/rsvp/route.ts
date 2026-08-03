@@ -155,13 +155,14 @@ export async function POST(request: Request, { params }: RouteParams) {
 
   // Check document details if match requires it
   if (match.requiresDocumentDetails && status === "CONFIRMED") {
-    const finalFullName = reqFullName || player.fullName;
-    const finalCpf = reqCpf || player.cpf;
+    const finalFullName = reqFullName || player.fullName || "";
+    const finalCpf = reqCpf || player.cpf || "";
+    const nameWords = finalFullName.trim().split(/\s+/).filter(Boolean);
 
-    if (!finalFullName || !finalCpf) {
+    if (!finalFullName || !finalCpf || nameWords.length < 2 || finalFullName.trim().length < 6) {
       return NextResponse.json(
         {
-          error: "Esta partida exige a confirmação do Nome Completo e CPF para presença.",
+          error: "Esta partida exige a confirmação do Nome Completo (nome e sobrenome) e CPF para presença.",
           code: "DOCUMENT_REQUIRED",
           requiresDocument: true,
           currentFullName: player.fullName || "",

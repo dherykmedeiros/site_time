@@ -46,8 +46,9 @@ export function DocumentPromptModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim()) {
-      setErrorMsg("Informe seu nome completo conforme documento oficial.");
+    const nameWords = fullName.trim().split(/\s+/).filter(Boolean);
+    if (nameWords.length < 2 || fullName.trim().length < 6) {
+      setErrorMsg("Por favor, informe seu nome completo (mínimo: nome e sobrenome).");
       return;
     }
     const cleanCpf = cpf.replace(/\D/g, "");

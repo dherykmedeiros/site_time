@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { withErrorHandler } from "@/lib/api-handler";
 import { createCsvResponse } from "@/lib/export";
 import { playerPositionLabels } from "@/lib/player-positions";
@@ -16,9 +16,9 @@ const rsvpStatusLabels: Record<string, string> = {
   PENDING: "Pendente",
 };
 
-// GET /api/matches/:id/export/documents — Exporta lista oficial de atletas com Nome Completo e CPF em CSV (Excel)
+// GET /api/matches/:id/export/documents — Exporta lista oficial de atletas com Nome Completo e CPF em CSV (Excel) (Apenas ADMIN)
 export const GET = withErrorHandler(async (request: Request, { params }: RouteParams) => {
-  const { session, error } = await requireAuth();
+  const { session, error } = await requireAdmin();
   if (error) return error;
 
   const teamId = session.user.teamId;
