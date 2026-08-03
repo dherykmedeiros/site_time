@@ -1171,6 +1171,8 @@ model MatchCoachReport {
   coachPlayerId      String?
   coachPlayer        Player?                 @relation("CoachPlayer", fields: [coachPlayerId], references: [id], onDelete: SetNull)
   summary            String?                 @db.Text
+  formation          String?
+  starterPlayerIds   Json?
   startingStrategy   String?                 @db.Text
   substitutionsNotes String?                 @db.Text
   strengths          String?                 @db.Text

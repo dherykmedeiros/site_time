@@ -11,6 +11,8 @@ interface RouteParams {
 
 const coachReportSchema = z.object({
   summary: z.string().optional().nullable(),
+  formation: z.string().optional().nullable(),
+  starterPlayerIds: z.array(z.string()).optional().default([]),
   startingStrategy: z.string().optional().nullable(),
   substitutionsNotes: z.string().optional().nullable(),
   strengths: z.string().optional().nullable(),
@@ -26,7 +28,7 @@ const coachReportSchema = z.object({
   ).optional().default([]),
 });
 
-// GET /api/matches/:id/coach-report — Obter relatório do treinador (Acesso restrito)
+// GET /api/matches/:id/coach-report — Obter relatório do treinador e atletas confirmados
 export const GET = withErrorHandler(async (request: Request, { params }: RouteParams) => {
   const { session, error } = await requireAuth();
   if (error) return error;
@@ -51,6 +53,28 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
           shirtNumber: true,
         },
       },
+      rsvps: {
+        where: {
+          status: "CONFIRMED",
+          player: { status: "ACTIVE" },
+        },
+        include: {
+          player: {
+            select: {
+              id: true,
+              name: true,
+              fullName: true,
+              shirtNumber: true,
+              position: true,
+              photoUrl: true,
+            },
+          },
+        },
+        orderBy: {
+          player: { shirtNumber: "asc" },
+        },
+      },
+      guestPlayers: true,
       coachReport: {
         include: {
           coachPlayer: {
@@ -95,7 +119,6 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
   }
 
   // Strict View Permission Check:
-  // Only Admin, Coach role, or the designated coach for this match can view the report
   const isAdminOrCoachRole = session.user.role === "ADMIN" || session.user.role === "COACH";
   const isDesignatedCoach = session.user.playerId && match.coachPlayerId === session.user.playerId;
 
@@ -111,20 +134,45 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
   }
 
   // Strict Edit Permission Check:
-  // Only the specific player defined as the Coach for this match can edit
-  // (Or admin if no coach is assigned yet)
   const canEdit = isDesignatedCoach || (session.user.role === "ADMIN" && !match.coachPlayerId);
+
+  // Build list of ONLY confirmed players and guests for starter selection
+  const confirmedPlayers = [
+    ...match.rsvps.map((r) => ({
+      id: r.player.id,
+      playerId: r.player.id,
+      guestPlayerId: null,
+      name: r.player.name,
+      fullName: r.player.fullName,
+      shirtNumber: r.player.shirtNumber,
+      position: r.player.position,
+      photoUrl: r.player.photoUrl,
+    })),
+    ...match.guestPlayers.map((g) => ({
+      id: g.id,
+      playerId: null,
+      guestPlayerId: g.id,
+      name: `${g.name} (Convidado)`,
+      fullName: g.name,
+      shirtNumber: g.shirtNumber || 0,
+      position: g.position || "UNKNOWN",
+      photoUrl: null,
+    })),
+  ];
 
   return NextResponse.json({
     matchId: match.id,
     coachPlayerId: match.coachPlayerId || match.coachReport?.coachPlayerId || null,
     coachPlayer: match.coachPlayer || match.coachReport?.coachPlayer || null,
     summary: match.coachReport?.summary || "",
+    formation: match.coachReport?.formation || "4-3-3",
+    starterPlayerIds: (match.coachReport?.starterPlayerIds as string[]) || [],
     startingStrategy: match.coachReport?.startingStrategy || "",
     substitutionsNotes: match.coachReport?.substitutionsNotes || "",
     strengths: match.coachReport?.strengths || "",
     improvements: match.coachReport?.improvements || "",
     status: match.coachReport?.status || "DRAFT",
+    confirmedPlayers,
     evaluations: match.coachReport?.evaluations.map((e) => ({
       id: e.id,
       playerId: e.playerId,
@@ -164,7 +212,6 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
   }
 
   // Strict Edit Check:
-  // Only the designated coach for this match can edit!
   const isDesignatedCoach = session.user.playerId && match.coachPlayerId === session.user.playerId;
   const isAdminWithoutCoach = session.user.role === "ADMIN" && !match.coachPlayerId;
 
@@ -190,7 +237,7 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
     );
   }
 
-  const { summary, startingStrategy, substitutionsNotes, strengths, improvements, status, evaluations } = parsed.data;
+  const { summary, formation, starterPlayerIds, startingStrategy, substitutionsNotes, strengths, improvements, status, evaluations } = parsed.data;
 
   // Upsert MatchCoachReport
   const report = await prisma.matchCoachReport.upsert({
@@ -198,6 +245,8 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
     update: {
       coachPlayerId: match.coachPlayerId,
       summary: summary ?? "",
+      formation: formation ?? "4-3-3",
+      starterPlayerIds: starterPlayerIds ?? [],
       startingStrategy: startingStrategy ?? "",
       substitutionsNotes: substitutionsNotes ?? "",
       strengths: strengths ?? "",
@@ -208,6 +257,8 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
       matchId,
       coachPlayerId: match.coachPlayerId || null,
       summary: summary ?? "",
+      formation: formation ?? "4-3-3",
+      starterPlayerIds: starterPlayerIds ?? [],
       startingStrategy: startingStrategy ?? "",
       substitutionsNotes: substitutionsNotes ?? "",
       strengths: strengths ?? "",

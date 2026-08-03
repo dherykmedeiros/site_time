@@ -4,12 +4,23 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { Shield, ClipboardList, CheckCircle2, AlertCircle, Save, User, Users, Activity, Sparkles, Target, Lock } from "lucide-react";
+import { Shield, ClipboardList, CheckCircle2, AlertCircle, Save, User, Users, Activity, Sparkles, Target, Lock, Check } from "lucide-react";
 import type { MatchDetail, PlayerStat } from "@/app/dashboard/matches/[id]/page";
 import { playerPositionLabels } from "@/lib/player-positions";
 
 interface ActivePlayerOption {
   id: string;
+  name: string;
+  fullName: string | null;
+  shirtNumber: number;
+  position: string;
+  photoUrl: string | null;
+}
+
+interface ConfirmedPlayerOption {
+  id: string;
+  playerId: string | null;
+  guestPlayerId: string | null;
   name: string;
   fullName: string | null;
   shirtNumber: number;
@@ -32,6 +43,21 @@ interface MatchCoachReportTabProps {
   fetchMatch: () => void;
 }
 
+const FORMATIONS = [
+  "4-3-3",
+  "4-4-2",
+  "4-2-3-1",
+  "3-5-2",
+  "3-4-3",
+  "4-1-4-1",
+  "5-3-2",
+  "Fut7 (2-3-1)",
+  "Fut7 (3-2-1)",
+  "Fut7 (2-2-2)",
+  "Fut6 (2-2-1)",
+  "Futsal (1-2-1)",
+];
+
 export function MatchCoachReportTab({
   match,
   isCoachOrAdmin,
@@ -40,7 +66,11 @@ export function MatchCoachReportTab({
   fetchMatch,
 }: MatchCoachReportTabProps) {
   const [activePlayers, setActivePlayers] = useState<ActivePlayerOption[]>([]);
+  const [confirmedPlayers, setConfirmedPlayers] = useState<ConfirmedPlayerOption[]>([]);
+
   const [selectedCoachId, setSelectedCoachId] = useState<string>(match.coachPlayerId || "");
+  const [formation, setFormation] = useState<string>("4-3-3");
+  const [starterPlayerIds, setStarterPlayerIds] = useState<string[]>([]);
   const [summary, setSummary] = useState<string>("");
   const [startingStrategy, setStartingStrategy] = useState<string>("");
   const [substitutionsNotes, setSubstitutionsNotes] = useState<string>("");
@@ -86,6 +116,9 @@ export function MatchCoachReportTab({
         if (data.coachPlayerId) {
           setSelectedCoachId(data.coachPlayerId);
         }
+        setFormation(data.formation || "4-3-3");
+        setStarterPlayerIds(data.starterPlayerIds || []);
+        setConfirmedPlayers(data.confirmedPlayers || []);
         setSummary(data.summary || "");
         setStartingStrategy(data.startingStrategy || "");
         setSubstitutionsNotes(data.substitutionsNotes || "");
@@ -166,6 +199,14 @@ export function MatchCoachReportTab({
     }
   };
 
+  const toggleStarterPlayer = (playerId: string) => {
+    setStarterPlayerIds((prev) =>
+      prev.includes(playerId)
+        ? prev.filter((id) => id !== playerId)
+        : [...prev, playerId]
+    );
+  };
+
   const handleRatingChange = (key: string, rating: number) => {
     setEvaluations((prev) => ({
       ...prev,
@@ -199,6 +240,8 @@ export function MatchCoachReportTab({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           summary,
+          formation,
+          starterPlayerIds,
           startingStrategy,
           substitutionsNotes,
           strengths,
@@ -211,7 +254,7 @@ export function MatchCoachReportTab({
       const data = await res.json();
 
       if (res.ok) {
-        setFeedbackMsg("Relatório tático e parecer dos atletas salvos com sucesso!");
+        setFeedbackMsg("Relatório tático e escalação titular salvos com sucesso!");
         fetchMatch();
         loadReport();
         setTimeout(() => setFeedbackMsg(null), 3000);
@@ -250,6 +293,7 @@ export function MatchCoachReportTab({
   }
 
   const assignedCoach = activePlayers.find((p) => p.id === selectedCoachId) || match.coachPlayer;
+  const starterPlayers = confirmedPlayers.filter((p) => starterPlayerIds.includes(p.id));
 
   return (
     <div className="space-y-6">
@@ -258,7 +302,7 @@ export function MatchCoachReportTab({
         <div className="p-3.5 rounded-xl border border-amber-500/20 bg-amber-500/10 flex items-center gap-3 text-xs font-semibold text-amber-450">
           <Lock className="h-4 w-4 shrink-0" />
           <span>
-            <strong>Modo de Leitura:</strong> Apenas o atleta designado como treinador desta partida (ou admin se nenhum estiver definido) pode editar o relatório tático.
+            <strong>Modo de Leitura:</strong> Apenas o atleta designado como treinador desta partida pode editar as informações.
           </span>
         </div>
       )}
@@ -274,7 +318,7 @@ export function MatchCoachReportTab({
               <div>
                 <h2 className="text-lg font-black text-[var(--text)]">Relatório Tático & Pós-Jogo do Treinador</h2>
                 <p className="text-xs text-[var(--text-subtle)]">
-                  Análise de campo, leitura de substituições e notas individuais da comissão técnica.
+                  Definição dos titulares, esquema tático, substituições e notas técnicas.
                 </p>
               </div>
             </div>
@@ -341,28 +385,141 @@ export function MatchCoachReportTab({
             </div>
           )}
 
-          {/* Seção 1: Time Titular & Estratégia Inicial */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-[#6ee7b7] flex items-center gap-1.5">
-              <Target className="h-4 w-4" /> 1. Time Titular & Ideia de Jogo Inicial:
-            </label>
+          {/* ── SEÇÃO 1: FORMAÇÃO & ATLETAS TITULARES (INTERATIVO) ─────── */}
+          <div className="space-y-4 pt-2 border-t border-white/5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <label className="text-xs font-bold text-[#6ee7b7] flex items-center gap-1.5">
+                <Target className="h-4 w-4" /> 1. Formação Tática & Escolha dos Titulares:
+              </label>
+
+              {/* Formação Tática Selector */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[#8fa39b]">Esquema:</span>
+                {canEdit ? (
+                  <select
+                    value={formation}
+                    onChange={(e) => setFormation(e.target.value)}
+                    className="rounded-xl border border-white/10 bg-[#16130f] px-3 py-1 text-xs font-bold text-emerald-400 outline-none focus:border-[#36c2a8]"
+                  >
+                    {FORMATIONS.map((fmt) => (
+                      <option key={fmt} value={fmt}>
+                        {fmt}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs font-black text-emerald-400">
+                    ⚡ {formation}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Seleção Interativa de Titulares (Apenas Atletas que Confirmaram) */}
             {canEdit ? (
-              <textarea
-                value={startingStrategy}
-                onChange={(e) => setStartingStrategy(e.target.value)}
-                placeholder="Explique a formação escolhida para os 11 titulares, a proposta tática inicial (marcação alta, contra-ataque, posse de bola) e a estratégia pensada antes do apito inicial..."
-                rows={3}
-                className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#36c2a8]"
-              />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-[#8fa39b]">
+                  <span>Selecione os atletas que iniciaram como <strong>TITULARES</strong> (apenas presenças confirmadas):</span>
+                  <span className="font-bold text-emerald-400">
+                    {starterPlayerIds.length} Titulares Selecionados
+                  </span>
+                </div>
+
+                {confirmedPlayers.length === 0 ? (
+                  <p className="text-xs text-yellow-400 italic py-2">
+                    Nenhum atleta confirmou presença nesta partida até o momento.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    {confirmedPlayers.map((p) => {
+                      const isStarter = starterPlayerIds.includes(p.id);
+                      const posLabel = playerPositionLabels[p.position as keyof typeof playerPositionLabels] || p.position;
+
+                      return (
+                        <div
+                          key={p.id}
+                          onClick={() => toggleStarterPlayer(p.id)}
+                          className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all duration-150 ${
+                            isStarter
+                              ? "border-emerald-500/40 bg-emerald-500/15 shadow-sm"
+                              : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-7 w-7 rounded-full bg-white/10 border border-white/10 flex items-center justify-center font-bold text-xs text-white">
+                              {p.shirtNumber ? `#${p.shirtNumber}` : p.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-white leading-tight">{p.name}</p>
+                              <p className="text-[10px] text-[#8fa39b]">{posLabel}</p>
+                            </div>
+                          </div>
+
+                          <div
+                            className={`h-5 w-5 rounded-md border flex items-center justify-center text-xs font-black transition-colors ${
+                              isStarter
+                                ? "border-emerald-400 bg-emerald-400 text-black"
+                                : "border-white/20 bg-transparent text-transparent"
+                            }`}
+                          >
+                            ✓
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             ) : (
-              <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] text-sm text-[var(--text)] leading-relaxed whitespace-pre-line">
-                {startingStrategy || "Nenhuma observação registrada sobre o time titular."}
+              /* Modo de Leitura dos Titulares */
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-[#8fa39b]">Time Titular Escala de Jogo ({starterPlayers.length} atletas):</p>
+                {starterPlayers.length === 0 ? (
+                  <p className="text-xs text-[var(--text-subtle)] italic">Titulares não especificados pelo treinador.</p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    {starterPlayers.map((p) => {
+                      const posLabel = playerPositionLabels[p.position as keyof typeof playerPositionLabels] || p.position;
+                      return (
+                        <div key={p.id} className="p-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-center gap-2">
+                          <span className="text-xs font-black text-emerald-400">#{p.shirtNumber || "0"}</span>
+                          <div className="overflow-hidden">
+                            <p className="text-xs font-bold text-white truncate">{p.name}</p>
+                            <p className="text-[9px] text-[#8fa39b]">{posLabel}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
+
+            {/* Observações da Ideia de Jogo Inicial (Opcional) */}
+            <div>
+              <label className="block text-[11px] font-bold text-[#8fa39b] mb-1">
+                Motivação Tática & Ideia de Jogo Inicial (Opcional):
+              </label>
+              {canEdit ? (
+                <textarea
+                  value={startingStrategy}
+                  onChange={(e) => setStartingStrategy(e.target.value)}
+                  placeholder="Observações adicionais sobre o plano tático inicial..."
+                  rows={2}
+                  className="w-full rounded-xl border border-white/10 bg-black/40 p-2.5 text-xs text-white placeholder:text-white/30 outline-none focus:border-[#36c2a8]"
+                />
+              ) : (
+                startingStrategy && (
+                  <div className="p-3 rounded-xl border border-white/5 bg-white/[0.02] text-xs text-[var(--text)] whitespace-pre-line">
+                    {startingStrategy}
+                  </div>
+                )
+              )}
+            </div>
           </div>
 
-          {/* Seção 2: Substituições Realizadas & Leitura de Jogo */}
-          <div className="space-y-2">
+          {/* ── SEÇÃO 2: SUBSTITUIÇÕES REALIZADAS & LEITURA DE JOGO ───── */}
+          <div className="space-y-2 pt-2 border-t border-white/5">
             <label className="block text-xs font-bold text-[#6ee7b7] flex items-center gap-1.5">
               <Activity className="h-4 w-4" /> 2. Substituições Realizadas & Pensamento Tático:
             </label>
@@ -372,17 +529,17 @@ export function MatchCoachReportTab({
                 onChange={(e) => setSubstitutionsNotes(e.target.value)}
                 placeholder="Registre as substituições feitas na partida (ex: 'Aos 15 min do 2ºT: Saiu Fulano / Entrou Ciclano para dar mais velocidade pela ponta'). Explique o que pensava no momento da alteração..."
                 rows={3}
-                className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#36c2a8]"
+                className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-white placeholder:text-white/30 outline-none focus:border-[#36c2a8]"
               />
             ) : (
-              <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] text-sm text-[var(--text)] leading-relaxed whitespace-pre-line">
+              <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] text-xs text-[var(--text)] leading-relaxed whitespace-pre-line">
                 {substitutionsNotes || "Nenhuma leitura de substituição registrada pelo treinador."}
               </div>
             )}
           </div>
 
-          {/* Seção 3: Pontos Fortes & Aspectos a Evoluir */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* ── SEÇÃO 3: PONTOS FORTES & ASPECTOS A EVOLUIR ──────────── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/5">
             <div className="space-y-2">
               <label className="block text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                 <Sparkles className="h-4 w-4" /> Pontos Fortes Observados:
@@ -423,7 +580,7 @@ export function MatchCoachReportTab({
           </div>
 
           {/* Resumo Geral */}
-          <div className="space-y-2">
+          <div className="space-y-2 pt-2 border-t border-white/5">
             <label className="block text-xs font-bold text-white flex items-center gap-1.5">
               📋 Resumo Geral & Conclusão do Treinador:
             </label>
@@ -433,10 +590,10 @@ export function MatchCoachReportTab({
                 onChange={(e) => setSummary(e.target.value)}
                 placeholder="Parecer geral da atuação da equipe..."
                 rows={3}
-                className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-[#36c2a8]"
+                className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-white placeholder:text-white/30 outline-none focus:border-[#36c2a8]"
               />
             ) : (
-              <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] text-sm text-[var(--text)] leading-relaxed whitespace-pre-line">
+              <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] text-xs text-[var(--text)] leading-relaxed whitespace-pre-line">
                 {summary || "Sem parecer geral adicional registrado."}
               </div>
             )}
@@ -534,7 +691,7 @@ export function MatchCoachReportTab({
                 disabled={saving}
                 className="bg-[#10b981] hover:bg-[#34d399] text-black font-bold text-xs uppercase tracking-wider px-6 py-2.5 shadow-lg"
               >
-                {saving ? "Salvando..." : "💾 Publicar Relatório Tático"}
+                {saving ? "Salvando..." : "💾 Publicar Relatório Tático & Titulares"}
               </Button>
             </div>
           )}
