@@ -52,13 +52,14 @@ function getBrevoConfig() {
 }
 
 interface SendEmailParams {
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
 }
 
-async function sendEmail({ to, subject, html }: SendEmailParams) {
+export async function sendEmail({ to, subject, html }: SendEmailParams) {
   const provider = getEmailProvider();
+  const recipients = Array.isArray(to) ? to : [to];
 
   if (provider === "brevo") {
     const { apiKey, senderEmail, senderName } = getBrevoConfig();
@@ -73,7 +74,7 @@ async function sendEmail({ to, subject, html }: SendEmailParams) {
           email: senderEmail,
           name: senderName,
         },
-        to: [{ email: to }],
+        to: recipients.map((email) => ({ email })),
         subject,
         htmlContent: html,
       }),
