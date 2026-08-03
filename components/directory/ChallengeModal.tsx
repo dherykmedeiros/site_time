@@ -73,7 +73,7 @@ export function ChallengeModal({ slot, onClose, onSuccess }: ChallengeModalProps
   }
 
   return (
-    <Modal isOpen={!!slot} onClose={onClose} title={`Desafiar ${slot.team.name}`}>
+    <Modal open={!!slot} onClose={onClose} title={`Desafiar ${slot.team.name}`}>
       <form onSubmit={handleSubmit} className="space-y-4">
         {errorMsg && (
           <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400">

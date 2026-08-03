@@ -192,7 +192,7 @@ export default function TeamSlotsPage() {
       </div>
 
       {/* Add Slot Modal */}
-      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Publicar Nova Vaga de Amistoso">
+      <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Publicar Nova Vaga de Amistoso">
         <form onSubmit={handleCreateSlot} className="space-y-4">
           {errorMsg && (
             <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-400">
