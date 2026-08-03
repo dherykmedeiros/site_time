@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 
 interface PublicNavbarProps {
-  teamName: string;
-  badgeUrl: string | null;
+  teamName?: string;
+  badgeUrl?: string | null;
   slug?: string;
+  title?: string;
 }
 
-export function PublicNavbar({ teamName, badgeUrl, slug }: PublicNavbarProps) {
+export function PublicNavbar({ teamName = "Site Time", badgeUrl, slug, title }: PublicNavbarProps) {
   const { data: session } = useSession();
   const prefix = slug ? `/${slug}` : "";
   const portalHref = (path: string) => `${prefix || "/"}${path}`;
@@ -27,7 +28,7 @@ export function PublicNavbar({ teamName, badgeUrl, slug }: PublicNavbarProps) {
               </svg>
             </span>
           )}
-          <span className="font-mono text-lg font-black tracking-tighter text-white uppercase">{teamName}</span>
+          <span className="font-mono text-lg font-black tracking-tighter text-white uppercase">{title || teamName}</span>
         </Link>
         <div className="flex items-center gap-6">
           <a href={portalHref("?tab=album#elenco")} className="hidden text-[10px] font-mono font-black uppercase tracking-widest text-slate-400 hover:text-[var(--brand)] sm:block transition-colors">
