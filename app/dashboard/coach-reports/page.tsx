@@ -122,7 +122,7 @@ export default function CoachReportsHubPage() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="p-4 border-white/10 bg-white/[0.02]">
-          <span className="block text-xs font-bold text-[#8fa39b]">Total de Partidas</span>
+          <span className="block text-xs font-bold text-[#8fa39b]">Partidas Finalizadas</span>
           <span className="block text-2xl font-black text-white mt-1">{totalMatches}</span>
         </Card>
         <Card className="p-4 border-emerald-500/20 bg-emerald-500/5">

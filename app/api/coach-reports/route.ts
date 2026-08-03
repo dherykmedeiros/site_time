@@ -38,7 +38,7 @@ export const GET = withErrorHandler(async () => {
   const matches = await prisma.match.findMany({
     where: {
       teamId,
-      status: { in: ["SCHEDULED", "COMPLETED"] },
+      status: "COMPLETED",
     },
     include: {
       coachPlayer: {
