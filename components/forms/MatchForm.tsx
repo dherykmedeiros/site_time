@@ -56,6 +56,7 @@ interface MatchFormProps {
     homeScore?: number | null;
     awayScore?: number | null;
     pixKey?: string | null;
+    requiresDocumentDetails?: boolean;
     latitude?: number | null;
     longitude?: number | null;
   };

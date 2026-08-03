@@ -77,6 +77,7 @@ export interface MatchDetail {
   canSubmitPostGame: boolean;
   hasCharge: boolean;
   chargeAmount: number | null;
+  requiresDocumentDetails?: boolean;
   pixKey: string | null;
   season?: { id: string; name: string; type: string; status: string } | null;
   positionLimits?: Array<{ position: string; maxPlayers: number }>;
