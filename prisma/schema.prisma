@@ -1165,15 +1165,20 @@ model NotificationPreference {
 // ─── Relatório do Treinador & Avaliações ───────────────────────────
 
 model MatchCoachReport {
-  id            String                  @id @default(cuid())
-  matchId       String                  @unique
-  match         Match                   @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  coachPlayerId String?
-  coachPlayer   Player?                 @relation("CoachPlayer", fields: [coachPlayerId], references: [id], onDelete: SetNull)
-  summary       String?                 @db.Text
-  evaluations   MatchCoachEvaluation[]
-  createdAt     DateTime                @default(now())
-  updatedAt     DateTime                @updatedAt
+  id                 String                  @id @default(cuid())
+  matchId            String                  @unique
+  match              Match                   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  coachPlayerId      String?
+  coachPlayer        Player?                 @relation("CoachPlayer", fields: [coachPlayerId], references: [id], onDelete: SetNull)
+  summary            String?                 @db.Text
+  startingStrategy   String?                 @db.Text
+  substitutionsNotes String?                 @db.Text
+  strengths          String?                 @db.Text
+  improvements       String?                 @db.Text
+  status             String                  @default("DRAFT") // DRAFT, PUBLISHED
+  evaluations        MatchCoachEvaluation[]
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
 
   @@index([coachPlayerId])
   @@map("match_coach_reports")

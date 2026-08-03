@@ -10,8 +10,12 @@ interface RouteParams {
 }
 
 const coachReportSchema = z.object({
-  coachPlayerId: z.string().nullable().optional(),
   summary: z.string().optional().nullable(),
+  startingStrategy: z.string().optional().nullable(),
+  substitutionsNotes: z.string().optional().nullable(),
+  strengths: z.string().optional().nullable(),
+  improvements: z.string().optional().nullable(),
+  status: z.enum(["DRAFT", "PUBLISHED"]).optional().default("PUBLISHED"),
   evaluations: z.array(
     z.object({
       playerId: z.string().optional().nullable(),
@@ -22,7 +26,7 @@ const coachReportSchema = z.object({
   ).optional().default([]),
 });
 
-// GET /api/matches/:id/coach-report — Obter relatório do treinador e avaliações dos atletas
+// GET /api/matches/:id/coach-report — Obter relatório do treinador (Acesso restrito)
 export const GET = withErrorHandler(async (request: Request, { params }: RouteParams) => {
   const { session, error } = await requireAuth();
   if (error) return error;
@@ -90,11 +94,37 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
     return NextResponse.json({ error: "Partida não encontrada", code: "NOT_FOUND" }, { status: 404 });
   }
 
+  // Strict View Permission Check:
+  // Only Admin, Coach role, or the designated coach for this match can view the report
+  const isAdminOrCoachRole = session.user.role === "ADMIN" || session.user.role === "COACH";
+  const isDesignatedCoach = session.user.playerId && match.coachPlayerId === session.user.playerId;
+
+  if (!isAdminOrCoachRole && !isDesignatedCoach) {
+    return NextResponse.json(
+      {
+        error: "Acesso restrito ao relatório do treinador. Apenas a comissão técnica, administradores ou o treinador da partida podem visualizar.",
+        code: "COACH_REPORT_RESTRICTED",
+        canView: false,
+      },
+      { status: 403 }
+    );
+  }
+
+  // Strict Edit Permission Check:
+  // Only the specific player defined as the Coach for this match can edit
+  // (Or admin if no coach is assigned yet)
+  const canEdit = isDesignatedCoach || (session.user.role === "ADMIN" && !match.coachPlayerId);
+
   return NextResponse.json({
     matchId: match.id,
     coachPlayerId: match.coachPlayerId || match.coachReport?.coachPlayerId || null,
     coachPlayer: match.coachPlayer || match.coachReport?.coachPlayer || null,
     summary: match.coachReport?.summary || "",
+    startingStrategy: match.coachReport?.startingStrategy || "",
+    substitutionsNotes: match.coachReport?.substitutionsNotes || "",
+    strengths: match.coachReport?.strengths || "",
+    improvements: match.coachReport?.improvements || "",
+    status: match.coachReport?.status || "DRAFT",
     evaluations: match.coachReport?.evaluations.map((e) => ({
       id: e.id,
       playerId: e.playerId,
@@ -106,11 +136,13 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
       rating: e.rating,
       feedback: e.feedback || "",
     })) || [],
+    canView: true,
+    canEdit,
     updatedAt: match.coachReport?.updatedAt.toISOString() ?? null,
   });
 });
 
-// POST /api/matches/:id/coach-report — Salvar/atualizar relatório do treinador e avaliações
+// POST /api/matches/:id/coach-report — Salvar/atualizar relatório tático (Apenas Treinador Designado)
 export const POST = withErrorHandler(async (request: Request, { params }: RouteParams) => {
   const { session, error } = await requireAuth();
   if (error) return error;
@@ -131,12 +163,14 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
     return NextResponse.json({ error: "Partida não encontrada", code: "NOT_FOUND" }, { status: 404 });
   }
 
-  const isCoachOrAdmin = session.user.role === "ADMIN" || session.user.role === "COACH";
+  // Strict Edit Check:
+  // Only the designated coach for this match can edit!
   const isDesignatedCoach = session.user.playerId && match.coachPlayerId === session.user.playerId;
+  const isAdminWithoutCoach = session.user.role === "ADMIN" && !match.coachPlayerId;
 
-  if (!isCoachOrAdmin && !isDesignatedCoach) {
+  if (!isDesignatedCoach && !isAdminWithoutCoach) {
     return NextResponse.json(
-      { error: "Apenas o treinador da partida ou administradores podem emitir o relatório" },
+      { error: "Apenas o atleta definido como treinador desta partida pode editar o relatório." },
       { status: 403 }
     );
   }
@@ -156,31 +190,33 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
     );
   }
 
-  const { coachPlayerId, summary, evaluations } = parsed.data;
+  const { summary, startingStrategy, substitutionsNotes, strengths, improvements, status, evaluations } = parsed.data;
 
-  // 1. Update designated coach on Match model if supplied
-  if (coachPlayerId !== undefined) {
-    await prisma.match.update({
-      where: { id: matchId },
-      data: { coachPlayerId: coachPlayerId || null },
-    });
-  }
-
-  // 2. Upsert MatchCoachReport
+  // Upsert MatchCoachReport
   const report = await prisma.matchCoachReport.upsert({
     where: { matchId },
     update: {
-      coachPlayerId: coachPlayerId !== undefined ? (coachPlayerId || null) : match.coachPlayerId,
+      coachPlayerId: match.coachPlayerId,
       summary: summary ?? "",
+      startingStrategy: startingStrategy ?? "",
+      substitutionsNotes: substitutionsNotes ?? "",
+      strengths: strengths ?? "",
+      improvements: improvements ?? "",
+      status: status ?? "PUBLISHED",
     },
     create: {
       matchId,
-      coachPlayerId: coachPlayerId || match.coachPlayerId || null,
+      coachPlayerId: match.coachPlayerId || null,
       summary: summary ?? "",
+      startingStrategy: startingStrategy ?? "",
+      substitutionsNotes: substitutionsNotes ?? "",
+      strengths: strengths ?? "",
+      improvements: improvements ?? "",
+      status: status ?? "PUBLISHED",
     },
   });
 
-  // 3. Process individual player evaluations
+  // Process individual player evaluations
   for (const ev of evaluations) {
     if (ev.playerId) {
       await prisma.matchCoachEvaluation.upsert({
@@ -226,7 +262,7 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
   trackOperationalEvent("match_coach_report_saved", {
     matchId,
     reportId: report.id,
-    coachPlayerId: coachPlayerId || match.coachPlayerId,
+    coachPlayerId: match.coachPlayerId,
     evaluationsCount: evaluations.length,
     userId: session.user.id,
   });
