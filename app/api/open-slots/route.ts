@@ -19,6 +19,16 @@ export const GET = withErrorHandler(async (request: Request) => {
   const fieldType = searchParams.get("fieldType");
   const query = searchParams.get("query");
 
+  const teamWhere: Prisma.TeamWhereInput = {};
+
+  if (city) {
+    teamWhere.city = { contains: city, mode: "insensitive" };
+  }
+
+  if (fieldType) {
+    teamWhere.fieldType = fieldType as any;
+  }
+
   const where: Prisma.OpenMatchSlotWhereInput = {
     status: "OPEN",
     date: {
@@ -26,18 +36,8 @@ export const GET = withErrorHandler(async (request: Request) => {
     },
   };
 
-  if (city) {
-    where.team = {
-      ...where.team,
-      city: { contains: city, mode: "insensitive" },
-    };
-  }
-
-  if (fieldType) {
-    where.team = {
-      ...where.team,
-      fieldType: fieldType as any,
-    };
+  if (Object.keys(teamWhere).length > 0) {
+    where.team = teamWhere;
   }
 
   if (query) {
