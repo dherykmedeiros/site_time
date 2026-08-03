@@ -90,6 +90,32 @@ export function MatchRsvpTab({
     }
   };
 
+  const handleAdminChangeRsvpStatus = async (playerId: string, newStatus: "CONFIRMED" | "PENDING" | "DECLINED") => {
+    try {
+      const res = await fetch(`/api/matches/${match.id}/rsvp/admin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId, status: newStatus }),
+      });
+      if (res.ok) {
+        setMatch((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            rsvps: prev.rsvps.map((r) =>
+              r.playerId === playerId ? { ...r, status: newStatus } : r
+            ),
+          };
+        });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Erro ao alterar status do atleta");
+      }
+    } catch {
+      alert("Erro de conexão ao alterar status do atleta");
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Relatório de Presenças */}
@@ -300,9 +326,21 @@ export function MatchRsvpTab({
                       {rsvp.summoned ? "📋 Desconvocar" : "📋 Convocar"}
                     </Button>
                   )}
-                  <Badge variant={rsvpStatusVariants[rsvp.status]}>
-                    {rsvpStatusLabels[rsvp.status]}
-                  </Badge>
+                  {isCoachOrAdmin && !rsvp.isGuest ? (
+                    <select
+                      value={rsvp.status}
+                      onChange={(e) => handleAdminChangeRsvpStatus(rsvp.playerId, e.target.value as "CONFIRMED" | "PENDING" | "DECLINED")}
+                      className="rounded-lg border border-white/10 bg-[#16130f] px-2.5 py-1 text-xs font-bold text-white outline-none focus:border-[#36c2a8] cursor-pointer"
+                    >
+                      <option value="CONFIRMED">✅ Confirmado</option>
+                      <option value="PENDING">⏳ Pendente</option>
+                      <option value="DECLINED">❌ Recusado</option>
+                    </select>
+                  ) : (
+                    <Badge variant={rsvpStatusVariants[rsvp.status]}>
+                      {rsvpStatusLabels[rsvp.status]}
+                    </Badge>
+                  )}
                 </div>
               </div>
             ))}
