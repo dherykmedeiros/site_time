@@ -33,6 +33,7 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
     include: {
       rsvps: {
         where: {
+          status: "CONFIRMED",
           player: { status: "ACTIVE" },
         },
         include: {
