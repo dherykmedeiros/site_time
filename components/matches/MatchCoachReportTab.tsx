@@ -294,6 +294,7 @@ export function MatchCoachReportTab({
           ) : (
             match.stats.map((p) => {
               const key = p.playerId || p.guestPlayerId || p.playerName;
+              const ev = evaluations[key] || { rating: 5, feedback: "" };
               const rawPosition = p.position || (ev as any).position;
               const posLabel = rawPosition ? (playerPositionLabels[rawPosition as keyof typeof playerPositionLabels] || rawPosition) : "";
 
