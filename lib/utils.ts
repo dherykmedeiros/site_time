@@ -251,6 +251,22 @@ export async function resolveGoogleMapsUrl(url: string): Promise<string> {
       return `https://www.google.com/maps/@${htmlCoordMatch[1]},${htmlCoordMatch[2]},17z`;
     }
 
+    // Check embedded JS arrays in HTML payload (e.g. window.BSO or Google Maps payloads: [scale/id, lon, lat])
+    const arrayMatches = [...html.matchAll(/\[\s*\d+(?:\.\d+)?\s*,\s*(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)\s*\]/g)];
+    for (const match of arrayMatches) {
+      const val1 = parseFloat(match[1]);
+      const val2 = parseFloat(match[2]);
+
+      // Check if val2 is lat and val1 is lon
+      if (isValidLatLon(val2, val1)) {
+        return `https://www.google.com/maps/@${val2},${val1},17z`;
+      }
+      // Check if val1 is lat and val2 is lon
+      if (isValidLatLon(val1, val2)) {
+        return `https://www.google.com/maps/@${val1},${val2},17z`;
+      }
+    }
+
     return finalUrl;
   } catch (error) {
     console.error("Error resolving short URL:", error);
