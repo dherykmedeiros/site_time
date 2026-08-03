@@ -23,7 +23,24 @@ export async function getPlayerProfileData(playerId: string, teamId: string): Pr
       matchStats: {
         include: {
           match: {
-            select: { id: true, date: true, opponent: true, homeScore: true, awayScore: true, isHome: true, status: true },
+            select: {
+              id: true,
+              date: true,
+              opponent: true,
+              homeScore: true,
+              awayScore: true,
+              isHome: true,
+              status: true,
+              coachReport: {
+                select: {
+                  id: true,
+                  evaluations: {
+                    where: { playerId },
+                    select: { id: true },
+                  },
+                },
+              },
+            },
           },
         },
         orderBy: { match: { date: "desc" } },

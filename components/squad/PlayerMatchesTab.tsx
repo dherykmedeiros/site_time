@@ -19,6 +19,10 @@ interface PlayerMatchesTabProps {
       awayScore: number | null;
       isHome: boolean;
       status: string;
+      coachReport?: {
+        id: string;
+        evaluations?: Array<{ id: string }>;
+      } | null;
     };
   }>;
   absences: Array<{
@@ -98,12 +102,14 @@ export function PlayerMatchesTab({ matchStats, absences }: PlayerMatchesTabProps
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[10px] text-[#8fa39b]">{formatDate(new Date(match.date))}</span>
-                      <button
-                        onClick={() => setSelectedMatchIdForReport(match.id)}
-                        className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400 hover:bg-emerald-500/20 transition-colors"
-                      >
-                        📋 Parecer do Treinador
-                      </button>
+                      {match.coachReport?.evaluations && match.coachReport.evaluations.length > 0 && (
+                        <button
+                          onClick={() => setSelectedMatchIdForReport(match.id)}
+                          className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                        >
+                          📋 Parecer do Treinador
+                        </button>
+                      )}
                     </div>
                   </div>
                   <p className={`text-xs font-bold ${resultColor}`}>
