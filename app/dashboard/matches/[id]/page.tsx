@@ -809,9 +809,6 @@ export default function MatchDetailPage() {
       } else {
         const errorMsg = data.error || "Erro ao registrar presença";
         setActionError(errorMsg);
-        if (data.code === "DOCUMENT_REQUIRED" || data.requiresDocument) {
-          setShowDocModal(true);
-        }
         throw new Error(errorMsg);
       }
     } catch (err: any) {
