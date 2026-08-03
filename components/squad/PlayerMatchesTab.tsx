@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { formatDate } from "@/lib/utils";
+import { PlayerCoachReportModal } from "./PlayerCoachReportModal";
 
 interface PlayerMatchesTabProps {
   matchStats: Array<{
@@ -36,6 +37,8 @@ interface PlayerMatchesTabProps {
 }
 
 export function PlayerMatchesTab({ matchStats, absences }: PlayerMatchesTabProps) {
+  const [selectedMatchIdForReport, setSelectedMatchIdForReport] = useState<string | null>(null);
+
   return (
     <div className="space-y-6">
       {/* Histórico de Partidas */}
@@ -93,7 +96,15 @@ export function PlayerMatchesTab({ matchStats, absences }: PlayerMatchesTabProps
                     <p className="font-semibold text-white text-sm">
                       {match.isHome ? "vs" : "@"} {match.opponent}
                     </p>
-                    <p className="text-[10px] text-[#8fa39b]">{formatDate(new Date(match.date))}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[10px] text-[#8fa39b]">{formatDate(new Date(match.date))}</span>
+                      <button
+                        onClick={() => setSelectedMatchIdForReport(match.id)}
+                        className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                      >
+                        📋 Parecer do Treinador
+                      </button>
+                    </div>
                   </div>
                   <p className={`text-xs font-bold ${resultColor}`}>
                     {resultLabel}
@@ -138,52 +149,37 @@ export function PlayerMatchesTab({ matchStats, absences }: PlayerMatchesTabProps
         {absences.length === 0 ? (
           <div className="p-8 text-center text-[#8fa39b]">
             <p className="text-3xl mb-2">✅</p>
-            <p className="font-semibold text-white text-sm">Nenhuma falta registrada!</p>
-            <p className="mt-1 text-xs">O atleta compareceu a todos os jogos para os quais confirmou presença.</p>
+            <p className="font-semibold text-white text-sm">Nenhuma falta em jogos confirmados</p>
+            <p className="text-xs text-[#8fa39b] mt-1">Sua assiduidade está impecável!</p>
           </div>
         ) : (
-          <div className="divide-y divide-white/5">
-            <div className="hidden sm:grid sm:grid-cols-[2fr_1.5fr_1fr_1.5fr] gap-2 bg-white/[0.015] px-6 py-3 text-[10px] font-black uppercase tracking-widest text-[#8fa39b]">
-              <span>Adversário / Data</span>
-              <span>Local</span>
-              <span>Placar Final</span>
-              <span>Situação</span>
-            </div>
-
-            {absences.map((r) => {
-              const match = r.match;
-              const teamGoals = match.isHome ? match.homeScore : match.awayScore;
-              const opponentGoals = match.isHome ? match.awayScore : match.homeScore;
-
-              return (
-                <div
-                  key={r.id}
-                  className="flex flex-col gap-2 px-6 py-4 transition hover:bg-white/[0.02] sm:grid sm:grid-cols-[2fr_1.5fr_1fr_1.5fr] sm:items-center sm:gap-2"
-                >
-                  <div>
-                    <p className="font-semibold text-white text-sm">
-                      {match.isHome ? "vs" : "@"} {match.opponent}
-                      <span className="ml-2 rounded bg-white/5 border border-white/10 px-1.5 py-0.5 text-[10px] text-[#8fa39b]">
-                        {match.type === "CHAMPIONSHIP" ? "Campeonato" : "Amistoso"}
-                      </span>
-                    </p>
-                    <p className="text-[10px] text-[#8fa39b]">{formatDate(new Date(match.date))}</p>
-                  </div>
-                  <p className="text-xs text-[#8fa39b]">{match.venue || "Não informado"}</p>
-                  <p className="text-xs font-bold text-white">
-                    {teamGoals != null && opponentGoals != null ? `${teamGoals} x ${opponentGoals}` : "—"}
-                  </p>
-                  <div>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[11px] font-bold text-red-400">
-                      ❌ Confirmou SIM no RSVP e Faltou
-                    </span>
-                  </div>
+          <div className="divide-y divide-red-500/10">
+            {absences.map((absence) => (
+              <div key={absence.id} className="flex items-center justify-between px-6 py-3 text-xs">
+                <div>
+                  <span className="font-bold text-white">
+                    {absence.match.isHome ? "vs" : "@"} {absence.match.opponent}
+                  </span>
+                  <span className="text-[#8fa39b] ml-2 font-mono">
+                    ({formatDate(new Date(absence.match.date))})
+                  </span>
                 </div>
-              );
-            })}
+                <span className="font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded text-[10px]">
+                  FALTOU
+                </span>
+              </div>
+            ))}
           </div>
         )}
       </div>
+
+      {/* Modal do Parecer Individual do Treinador */}
+      {selectedMatchIdForReport && (
+        <PlayerCoachReportModal
+          matchId={selectedMatchIdForReport}
+          onClose={() => setSelectedMatchIdForReport(null)}
+        />
+      )}
     </div>
   );
 }
