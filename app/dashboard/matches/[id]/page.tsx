@@ -51,6 +51,7 @@ export interface PlayerStat {
   playerId: string;
   guestPlayerId?: string | null;
   playerName: string;
+  position?: string;
   goals: number;
   assists: number;
   yellowCards: number;
