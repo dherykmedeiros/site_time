@@ -37,6 +37,7 @@ export function ChallengeModal({ slot, onClose, onSuccess }: ChallengeModalProps
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!slot) return;
     if (!teamName.trim() || !email.trim()) {
       setErrorMsg("Preencha o nome do seu time e seu e-mail de contato.");
       return;
