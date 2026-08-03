@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { Shield, ClipboardList, CheckCircle2, AlertCircle, Save, User, Users, Activity, Sparkles, Target, Lock, Check } from "lucide-react";
+import { Shield, ClipboardList, CheckCircle2, AlertCircle, Save, User, Users, Activity, Sparkles, Target, Lock, ArrowRightLeft, Plus, Trash2, Award } from "lucide-react";
 import type { MatchDetail, PlayerStat } from "@/app/dashboard/matches/[id]/page";
 import { playerPositionLabels } from "@/lib/player-positions";
 
@@ -28,6 +28,13 @@ interface ConfirmedPlayerOption {
   photoUrl: string | null;
 }
 
+interface SubstitutionItem {
+  playerOutId: string;
+  playerInId: string;
+  minute: string;
+  reason: string;
+}
+
 interface EvaluationState {
   playerId?: string | null;
   guestPlayerId?: string | null;
@@ -43,19 +50,30 @@ interface MatchCoachReportTabProps {
   fetchMatch: () => void;
 }
 
-const FORMATIONS = [
-  "4-3-3",
-  "4-4-2",
-  "4-2-3-1",
-  "3-5-2",
-  "3-4-3",
-  "4-1-4-1",
-  "5-3-2",
-  "Fut7 (2-3-1)",
-  "Fut7 (3-2-1)",
-  "Fut7 (2-2-2)",
-  "Fut6 (2-2-1)",
-  "Futsal (1-2-1)",
+const FORMATIONS_FUT11 = [
+  "4-3-3 (Ofensivo / Triângulo no Meio)",
+  "4-3-3 (Defensivo / 1 Volante e 2 Meias)",
+  "4-3-3 (Falso 9)",
+  "4-4-2 (Linhas Paralelas)",
+  "4-4-2 (Losango / Diamante Central)",
+  "4-2-3-1 (Padrão com Pontas)",
+  "4-2-3-1 (Aberto)",
+  "3-5-2 (Com Alas Agressivos)",
+  "3-4-3 (Tripla de Ataque)",
+  "4-1-4-1 (Pressão Alta)",
+  "4-5-1 (Contenção / Tranca)",
+  "5-3-2 (Bloco Baixo / Contra-Ataque)",
+  "5-4-1 (Linha Quinquenal)",
+  "3-4-1-2 (Meia Clássico)",
+  "4-3-2-1 (Árvore de Natal)",
+  "Fut7 (2-3-1 Padrão)",
+  "Fut7 (3-2-1 Pirâmide)",
+  "Fut7 (2-2-2 Quadrado)",
+  "Fut7 (1-4-1 Ofensivo)",
+  "Fut6 (2-2-1 Socca)",
+  "Futsal (1-2-1 Pivô Clássico)",
+  "Futsal (2-2 Quadra)",
+  "Futsal (3-0 Com 3 Fixos)",
 ];
 
 export function MatchCoachReportTab({
@@ -69,8 +87,10 @@ export function MatchCoachReportTab({
   const [confirmedPlayers, setConfirmedPlayers] = useState<ConfirmedPlayerOption[]>([]);
 
   const [selectedCoachId, setSelectedCoachId] = useState<string>(match.coachPlayerId || "");
-  const [formation, setFormation] = useState<string>("4-3-3");
+  const [formation, setFormation] = useState<string>("4-3-3 (Ofensivo / Triângulo no Meio)");
   const [starterPlayerIds, setStarterPlayerIds] = useState<string[]>([]);
+  const [substitutions, setSubstitutions] = useState<SubstitutionItem[]>([]);
+
   const [summary, setSummary] = useState<string>("");
   const [startingStrategy, setStartingStrategy] = useState<string>("");
   const [substitutionsNotes, setSubstitutionsNotes] = useState<string>("");
@@ -116,8 +136,9 @@ export function MatchCoachReportTab({
         if (data.coachPlayerId) {
           setSelectedCoachId(data.coachPlayerId);
         }
-        setFormation(data.formation || "4-3-3");
+        setFormation(data.formation || "4-3-3 (Ofensivo / Triângulo no Meio)");
         setStarterPlayerIds(data.starterPlayerIds || []);
+        setSubstitutions(data.substitutions || []);
         setConfirmedPlayers(data.confirmedPlayers || []);
         setSummary(data.summary || "");
         setStartingStrategy(data.startingStrategy || "");
@@ -207,6 +228,40 @@ export function MatchCoachReportTab({
     );
   };
 
+  const addSubstitutionRow = () => {
+    // Candidates to exit (titulares)
+    const starterOptions = confirmedPlayers.filter((p) => starterPlayerIds.includes(p.id));
+    // Candidates to enter (reservas/banco)
+    const reserveOptions = confirmedPlayers.filter((p) => !starterPlayerIds.includes(p.id));
+
+    if (starterOptions.length === 0 || reserveOptions.length === 0) {
+      alert("Para registrar uma substituição, é necessário selecionar os Titulares primeiro!");
+      return;
+    }
+
+    setSubstitutions((prev) => [
+      ...prev,
+      {
+        playerOutId: starterOptions[0].id,
+        playerInId: reserveOptions[0].id,
+        minute: "15' 2ºT",
+        reason: "",
+      },
+    ]);
+  };
+
+  const updateSubstitutionRow = (index: number, field: keyof SubstitutionItem, value: string) => {
+    setSubstitutions((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+  };
+
+  const removeSubstitutionRow = (index: number) => {
+    setSubstitutions((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleRatingChange = (key: string, rating: number) => {
     setEvaluations((prev) => ({
       ...prev,
@@ -242,6 +297,7 @@ export function MatchCoachReportTab({
           summary,
           formation,
           starterPlayerIds,
+          substitutions,
           startingStrategy,
           substitutionsNotes,
           strengths,
@@ -254,7 +310,7 @@ export function MatchCoachReportTab({
       const data = await res.json();
 
       if (res.ok) {
-        setFeedbackMsg("Relatório tático e escalação titular salvos com sucesso!");
+        setFeedbackMsg("Relatório tático, escalação e substituições salvos com sucesso!");
         fetchMatch();
         loadReport();
         setTimeout(() => setFeedbackMsg(null), 3000);
@@ -294,6 +350,11 @@ export function MatchCoachReportTab({
 
   const assignedCoach = activePlayers.find((p) => p.id === selectedCoachId) || match.coachPlayer;
   const starterPlayers = confirmedPlayers.filter((p) => starterPlayerIds.includes(p.id));
+  const reservePlayers = confirmedPlayers.filter((p) => !starterPlayerIds.includes(p.id));
+
+  // Automatic match stats analysis (Pulling empirical data!)
+  const topScorer = [...match.stats].sort((a, b) => b.goals - a.goals)[0];
+  const topAssister = [...match.stats].sort((a, b) => b.assists - a.assists)[0];
 
   return (
     <div className="space-y-6">
@@ -318,7 +379,7 @@ export function MatchCoachReportTab({
               <div>
                 <h2 className="text-lg font-black text-[var(--text)]">Relatório Tático & Pós-Jogo do Treinador</h2>
                 <p className="text-xs text-[var(--text-subtle)]">
-                  Definição dos titulares, esquema tático, substituições e notas técnicas.
+                  Definição dos titulares, esquemas táticos, registro de substituições e notas técnicas.
                 </p>
               </div>
             </div>
@@ -373,6 +434,33 @@ export function MatchCoachReportTab({
             </div>
           )}
 
+          {/* Destaques da Partida Automáticos (Dados Puxados) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl border border-white/10 bg-white/[0.02]">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">
+                ⚽
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-[#8fa39b] uppercase block">Destaque de Gols</span>
+                <span className="text-xs font-black text-white">
+                  {topScorer && topScorer.goals > 0 ? `${topScorer.playerName} (${topScorer.goals} gols)` : "Nenhum gol registrado"}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold">
+                🅰️
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-[#8fa39b] uppercase block">Destaque de Assistências</span>
+                <span className="text-xs font-black text-white">
+                  {topAssister && topAssister.assists > 0 ? `${topAssister.playerName} (${topAssister.assists} assist)` : "Nenhuma assistência registrada"}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Feedback & Error messages */}
           {feedbackMsg && (
             <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-xs font-bold text-emerald-400">
@@ -401,7 +489,7 @@ export function MatchCoachReportTab({
                     onChange={(e) => setFormation(e.target.value)}
                     className="rounded-xl border border-white/10 bg-[#16130f] px-3 py-1 text-xs font-bold text-emerald-400 outline-none focus:border-[#36c2a8]"
                   >
-                    {FORMATIONS.map((fmt) => (
+                    {FORMATIONS_FUT11.map((fmt) => (
                       <option key={fmt} value={fmt}>
                         {fmt}
                       </option>
@@ -495,7 +583,7 @@ export function MatchCoachReportTab({
               </div>
             )}
 
-            {/* Observações da Ideia de Jogo Inicial (Opcional) */}
+            {/* Motivação Tática Inicial */}
             <div>
               <label className="block text-[11px] font-bold text-[#8fa39b] mb-1">
                 Motivação Tática & Ideia de Jogo Inicial (Opcional):
@@ -518,24 +606,146 @@ export function MatchCoachReportTab({
             </div>
           </div>
 
-          {/* ── SEÇÃO 2: SUBSTITUIÇÕES REALIZADAS & LEITURA DE JOGO ───── */}
-          <div className="space-y-2 pt-2 border-t border-white/5">
-            <label className="block text-xs font-bold text-[#6ee7b7] flex items-center gap-1.5">
-              <Activity className="h-4 w-4" /> 2. Substituições Realizadas & Pensamento Tático:
-            </label>
+          {/* ── SEÇÃO 2: GERENCIADOR PRÁTICO DE SUBSTITUIÇÕES ─────────── */}
+          <div className="space-y-3 pt-2 border-t border-white/5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-[#6ee7b7] flex items-center gap-1.5">
+                <ArrowRightLeft className="h-4 w-4" /> 2. Registro Prático de Substituições Realizadas:
+              </label>
+
+              {canEdit && (
+                <Button
+                  onClick={addSubstitutionRow}
+                  className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs px-3 py-1 h-auto"
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Add Substituição
+                </Button>
+              )}
+            </div>
+
             {canEdit ? (
-              <textarea
-                value={substitutionsNotes}
-                onChange={(e) => setSubstitutionsNotes(e.target.value)}
-                placeholder="Registre as substituições feitas na partida (ex: 'Aos 15 min do 2ºT: Saiu Fulano / Entrou Ciclano para dar mais velocidade pela ponta'). Explique o que pensava no momento da alteração..."
-                rows={3}
-                className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-white placeholder:text-white/30 outline-none focus:border-[#36c2a8]"
-              />
+              <div className="space-y-3">
+                {substitutions.length === 0 ? (
+                  <p className="text-xs text-[var(--text-subtle)] italic py-2">
+                    Nenhuma substituição cadastrada. Clique no botão acima para adicionar as trocas feitas no jogo.
+                  </p>
+                ) : (
+                  substitutions.map((sub, idx) => {
+                    const starterOptions = confirmedPlayers.filter((p) => starterPlayerIds.includes(p.id));
+                    const reserveOptions = confirmedPlayers.filter((p) => !starterPlayerIds.includes(p.id));
+
+                    return (
+                      <div key={idx} className="p-3 rounded-xl border border-white/10 bg-black/40 space-y-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <div>
+                            <label className="text-[10px] font-bold text-red-400 block mb-0.5">🔴 Saiu (Titular):</label>
+                            <select
+                              value={sub.playerOutId}
+                              onChange={(e) => updateSubstitutionRow(idx, "playerOutId", e.target.value)}
+                              className="w-full rounded-lg border border-white/10 bg-[#16130f] px-2.5 py-1 text-xs font-bold text-white outline-none"
+                            >
+                              {starterOptions.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  #{p.shirtNumber} - {p.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-emerald-400 block mb-0.5">🟢 Entrou (Reserva):</label>
+                            <select
+                              value={sub.playerInId}
+                              onChange={(e) => updateSubstitutionRow(idx, "playerInId", e.target.value)}
+                              className="w-full rounded-lg border border-white/10 bg-[#16130f] px-2.5 py-1 text-xs font-bold text-white outline-none"
+                            >
+                              {reserveOptions.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  #{p.shirtNumber} - {p.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-[#8fa39b] block mb-0.5">⏱️ Minuto / Tempo:</label>
+                            <input
+                              type="text"
+                              value={sub.minute}
+                              onChange={(e) => updateSubstitutionRow(idx, "minute", e.target.value)}
+                              placeholder="ex: 15' 2ºT"
+                              className="w-full rounded-lg border border-white/10 bg-[#16130f] px-2.5 py-1 text-xs text-white outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={sub.reason}
+                            onChange={(e) => updateSubstitutionRow(idx, "reason", e.target.value)}
+                            placeholder="Motivo tático / justificativa da troca (ex: Cansaço / Dar mais velocidade pela ponta)..."
+                            className="flex-1 rounded-lg border border-white/10 bg-[#16130f] px-2.5 py-1 text-xs text-white outline-none"
+                          />
+                          <button
+                            onClick={() => removeSubstitutionRow(idx)}
+                            className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             ) : (
-              <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] text-xs text-[var(--text)] leading-relaxed whitespace-pre-line">
-                {substitutionsNotes || "Nenhuma leitura de substituição registrada pelo treinador."}
+              /* Modo de Leitura das Substituições */
+              <div className="space-y-2">
+                {substitutions.length === 0 ? (
+                  <p className="text-xs text-[var(--text-subtle)] italic">Nenhuma substituição cadastrada nesta partida.</p>
+                ) : (
+                  substitutions.map((sub, idx) => {
+                    const playerOut = confirmedPlayers.find((p) => p.id === sub.playerOutId);
+                    const playerIn = confirmedPlayers.find((p) => p.id === sub.playerInId);
+
+                    return (
+                      <div key={idx} className="p-3 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-amber-400 shrink-0">⏱️ {sub.minute || "Troca"}</span>
+                          <span className="text-red-400 font-bold">🔴 Saiu: #{playerOut?.shirtNumber || 0} {playerOut?.name || "Atleta"}</span>
+                          <span className="text-white">➔</span>
+                          <span className="text-emerald-400 font-bold">🟢 Entrou: #{playerIn?.shirtNumber || 0} {playerIn?.name || "Atleta"}</span>
+                        </div>
+                        {sub.reason && <span className="text-[#8fa39b] italic">"{sub.reason}"</span>}
+                      </div>
+                    );
+                  })
+                )}
               </div>
             )}
+
+            {/* Observações Gerais de Substituições */}
+            <div>
+              <label className="block text-[11px] font-bold text-[#8fa39b] mb-1">
+                Observações Adicionais sobre as Substituições:
+              </label>
+              {canEdit ? (
+                <textarea
+                  value={substitutionsNotes}
+                  onChange={(e) => setSubstitutionsNotes(e.target.value)}
+                  placeholder="Considerações gerais do treinador sobre as alterações..."
+                  rows={2}
+                  className="w-full rounded-xl border border-white/10 bg-black/40 p-2.5 text-xs text-white placeholder:text-white/30 outline-none focus:border-[#36c2a8]"
+                />
+              ) : (
+                substitutionsNotes && (
+                  <div className="p-3 rounded-xl border border-white/5 bg-white/[0.02] text-xs text-[var(--text)] whitespace-pre-line">
+                    {substitutionsNotes}
+                  </div>
+                )
+              )}
+            </div>
           </div>
 
           {/* ── SEÇÃO 3: PONTOS FORTES & ASPECTOS A EVOLUIR ──────────── */}

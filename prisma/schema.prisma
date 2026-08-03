@@ -1173,6 +1173,7 @@ model MatchCoachReport {
   summary            String?                 @db.Text
   formation          String?
   starterPlayerIds   Json?
+  substitutions      Json?
   startingStrategy   String?                 @db.Text
   substitutionsNotes String?                 @db.Text
   strengths          String?                 @db.Text

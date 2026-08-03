@@ -13,6 +13,14 @@ const coachReportSchema = z.object({
   summary: z.string().optional().nullable(),
   formation: z.string().optional().nullable(),
   starterPlayerIds: z.array(z.string()).optional().default([]),
+  substitutions: z.array(
+    z.object({
+      playerOutId: z.string(),
+      playerInId: z.string(),
+      minute: z.string().optional().default(""),
+      reason: z.string().optional().default(""),
+    })
+  ).optional().default([]),
   startingStrategy: z.string().optional().nullable(),
   substitutionsNotes: z.string().optional().nullable(),
   strengths: z.string().optional().nullable(),
@@ -165,8 +173,9 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
     coachPlayerId: match.coachPlayerId || match.coachReport?.coachPlayerId || null,
     coachPlayer: match.coachPlayer || match.coachReport?.coachPlayer || null,
     summary: match.coachReport?.summary || "",
-    formation: match.coachReport?.formation || "4-3-3",
+    formation: match.coachReport?.formation || "4-3-3 (Ofensivo)",
     starterPlayerIds: (match.coachReport?.starterPlayerIds as string[]) || [],
+    substitutions: (match.coachReport?.substitutions as any[]) || [],
     startingStrategy: match.coachReport?.startingStrategy || "",
     substitutionsNotes: match.coachReport?.substitutionsNotes || "",
     strengths: match.coachReport?.strengths || "",
@@ -237,7 +246,7 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
     );
   }
 
-  const { summary, formation, starterPlayerIds, startingStrategy, substitutionsNotes, strengths, improvements, status, evaluations } = parsed.data;
+  const { summary, formation, starterPlayerIds, substitutions, startingStrategy, substitutionsNotes, strengths, improvements, status, evaluations } = parsed.data;
 
   // Upsert MatchCoachReport
   const report = await prisma.matchCoachReport.upsert({
@@ -245,8 +254,9 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
     update: {
       coachPlayerId: match.coachPlayerId,
       summary: summary ?? "",
-      formation: formation ?? "4-3-3",
+      formation: formation ?? "4-3-3 (Ofensivo)",
       starterPlayerIds: starterPlayerIds ?? [],
+      substitutions: substitutions ?? [],
       startingStrategy: startingStrategy ?? "",
       substitutionsNotes: substitutionsNotes ?? "",
       strengths: strengths ?? "",
@@ -257,8 +267,9 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
       matchId,
       coachPlayerId: match.coachPlayerId || null,
       summary: summary ?? "",
-      formation: formation ?? "4-3-3",
+      formation: formation ?? "4-3-3 (Ofensivo)",
       starterPlayerIds: starterPlayerIds ?? [],
+      substitutions: substitutions ?? [],
       startingStrategy: startingStrategy ?? "",
       substitutionsNotes: substitutionsNotes ?? "",
       strengths: strengths ?? "",
