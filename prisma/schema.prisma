@@ -290,6 +290,9 @@ model Player {
   rsvpStatusLogs RSVPStatusLog[]
   votesGiven    MatchVote[] @relation("votesGiven")
   votesReceived MatchVote[] @relation("votesReceived")
+  coachedMatches Match[] @relation("MatchCoach")
+  coachReports   MatchCoachReport[] @relation("CoachPlayer")
+  coachEvaluations MatchCoachEvaluation[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -358,11 +361,15 @@ model Match {
   suspensions  Fine[]      @relation("MatchSuspensions")
   rsvpStatusLogs RSVPStatusLog[]
   votes        MatchVote[]
+  coachPlayerId String?
+  coachPlayer   Player?                 @relation("MatchCoach", fields: [coachPlayerId], references: [id], onDelete: SetNull)
+  coachReport   MatchCoachReport?
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
   @@index([teamId])
   @@index([seasonId])
+  @@index([coachPlayerId])
   @@index([teamId, status])
   @@index([teamId, date])
   @@map("matches")
@@ -1051,6 +1058,7 @@ model GuestPlayer {
   matchStats  MatchStats[]
   lineupSelections MatchLineupSelection[]
   receivedRatings MatchPlayerRating[]
+  coachEvaluations MatchCoachEvaluation[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
@@ -1153,3 +1161,42 @@ model NotificationPreference {
   @@index([userId])
   @@map("notification_preferences")
 }
+
+// ─── Relatório do Treinador & Avaliações ───────────────────────────
+
+model MatchCoachReport {
+  id            String                  @id @default(cuid())
+  matchId       String                  @unique
+  match         Match                   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  coachPlayerId String?
+  coachPlayer   Player?                 @relation("CoachPlayer", fields: [coachPlayerId], references: [id], onDelete: SetNull)
+  summary       String?                 @db.Text
+  evaluations   MatchCoachEvaluation[]
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  @@index([coachPlayerId])
+  @@map("match_coach_reports")
+}
+
+model MatchCoachEvaluation {
+  id            String            @id @default(cuid())
+  reportId      String
+  report        MatchCoachReport  @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  playerId      String?
+  player        Player?           @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  guestPlayerId String?
+  guestPlayer   GuestPlayer?      @relation(fields: [guestPlayerId], references: [id], onDelete: Cascade)
+  rating        Int               @default(5) // 1 a 10
+  feedback      String?           @db.Text
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([reportId, playerId])
+  @@unique([reportId, guestPlayerId])
+  @@index([reportId])
+  @@index([playerId])
+  @@index([guestPlayerId])
+  @@map("match_coach_evaluations")
+}
+

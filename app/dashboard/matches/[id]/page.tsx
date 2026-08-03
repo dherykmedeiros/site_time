@@ -78,6 +78,8 @@ export interface MatchDetail {
   hasCharge: boolean;
   chargeAmount: number | null;
   requiresDocumentDetails?: boolean;
+  coachPlayerId?: string | null;
+  coachPlayer?: { id: string; name: string; fullName?: string | null; photoUrl?: string | null; position?: string; shirtNumber?: number } | null;
   pixKey: string | null;
   season?: { id: string; name: string; type: string; status: string } | null;
   positionLimits?: Array<{ position: string; maxPlayers: number }>;

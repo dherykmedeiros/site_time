@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Star, Trophy, Eye, CheckCircle2, AlertCircle, XCircle } from "lucide-react";
 import { TeamRecapWidget } from "@/components/dashboard/TeamRecapWidget";
+import { MatchCoachReportTab } from "@/components/matches/MatchCoachReportTab";
 import type { MatchDetail, PlayerStat } from "@/app/dashboard/matches/[id]/page";
 
 const PostGameForm = dynamic(
@@ -341,68 +342,15 @@ export function MatchRatingTab({
         </Card>
       )}
 
-      {/* Teammate Ratings Card */}
-      {match.status === "COMPLETED" && match.stats.length > 0 && (
-        <Card className="rounded-[22px] border border-white/5 bg-white/[0.02] backdrop-blur-md overflow-hidden">
-          <CardHeader className="border-b border-white/5 pb-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div>
-                <h2 className="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
-                  <span className="text-[#34d399]">⭐</span> Avaliação dos Companheiros
-                </h2>
-                <p className="text-xs text-[#8fa39b] mt-1">
-                  Atribua notas de 1 a 5 estrelas para os atletas que participaram desta partida.
-                </p>
-              </div>
-              {!canRate && (
-                <span className="rounded-full bg-red-500/10 border border-red-500/20 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-red-400">
-                  Somente Participantes
-                </span>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            {!canRate && (
-              <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.01] p-4 text-center">
-                <p className="text-sm font-semibold text-white/80">Avaliação Restrita</p>
-                <p className="text-xs text-[#8fa39b] mt-1">
-                  Apenas os administradores, comissão técnica ou jogadores que participaram da partida (súmula ou presença confirmada) podem avaliar o time.
-                </p>
-              </div>
-            )}
-            
-            {ratingsLoading ? (
-              <div className="space-y-3 py-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-16 animate-pulse rounded-xl border border-white/5 bg-white/[0.01]" />
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {match.stats.map((stat) => {
-                  const userRating = userRatings.find((r) => r.playerId === stat.playerId)?.stars ?? null;
-                  const avgData = ratingsAverages.find((r) => r.playerId === stat.playerId);
-                  const averageRating = avgData?.averageStars ?? 0;
-                  const totalRatings = avgData?.totalRatings ?? 0;
-
-                  return (
-                    <TeammateRatingRow
-                      key={stat.playerId}
-                      player={stat}
-                      currentUserPlayerId={currentUserId}
-                      userRating={userRating}
-                      averageRating={averageRating}
-                      totalRatings={totalRatings}
-                      canRate={canRate}
-                      onRate={(stars) => handleRateTeammate(stat.playerId, stars)}
-                      isSubmitting={submittingRatingId === stat.playerId}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Relatório do Treinador & Avaliações Individuais */}
+      {match.status === "COMPLETED" && (
+        <MatchCoachReportTab
+          match={match}
+          isCoachOrAdmin={isAdmin}
+          currentUserId={currentUserId}
+          currentUserPlayerId={session?.user?.playerId ?? null}
+          fetchMatch={fetchMatch}
+        />
       )}
 
       {/* Recap Card */}
