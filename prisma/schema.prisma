@@ -260,6 +260,7 @@ model Player {
   id           String         @id @default(cuid())
   name         String
   fullName     String?
+  cpf          String?
   position          PlayerPosition
   secondaryPosition PlayerPosition?
   shirtNumber  Int
@@ -343,6 +344,7 @@ model Match {
   achievements Achievement[]
   hasCharge    Boolean     @default(false)
   chargeAmount Decimal?    @db.Decimal(10, 2)
+  requiresDocumentDetails Boolean @default(false)
   pixKey       String?
   latitude     Float?
   longitude    Float?

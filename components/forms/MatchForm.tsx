@@ -165,6 +165,7 @@ interface SavedVenue {
       homeScore: defaultValues?.homeScore !== null ? defaultValues?.homeScore : undefined,
       awayScore: defaultValues?.awayScore !== null ? defaultValues?.awayScore : undefined,
       pixKey: defaultValues?.pixKey || "",
+      requiresDocumentDetails: defaultValues?.requiresDocumentDetails ?? false,
       mapsUrl: (defaultValues?.latitude !== undefined && defaultValues?.latitude !== null &&
                 defaultValues?.longitude !== undefined && defaultValues?.longitude !== null)
         ? `https://www.google.com/maps/search/?api=1&query=${defaultValues.latitude},${defaultValues.longitude}`
@@ -650,6 +651,24 @@ interface SavedVenue {
         error={errors.pixKey?.message}
         {...register("pixKey")}
       />
+
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-2">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 rounded border-white/20 bg-[#16130f] text-emerald-500 focus:ring-emerald-500"
+            {...register("requiresDocumentDetails")}
+          />
+          <div>
+            <span className="text-sm font-bold text-white">
+              📋 Exigir Nome Completo e CPF na Confirmação de Presença
+            </span>
+            <p className="text-xs text-[#8fa39b] mt-0.5 leading-relaxed">
+              Exige que o atleta informe seu Nome Completo e CPF caso ainda não os tenha cadastrados para gerar a lista oficial de documentos.
+            </p>
+          </div>
+        </label>
+      </div>
 
       {seasons.length > 0 && (
         <div>

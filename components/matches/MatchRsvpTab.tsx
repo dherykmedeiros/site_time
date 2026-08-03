@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { AlertCircle, MapPin, CheckCircle2 } from "lucide-react";
 import { GuestPlayersManager } from "@/components/dashboard/GuestPlayersManager";
+import { DocumentPromptModal } from "@/components/matches/DocumentPromptModal";
 import type { MatchDetail } from "@/app/dashboard/matches/[id]/page";
 
 interface MatchRsvpTabProps {
@@ -13,7 +14,7 @@ interface MatchRsvpTabProps {
   currentUserId: string | null;
   isCoachOrAdmin: boolean;
   rsvpLoading: boolean;
-  handleRsvp: (status: "CONFIRMED" | "DECLINED") => void;
+  handleRsvp: (status: "CONFIRMED" | "DECLINED", docDetails?: { fullName?: string; cpf?: string }) => void;
   setMatch: React.Dispatch<React.SetStateAction<MatchDetail | null>>;
   fetchMatch: () => void;
   isCheckInOpen: boolean;
@@ -50,6 +51,7 @@ export function MatchRsvpTab({
   handleCheckIn,
 }: MatchRsvpTabProps) {
   const [summonLoadingId, setSummonLoadingId] = useState<string | null>(null);
+  const [showDocModal, setShowDocModal] = useState(false);
 
   const confirmed = match.rsvps.filter((r) => r.status === "CONFIRMED").length;
   const declined = match.rsvps.filter((r) => r.status === "DECLINED").length;
@@ -163,7 +165,13 @@ export function MatchRsvpTab({
               {isSummoned ? (
                 <div className="flex gap-3">
                   <Button
-                    onClick={() => handleRsvp("CONFIRMED")}
+                    onClick={() => {
+                      if (match.requiresDocumentDetails) {
+                        setShowDocModal(true);
+                      } else {
+                        handleRsvp("CONFIRMED");
+                      }
+                    }}
                     disabled={rsvpLoading}
                     className={loggedInPlayerRsvp?.status === "CONFIRMED" ? "bg-green-600 text-white" : ""}
                   >
@@ -313,6 +321,14 @@ export function MatchRsvpTab({
           </CardContent>
         </Card>
       )}
+      {/* Modal de Documentos */}
+      <DocumentPromptModal
+        open={showDocModal}
+        onClose={() => setShowDocModal(false)}
+        onConfirm={async (fullName, cpf) => {
+          await handleRsvp("CONFIRMED", { fullName, cpf });
+        }}
+      />
     </div>
   );
 }

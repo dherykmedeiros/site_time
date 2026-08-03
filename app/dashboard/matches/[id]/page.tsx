@@ -788,13 +788,13 @@ export default function MatchDetailPage() {
     }
   }
 
-  async function handleRsvp(status: "CONFIRMED" | "DECLINED") {
+  async function handleRsvp(status: "CONFIRMED" | "DECLINED", docDetails?: { fullName?: string; cpf?: string }) {
     setRsvpLoading(true);
     try {
       const res = await fetch(`/api/matches/${id}/rsvp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, ...docDetails }),
       });
       if (res.ok) {
         fetchMatch();

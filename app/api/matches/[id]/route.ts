@@ -400,6 +400,7 @@ export const PATCH = withErrorHandler(async (request: Request, { params }: Route
   if (data.awayScore !== undefined) updateData.awayScore = data.awayScore;
   if (data.status) updateData.status = data.status;
   if (data.pixKey !== undefined) updateData.pixKey = data.pixKey;
+  if (data.requiresDocumentDetails !== undefined) updateData.requiresDocumentDetails = data.requiresDocumentDetails;
   
   if (data.mapsUrl !== undefined) {
     if (data.mapsUrl === null || data.mapsUrl === "") {

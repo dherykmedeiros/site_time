@@ -49,7 +49,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   // Check player is active
   const player = await prisma.player.findUnique({
     where: { id: user.playerId },
-    select: { id: true, status: true, teamId: true, position: true, name: true },
+    select: { id: true, status: true, teamId: true, position: true, name: true, fullName: true, cpf: true },
   });
 
   if (!player || player.status !== "ACTIVE") {
@@ -148,6 +148,40 @@ export async function POST(request: Request, { params }: RouteParams) {
   }
 
   const { status } = parsed.data;
+
+  const bodyObj = (body && typeof body === "object" ? body : {}) as Record<string, any>;
+  const reqFullName = typeof bodyObj.fullName === "string" ? bodyObj.fullName.trim() : "";
+  const reqCpf = typeof bodyObj.cpf === "string" ? bodyObj.cpf.trim() : "";
+
+  // Check document details if match requires it
+  if (match.requiresDocumentDetails && status === "CONFIRMED") {
+    const finalFullName = reqFullName || player.fullName;
+    const finalCpf = reqCpf || player.cpf;
+
+    if (!finalFullName || !finalCpf) {
+      return NextResponse.json(
+        {
+          error: "Esta partida exige a confirmação do Nome Completo e CPF para presença.",
+          code: "DOCUMENT_REQUIRED",
+          requiresDocument: true,
+          currentFullName: player.fullName || "",
+          currentCpf: player.cpf || "",
+        },
+        { status: 400 }
+      );
+    }
+  }
+
+  // Update player fullName and CPF if provided
+  if (reqFullName || reqCpf) {
+    await prisma.player.update({
+      where: { id: player.id },
+      data: {
+        ...(reqFullName && { fullName: reqFullName }),
+        ...(reqCpf && { cpf: reqCpf }),
+      },
+    });
+  }
 
   // Check if player has an active suspension for this match
   const activeSuspension = await prisma.fine.findFirst({

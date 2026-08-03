@@ -242,6 +242,7 @@ export const POST = withErrorHandler(async (request: Request) => {
         pixKey: pixKey || null,
         latitude: finalLat,
         longitude: finalLon,
+        requiresDocumentDetails: parsed.data.requiresDocumentDetails ?? false,
         ...(seasonId && { seasonId }),
       },
     });
