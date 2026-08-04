@@ -5,6 +5,7 @@ import { rsvpResponseSchema } from "@/lib/validations/match";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
 import { trackOperationalEvent } from "@/lib/telemetry";
+import { syncMissingRSVPsForTeam } from "@/lib/match-rsvp-sync";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -32,6 +33,8 @@ export async function POST(request: Request, { params }: RouteParams) {
       { status: 403 }
     );
   }
+
+  await syncMissingRSVPsForTeam(session.user.teamId);
 
   // Find the player linked to this user
   const user = await prisma.user.findUnique({
@@ -107,14 +110,6 @@ export async function POST(request: Request, { params }: RouteParams) {
         { status: 403 }
       );
     }
-  }
-
-  // Check match hasn't passed (FR-013)
-  if (match.date <= new Date()) {
-    return NextResponse.json(
-      { error: "Partida já ocorreu", code: "MATCH_ALREADY_PAST" },
-      { status: 400 }
-    );
   }
 
   // Check match is SCHEDULED
@@ -270,6 +265,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       matchId,
       status,
       respondedAt: new Date(),
+      summoned: match.type === "FRIENDLY",
     },
   });
 

@@ -7,6 +7,7 @@ import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
 import { withErrorHandler } from "@/lib/api-handler";
 import { resolveGoogleMapsUrl, extractCoordsFromGoogleMaps } from "@/lib/utils";
+import { syncMissingRSVPsForTeam } from "@/lib/match-rsvp-sync";
 
 
 interface RouteParams {
@@ -26,6 +27,8 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
       { status: 404 }
     );
   }
+
+  await syncMissingRSVPsForTeam(session.user.teamId);
 
   const match = await prisma.match.findFirst({
     where: { id, teamId: session.user.teamId },

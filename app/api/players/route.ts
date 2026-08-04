@@ -5,6 +5,7 @@ import { createPlayerSchema } from "@/lib/validations/player";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
 import { logActivity } from "@/lib/activity-logger";
+import { syncMissingRSVPsForTeam } from "@/lib/match-rsvp-sync";
 
 // GET /api/players — List players for the team
 export async function GET(request: Request) {
@@ -144,29 +145,10 @@ export async function POST(request: Request) {
     { playerId: player.id }
   );
 
-  // Auto-create PENDING RSVPs for all future SCHEDULED matches
+  // Auto-create PENDING RSVPs for all SCHEDULED matches
   // so the new player appears without needing to recreate the game
   if (status === "ACTIVE") {
-    const futureMatches = await prisma.match.findMany({
-      where: {
-        teamId: session.user.teamId,
-        status: "SCHEDULED",
-        date: { gte: new Date() },
-      },
-      select: { id: true, type: true },
-    });
-
-    if (futureMatches.length > 0) {
-      await prisma.rSVP.createMany({
-        data: futureMatches.map((match) => ({
-          playerId: player.id,
-          matchId: match.id,
-          status: "PENDING" as const,
-          summoned: match.type === "FRIENDLY",
-        })),
-        skipDuplicates: true,
-      });
-    }
+    await syncMissingRSVPsForTeam(session.user.teamId);
   }
 
   return NextResponse.json(

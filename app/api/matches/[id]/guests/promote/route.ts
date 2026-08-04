@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
 import { PlayerPosition } from "@prisma/client";
+import { syncMissingRSVPsForTeam } from "@/lib/match-rsvp-sync";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -147,6 +148,10 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     return player;
   });
+
+  if (session.user.teamId) {
+    await syncMissingRSVPsForTeam(session.user.teamId);
+  }
 
   return NextResponse.json({
     message: `Jogador convidado ${guest.name} promovido a oficial com sucesso!`,

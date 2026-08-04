@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { registerFromInviteSchema } from "@/lib/validations/auth";
 import { rateLimitRegister } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
+import { syncMissingRSVPsForTeam } from "@/lib/match-rsvp-sync";
 
 // POST /api/auth/register-from-invite — Create account from invite token
 export async function POST(request: Request) {
@@ -124,6 +125,10 @@ export async function POST(request: Request) {
 
         return updatedUser;
       });
+
+      if (linkedUser.teamId) {
+        await syncMissingRSVPsForTeam(linkedUser.teamId);
+      }
     } catch (err) {
       if (err instanceof Error && err.message === "TOKEN_ALREADY_USED") {
         return NextResponse.json(
@@ -178,6 +183,10 @@ export async function POST(request: Request) {
 
       return newUser;
     });
+
+    if (user.teamId) {
+      await syncMissingRSVPsForTeam(user.teamId);
+    }
 
     return NextResponse.json(
       {
