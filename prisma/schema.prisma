@@ -1048,6 +1048,7 @@ model MatchLiveEvent {
 model GuestPlayer {
   id          String           @id @default(cuid())
   name        String
+  cpf         String?
   shirtNumber Int?
   position    PlayerPosition?
   matchId     String

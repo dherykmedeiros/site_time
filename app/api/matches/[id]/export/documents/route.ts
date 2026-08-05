@@ -52,6 +52,9 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
           player: { shirtNumber: "asc" },
         },
       },
+      guestPlayers: {
+        orderBy: { name: "asc" },
+      },
     },
   });
 
@@ -69,7 +72,7 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
     "Telefone",
   ];
 
-  const rows = match.rsvps.map((r) => {
+  const playerRows = match.rsvps.map((r) => {
     const posLabel = playerPositionLabels[r.player.position as keyof typeof playerPositionLabels] || r.player.position;
 
     return [
@@ -82,6 +85,22 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
       r.player.phone || "-",
     ];
   });
+
+  const guestRows = (match.guestPlayers || []).map((g) => {
+    const posLabel = g.position ? (playerPositionLabels[g.position as keyof typeof playerPositionLabels] || g.position) : "-";
+
+    return [
+      g.shirtNumber || "-",
+      `${g.name} (Convidado)`,
+      g.name,
+      g.cpf || "Não informado",
+      posLabel,
+      "Convidado",
+      "-",
+    ];
+  });
+
+  const rows = [...playerRows, ...guestRows];
 
   const filename = `lista_documentos_vs_${match.opponent.replace(/\s+/g, "_")}_${formatDateOnly(match.date).replace(/\//g, "-")}`;
   return createCsvResponse(filename, headers, rows);

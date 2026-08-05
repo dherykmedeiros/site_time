@@ -42,9 +42,11 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   return NextResponse.json({
     matchId,
+    requiresDocumentDetails: match.requiresDocumentDetails ?? false,
     guests: guests.map((g) => ({
       id: g.id,
       name: g.name,
+      cpf: g.cpf,
       shirtNumber: g.shirtNumber,
       position: g.position,
     })),
@@ -107,7 +109,21 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 
-  const { name, shirtNumber, position } = parsed.data;
+  const { name, cpf, shirtNumber, position } = parsed.data;
+
+  const cleanCpf = cpf ? cpf.replace(/\D/g, "") : "";
+
+  if (match.requiresDocumentDetails) {
+    if (!cleanCpf || cleanCpf.length !== 11) {
+      return NextResponse.json(
+        {
+          error: "Esta partida exige que o CPF do convidado seja informado (11 dígitos).",
+          code: "CPF_REQUIRED",
+        },
+        { status: 400 }
+      );
+    }
+  }
 
   // Check if guest with same name already exists in this match
   const existingGuest = await prisma.guestPlayer.findUnique({
@@ -154,6 +170,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   const guest = await prisma.guestPlayer.create({
     data: {
       name,
+      cpf: cleanCpf || cpf || null,
       shirtNumber,
       position,
       matchId,
@@ -167,6 +184,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       guest: {
         id: guest.id,
         name: guest.name,
+        cpf: guest.cpf,
         shirtNumber: guest.shirtNumber,
         position: guest.position,
       },

@@ -107,6 +107,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     const player = await tx.player.create({
       data: {
         name: guest.name,
+        cpf: guest.cpf || null,
         shirtNumber: finalShirtNumber,
         position: finalPosition,
         teamId: session.user.teamId!,

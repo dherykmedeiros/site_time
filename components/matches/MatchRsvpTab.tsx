@@ -355,7 +355,7 @@ export function MatchRsvpTab({
             <h2 className="text-lg font-semibold">Jogadores Convidados</h2>
           </CardHeader>
           <CardContent>
-            <GuestPlayersManager matchId={match.id} onGuestsChange={fetchMatch} />
+            <GuestPlayersManager matchId={match.id} requiresDocumentDetails={match.requiresDocumentDetails} onGuestsChange={fetchMatch} />
           </CardContent>
         </Card>
       )}

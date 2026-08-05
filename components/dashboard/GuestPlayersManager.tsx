@@ -12,23 +12,27 @@ import { Plus, Trash2, Users, UserPlus, X } from "lucide-react";
 interface GuestPlayer {
   id: string;
   name: string;
+  cpf?: string | null;
   shirtNumber: number | null;
   position: (typeof playerPositions)[number] | null;
 }
 
 interface GuestPlayersManagerProps {
   matchId: string;
+  requiresDocumentDetails?: boolean;
   onGuestsChange?: () => void;
 }
 
-export function GuestPlayersManager({ matchId, onGuestsChange }: GuestPlayersManagerProps) {
+export function GuestPlayersManager({ matchId, requiresDocumentDetails: propRequiresDoc, onGuestsChange }: GuestPlayersManagerProps) {
   const [guests, setGuests] = useState<GuestPlayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [requiresDocumentDetails, setRequiresDocumentDetails] = useState<boolean>(propRequiresDoc ?? false);
 
   // Form State for Adding Guest
   const [name, setName] = useState("");
+  const [cpf, setCpf] = useState("");
   const [shirtNumber, setShirtNumber] = useState("");
   const [position, setPosition] = useState<string>("");
 
@@ -42,6 +46,12 @@ export function GuestPlayersManager({ matchId, onGuestsChange }: GuestPlayersMan
     fetchGuests();
   }, [matchId]);
 
+  useEffect(() => {
+    if (propRequiresDoc !== undefined) {
+      setRequiresDocumentDetails(propRequiresDoc);
+    }
+  }, [propRequiresDoc]);
+
   async function fetchGuests() {
     setLoading(true);
     setError(null);
@@ -50,6 +60,9 @@ export function GuestPlayersManager({ matchId, onGuestsChange }: GuestPlayersMan
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro ao carregar convidados");
       setGuests(data.guests);
+      if (data.requiresDocumentDetails !== undefined) {
+        setRequiresDocumentDetails(data.requiresDocumentDetails);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -57,9 +70,30 @@ export function GuestPlayersManager({ matchId, onGuestsChange }: GuestPlayersMan
     }
   }
 
+  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, "");
+    if (value.length > 11) value = value.slice(0, 11);
+
+    if (value.length > 9) {
+      value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, "$1.$2.$3-$4");
+    } else if (value.length > 6) {
+      value = value.replace(/(\d{3})(\d{3})(\d{1,3})/, "$1.$2.$3");
+    } else if (value.length > 3) {
+      value = value.replace(/(\d{3})(\d{1,3})/, "$1.$2");
+    }
+
+    setCpf(value);
+  };
+
   async function handleAddGuest(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
+
+    const cleanCpf = cpf.replace(/\D/g, "");
+    if (requiresDocumentDetails && cleanCpf.length !== 11) {
+      setError("Esta partida exige um CPF válido com 11 dígitos para o convidado.");
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -69,6 +103,7 @@ export function GuestPlayersManager({ matchId, onGuestsChange }: GuestPlayersMan
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
+          cpf: cpf.trim() || null,
           shirtNumber: shirtNumber ? parseInt(shirtNumber, 10) : null,
           position: position || null,
         }),
@@ -79,6 +114,7 @@ export function GuestPlayersManager({ matchId, onGuestsChange }: GuestPlayersMan
 
       setGuests((prev) => [...prev, data.guest]);
       setName("");
+      setCpf("");
       setShirtNumber("");
       setPosition("");
       onGuestsChange?.();
@@ -208,11 +244,16 @@ export function GuestPlayersManager({ matchId, onGuestsChange }: GuestPlayersMan
                       </div>
                       <div>
                         <p className="font-semibold text-[var(--text)] text-sm">{guest.name}</p>
-                        {guest.position && (
-                          <span className="text-xs text-[var(--text-muted)]">
-                            {playerPositionLabels[guest.position]}
-                          </span>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
+                          {guest.position && (
+                            <span>{playerPositionLabels[guest.position]}</span>
+                          )}
+                          {guest.cpf && (
+                            <span className="font-mono text-[11px] bg-white/5 px-1.5 py-0.5 rounded text-[var(--text-subtle)]">
+                              CPF: {guest.cpf}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
@@ -323,6 +364,16 @@ export function GuestPlayersManager({ matchId, onGuestsChange }: GuestPlayersMan
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
+                    />
+                  </div>
+
+                  <div>
+                    <Input
+                      label={requiresDocumentDetails ? "CPF *" : "CPF (Opcional)"}
+                      placeholder="000.000.000-00"
+                      value={cpf}
+                      onChange={handleCpfChange}
+                      required={requiresDocumentDetails}
                     />
                   </div>
 
