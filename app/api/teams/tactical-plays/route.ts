@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { requireCoachOrAdmin } from "@/lib/auth";
+import { requireAuth, requireCoachOrAdmin } from "@/lib/auth";
 import { createTacticalPlay, listTacticalPlays } from "@/lib/tactical-plays";
 import { createTacticalPlaySchema } from "@/lib/validations/tactical-play";
 import { trackOperationalEvent } from "@/lib/telemetry";
 
 export async function GET(request: Request) {
-  const { session, error } = await requireCoachOrAdmin();
+  const { session, error } = await requireAuth();
   if (error) return error;
 
   const teamId = session.user.teamId;
