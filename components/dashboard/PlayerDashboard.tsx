@@ -88,10 +88,24 @@ export default function PlayerDashboard({
   };
 
   const handleRsvp = (status: "CONFIRMED" | "DECLINED" | "PENDING") => {
-    startTransition(() => {
-      // Simulação de action/fetch
-      setRsvpStatus(status);
-      toast("Presença atualizada com sucesso.", "success");
+    if (!nextMatch) return;
+    startTransition(async () => {
+      try {
+        const res = await fetch(`/api/matches/${nextMatch.id}/rsvp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          toast(data.error || "Erro ao atualizar presença.", "error");
+          return;
+        }
+        setRsvpStatus(status);
+        toast("Presença registrada com sucesso!", "success");
+      } catch {
+        toast("Erro de conexão ao salvar presença.", "error");
+      }
     });
   };
 
