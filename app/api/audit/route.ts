@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { withErrorHandler } from "@/lib/api-handler";
 
-// GET /api/activities — Lista os eventos da linha do tempo do time com paginação
+// GET /api/audit — List administrative audit logs (ADMIN only)
 export const GET = withErrorHandler(async (request: Request) => {
-  const { session, error } = await requireAuth();
+  const { session, error } = await requireAdmin();
   if (error) return error;
 
   const teamId = session.user.teamId;
@@ -15,38 +15,32 @@ export const GET = withErrorHandler(async (request: Request) => {
 
   const { searchParams } = new URL(request.url);
   const page = parseInt(searchParams.get("page") || "1", 10);
-  const limit = parseInt(searchParams.get("limit") || "10", 10);
+  const limit = parseInt(searchParams.get("limit") || "20", 10);
+  const action = searchParams.get("action");
   const skip = (page - 1) * limit;
 
-  const role = session.user.role;
-  const allowedVisibilities = role === "ADMIN"
-    ? ["ALL", "ADMIN_ONLY", "STAFF_ONLY"]
-    : role === "COACH" || role === "MATERIAL_DIRECTOR"
-    ? ["ALL", "STAFF_ONLY"]
-    : ["ALL"];
+  const whereCondition: any = { teamId };
+  if (action) {
+    whereCondition.action = action;
+  }
 
-  const whereCondition = {
-    teamId,
-    visibility: { in: allowedVisibilities },
-  };
-
-  const [activities, total] = await Promise.all([
-    prisma.activityEvent.findMany({
+  const [logs, total] = await Promise.all([
+    prisma.auditLog.findMany({
       where: whereCondition,
       orderBy: { createdAt: "desc" },
       skip,
       take: limit,
       include: {
-        user: { select: { name: true, role: true } },
+        user: { select: { name: true, email: true, role: true } },
       },
     }),
-    prisma.activityEvent.count({
+    prisma.auditLog.count({
       where: whereCondition,
     }),
   ]);
 
   return NextResponse.json({
-    activities,
+    logs,
     pagination: {
       page,
       limit,

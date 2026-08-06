@@ -190,6 +190,7 @@ model User {
   photos           MatchPhoto[]
   tacticalPlays    TacticalPlay[]
   activityEvents   ActivityEvent[]
+  auditLogs        AuditLog[]
   notificationPreferences NotificationPreference[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -244,6 +245,7 @@ model Team {
   guestPlayers       GuestPlayer[]
   tacticalPlays      TacticalPlay[]
   activityEvents     ActivityEvent[]
+  auditLogs          AuditLog[]
   notifications      Notification[]
 
   defaultFormation   MatchLineupFormation?
@@ -1136,6 +1138,7 @@ model ActivityEvent {
   type        String   // MATCH_CREATED, PLAYER_ADDED, TRANSACTION_LOGGED, POLL_CREATED, etc.
   description String
   metadata    Json?    // Dynamic variables
+  visibility  String   @default("ALL") // ALL, ADMIN_ONLY, STAFF_ONLY
   createdAt   DateTime @default(now())
 
   team        Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -1143,7 +1146,32 @@ model ActivityEvent {
 
   @@index([teamId])
   @@index([teamId, createdAt])
+  @@index([teamId, visibility])
   @@map("activity_events")
+}
+
+// ─── Audit Log ───────────────────────────────────────────────
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  teamId       String?
+  userId       String?
+  userEmail    String?
+  action       String   // e.g. "USER_ROLE_CHANGED", "PAYMENT_APPROVED", "FINE_CREATED", "FINE_CANCELLED", "MATCH_DELETED"
+  targetEntity String   // e.g. "User", "MatchPayment", "Fine", "Match"
+  targetId     String?
+  details      Json?
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+
+  team Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([teamId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 
 // ─── Notification Preferences ─────────────────────────────────

@@ -5,12 +5,15 @@ import { requireAdmin } from "@/lib/auth";
 import { withErrorHandler } from "@/lib/api-handler";
 import { createCsvResponse } from "@/lib/export";
 import { formatDateOnly, formatCurrency } from "@/lib/utils";
+import { logAuditEvent } from "@/lib/audit";
 
 // Category translations mapping
 const categoryLabels: Record<string, string> = {
   MEMBERSHIP: "Mensalidade",
   FRIENDLY_FEE: "Taxa de Amistoso",
   MATCH_FEE: "Taxa de Jogo",
+  SPONSORSHIP: "Patrocínio",
+  DONATION: "Doação",
   VENUE_RENTAL: "Aluguel de Campo",
   REFEREE: "Arbitragem",
   EQUIPMENT: "Equipamentos",
@@ -26,6 +29,14 @@ export const GET = withErrorHandler(async (request: Request) => {
   if (!teamId) {
     return NextResponse.json({ error: "Usuário não possui time vinculado" }, { status: 403 });
   }
+
+  logAuditEvent({
+    teamId,
+    userId: session.user.id,
+    userEmail: session.user.email,
+    action: "FINANCES_EXPORTED",
+    targetEntity: "Transaction",
+  });
 
   const { searchParams } = new URL(request.url);
   const type = searchParams.get("type") as "INCOME" | "EXPENSE" | null;
