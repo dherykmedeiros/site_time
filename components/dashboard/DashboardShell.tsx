@@ -109,8 +109,8 @@ const NAV_GROUPS: NavGroup[] = [
     icon: Settings,
     permission: "team:view",
     items: [
-      { href: "/dashboard/friendly-requests", label: "Amistosos", icon: Handshake, permission: "friendly_request:manage", badgeKey: "pendingRequests" },
-      // { href: "/dashboard/recruitment", label: "Recrutamento", icon: UserPlus, permission: "recruitment:manage" } // Placeholder para futuro
+      { href: "/dashboard/approvals", label: "Central de Pendências", icon: ClipboardCheck, permission: "team:manage", badgeKey: "pendingRequests" },
+      { href: "/dashboard/friendly-requests", label: "Amistosos", icon: Handshake, permission: "friendly_request:manage" },
       { href: "/dashboard/reports", label: "Relatórios", icon: FileBarChart, permission: "report:view" },
       { href: "/dashboard/rules", label: "Regulamento", icon: BookOpen },
       { href: "/dashboard/team/settings", label: "Configurações", icon: Cog, permission: "team:manage" }
