@@ -5,6 +5,8 @@ import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
 import { withErrorHandler } from "@/lib/api-handler";
 
+import { logAuditEvent, logActivityEvent } from "@/lib/audit";
+
 interface RouteContext {
   params: Promise<{ id: string; playerId: string }>;
 }
@@ -86,6 +88,25 @@ export const POST = withErrorHandler(async (request: Request, context: RouteCont
     });
 
     return updatedPayment;
+  });
+
+  logAuditEvent({
+    teamId,
+    userId: session.user.id,
+    userEmail: session.user.email,
+    action: "PAYMENT_APPROVED",
+    targetEntity: "MatchPayment",
+    targetId: result.id,
+    details: { playerId, matchId, amount: Number(result.amount) },
+    ipAddress: ip,
+  });
+
+  logActivityEvent({
+    teamId,
+    userId: session.user.id,
+    type: "PAYMENT_APPROVED",
+    description: `Pagamento de taxa de jogo de ${player.name} aprovado (R$ ${Number(result.amount).toFixed(2)})`,
+    visibility: "STAFF_ONLY",
   });
 
   return NextResponse.json({
