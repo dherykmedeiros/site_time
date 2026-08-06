@@ -240,6 +240,14 @@ export async function POST(request: Request, { params }: RouteParams) {
       })),
     });
 
+    const teamGoals = stats.reduce((sum, s) => sum + (s.goals || 0), 0);
+    const scoreUpdate = match.isHome ? { homeScore: teamGoals } : { awayScore: teamGoals };
+
+    await tx.match.update({
+      where: { id: matchId },
+      data: scoreUpdate,
+    });
+
     for (const s of stats) {
       if (s.playerId) {
         await tx.matchAttendance.upsert({
@@ -371,6 +379,14 @@ export async function PUT(request: Request, { params }: RouteParams) {
         yellowCards: s.yellowCards,
         redCards: s.redCards,
       })),
+    });
+
+    const teamGoals = stats.reduce((sum, s) => sum + (s.goals || 0), 0);
+    const scoreUpdate = match.isHome ? { homeScore: teamGoals } : { awayScore: teamGoals };
+
+    await tx.match.update({
+      where: { id: matchId },
+      data: scoreUpdate,
     });
 
     // Ensure attendance is marked as present for all these players
