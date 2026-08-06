@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 import { withErrorHandler } from "@/lib/api-handler";
 import { createCsvResponse } from "@/lib/export";
 import { formatDateOnly, formatCurrency } from "@/lib/utils";
@@ -19,7 +19,7 @@ const categoryLabels: Record<string, string> = {
 
 // GET /api/finances/export — Exporta transações financeiras em formato CSV (Excel)
 export const GET = withErrorHandler(async (request: Request) => {
-  const { session, error } = await requireAuth();
+  const { session, error } = await requireAdmin();
   if (error) return error;
 
   const teamId = session.user.teamId;

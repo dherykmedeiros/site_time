@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
   const headerValue = request.headers.get("X-Webhook-Secret");
   if (!validateWebhookSignature(headerValue)) {
-    trackOperationalEvent("pix_webhook_invalid_signature", { headerValue });
+    trackOperationalEvent("pix_webhook_invalid_signature", { hasHeader: !!headerValue });
     return NextResponse.json({ error: "Assinatura inválida" }, { status: 401 });
   }
 

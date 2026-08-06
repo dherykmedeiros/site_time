@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       return NextResponse.json(
-        { error: "EMAIL_EXISTS", message: "E-mail já cadastrado" },
+        { error: "EMAIL_EXISTS", message: "Não foi possível criar a conta. Verifique os dados e tente novamente." },
         { status: 409 }
       );
     }

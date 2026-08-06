@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { rateLimitMutation } from "@/lib/rate-limit";
@@ -28,13 +29,32 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const { password } = body as { password?: string };
+  const schema = z.object({
+    password: z.string().min(6),
+    currentPassword: session.user.mustChangePassword ? z.string().min(1).optional() : z.string().min(1)
+  });
 
-  if (!password || typeof password !== "string" || password.length < 6) {
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json(
       { error: "A nova senha deve ter no mínimo 6 caracteres.", code: "VALIDATION_ERROR" },
       { status: 400 }
     );
+  }
+
+  const { password, currentPassword } = parsed.data;
+
+  if (!session.user.mustChangePassword || currentPassword) {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!user || !currentPassword || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
+      return NextResponse.json(
+        { error: "Senha atual incorreta", code: "UNAUTHORIZED" },
+        { status: 401 }
+      );
+    }
   }
 
   // Hash new password
