@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { liveActionSchema } from "@/lib/validations/match";
-import { rateLimitMutation } from "@/lib/rate-limit";
+import { rateLimitMutation, rateLimitRead } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
 import { awardAchievements } from "@/lib/achievements";
 import { notifyMatchResultPosted } from "@/lib/push";
@@ -13,6 +13,15 @@ interface RouteParams {
 
 // GET /api/matches/:id/live — Fetch live match state and timeline (PUBLIC)
 export async function GET(request: Request, { params }: RouteParams) {
+  const ip = extractClientIp(request);
+  const rl = await rateLimitRead(ip);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Muitas requisições. Tente em ${rl.retryAfterMinutes} min.`, code: "RATE_LIMITED" },
+      { status: 429 }
+    );
+  }
+
   const { id: matchId } = await params;
 
   const match = await prisma.match.findUnique({

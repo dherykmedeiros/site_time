@@ -174,3 +174,12 @@ export async function rateLimitTelemetry(ip: string): Promise<RateLimitResult> {
 export async function rateLimitMutation(ip: string): Promise<RateLimitResult> {
   return rateLimitWithConfig("mutation", ip, MUTATION_MAX_REQUESTS, MUTATION_WINDOW_MS);
 }
+
+// Public read operations: 60 reads per minute per IP
+const READ_WINDOW_MS = 60 * 1000;
+const READ_MAX_REQUESTS = 60;
+
+export async function rateLimitRead(ip: string): Promise<RateLimitResult> {
+  return rateLimitWithConfig("read", ip, READ_MAX_REQUESTS, READ_WINDOW_MS);
+}
+
