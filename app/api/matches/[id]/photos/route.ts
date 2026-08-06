@@ -159,8 +159,8 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       );
     }
 
-    const photo = await prisma.matchPhoto.findUnique({
-      where: { id: photoId },
+    const photo = await prisma.matchPhoto.findFirst({
+      where: { id: photoId, teamId: session.user.teamId },
     });
 
     if (!photo) {

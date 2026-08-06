@@ -60,8 +60,8 @@ export async function POST(request: Request, { params }: RouteParams) {
       );
     }
 
-    const player = await prisma.player.findUnique({
-      where: { id: user.playerId },
+    const player = await prisma.player.findFirst({
+      where: { id: user.playerId, teamId },
       select: { id: true, status: true, teamId: true },
     });
 

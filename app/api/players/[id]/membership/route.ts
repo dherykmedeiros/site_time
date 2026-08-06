@@ -63,8 +63,8 @@ export async function POST(request: Request, context: RouteContext) {
   const { month, year, amount } = parsed.data;
 
   // Check not already paid
-  const existing = await prisma.membershipPayment.findUnique({
-    where: { playerId_month_year: { playerId, month, year } },
+  const existing = await prisma.membershipPayment.findFirst({
+    where: { playerId, month, year, teamId },
   });
   if (existing) {
     return NextResponse.json({ error: "Mensalidade já registrada para este mês" }, { status: 409 });

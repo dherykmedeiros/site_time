@@ -14,8 +14,8 @@ export const DELETE = withErrorHandler(async (request: Request, { params }: Rout
   const { id } = await params;
 
   // Find the message
-  const message = await prisma.teamMessage.findUnique({
-    where: { id },
+  const message = await prisma.teamMessage.findFirst({
+    where: { id, teamId: session.user.teamId },
   });
 
   if (!message) {

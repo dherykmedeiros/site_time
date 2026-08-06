@@ -14,8 +14,8 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
   const { id } = await params;
 
   // Verify message exists
-  const message = await prisma.teamMessage.findUnique({
-    where: { id },
+  const message = await prisma.teamMessage.findFirst({
+    where: { id, teamId: session.user.teamId },
   });
 
   if (!message) {

@@ -126,12 +126,11 @@ export async function POST(request: Request, { params }: RouteParams) {
   }
 
   // Check if guest with same name already exists in this match
-  const existingGuest = await prisma.guestPlayer.findUnique({
+  const existingGuest = await prisma.guestPlayer.findFirst({
     where: {
-      matchId_name: {
-        matchId,
-        name,
-      },
+      matchId,
+      name,
+      teamId: session.user.teamId,
     },
   });
 

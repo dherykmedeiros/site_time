@@ -134,12 +134,10 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   // Check shirtNumber uniqueness if being changed
   if (data.shirtNumber !== undefined && data.shirtNumber !== player.shirtNumber) {
-    const existing = await prisma.player.findUnique({
+    const existing = await prisma.player.findFirst({
       where: {
-        teamId_shirtNumber: {
-          teamId: session.user.teamId,
-          shirtNumber: data.shirtNumber,
-        },
+        shirtNumber: data.shirtNumber,
+        teamId: session.user.teamId,
       },
     });
 

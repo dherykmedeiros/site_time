@@ -33,8 +33,8 @@ export const PUT = withErrorHandler(async (request: Request) => {
 
   if (id) {
     // Validate notification ownership
-    const notification = await prisma.notification.findUnique({
-      where: { id },
+    const notification = await prisma.notification.findFirst({
+      where: { id, userId: session.user.id },
     });
 
     if (!notification || notification.userId !== session.user.id) {
