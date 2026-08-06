@@ -10,18 +10,24 @@ export function hasPermission(role: Role, permission: Permission): boolean {
   return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
 }
 
+export const canUser = hasPermission;
+
+export function getUserPermissions(role: Role): Permission[] {
+  return ROLE_PERMISSIONS[role] ?? [];
+}
+
 /**
  * Verifica se uma role tem qualquer uma das permissões listadas.
  */
 export function hasAnyPermission(role: Role, permissions: Permission[]): boolean {
-  return permissions.some(permission => hasPermission(role, permission));
+  return permissions.some((permission) => hasPermission(role, permission));
 }
 
 /**
  * Verifica se uma role tem todas as permissões listadas.
  */
 export function hasAllPermissions(role: Role, permissions: Permission[]): boolean {
-  return permissions.every(permission => hasPermission(role, permission));
+  return permissions.every((permission) => hasPermission(role, permission));
 }
 
 // Semantic helpers for common checks

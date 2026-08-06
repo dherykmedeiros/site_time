@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { Permission, canUser } from "./permissions";
+import { Permission, hasPermission } from "@/lib/permissions";
 import { Role } from "@prisma/client";
 
 export async function requirePermission(permission: Permission) {
@@ -21,9 +21,9 @@ export async function requirePermission(permission: Permission) {
   }
 
   const role = session.user.role as Role;
-  const hasPermission = canUser(role, permission);
+  const isAllowed = hasPermission(role, permission);
 
-  if (!hasPermission) {
+  if (!isAllowed) {
     return {
       session: null,
       error: NextResponse.json({ error: "Acesso negado: permissão insuficiente" }, { status: 403 }),
