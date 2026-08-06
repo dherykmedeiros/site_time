@@ -12,10 +12,15 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
   if (error) return error;
 
   const { id } = await params;
+  const teamId = session.user.teamId;
+
+  if (!teamId) {
+    return NextResponse.json({ error: "Usuário não possui time vinculado" }, { status: 403 });
+  }
 
   // Verify message exists
   const message = await prisma.teamMessage.findFirst({
-    where: { id, teamId: session.user.teamId },
+    where: { id, teamId },
   });
 
   if (!message) {

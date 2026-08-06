@@ -130,7 +130,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     where: {
       matchId,
       name,
-      teamId: session.user.teamId,
+      teamId: match.teamId,
     },
   });
 

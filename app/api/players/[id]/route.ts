@@ -137,7 +137,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const existing = await prisma.player.findFirst({
       where: {
         shirtNumber: data.shirtNumber,
-        teamId: session.user.teamId,
+        teamId: player.teamId,
       },
     });
 
