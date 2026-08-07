@@ -2,7 +2,8 @@
 
 > **Data do Relatório:** 07 de Agosto de 2026  
 > **Status do Projeto:** Ativo / Produção / PWA Full-Stack  
-> **Arquitetura:** Next.js 16 (App Router), React 19, Tailwind CSS v4, Prisma ORM 7, PostgreSQL, NextAuth v4.
+> **Arquitetura:** Next.js 16 (App Router), React 19, Tailwind CSS v4, Prisma ORM 7, PostgreSQL, NextAuth v4.  
+> **Production URL Vivo:** `https://site-time-8gb8.vercel.app`  
 
 ---
 
@@ -291,7 +292,14 @@ O sistema integra:
 
 ## 8. Matriz de Maturidade Operacional, Cobertura de Testes & Evidências
 
-Abaixo apresenta-se a **Matriz de Evidências Operacionais** por funcionalidade, categorizando o nível real de cobertura de testes automatizados e evidências de execução:
+### 📊 Resumo Executivo do Estado Atual de Homologação
+- **Último Commit Validado no CI**: `cf4c3eb` (GitHub Actions **Run #142**)
+- **HEAD Atual do Repositório**: `3ad7a3a` (Push efetuado — Aguardando execução do Run #143 no CI)
+- **Playwright E2E**: 18 Especificações configuradas em `e2e/*` (Execução no CI pendente)
+- **Smoke Pós-Deploy em Produção**: ⏳ Aguardando execução contra `https://site-time-8gb8.vercel.app`
+- **Vercel Deployment IDs**: Aguardando registro do painel da Vercel
+
+---
 
 ### 📋 Matriz de Recursos & Evidências Operacionais (7 Colunas)
 

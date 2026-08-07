@@ -4,7 +4,7 @@
 > **Status:** Controles de Engenharia Implementados & Processo de Homologação Documentado  
 > **Ambiente:** Vercel Production + PostgreSQL Managed (Supabase)  
 > **Branch Oficial de Produção:** `003-sports-team-mgmt`  
-> **Production URL:** `https://site-time.vercel.app`  
+> **Production URL Vivo:** `https://site-time-8gb8.vercel.app`  
 
 ---
 
@@ -19,7 +19,7 @@ Este documento detalha o conjunto de evidências operacionais, fluxos de integra
 ### 🔨 Mapeamento do Pipeline e Ambientes
 - **GitHub Actions (CI)**: Executa linting, validação de tipos (`tsc`), testes unitários (`vitest`), build de produção (`npm run build`), ciclo de vida gerenciado do servidor de staging (com `trap cleanup EXIT` e sem mascaramento `|| true`), suíte E2E (`playwright`) e smoke tests pós-build no container.
 - **Vercel Continuous Deployment (CD)**:
-  - Branch `003-sports-team-mgmt` → **Production Deployment Oficial** (`https://site-time.vercel.app`)
+  - Branch `003-sports-team-mgmt` → **Production Deployment Oficial** (`https://site-time-8gb8.vercel.app`)
   - Branch `main` → Branch de desenvolvimento / secundária
 
 ### 🔨 Workflow GitHub Actions (`.github/workflows/ci.yml`)
@@ -122,9 +122,9 @@ jobs:
 | Indicador de Versão | Valor Registrado |
 | :--- | :--- |
 | **Branch Oficial de Produção** | `003-sports-team-mgmt` |
-| **Production URL** | `https://site-time.vercel.app` |
+| **Production URL Vivo** | `https://site-time-8gb8.vercel.app` |
 | **Commit Testado no CI (Run #142)** | `cf4c3eb` |
-| **Commit Atual do Repositório** | `8a83d70` / `4a65aef` (Aguardando Run #143 no CI) |
+| **Commit HEAD Atual do Repositório** | `3ad7a3a` (Aguardando Run #143 no CI) |
 | **Commit Retornado por `/api/version`** | Dinâmico via `VERCEL_GIT_COMMIT_SHA` / `GITHUB_SHA` |
 | **Commit Anterior (Rollback Alvo)** | `4abf3c9` |
 | **Vercel Deployment ID Atual** | Aguardando registro de deploy |
@@ -133,7 +133,7 @@ jobs:
 | **Testes Unitários (Vitest)** | **46/46 Aprovados** (`401 ms`) |
 | **Testes E2E (Playwright)** | **18 Especificações Configuradas em `e2e/*` (Execução em CI Pendente)** |
 | **Smoke Tests Pós-Build (CI)** | **6/6 Endpoints Validados (`scripts/smoke-test.js http://localhost:3000`)** |
-| **Smoke Tests Pós-Deploy (Prod)** | ⏳ **Aguardando execução contra a URL de Produção Vercel** |
+| **Smoke Tests Pós-Deploy (Prod)** | ⏳ **Aguardando execução contra `https://site-time-8gb8.vercel.app`** |
 | **Responsável Técnico** | Dheryk Medeiros (DevOps / DBA Lead) |
 
 ---
@@ -147,7 +147,7 @@ jobs:
 
 ### 🧪 Categorização dos Smoke Tests
 - **Smoke Pós-Build (CI Container / Localhost)**: Executado com `node scripts/smoke-test.js http://localhost:3000` para validar o build e o container no CI (Status: **6/6 Aprovados no Run #142**).
-- **Smoke Pós-Deploy (Vercel Production)**: Executado com `node scripts/smoke-test.js https://site-time.vercel.app` (Status: **⏳ Aguardando execução contra a Vercel**).
+- **Smoke Pós-Deploy (Vercel Production)**: Executado com `node scripts/smoke-test.js https://site-time-8gb8.vercel.app` (Status: **⏳ Aguardando execução contra o ambiente Vercel**).
 
 ```text
 🚀 Running Post-Build Smoke Tests against: http://localhost:3000
