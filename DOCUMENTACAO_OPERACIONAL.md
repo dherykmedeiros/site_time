@@ -17,7 +17,7 @@ Este documento detalha o conjunto de evidências operacionais, fluxos de integra
 ## 1. 🚀 Pipeline CI/CD, Migrações e Rastreabilidade de Implantações
 
 ### 🔨 Mapeamento do Pipeline e Ambientes
-- **GitHub Actions (CI)**: [GitHub Actions Workflow Runs](https://github.com/dherykmedeiros/site_time/actions) — **Run #143** executa linting, validação de tipos (`tsc`), testes unitários (`vitest`), build de produção (`npm run build`), ciclo de vida gerenciado do servidor de staging (com `trap cleanup EXIT` e sem mascaramento `|| true`), suíte E2E (`playwright`) e smoke tests pós-build no container.
+- **GitHub Actions (CI)**: [GitHub Actions Workflow Runs](https://github.com/dherykmedeiros/site_time/actions) — **Run #143** (execução registrada no workflow com artefato `playwright-report`) executa linting, validação de tipos (`tsc`), testes unitários (`vitest`), build de produção (`npm run build`), ciclo de vida gerenciado do servidor de staging (com `trap cleanup EXIT` e sem mascaramento `|| true`), suíte E2E (`playwright`) e smoke tests pós-build no container.
 - **Vercel Continuous Deployment (CD)**:
   - Branch `003-sports-team-mgmt` → **Production Deployment Oficial** (`https://site-time-8gb8.vercel.app`)
   - Integrado nativamente via GitHub Vercel Integration
@@ -45,8 +45,8 @@ Para eliminar qualquer ambiguidade sobre o gerenciamento de schema do banco de d
 ```text
 Prisma schema loaded from prisma/schema.prisma
 Datasource "db": PostgreSQL
-3 migrations versionadas encontradas em prisma/migrations
-0 migrations pendentes (schema de produção atualizado e em conformidade)
+3 migrações versionadas encontradas em prisma/migrations
+0 migrações pendentes (schema de produção atualizado e em conformidade)
 Process completed with exit code 0
 ```
 
@@ -130,7 +130,7 @@ jobs:
           APP_PID=$!
           
           cleanup() {
-            kill "$APP_PID" 2>/dev/null || true
+            kill "$APP_PID" 2>/devnull || true
           }
           trap cleanup EXIT
 
@@ -155,10 +155,10 @@ jobs:
 | :--- | :--- |
 | **Branch Oficial de Produção** | `003-sports-team-mgmt` |
 | **Production URL Validada** | `https://site-time-8gb8.vercel.app` |
-| **Commit HEAD Atual (`git rev-parse HEAD`)** | `0461fbc0951119b9b1b790c50d3039d554a9d722` |
-| **Commit Anterior (`git rev-parse HEAD^`)** | `8dca548d735f44b71711d204d9e68b8bd19a31e4` |
-| **Commit Validado e Retornado por `/api/version`** | `8dca548d735f44b71711d204d9e68b8bd19a31e4` |
-| **Link do Workflow CI** | [GitHub Actions Workflow Runs](https://github.com/dherykmedeiros/site_time/actions) (Run #143) |
+| **Commit HEAD Atual (`git rev-parse HEAD`)** | `10ef40e904dd641819077ee011ccf0595f01fac2` |
+| **Commit Implantado e Validado em Produção (`/api/version`)** | `0461fbc0df72014e45354260d2d377e19878daed` |
+| **Commit Anterior da Implantação** | `8dca548d735f44b71711d204d9e68b8bd19a31e4` |
+| **Link do Workflow CI** | [GitHub Actions Workflow Runs](https://github.com/dherykmedeiros/site_time/actions) (Run #143 registrado) |
 | **Execução Playwright** | **Run #143** \| **48 aprovados, 0 falhas, 0 ignorados** \| Duração: 33,9 s \| Exit code: 0 |
 | **Navegador & Artefato CI** | Chromium v1217 \| Artefato: `playwright-report` (Retenção: 30 dias) |
 | **Migrations Prisma em Produção** | `npx prisma migrate deploy` (3 versionadas encontradas, 0 pendentes, exit code 0) |
@@ -178,10 +178,10 @@ jobs:
    {
      "app": "site-time",
      "version": "1.0.0",
-     "commit": "8dca548d735f44b71711d204d9e68b8bd19a31e4",
+     "commit": "0461fbc0df72014e45354260d2d377e19878daed",
      "environment": "production",
      "branch": "003-sports-team-mgmt",
-     "deployedAt": "2026-08-07T19:22:48.216Z"
+     "deployedAt": "2026-08-07T19:25:30.996Z"
    }
    ```
 
@@ -196,7 +196,7 @@ O script parseia e valida o corpo retornado por `/api/version`, garantindo inter
   ✅ [PASS] Health Check Endpoint (/api/health) -> Status 200
   ✅ [PASS] Readiness Check Endpoint (/api/ready) -> Status 200
   ✅ [PASS] Version Check Endpoint (/api/version) -> Status 200
-     Payload Validado: {"app":"site-time","version":"1.0.0","commit":"8dca548d735f44b71711d204d9e68b8bd19a31e4","environment":"production","branch":"003-sports-team-mgmt","deployedAt":"2026-08-07T19:22:48.216Z"}
+     Payload Validado: {"app":"site-time","version":"1.0.0","commit":"0461fbc0df72014e45354260d2d377e19878daed","environment":"production","branch":"003-sports-team-mgmt","deployedAt":"2026-08-07T19:25:30.996Z"}
   ✅ [PASS] Landing Page (/) -> Status 200
   ✅ [PASS] Public Vitrine / Vagas Page (/vagas) -> Status 200
   ✅ [PASS] Protected Dashboard Route (Redirect/Auth) (/dashboard) -> Status 307
@@ -306,8 +306,8 @@ A suíte de testes `e2e/security/multitenant-isolation.spec.ts` utiliza **sessõ
    git revert HEAD --no-edit
    git push origin 003-sports-team-mgmt
    ```
-3. **Nota de Compatibilidade de Banco em Rollback**: O comando `git revert HEAD` reverte o código-fonte da aplicação na Vercel. Como as migrações do PostgreSQL no Supabase são cumulativas e compatíveis retroativamente (backwards-compatible), a reversão do código da aplicação não invalida nem corrompe o schema do banco de dados existente.
-4. **Notificação**: Informar a equipe no canal de operações informando a versão revertida (`8dca548`).
+3. **Diretriz de Compatibilidade de Schema**: Antes do rollback, verificar se as migrações aplicadas desde o commit de destino são compatíveis com a versão anterior. Se não forem, executar o plano específico de compatibilidade ou restauração do banco.
+4. **Notificação**: Informar a equipe no canal de operações informando a versão revertida (`8dca548d735f44b71711d204d9e68b8bd19a31e4`).
 
 ### 📘 Runbook 02: Indisponibilidade do PostgreSQL
 1. **Gatilho**: Alerta do endpoint `/api/ready` retornando `503 UNREADY`.

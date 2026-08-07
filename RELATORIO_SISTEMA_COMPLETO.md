@@ -249,13 +249,14 @@ O sistema é construído sobre a pilha moderna de tecnologia **Next.js 16 (App R
 ## 6. Matriz de Maturidade Operacional, Cobertura de Testes & Evidências
 
 ### 📊 Resumo Executivo do Estado Atual de Homologação
-- **Último Commit Validado e Implantado (`git rev-parse HEAD`)**: `0461fbc0951119b9b1b790c50d3039d554a9d722`
-- **Commit Anterior (`git rev-parse HEAD^`)**: `8dca548d735f44b71711d204d9e68b8bd19a31e4`
+- **Commit HEAD Atual (`git rev-parse HEAD`)**: `10ef40e904dd641819077ee011ccf0595f01fac2`
+- **Commit Implantado e Validado em Produção (`/api/version`)**: `0461fbc0df72014e45354260d2d377e19878daed`
+- **Commit Anterior da Implantação**: `8dca548d735f44b71711d204d9e68b8bd19a31e4`
 - **Production URL Validada**: `https://site-time-8gb8.vercel.app`
 - **Pipeline CI**: [GitHub Actions Workflow Runs](https://github.com/dherykmedeiros/site_time/actions) (Run #143)
 - **Testes Unitários (Vitest)**: **46/46 Aprovados** (`393 ms`)
 - **Playwright E2E**: **48/48 Aprovados** em 18 arquivos de especificação (`33.9 s`)
-- **Smoke Tests Pós-Deploy Produção**: **6/6 Endpoints Validados** contra a Vercel com checagem de payload JSON
+- **Smoke Tests Pós-Deploy Produção**: **6/6 Endpoints Validados** contra a Vercel com checagem de payload JSON (`0461fbc0df72014e45354260d2d377e19878daed`)
 
 ---
 
@@ -281,7 +282,7 @@ O sistema é construído sobre a pilha moderna de tecnologia **Next.js 16 (App R
 - **Execução**: `node scripts/smoke-test.js https://site-time-8gb8.vercel.app`
 - **Payload Validado `/api/version`**:
   ```json
-  {"app":"site-time","version":"1.0.0","commit":"8dca548d735f44b71711d204d9e68b8bd19a31e4","environment":"production","branch":"003-sports-team-mgmt","deployedAt":"2026-08-07T19:22:48.216Z"}
+  {"app":"site-time","version":"1.0.0","commit":"0461fbc0df72014e45354260d2d377e19878daed","environment":"production","branch":"003-sports-team-mgmt","deployedAt":"2026-08-07T19:25:30.996Z"}
   ```
 
 ---
@@ -303,8 +304,8 @@ O sistema é construído sobre a pilha moderna de tecnologia **Next.js 16 (App R
 #### 2. Testes End-to-End e de Segurança (Playwright) — **100% Aprovados**
 - **Resultado Concreto**: **48 testes APROVADOS em 18 especificações** (`33.9 s`)
 - **Evidências de Execução**:
-  - **Pipeline Link**: [GitHub Actions Workflow Runs](https://github.com/dherykmedeiros/site_time/actions) (Run #143)
-  - **Commit**: `0461fbc0951119b9b1b790c50d3039d554a9d722`
+  - **Pipeline Link**: [GitHub Actions Workflow Runs](https://github.com/dherykmedeiros/site_time/actions) (Run #143 registrado)
+  - **Commit**: `0461fbc0df72014e45354260d2d377e19878daed`
   - **Navegador**: Chromium v1217
   - **Artefato CI**: `playwright-report` (Retenção 30 dias)
   - **Testes Multi-Tenant Autenticados**: Positive control `200 OK`, rejeições estritas `403 Forbidden` / `404 Not Found` (0% retorno de `401`).
