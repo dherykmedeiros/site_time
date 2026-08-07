@@ -130,7 +130,7 @@ jobs:
           APP_PID=$!
           
           cleanup() {
-            kill "$APP_PID" 2>/devnull || true
+            kill "$APP_PID" 2>/dev/null || true
           }
           trap cleanup EXIT
 
