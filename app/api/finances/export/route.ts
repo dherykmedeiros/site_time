@@ -30,6 +30,12 @@ export const GET = withErrorHandler(async (request: Request) => {
     return NextResponse.json({ error: "Usuário não possui time vinculado" }, { status: 403 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const requestedTeamId = searchParams.get("teamId");
+  if (requestedTeamId && requestedTeamId !== teamId) {
+    return NextResponse.json({ error: "Acesso negado para dados financeiros de outra equipe" }, { status: 403 });
+  }
+
   logAuditEvent({
     teamId,
     userId: session.user.id,
@@ -38,7 +44,6 @@ export const GET = withErrorHandler(async (request: Request) => {
     targetEntity: "Transaction",
   });
 
-  const { searchParams } = new URL(request.url);
   const type = searchParams.get("type") as "INCOME" | "EXPENSE" | null;
   const category = searchParams.get("category");
   const from = searchParams.get("from");

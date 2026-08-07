@@ -1,18 +1,23 @@
 /**
- * Post-Deployment Automated Smoke Test Script
- * Run against deployed environment (e.g. node scripts/smoke-test.js https://site-time.vercel.app)
+ * Post-Deployment Automated Smoke Test Script with /api/version Body Validation
+ * Run against deployed environment:
+ *   node scripts/smoke-test.js https://site-time-8gb8.vercel.app [EXPECTED_COMMIT]
  */
 const http = require("http");
 const https = require("https");
 
 const baseUrl = process.argv[2] || "http://localhost:3000";
+const expectedCommit = process.argv[3] || process.env.EXPECTED_COMMIT || null;
 
 console.log(`🚀 Running Post-Deploy Smoke Tests against: ${baseUrl}`);
+if (expectedCommit) {
+  console.log(`📌 Expected Commit SHA: ${expectedCommit}`);
+}
 
 const endpoints = [
   { path: "/api/health", expectedStatus: 200, label: "Health Check Endpoint" },
   { path: "/api/ready", expectedStatus: [200, 503], label: "Readiness Check Endpoint" },
-  { path: "/api/version", expectedStatus: 200, label: "Version Check Endpoint" },
+  { path: "/api/version", expectedStatus: 200, label: "Version Check Endpoint", validateVersionBody: true },
   { path: "/", expectedStatus: 200, label: "Landing Page" },
   { path: "/vagas", expectedStatus: 200, label: "Public Vitrine / Vagas Page" },
   { path: "/dashboard", expectedStatus: [200, 302, 307], label: "Protected Dashboard Route (Redirect/Auth)" },
@@ -27,15 +32,46 @@ async function checkEndpoint(item) {
     const client = url.protocol === "https:" ? https : http;
 
     const req = client.get(url, (res) => {
-      const allowedStatuses = Array.isArray(item.expectedStatus) ? item.expectedStatus : [item.expectedStatus];
-      if (allowedStatuses.includes(res.statusCode)) {
-        console.log(`  ✅ [PASS] ${item.label} (${item.path}) -> Status ${res.statusCode}`);
-        passed++;
-      } else {
-        console.error(`  ❌ [FAIL] ${item.label} (${item.path}) -> Expected ${item.expectedStatus}, got ${res.statusCode}`);
-        failed++;
-      }
-      resolve();
+      let bodyData = "";
+      res.on("data", (chunk) => { bodyData += chunk; });
+
+      res.on("end", () => {
+        const allowedStatuses = Array.isArray(item.expectedStatus) ? item.expectedStatus : [item.expectedStatus];
+        if (!allowedStatuses.includes(res.statusCode)) {
+          console.error(`  ❌ [FAIL] ${item.label} (${item.path}) -> Expected ${item.expectedStatus}, got ${res.statusCode}`);
+          failed++;
+          return resolve();
+        }
+
+        if (item.validateVersionBody) {
+          try {
+            const versionJson = JSON.parse(bodyData);
+            console.log(`  ✅ [PASS] ${item.label} (${item.path}) -> Status ${res.statusCode}`);
+            console.log(`     Payload Validado: ${JSON.stringify(versionJson)}`);
+
+            if (!versionJson.commit) {
+              console.error(`  ❌ [FAIL] ${item.label} (${item.path}) -> Response JSON missing 'commit' field`);
+              failed++;
+              return resolve();
+            }
+
+            if (expectedCommit && !versionJson.commit.startsWith(expectedCommit.slice(0, 7))) {
+              console.error(`  ❌ [FAIL] ${item.label} (${item.path}) -> Commit Mismatch! Expected ${expectedCommit}, got ${versionJson.commit}`);
+              failed++;
+              return resolve();
+            }
+
+            passed++;
+          } catch (e) {
+            console.error(`  ❌ [FAIL] ${item.label} (${item.path}) -> Invalid JSON payload: ${e.message}`);
+            failed++;
+          }
+        } else {
+          console.log(`  ✅ [PASS] ${item.label} (${item.path}) -> Status ${res.statusCode}`);
+          passed++;
+        }
+        resolve();
+      });
     });
 
     req.on("error", (err) => {

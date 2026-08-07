@@ -14,6 +14,11 @@ export const GET = withErrorHandler(async (request: Request) => {
   }
 
   const { searchParams } = new URL(request.url);
+  const requestedTeamId = searchParams.get("teamId");
+  if (requestedTeamId && requestedTeamId !== teamId) {
+    return NextResponse.json({ error: "Acesso negado para trilha de auditoria de outra equipe" }, { status: 403 });
+  }
+
   const page = parseInt(searchParams.get("page") || "1", 10);
   const limit = parseInt(searchParams.get("limit") || "20", 10);
   const action = searchParams.get("action");

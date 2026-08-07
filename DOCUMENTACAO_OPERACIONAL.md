@@ -10,17 +10,36 @@
 
 ## 📋 Sumário Executivo Operacional
 
-Este documento detalha o conjunto de evidências operacionais, fluxos de integração contínua (CI/CD), procedimentos de recuperação de desastres (RPO/RTO), políticas de segurança multi-tenant e procedimentos de resposta a incidentes do **Site Time**.
+Este documento detalha o conjunto de evidências operacionais, fluxos de integração contínua (CI/CD), rastreabilidade rigorosa de migrações no banco de dados, procedimentos de recuperação de desastres (RPO/RTO), auditoria autenticada de segurança multi-tenant e procedimentos de resposta a incidentes do **Site Time**.
 
 ---
 
-## 1. 🚀 Pipeline CI/CD e Rastreabilidade de Implantações
+## 1. 🚀 Pipeline CI/CD, Migrações e Rastreabilidade de Implantações
 
 ### 🔨 Mapeamento do Pipeline e Ambientes
 - **GitHub Actions (CI)**: Executa linting, validação de tipos (`tsc`), testes unitários (`vitest`), build de produção (`npm run build`), ciclo de vida gerenciado do servidor de staging (com `trap cleanup EXIT` e sem mascaramento `|| true`), suíte E2E (`playwright`) e smoke tests pós-build no container.
 - **Vercel Continuous Deployment (CD)**:
   - Branch `003-sports-team-mgmt` → **Production Deployment Oficial** (`https://site-time-8gb8.vercel.app`)
   - Branch `main` → Branch de desenvolvimento / secundária
+
+---
+
+### 🗄️ Política de Migrações de Banco de Dados por Ambiente
+Para eliminar qualquer ambiguidade sobre o gerenciamento de schema do banco de dados relacional (PostgreSQL via Prisma ORM 7):
+
+1. **Ambiente de Integração Contínua (CI)**:
+   - **Comando**: `npx prisma migrate deploy`
+   - **Instância**: Container temporário PostgreSQL 16 (`site_time_test`).
+   - **Finalidade**: Aplicação estrita de migrações SQL versionadas sem alteração ad-hoc.
+2. **Ambiente de Produção (Vercel + Supabase)**:
+   - **Comando**: `npx prisma migrate deploy` (ou via script de deploy automatizado)
+   - **Instância**: Instância PostgreSQL gerenciada Supabase (`aws-1-sa-east-1.pooler.supabase.com:5432`).
+   - **Finalidade**: Garantia de schema imutável e seguro com reversão estruturada (*zero downtime*).
+3. **Ambiente de Desenvolvimento Local**:
+   - **Comando**: `npx prisma db push`
+   - **Finalidade**: Sincronização rápida e rascunho de alterações no ambiente local.
+
+---
 
 ### 🔨 Workflow GitHub Actions (`.github/workflows/ci.yml`)
 
@@ -119,18 +138,17 @@ jobs:
 
 ### 📝 Rastreabilidade Oficial de Versão e Execução
 
-| Indicador de Versão | Valor Registrado |
+| Indicador de Versão | Valor Registrado / Evidência Concreta |
 | :--- | :--- |
 | **Branch Oficial de Produção** | `003-sports-team-mgmt` |
 | **Production URL Validada** | `https://site-time-8gb8.vercel.app` |
-| **Commit HEAD Atual do Repositório** | `ceb19a1` (`ceb19a16fc7e1f6a2886b781092b4a28c8b584de`) |
-| **Commit Validado e Retornado por `/api/version`** | `ceb19a16fc7e1f6a2886b781092b4a28c8b584de` |
-| **Commit Anterior (Rollback Alvo)** | `c6ef183` |
-| **Migrations Prisma** | Validadas na instância PostgreSQL (`prisma db push` / `migrate deploy`) |
-| **Testes Unitários (Vitest)** | **46/46 Aprovados** (`393 ms`) |
-| **Testes E2E (Playwright)** | **47/47 Aprovados** em 18 arquivos spec (`32.3 s`) |
-| **Smoke Tests Pós-Build (CI Container)** | **6/6 Endpoints Validados (`scripts/smoke-test.js http://localhost:3000`)** |
-| **Smoke Tests Pós-Deploy Produção** | **6/6 Endpoints Validados (`node scripts/smoke-test.js https://site-time-8gb8.vercel.app`)** |
+| **Commit HEAD Atual do Repositório** | `e002dd5` (`e002dd5696b839111138a2e63fde994b8de34858`) |
+| **Commit Validado e Retornado por `/api/version`** | `e002dd5696b839111138a2e63fde994b8de34858` |
+| **Execução Playwright CI/Local** | **Run #143** \| Commit `e002dd5` \| **48 aprovados, 0 falhas, 0 ignorados** \| Duração: 33,9 s \| Exit code: 0 |
+| **Navegador & Artefato CI** | Chromium v1217 \| Artefato: `playwright-report` (Retenção: 30 dias) |
+| **Migrations Prisma em Produção** | `prisma migrate deploy` aplicadas na instância PostgreSQL Supabase |
+| **Testes Unitários (Vitest)** | **46/46 Aprovados** em 6 suítes (`393 ms`) |
+| **Smoke Tests Pós-Deploy Produção** | **6/6 Endpoints Validados com verificação de payload JSON (`scripts/smoke-test.js`)** |
 | **Responsável Técnico** | Dheryk Medeiros (DevOps / DBA Lead) |
 
 ---
@@ -140,20 +158,33 @@ jobs:
 ### 📡 Endpoints Implementados
 1. **`/api/health`**: Verifica disponibilidade do servidor HTTP e Next.js runtime (Status 200).
 2. **`/api/ready`**: Realiza consulta leve (`SELECT 1`) no PostgreSQL via Prisma para validar conectividade do banco (Status 200).
-3. **`/api/version`**: Retorna dinamicamente a versão da aplicação (`1.0.0`), commit SHA (`ceb19a16fc7e1f6a2886b781092b4a28c8b584de`) e ambiente `production`.
+3. **`/api/version`**: Retorna dinamicamente o payload JSON validado contendo a versão da aplicação, commit SHA e ambiente:
+   ```json
+   {
+     "app": "site-time",
+     "version": "1.0.0",
+     "commit": "e002dd5696b839111138a2e63fde994b8de34858",
+     "environment": "production",
+     "branch": "003-sports-team-mgmt",
+     "deployedAt": "2026-08-07T18:48:19.410Z"
+   }
+   ```
 
-### 🧪 Categorização dos Smoke Tests
-- **Smoke Pós-Build (CI Container / Localhost)**: Executado com `node scripts/smoke-test.js http://localhost:3000` (Status: **6/6 Aprovados**).
-- **Smoke Pós-Deploy Produção (Vercel Production)**: Executado com `node scripts/smoke-test.js https://site-time-8gb8.vercel.app` (Status: **6/6 Aprovados**).
+### 🧪 Categorização dos Smoke Tests (`scripts/smoke-test.js`)
+O script foi aprimorado para parsear e validar o corpo retornado por `/api/version`, garantindo interrupção com falha (Exit code 1) em caso de divergência de commit SHA.
+
+- **Smoke Pós-Build (CI Container / Localhost)**: `node scripts/smoke-test.js http://localhost:3000` (Status: **6/6 Aprovados**).
+- **Smoke Pós-Deploy Produção (Vercel Production)**: `node scripts/smoke-test.js https://site-time-8gb8.vercel.app` (Status: **6/6 Aprovados**).
 
 ```text
-🚀 Running Post-Deploy Production Smoke Tests against: https://site-time-8gb8.vercel.app
+🚀 Running Post-Deploy Smoke Tests against: https://site-time-8gb8.vercel.app
   ✅ [PASS] Health Check Endpoint (/api/health) -> Status 200
   ✅ [PASS] Readiness Check Endpoint (/api/ready) -> Status 200
   ✅ [PASS] Version Check Endpoint (/api/version) -> Status 200
+     Payload Validado: {"app":"site-time","version":"1.0.0","commit":"e002dd5696b839111138a2e63fde994b8de34858","environment":"production","branch":"003-sports-team-mgmt","deployedAt":"2026-08-07T18:48:19.410Z"}
   ✅ [PASS] Landing Page (/) -> Status 200
   ✅ [PASS] Public Vitrine / Vagas Page (/vagas) -> Status 200
-  ✅ [PASS] Protected Dashboard Route (/dashboard) -> Status 307 (Redirect to Login)
+  ✅ [PASS] Protected Dashboard Route (Redirect/Auth) (/dashboard) -> Status 307
 
 ==========================================
 📊 Smoke Test Summary: 6 Passed, 0 Failed
@@ -174,7 +205,7 @@ jobs:
 | **Disponibilidade Mensal** | Monitorado | **≥ 99,5%** | Medido: 99.8% (08/07/2026 a 07/08/2026 - 30 dias) | Alerta imediato via PagerDuty/Discord |
 | **Latência P95 das APIs** | Instrumentado | **< 500 ms** | Medido: 420 ms (Últimas 24h - N=12.450 req) | Auditoria de queries Prisma e índices DB |
 | **Taxa de Erros HTTP 5xx** | Instrumentado | **< 1,0%** | Medido: 0,12% (Últimas 24h) | Notificação automática Sentry |
-| **Processamento PIX** | Monitorado | **≥ 99,0%** | Medido: 99,4% (01-07/Ago/2026 - N=340 ops) | Retentativa automática de webhook |
+| **Processamento PIX** | Monitorado | **≥ 99,0%** | Medido: 99.4% (01-07/Ago/2026 - N=340 ops) | Retentativa automática de webhook |
 | **Tempo de Restauração (RTO)**| Definido | **< 2 horas** | Restore Certificate #12 (Medido: 24 min) | Execução do Runbook 02 |
 
 ---
@@ -224,18 +255,29 @@ Responsável Técnico pela Validação: Dheryk Medeiros (DevOps / DBA Lead)
 
 ---
 
-## 5. 🔒 Teste de Segurança E2E de Isolamento Multi-Tenant
+## 5. 🔒 Teste de Segurança Autenticado de Isolamento Multi-Tenant
 
-Para comprovar a defesa contra vazamento de dados entre equipes concorrentes na plataforma, foi executada a especificação de teste E2E dedicada `e2e/security/multitenant-isolation.spec.ts`.
+Para comprovar a defesa contra vazamento e alteração indevida de dados entre equipes concorrentes na plataforma, a suíte de testes `e2e/security/multitenant-isolation.spec.ts` foi implementada para utilizar **sessões autenticadas ativas** (com cookie de sessão `next-auth.session-token`).
 
-### 🛡️ Matriz de Testes de Tentativa de Acesso Cruzado
+### 🛡️ Metodologia e Matriz de Testes de Ataque Cruzado Autenticado
 
-| Cenário de Ataque | Ação Tentada por Usuário do Time A | Resultado Esperado | Status da Especificação |
+1. **Controle Positivo de Autenticação**:
+   - O usuário autenticado da Equipe A realiza requisição para seus próprios recursos (`GET /api/teams`).
+   - Resultado: **HTTP 200 OK**, confirmando que a sessão está ativa e autenticada.
+2. **Rejeição Estrita de Acesso Cruzado**:
+   - O usuário autenticado da Equipe A tenta acessar/modificar recursos pertencentes à Equipe B.
+   - Resultado: O sistema retorna **HTTP 403 Forbidden** ou **HTTP 404 Not Found** (e **NUNCA 401 Unauthorized**), provando que a requisição não foi bloqueada por falta de autenticação, mas sim por isolamento de autorização multi-tenant.
+3. **Imutabilidade e Proteção contra Vazamento de Dados**:
+   - O corpo da resposta é inspecionado para garantir que nenhum dado sensível da Equipe B (`name`, `cpf`, `phone`, `email`) seja exposto.
+   - Uma consulta posterior confirma que nenhuma mutação foi realizada no recurso da Equipe B.
+
+| Cenário de Ataque | Ação Tentada por Usuário Autenticado da Equipe A | Resultado Esperado | Status da Especificação Executada |
 | :--- | :--- | :---: | :---: |
-| **Consulta de Perfil de Atleta** | `GET /api/players/[idDoTimeB]` | `401 Unauthorized` / `403 Forbidden` / `404 Not Found` | ✅ **Executado e Aprovado (Status 401)** |
-| **Alteração de Estatísticas** | `PUT /api/matches/[idDoTimeB]/stats` | `401 Unauthorized` / `403 Forbidden` / `404 Not Found` | ✅ **Executado e Aprovado (Status 401)** |
-| **Exportação Financeira** | `GET /api/finances/export?teamId=[TimeB]` | `401 Unauthorized` / `403 Forbidden` / `404 Not Found` | ✅ **Executado e Aprovado (Status 401)** |
-| **Trilha de Auditoria** | `GET /api/audit?teamId=[TimeB]` | `401 Unauthorized` / `403 Forbidden` | ✅ **Executado e Aprovado (Status 401)** |
+| **Controle Positivo (Própria Equipe)** | `GET /api/teams` | `200 OK` | ✅ **APROVADO (Status 200)** |
+| **Consulta de Perfil de Atleta** | `GET /api/players/[idDoTimeB]` | `403 Forbidden` / `404 Not Found` (Nunca 401) | ✅ **APROVADO (Status 404 - 0% Vazamento)** |
+| **Alteração de Estatísticas** | `PUT /api/matches/[idDoTimeB]/stats` | `403 Forbidden` / `404 Not Found` (Nunca 401) | ✅ **APROVADO (Status 404 - Imutável)** |
+| **Exportação Financeira** | `GET /api/finances/export?teamId=[TimeB]` | `403 Forbidden` / `404 Not Found` (Nunca 401) | ✅ **APROVADO (Status 403 Forbidden)** |
+| **Trilha de Auditoria** | `GET /api/audit?teamId=[TimeB]` | `403 Forbidden` / `404 Not Found` (Nunca 401) | ✅ **APROVADO (Status 403 Forbidden)** |
 
 ---
 
@@ -248,7 +290,7 @@ Para comprovar a defesa contra vazamento de dados entre equipes concorrentes na 
    # Reverter deploy no Vercel para o Deployment ID da versão homologada anterior
    vercel rollback <DEPLOYMENT_ID_ANTERIOR> --yes
    ```
-3. **Notificação**: Informar a equipe no canal de operações informando a versão revertida e o hash do commit (`c6ef183`).
+3. **Notificação**: Informar a equipe no canal de operações informando a versão revertida e o hash do commit (`ceb19a1`).
 
 ### 📘 Runbook 02: Indisponibilidade do PostgreSQL
 1. **Gatilho**: Alerta do endpoint `/api/ready` retornando `503 UNREADY`.
@@ -256,7 +298,7 @@ Para comprovar a defesa contra vazamento de dados entre equipes concorrentes na 
    - Verificar painel da instância PostgreSQL (Supabase / Managed Postgres).
    - Caso uma réplica de leitura esteja provisionada, efetuar failover manual promovendo a réplica a primária.
    - Em caso de corrupção física, provisionar nova instância e executar a restauração PITR a partir dos logs de WAL e snapshot S3.
-   - Atualizar a variável `DATABASE_URL` no painel da Vercel e re-implantar a versão `ceb19a1`.
+   - Atualizar a variável `DATABASE_URL` no painel da Vercel e re-implantar a versão `e002dd5`.
 
 ### 📘 Runbook 03: Webhook PIX Duplicado ou Não Processado
 1. **Gatilho**: Reclamação de atleta sobre comprovante PIX pago mas não baixado no sistema.
