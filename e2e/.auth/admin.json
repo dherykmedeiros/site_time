@@ -2,8 +2,8 @@
   "cookies": [
     {
       "name": "next-auth.csrf-token",
-      "value": "f3d02fd23752a669b38755f18ad7559e61d2337aa7616d87b6f4f3390578f64c%7Cd5e95689204b20bdc6f763cece067a20bc3f683e8b8c49cdfbc8f9f97ff5883e",
-      "domain": "localhost",
+      "value": "fbaf483d6a0613859dfeb27493ff35f8b25b83c92d1ff10e30a528a76b0c516e%7Ce082941b416a85438883b239a85d214f4cc2fce0d551ef5dd0c1ae42e52b6493",
+      "domain": "127.0.0.1",
       "path": "/",
       "expires": -1,
       "httpOnly": true,
@@ -12,8 +12,8 @@
     },
     {
       "name": "next-auth.callback-url",
-      "value": "http%3A%2F%2Flocalhost%3A3000%2Flogin",
-      "domain": "localhost",
+      "value": "http%3A%2F%2Flocalhost%3A3000",
+      "domain": "127.0.0.1",
       "path": "/",
       "expires": -1,
       "httpOnly": true,
@@ -22,10 +22,10 @@
     },
     {
       "name": "next-auth.session-token",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..hNhwo7683sRAWf-z.9-Aeov7X45kr9nqtJak12zSTOtW9Ds1Oxl1zifwchxR1v0L7iYcJaDKTcEYyTXko-tlsO9g8Vxggh8BVmCBEXYZoHbdt9kFmS2x5UIRCj9GHEXFczBHhIpRSSD1fEmYGPF0mviMWwHwIqB42uAOfRT_YyH7VUle9hkxxF6MmCLbGb_XHvLYDlVl-aiPaBE0tMd1lyGLV3aZgcrGJaBDuvs3dRnt8dElMv7VcfxaZiljTjzarniAfqKnQQ76tI6zhpp1KErnhssa841om856GSiH1EpRNdFRkaSi3IAUO4uHyksJ44EfeE71Pshh1W6qndOxrRP3MTH6bU1ntZz2yn1Js_42m.69w3xSiBRfwZhkdmPWOyhA",
-      "domain": "localhost",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..DX8yuBXdWTeiUKJy.NnTs23eU6mQAhmJraKGNUyrlf8LqHxDsNknfG3aFpOwGW2X9x_t1mU4MdCzeo_mjJmsYgwZmrkTkk6ZkdK21TfDyqhTfni0Jwb3_rsXsa341WROIBlKFiNAM0CQd6HMoANvxmfBxaBqNLT7urugiaXbTh-l71fH5Fykesyg0Kf1bjz7lSCuCmA0sRmKFG1pcwd0A_MaBCee_9k48PG4exwOtlbfp0PdFWihG4gUtIwf1qNEbx_kPhvcTdK-z7cYrpUUxZ_CHUmarW8GxIZXhLkGnH1rIhJbtzP7qkPJrDM9Slbn-JwWGozLtflgch5J-RsUEolbD6ZHGnypi5legLGlcH065SYwZnTC7QdXel5vVyTqKl9eR8ojG05BURzVUWpdSBJSaC8PCGLa9p_vomq0Vz9AoVMg5w0SLAK5uRfhXmjt75uKD._uuHLiArqDmzZn6Q-FGhvg",
+      "domain": "127.0.0.1",
       "path": "/",
-      "expires": 1777903631.859313,
+      "expires": 1786732454.204378,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
@@ -33,11 +33,11 @@
   ],
   "origins": [
     {
-      "origin": "http://localhost:3000",
+      "origin": "http://127.0.0.1:3000",
       "localStorage": [
         {
           "name": "nextauth.message",
-          "value": "{\"event\":\"session\",\"data\":{\"trigger\":\"getSession\"},\"timestamp\":1775311630}"
+          "value": "{\"event\":\"session\",\"data\":{\"trigger\":\"getSession\"},\"timestamp\":1786127653}"
         }
       ]
     }

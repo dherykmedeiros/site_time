@@ -11,7 +11,7 @@ export default defineConfig({
   expect: { timeout: 8_000 },
 
   use: {
-    baseURL: process.env.BASE_URL || "http://localhost:3000",
+    baseURL: process.env.BASE_URL || "http://127.0.0.1:3000",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -27,8 +27,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: "npm run dev -- --turbopack",
-    url: "http://localhost:3000",
+    command: "npm run start",
+    url: "http://127.0.0.1:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
   },

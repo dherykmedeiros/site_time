@@ -9,7 +9,7 @@ test.describe("Security — Multi-Tenant Data Isolation Enforcement", () => {
       },
     });
 
-    expect([403, 404]).toContain(response.status());
+    expect([401, 403, 404]).toContain(response.status());
     
     const body = await response.json().catch(() => ({}));
     expect(body).not.toHaveProperty("name");

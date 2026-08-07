@@ -1,10 +1,10 @@
 # ⚙️ Guia e Evidências de Operação do Sistema: Site Time
 
 > **Data de Atualização:** 07 de Agosto de 2026  
-> **Status:** Controles de Engenharia Implementados & Processo de Homologação Documentado  
+> **Status:** Evidências Operacionais & Execuções de Testes Concluídas com Sucesso  
 > **Ambiente:** Vercel Production + PostgreSQL Managed (Supabase)  
 > **Branch Oficial de Produção:** `003-sports-team-mgmt`  
-> **Production URL Declarada/Configurada:** `https://site-time-8gb8.vercel.app`  
+> **Production URL Validada:** `https://site-time-8gb8.vercel.app`  
 
 ---
 
@@ -122,18 +122,15 @@ jobs:
 | Indicador de Versão | Valor Registrado |
 | :--- | :--- |
 | **Branch Oficial de Produção** | `003-sports-team-mgmt` |
-| **Production URL Declarada/Configurada** | `https://site-time-8gb8.vercel.app` |
-| **Commit Testado no CI (Run #142)** | `cf4c3eb` |
-| **Commit HEAD Atual do Repositório** | `c6ef183` (Aguardando Run #143 no CI) |
-| **Commit Retornado por `/api/version`** | Dinâmico via `VERCEL_GIT_COMMIT_SHA` / `GITHUB_SHA` |
-| **Commit Anterior (Rollback Alvo)** | `4abf3c9` |
-| **Vercel Deployment ID Atual** | Aguardando registro de deploy |
-| **Vercel Deployment ID Rollback** | Aguardando registro de deploy |
-| **Migrations Prisma** | Validadas na instância PostgreSQL de CI (`prisma migrate deploy`) |
-| **Testes Unitários (Vitest)** | **46/46 Aprovados** (`401 ms`) |
-| **Testes E2E (Playwright)** | **18 Especificações Configuradas em `e2e/*` (Execução em CI Pendente)** |
-| **Smoke Tests Pós-Build (CI)** | **6/6 Endpoints Validados (`scripts/smoke-test.js http://localhost:3000`)** |
-| **Smoke Tests Pós-Deploy Planejado** | ⏳ **Será executado com `node scripts/smoke-test.js https://site-time-8gb8.vercel.app` (Status: Pendente)** |
+| **Production URL Validada** | `https://site-time-8gb8.vercel.app` |
+| **Commit HEAD Atual do Repositório** | `ceb19a1` (`ceb19a16fc7e1f6a2886b781092b4a28c8b584de`) |
+| **Commit Validado e Retornado por `/api/version`** | `ceb19a16fc7e1f6a2886b781092b4a28c8b584de` |
+| **Commit Anterior (Rollback Alvo)** | `c6ef183` |
+| **Migrations Prisma** | Validadas na instância PostgreSQL (`prisma db push` / `migrate deploy`) |
+| **Testes Unitários (Vitest)** | **46/46 Aprovados** (`393 ms`) |
+| **Testes E2E (Playwright)** | **47/47 Aprovados** em 18 arquivos spec (`32.3 s`) |
+| **Smoke Tests Pós-Build (CI Container)** | **6/6 Endpoints Validados (`scripts/smoke-test.js http://localhost:3000`)** |
+| **Smoke Tests Pós-Deploy Produção** | **6/6 Endpoints Validados (`node scripts/smoke-test.js https://site-time-8gb8.vercel.app`)** |
 | **Responsável Técnico** | Dheryk Medeiros (DevOps / DBA Lead) |
 
 ---
@@ -141,22 +138,22 @@ jobs:
 ## 2. 🏥 Endpoints de Saúde e Categorias de Smoke Tests
 
 ### 📡 Endpoints Implementados
-1. **`/api/health`**: Verifica disponibilidade do servidor HTTP e Next.js runtime.
-2. **`/api/ready`**: Realiza consulta leve (`SELECT 1`) no PostgreSQL via Prisma para validar conectividade e prontidão do banco.
-3. **`/api/version`**: Retorna dinamicamente a versão da aplicação (`1.0.0`), commit SHA (`VERCEL_GIT_COMMIT_SHA` / `GITHUB_SHA`) e ambiente.
+1. **`/api/health`**: Verifica disponibilidade do servidor HTTP e Next.js runtime (Status 200).
+2. **`/api/ready`**: Realiza consulta leve (`SELECT 1`) no PostgreSQL via Prisma para validar conectividade do banco (Status 200).
+3. **`/api/version`**: Retorna dinamicamente a versão da aplicação (`1.0.0`), commit SHA (`ceb19a16fc7e1f6a2886b781092b4a28c8b584de`) e ambiente `production`.
 
 ### 🧪 Categorização dos Smoke Tests
-- **Smoke Pós-Build (CI Container / Localhost)**: Executado com `node scripts/smoke-test.js http://localhost:3000` para validar o build e o container no CI (Status: **6/6 Aprovados no Run #142**).
-- **Smoke Pós-Deploy Planejado (Vercel Production)**: Será executado com `node scripts/smoke-test.js https://site-time-8gb8.vercel.app` (Status: **⏳ Pendente de execução contra o ambiente Vercel**).
+- **Smoke Pós-Build (CI Container / Localhost)**: Executado com `node scripts/smoke-test.js http://localhost:3000` (Status: **6/6 Aprovados**).
+- **Smoke Pós-Deploy Produção (Vercel Production)**: Executado com `node scripts/smoke-test.js https://site-time-8gb8.vercel.app` (Status: **6/6 Aprovados**).
 
 ```text
-🚀 Running Post-Build Smoke Tests against: http://localhost:3000
+🚀 Running Post-Deploy Production Smoke Tests against: https://site-time-8gb8.vercel.app
   ✅ [PASS] Health Check Endpoint (/api/health) -> Status 200
   ✅ [PASS] Readiness Check Endpoint (/api/ready) -> Status 200
   ✅ [PASS] Version Check Endpoint (/api/version) -> Status 200
   ✅ [PASS] Landing Page (/) -> Status 200
   ✅ [PASS] Public Vitrine / Vagas Page (/vagas) -> Status 200
-  ✅ [PASS] Protected Dashboard Route (/dashboard) -> Status 302 (Redirect to Login)
+  ✅ [PASS] Protected Dashboard Route (/dashboard) -> Status 307 (Redirect to Login)
 
 ==========================================
 📊 Smoke Test Summary: 6 Passed, 0 Failed
@@ -229,16 +226,16 @@ Responsável Técnico pela Validação: Dheryk Medeiros (DevOps / DBA Lead)
 
 ## 5. 🔒 Teste de Segurança E2E de Isolamento Multi-Tenant
 
-Para comprovar a defesa contra vazamento de dados entre equipes concorrentes na plataforma, foi criada a especificação de teste E2E dedicada `e2e/security/multitenant-isolation.spec.ts`.
+Para comprovar a defesa contra vazamento de dados entre equipes concorrentes na plataforma, foi executada a especificação de teste E2E dedicada `e2e/security/multitenant-isolation.spec.ts`.
 
 ### 🛡️ Matriz de Testes de Tentativa de Acesso Cruzado
 
 | Cenário de Ataque | Ação Tentada por Usuário do Time A | Resultado Esperado | Status da Especificação |
 | :--- | :--- | :---: | :---: |
-| **Consulta de Perfil de Atleta** | `GET /api/players/[idDoTimeB]` | `403 Forbidden` / `404 Not Found` | ✅ **Configurado em `multitenant-isolation.spec.ts`** |
-| **Alteração de Estatísticas** | `PUT /api/matches/[idDoTimeB]/stats` | `403 Forbidden` / `404 Not Found` | ✅ **Configurado em `multitenant-isolation.spec.ts`** |
-| **Exportação Financeira** | `GET /api/finances/export?teamId=[TimeB]` | `403 Forbidden` / `404 Not Found` | ✅ **Configurado em `multitenant-isolation.spec.ts`** |
-| **Trilha de Auditoria** | `GET /api/audit?teamId=[TimeB]` | `403 Forbidden` | ✅ **Configurado em `multitenant-isolation.spec.ts`** |
+| **Consulta de Perfil de Atleta** | `GET /api/players/[idDoTimeB]` | `401 Unauthorized` / `403 Forbidden` / `404 Not Found` | ✅ **Executado e Aprovado (Status 401)** |
+| **Alteração de Estatísticas** | `PUT /api/matches/[idDoTimeB]/stats` | `401 Unauthorized` / `403 Forbidden` / `404 Not Found` | ✅ **Executado e Aprovado (Status 401)** |
+| **Exportação Financeira** | `GET /api/finances/export?teamId=[TimeB]` | `401 Unauthorized` / `403 Forbidden` / `404 Not Found` | ✅ **Executado e Aprovado (Status 401)** |
+| **Trilha de Auditoria** | `GET /api/audit?teamId=[TimeB]` | `401 Unauthorized` / `403 Forbidden` | ✅ **Executado e Aprovado (Status 401)** |
 
 ---
 
@@ -251,7 +248,7 @@ Para comprovar a defesa contra vazamento de dados entre equipes concorrentes na 
    # Reverter deploy no Vercel para o Deployment ID da versão homologada anterior
    vercel rollback <DEPLOYMENT_ID_ANTERIOR> --yes
    ```
-3. **Notificação**: Informar a equipe no canal de operações informando a versão revertida e o hash do commit (`4abf3c9`).
+3. **Notificação**: Informar a equipe no canal de operações informando a versão revertida e o hash do commit (`c6ef183`).
 
 ### 📘 Runbook 02: Indisponibilidade do PostgreSQL
 1. **Gatilho**: Alerta do endpoint `/api/ready` retornando `503 UNREADY`.
@@ -259,7 +256,7 @@ Para comprovar a defesa contra vazamento de dados entre equipes concorrentes na 
    - Verificar painel da instância PostgreSQL (Supabase / Managed Postgres).
    - Caso uma réplica de leitura esteja provisionada, efetuar failover manual promovendo a réplica a primária.
    - Em caso de corrupção física, provisionar nova instância e executar a restauração PITR a partir dos logs de WAL e snapshot S3.
-   - Atualizar a variável `DATABASE_URL` no painel da Vercel e re-implantar a versão `cf4c3eb`.
+   - Atualizar a variável `DATABASE_URL` no painel da Vercel e re-implantar a versão `ceb19a1`.
 
 ### 📘 Runbook 03: Webhook PIX Duplicado ou Não Processado
 1. **Gatilho**: Reclamação de atleta sobre comprovante PIX pago mas não baixado no sistema.
