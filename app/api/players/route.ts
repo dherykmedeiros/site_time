@@ -33,7 +33,15 @@ export async function GET(request: Request) {
   const players = await prisma.player.findMany({
     where,
     orderBy: { shirtNumber: "asc" },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      position: true,
+      secondaryPosition: true,
+      shirtNumber: true,
+      photoUrl: true,
+      status: true,
+      createdAt: true,
       user: { select: { id: true, role: true } },
     },
   });
