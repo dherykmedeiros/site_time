@@ -364,70 +364,97 @@ export default function PortalView({
             </div>
 
             <div className="hero-right flex flex-col gap-6 justify-center">
-              <div className="crest-wall p-6 rounded bg-gradient-to-b from-[var(--primary-deep)] to-[rgba(10,88,75,0.9)] text-[#fff]">
-                <div className="head flex justify-between text-[11px] font-mono opacity-80 uppercase tracking-widest mb-4">
-                  <span className="id">TEMPORADA {stats.activeSeason ? stats.activeSeason.name : "2026"}</span>
-                  <span>Campanha Ativa</span>
+              <div className="crest-wall p-6 rounded text-[#ffffff]" style={{ background: "linear-gradient(180deg, #0a584b 0%, #063830 100%)" }}>
+                <div className="head flex justify-between text-[11px] font-mono text-white/90 uppercase tracking-widest mb-4">
+                  <span className="id font-bold text-white">TEMPORADA {stats.activeSeason ? stats.activeSeason.name : "2026"}</span>
+                  <span className="text-white/80">Campanha Ativa</span>
                 </div>
                 <div className="body flex items-center gap-6 py-4">
                   <ClubCrest variant="white" initials={clubInitials} className="w-[84px] h-[98px]" badgeUrl={team.badgeUrl} />
                   <div className="who">
-                    <div className="lab text-[9px] font-mono opacity-65 uppercase tracking-wider">Clube oficial</div>
-                    <div className="t font-serif font-bold text-2xl tracking-tight leading-none mt-1">{team.name}</div>
-                    <div className="s text-xs opacity-75 mt-2">Liga Regional de Várzea · {team.city || "Ceará"}</div>
+                    <div className="lab text-[10px] font-mono text-white/80 uppercase tracking-wider">Clube oficial</div>
+                    <div className="t font-serif font-bold text-2xl tracking-tight leading-none mt-1 text-white">{team.name}</div>
+                    <div className="s text-xs text-white/90 mt-2">Liga Regional de Várzea · {team.city || "Ceará"}</div>
                   </div>
                 </div>
-                <div className="stat-row grid grid-cols-4 gap-4 mt-4 border-t border-white/20 pt-4 text-center font-mono">
+                <div className="stat-row grid grid-cols-4 gap-4 mt-4 border-t border-white/20 pt-4 text-center font-mono bg-black/20 rounded">
                   <div>
-                    <div className="l text-[9px] opacity-75 uppercase">VITÓRIAS</div>
-                    <div className="v text-xl font-bold mt-0.5">{wins}</div>
+                    <div className="l text-[9.5px] text-white/80 uppercase">VITÓRIAS</div>
+                    <div className="v text-xl font-bold mt-0.5 text-white">{wins}</div>
                   </div>
                   <div>
-                    <div className="l text-[9px] opacity-75 uppercase">EMPATES</div>
-                    <div className="v text-xl font-bold mt-0.5">{draws}</div>
+                    <div className="l text-[9.5px] text-white/80 uppercase">EMPATES</div>
+                    <div className="v text-xl font-bold mt-0.5 text-white">{draws}</div>
                   </div>
                   <div>
-                    <div className="l text-[9px] opacity-75 uppercase">DERROTAS</div>
-                    <div className="v text-xl font-bold mt-0.5">{losses}</div>
+                    <div className="l text-[9.5px] text-white/80 uppercase">DERROTAS</div>
+                    <div className="v text-xl font-bold mt-0.5 text-white">{losses}</div>
                   </div>
                   <div>
-                    <div className="l text-[9px] opacity-75 uppercase">SALDO</div>
-                    <div className="v text-xl font-bold mt-0.5">{goalBalance >= 0 ? `+${goalBalance}` : goalBalance}</div>
+                    <div className="l text-[9.5px] text-white/80 uppercase">SALDO</div>
+                    <div className="v text-xl font-bold mt-0.5 text-white">{goalBalance >= 0 ? `+${goalBalance}` : goalBalance}</div>
                   </div>
                 </div>
               </div>
 
               {nextMatch && (
-                <div className="next-match p-6 bg-[var(--surface-2)] border border-[var(--border)] rounded">
-                  <div className="head flex justify-between text-[10.5px] font-mono text-[var(--text-3)] uppercase tracking-wider mb-4">
-                    <span className="id">▸ Próximo compromisso</span>
+                <div className="next-match p-6 bg-[var(--surface)] border border-[var(--border)] rounded shadow-sm">
+                  <div className="head flex justify-between text-[11px] font-mono text-[var(--text-2)] uppercase tracking-wider mb-4">
+                    <span className="id font-bold text-[var(--ink)]">▸ Próximo compromisso</span>
                     <span className="tag success">Confirmado</span>
                   </div>
-                  <div className="matchup flex items-center justify-between gap-4 py-2 font-serif">
+                  <div className="matchup flex items-center justify-between gap-4 py-3 font-serif">
                     <div className="side home flex flex-col items-center flex-1 text-center">
-                      <div className="mini-crest w-8 h-8 rounded-full bg-[var(--primary-tint)] border border-[var(--border)] text-[var(--primary)] flex items-center justify-center font-bold font-mono text-xs">{clubInitials}</div>
-                      <div className="n font-bold text-sm text-[var(--ink)] mt-2">{team.shortName || team.name.split(" ")[0]}</div>
-                      <div className="r text-[9.5px] font-mono text-[var(--text-3)] uppercase tracking-wider mt-0.5">Casa</div>
+                      <div className="flex items-center justify-center h-14 w-14 mb-1">
+                        <ClubCrest
+                          badgeUrl={team.badgeUrl}
+                          initials={clubInitials}
+                          className="w-12 h-14 object-contain filter drop-shadow-md"
+                        />
+                      </div>
+                      <div className="n font-bold text-sm text-[var(--ink)] mt-1">{team.shortName || team.name.split(" ")[0]}</div>
+                      <div className="r text-[10px] font-mono text-[var(--text-3)] uppercase tracking-wider mt-0.5">
+                        {nextMatch.isHome !== false ? "Casa" : "Visitante"}
+                      </div>
                     </div>
-                    <div className="vs font-mono text-xs text-[var(--text-3)] font-black">VS</div>
+
+                    <div className="vs font-mono text-xs text-[var(--text-2)] font-black px-3 py-1.5 border border-[var(--border-strong)] rounded bg-[var(--surface-sunk)]">
+                      VS
+                    </div>
+
                     <div className="side away flex flex-col items-center flex-1 text-center">
-                      <div className="mini-crest w-8 h-8 rounded-full bg-[var(--surface-sunk)] border border-[var(--border)] text-[var(--text-2)] flex items-center justify-center font-bold font-mono text-xs">{nextMatch.opponent.substring(0,2).toUpperCase()}</div>
-                      <div className="n font-bold text-sm text-[var(--ink)] mt-2">{nextMatch.opponent.split(" ")[0]}</div>
-                      <div className="r text-[9.5px] font-mono text-[var(--text-3)] uppercase tracking-wider mt-0.5">Visitante</div>
+                      <div className="flex items-center justify-center h-14 w-14 mb-1">
+                        <ClubCrest
+                          badgeUrl={nextMatch.opponentBadgeUrl || null}
+                          initials={nextMatch.opponent.substring(0, 2).toUpperCase()}
+                          variant="opponent"
+                          className="w-12 h-14 object-contain filter drop-shadow-md"
+                        />
+                      </div>
+                      <div className="n font-bold text-sm text-[var(--ink)] mt-1">{nextMatch.opponent.split(" ")[0]}</div>
+                      <div className="r text-[9.5px] font-mono text-[var(--text-3)] uppercase tracking-wider mt-0.5">
+                        {nextMatch.isHome !== false ? "Visitante" : "Casa"}
+                      </div>
                     </div>
                   </div>
-                  <div className="meta grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-[var(--border)] font-mono text-center">
+                  <div className="meta grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-[var(--border)] font-mono text-center bg-[var(--surface-2)] rounded p-3">
                     <div>
-                      <div className="l text-[8px] text-[var(--text-3)] uppercase">Data</div>
-                      <div className="v text-xs font-bold mt-0.5">{new Date(nextMatch.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", timeZone: "America/Sao_Paulo" })}</div>
+                      <div className="l text-[9px] text-[var(--text-3)] uppercase font-semibold">Data</div>
+                      <div className="v text-xs font-bold mt-0.5 text-[var(--ink)]">
+                        {new Date(nextMatch.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", timeZone: "America/Sao_Paulo" })}
+                      </div>
                     </div>
                     <div>
-                      <div className="l text-[8px] text-[var(--text-3)] uppercase">Horário</div>
-                      <div className="v text-xs font-bold mt-0.5">{new Date(nextMatch.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}</div>
+                      <div className="l text-[9px] text-[var(--text-3)] uppercase font-semibold">Horário</div>
+                      <div className="v text-xs font-bold mt-0.5 text-[var(--ink)]">
+                        {new Date(nextMatch.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
+                      </div>
                     </div>
                     <div>
-                      <div className="l text-[8px] text-[var(--text-3)] uppercase">Local</div>
-                      <div className="v text-xs font-bold mt-0.5 truncate max-w-[80px]" title={nextMatch.venue}>{nextMatch.venue}</div>
+                      <div className="l text-[9px] text-[var(--text-3)] uppercase font-semibold">Local</div>
+                      <div className="v text-xs font-bold mt-0.5 truncate max-w-[90px] mx-auto text-[var(--ink)]" title={nextMatch.venue}>
+                        {nextMatch.venue}
+                      </div>
                     </div>
                   </div>
                 </div>
