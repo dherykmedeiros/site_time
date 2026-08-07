@@ -19,7 +19,7 @@
 4. [Mapeamento de Funcionalidades do Sistema](#4-mapeamento-de-funcionalidades-do-sistema)
 5. [Como é a Interface Atualmente (Design System, UI & UX)](#5-como-é-a-interface-atualmente-design-system-ui--ux)
 6. [Tecnologias e Bibliotecas Utilizadas](#6-tecnologias-e-bibliotecas-utilizadas)
-7. [Consolidação de Segurança, RBAC, Multi-Tenant & LGPD (Fases 1 a 19)](#7-consolidação-de-segurança-rbac-multi-tenant--lgpd-fases-1-a-19)
+7. [Consolidação de Segurança, RBAC, Multi-Tenant & Privacidade (Fases 1 a 19)](#7-consolidação-de-segurança-rbac-multi-tenant--privacidade-fases-1-a-19)
 8. [Matriz de Maturidade Operacional, Cobertura de Testes & Evidências](#8-matriz-de-maturidade-operacional-cobertura-de-testes--evidências)
 
 ---
@@ -91,9 +91,12 @@ O sistema integra:
 
 ---
 
-### Rotas de API Backend (`route.ts`) - **Total: 120 arquivos `route.ts` (86 endpoints operacionais documentados)**
+### Rotas de API Backend (`route.ts`) - **120 arquivos de rota física (86 caminhos/operações de API documentados)**
 
-> **Definição de Métricas**: O projeto conta com **120 arquivos físicos `route.ts`** no sistema de rotas do Next.js App Router (`app/api/**/route.ts`), correspondendo a **86 caminhos/operações de API documentados** agrupados por contexto funcional abaixo:
+> **Taxonomia das APIs**:
+> - **120 arquivos de rota física (`route.ts`)** localizados na estrutura `app/api/**/route.ts` do Next.js App Router.
+> - **120 caminhos de API implementados** no backend.
+> - **86 caminhos/operações de API selecionados e documentados em detalhe** neste relatório, agrupados por módulo funcional abaixo:
 
 #### 🔑 Autenticação e Sessão
 - `POST /api/auth/[...nextauth]` — Handler de autenticação NextAuth.
@@ -203,48 +206,28 @@ O sistema integra:
 
 ### Páginas Públicas
 
-1. **` / ` — Landing Page**:
-   - Apresentação da plataforma com design escuro moderno (*Dark Theme*), botões de call-to-action para login/registro e destaques das funcionalidades.
-2. **` /[slug] ` — Portal Público do Time**:
-   - Exibe identidade visual do clube (escudo, banner, cores principais), lista de patrocinadores, links para redes sociais, dados de contato, próximas partidas agendadas, foto dos 3 uniformes e modalidades praticadas.
-3. **` /jogadores/[id] ` — Perfil Público do Jogador**:
-   - Card estilizado do atleta (foto, número da camisa, posição), estatísticas de carreira (gols, assistências, cartões, partidas), lista de conquistas/badges obtidas e histórico das últimas 5 partidas.
-4. **` /matches/[id] ` — Detalhes Públicos da Partida**:
-   - Informações do jogo, escudo dos dois times, endereço com integração de mapas, data, horário e galeria de fotos públicas.
-5. **` /matches/[id]/live ` — Partida ao Vivo**:
-   - Placar em tempo real com cronômetro de jogo, lista de gols, assistências, substituições e cartões exibidos em timeline.
-6. **` /matches/[id]/recap ` — Visualização de Recap**:
-   - Layout formato *Stories* com arte renderizada do placar final e destaques.
-7. **` /vagas ` — Mural Público de Desafios e Peneiras**:
-   - Lista pública de vagas e desafios disponíveis para agendamento de partidas.
+1. **` / ` — Landing Page**: Apresentação da plataforma com tema escuro (*Dark Theme*).
+2. **` /[slug] ` — Portal Público do Time**: Identidade visual, uniforme e próximos jogos.
+3. **` /jogadores/[id] ` — Perfil Público do Jogador**: Card do atleta, gols e conquistas.
+4. **` /matches/[id] ` — Detalhes Públicos da Partida**: Informações, mapa e fotos.
+5. **` /matches/[id]/live ` — Partida ao Vivo**: Placar e feed em tempo real.
+6. **` /matches/[id]/recap ` — Visualização de Recap**: Arte visual pós-jogo.
+7. **` /vagas ` — Mural Público de Desafios**: Desafios e peneiras disponíveis.
 
 ---
 
 ### Páginas do Painel Interno (Dashboard)
 
-1. **` /dashboard ` — Painel Geral Adaptativo por Papel**:
-   - **ADMIN**: Saldo financeiro, inadimplências, total de atletas ativos, pedidos de amistosos pendentes, últimas transações e card da próxima partida.
-   - **COACH**: Win Rate, histórico recente, média de gols, resumo de presença (RSVP), artilheiros e garçons.
-   - **PLAYER**: RSVP rápido, taxa de presença pessoal, gols/assistências e multas pendentes.
-   - **MATERIAL_DIRECTOR**: Alertas de baixo estoque e retiradas de material por partida.
-2. **` /dashboard/approvals ` — Central de Pendências & Aprovações**:
-   - Gestão unificada de solicitações externas de amistosos (com modal de definição de data/local e agendamento automático) e aprovação de pedidos de compra de equipamentos.
-3. **` /dashboard/squad ` — Gestão de Elenco**:
-   - Lista completa do elenco com fotos, camisa, posição e botão de adição de atleta.
-4. **` /dashboard/squad/[id] ` — Perfil Detalhado do Atleta**:
-   - Central dividida em 4 abas: **Geral** (dados e posições), **Estatísticas** (acumulado por competição e Gráfico de Radar), **Partidas & Faltas** (histórico de RSVP e ausências) e **Financeiro** (mensalidades e comprovantes).
-5. **` /dashboard/squad/mensalidade ` — Matriz de Mensalidades**:
-   - Tabela mensal de pagamento da caixinha do clube por atleta.
-6. **` /dashboard/matches ` — Gestão de Partidas**:
-   - Lista de jogos agendados, concluídos e cancelados com atalho para ao vivo e súmula.
-7. **` /dashboard/finances ` — Gestão Financeira**:
-   - Fluxo de caixa do clube com registros de receitas e despesas, filtro por categorias, balanço mensal e exportação.
-8. **` /dashboard/fines ` — Regulamento & Suspensões**:
-   - Aplicação de multas, controle de cartões acumulados e acompanhamento de suspensões.
-9. **` /dashboard/equipment ` — Estoque e Materiais**:
-   - Controle de materiais esportivos, retiradas por partida e pedidos de aquisição.
-10. **` /dashboard/me ` — Centro do Atleta**:
-    - Perfil individual do atleta logado com atalho para envio de comprovantes PIX.
+1. **` /dashboard ` — Painel Geral Adaptativo por Papel**: Dashboard especializado por perfil.
+2. **` /dashboard/approvals ` — Central de Pendências & Aprovações**: Amistosos e compras de material.
+3. **` /dashboard/squad ` — Gestão de Elenco**: Lista de atletas com fotos e posições.
+4. **` /dashboard/squad/[id] ` — Perfil Detalhado do Atleta**: 4 abas (Geral, Stats/Radar, Partidas/RSVP, Financeiro).
+5. **` /dashboard/squad/mensalidade ` — Matriz de Mensalidades**: Caixinha mensal do elenco.
+6. **` /dashboard/matches ` — Gestão de Partidas**: Agendados, concluídos e cancelados.
+7. **` /dashboard/finances ` — Gestão Financeira**: Fluxo de caixa e relatórios.
+8. **` /dashboard/fines ` — Regulamento & Suspensões**: Advertências e punições.
+9. **` /dashboard/equipment ` — Estoque e Materiais**: Materiais e retiradas.
+10. **` /dashboard/me ` — Centro do Atleta**: Perfil e envio de comprovante PIX.
 
 ---
 
@@ -286,7 +269,7 @@ O sistema integra:
 - **Exportação Financeira (`/api/finances/export`)**: Acesso restrito exclusivamente ao papel `ADMIN`.
 
 ### 🏢 2. Isolamento Multi-Tenant Completo & Restrições no Banco
-- Todas as queries de mutação e busca utilizam `findFirst({ where: { id, teamId: session.user.teamId } })`.
+- Todas as operações sobre entidades pertencentes a um time aplicam escopo obrigatório de `teamId`, conforme auditoria das rotas multi-tenant.
 - **Garantia por Constraints no PostgreSQL**:
   - `@@unique([teamId, shirtNumber])` na tabela `players`
   - `@@unique([playerId, matchId])` na tabela `match_payments`
@@ -304,22 +287,27 @@ O sistema integra:
 
 ## 8. Matriz de Maturidade Operacional, Cobertura de Testes & Evidências
 
-Abaixo apresenta-se a **Matriz de Maturidade Operacional** por funcionalidade, categorizando de forma transparente o estado exato de desenvolvimento, suíte de testes unitários, testes E2E e commit de integração no repositório:
+Abaixo apresenta-se a **Matriz de Maturidade Operacional** por funcionalidade, categorizando o nível real de cobertura de testes automatizados:
 
-### 📋 Matriz de Recursos & Status de Implementação e Testes
+> **Legenda da Matriz**:
+> - `✅ Coberto`: Há teste unitário automatizado específico na suíte Vitest apresentado neste relatório.
+> - `🟡 Parcial / Indireto`: Regras de negócio e validadores são testados unitariamente, mas a interface gráfica/fluxo de tela depende de suíte E2E.
+> - `⏳ E2E Pendente`: Cobertura de fluxo preparada na suíte Playwright E2E (`e2e/`), aguardando execução com servidor ativo em CI/CD.
 
-| Módulo / Funcionalidade | Implementado | Testado (Vitest) | Suíte E2E | Status do Repositório | Evidência / Arquivo |
+### 📋 Matriz de Recursos & Nível de Cobertura de Testes
+
+| Módulo / Funcionalidade | Implementado | Cobertura Vitest | Suíte E2E | Status do Repositório | Evidência / Arquivo |
 | :--- | :---: | :---: | :---: | :---: | :--- |
-| **Autenticação RBAC & Proxy** | ✅ | ✅ | Configurado | Integrado no Git | `proxy.ts`, `lib/permissions/index.ts` |
-| **Isolamento Multi-Tenant (APIs)** | ✅ | ✅ | Configurado | Integrado no Git | Queries `findFirst({ teamId })` em 120 rotas |
-| **Mascaramento LGPD (CPF)** | ✅ | ✅ | Configurado | Integrado no Git | `lib/utils.ts` (`maskCpf`), `GuestPlayersManager.tsx` |
-| **Central de Pendências & Aprovações** | ✅ | ✅ | Configurado | Integrado no Git | `app/dashboard/approvals/page.tsx` |
-| **Trilha de Auditoria (`AuditLog`)** | ✅ | ✅ | Configurado | Integrado no Git | `model AuditLog`, `lib/audit.ts`, `GET /api/audit` |
-| **Escalação Visual Drag & Drop** | ✅ | ✅ | Configurado | Integrado no Git | `components/dashboard/TacticalBoard.tsx` |
-| **Match Tracker Ao Vivo & Súmula** | ✅ | ✅ | Configurado | Integrado no Git | `app/api/matches/[id]/live/route.ts`, `stats/route.ts` |
-| **Fluxo PIX & Upload de Comprovante** | ✅ | ✅ | Configurado | Integrado no Git | `PlayerFinanceTab.tsx`, `app/api/upload/route.ts` |
-| **Service Worker PWA (NetworkOnly)** | ✅ | ✅ | Configurado | Integrado no Git | `public/sw.js` |
-| **Central do Atleta (`/dashboard/me`)** | ✅ | ✅ | Configurado | Integrado no Git | `app/dashboard/me/page.tsx` |
+| **Autenticação RBAC & Proxy** | ✅ | ✅ Coberto | Configuração E2E | Integrado no Git | `proxy.ts`, `lib/permissions/index.ts` |
+| **Isolamento Multi-Tenant (APIs)** | ✅ | 🟡 Parcial | Configuração E2E | Integrado no Git | Queries `findFirst({ teamId })` em rotas multi-tenant |
+| **Mascaramento LGPD (CPF)** | ✅ | ✅ Coberto | Configuração E2E | Integrado no Git | `lib/utils.ts` (`maskCpf`), `GuestPlayersManager.tsx` |
+| **Central de Pendências & Aprovações** | ✅ | ⏳ E2E Pendente | Configuração E2E | Integrado no Git | `app/dashboard/approvals/page.tsx` |
+| **Trilha de Auditoria (`AuditLog`)** | ✅ | 🟡 Parcial | Configuração E2E | Integrado no Git | `model AuditLog`, `lib/audit.ts`, `GET /api/audit` |
+| **Escalação Visual Drag & Drop** | ✅ | 🟡 Parcial | Configuração E2E | Integrado no Git | `components/dashboard/TacticalBoard.tsx` |
+| **Match Tracker Ao Vivo & Súmula** | ✅ | ✅ Coberto | Configuração E2E | Integrado no Git | `app/api/matches/[id]/live/route.ts`, `stats/route.ts` |
+| **Fluxo PIX & Upload de Comprovante** | ✅ | ✅ Coberto | Configuração E2E | Integrado no Git | `PlayerFinanceTab.tsx`, `app/api/upload/route.ts` |
+| **Service Worker PWA (NetworkOnly)** | ✅ | ⏳ E2E Pendente | Configuração E2E | Integrado no Git | `public/sw.js` |
+| **Central do Atleta (`/dashboard/me`)** | ✅ | ⏳ E2E Pendente | Configuração E2E | Integrado no Git | `app/dashboard/me/page.tsx` |
 
 ---
 
