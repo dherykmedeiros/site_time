@@ -28,8 +28,41 @@ export function isPushConfigured() {
 
 export async function sendPushToUser(
   userId: string,
-  payload: { title: string; body: string; url?: string; tag?: string }
+  payload: { title: string; body: string; url?: string; tag?: string; category?: string }
 ): Promise<{ sent: number; failed: number }> {
+  // 1. Create in-app Notification record in DB
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { teamId: true },
+    });
+
+    if (user?.teamId) {
+      await prisma.notification.create({
+        data: {
+          teamId: user.teamId,
+          userId,
+          title: payload.title,
+          message: payload.body,
+          link: payload.url || "/",
+          read: false,
+        },
+      });
+    }
+  } catch (err) {
+    console.error("Erro ao salvar notificação in-app:", err);
+  }
+
+  // 2. Check category notification preference
+  if (payload.category) {
+    const pref = await prisma.notificationPreference.findFirst({
+      where: { userId, category: payload.category },
+    });
+    if (pref && !pref.enabled) {
+      return { sent: 0, failed: 0 };
+    }
+  }
+
   ensureVapidConfigured();
 
   if (!isPushConfigured()) {
@@ -53,8 +86,8 @@ export async function sendPushToUser(
     body: payload.body,
     url: payload.url || "/",
     tag: payload.tag,
-    icon: "/next.svg",
-    badge: "/next.svg",
+    icon: "/icons/icon-192x192.png",
+    badge: "/icons/icon-192x192.png",
   });
 
   await Promise.all(
