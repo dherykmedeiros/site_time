@@ -315,7 +315,7 @@ Abaixo apresenta-se a **Matriz de Evidências Operacionais** por funcionalidade,
 - **Execução**: `node scripts/smoke-test.js http://localhost:3000`
 - **Ambiente**: CI Staging Container (Node.js v20+)
 - **Data/Hora**: 07/08/2026 14:30 BRT
-- **Commit SHA**: `cf4c3eb`
+- **Commit SHA**: `cf4c3eb` (Run #142)
 
 ---
 

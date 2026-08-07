@@ -3,9 +3,8 @@
 > **Data de Atualização:** 07 de Agosto de 2026  
 > **Status:** Controles de Engenharia Implementados & Processo de Homologação Documentado  
 > **Ambiente:** Vercel Production + PostgreSQL Managed (Supabase)  
-> **Branch Principal de Produção:** `003-sports-team-mgmt` (Configurada na Vercel para Production Deploy)  
-> **Commit Oficial de Referência (Testado/Implantado):** `cf4c3eb` / `8a83d70`  
-> **Commit de Rollback Alvo:** `4abf3c9`  
+> **Branch Oficial de Produção:** `003-sports-team-mgmt`  
+> **Production URL:** `https://site-time.vercel.app`  
 
 ---
 
@@ -15,13 +14,13 @@ Este documento detalha o conjunto de evidências operacionais, fluxos de integra
 
 ---
 
-## 1. 🚀 Pipeline CI/CD e Registro de Implantações
+## 1. 🚀 Pipeline CI/CD e Rastreabilidade de Implantações
 
-### 🔨 Mapeamento do Pipeline e Configuração de Ambiente
-- **GitHub Actions (CI)**: Responsável por linting, validação de tipos (`tsc`), testes unitários (`vitest`), build de produção (`npm run build`), gerenciamento estrito do ciclo de vida do servidor (sem mascaramento de erro e encerramento garantido por `trap cleanup EXIT`), execução da suíte E2E (`playwright`) e smoke tests pós-build no container.
+### 🔨 Mapeamento do Pipeline e Ambientes
+- **GitHub Actions (CI)**: Executa linting, validação de tipos (`tsc`), testes unitários (`vitest`), build de produção (`npm run build`), ciclo de vida gerenciado do servidor de staging (com `trap cleanup EXIT` e sem mascaramento `|| true`), suíte E2E (`playwright`) e smoke tests pós-build no container.
 - **Vercel Continuous Deployment (CD)**:
   - Branch `003-sports-team-mgmt` → **Production Deployment Oficial** (`https://site-time.vercel.app`)
-  - Branch `main` → **Production Deployment** (`https://site-time.vercel.app`)
+  - Branch `main` → Branch de desenvolvimento / secundária
 
 ### 🔨 Workflow GitHub Actions (`.github/workflows/ci.yml`)
 
@@ -118,24 +117,23 @@ jobs:
 
 ---
 
-### 📝 Registro Oficial da Implantação (Deployment Log)
+### 📝 Rastreabilidade Oficial de Versão e Execução
 
-| Campo | Valor Registrado |
+| Indicador de Versão | Valor Registrado |
 | :--- | :--- |
-| **Ambiente** | Produção Vercel (Branch Principal `003-sports-team-mgmt`) |
-| **GitHub Actions Run** | Run #142 |
-| **Commit SHA Testado/Implantado** | `cf4c3eb` / `8a83d70` |
-| **Commit Anterior (Rollback)** | `4abf3c9` |
+| **Branch Oficial de Produção** | `003-sports-team-mgmt` |
+| **Production URL** | `https://site-time.vercel.app` |
+| **Commit Testado no CI (Run #142)** | `cf4c3eb` |
+| **Commit Atual do Repositório** | `8a83d70` / `4a65aef` (Aguardando Run #143 no CI) |
+| **Commit Retornado por `/api/version`** | Dinâmico via `VERCEL_GIT_COMMIT_SHA` / `GITHUB_SHA` |
+| **Commit Anterior (Rollback Alvo)** | `4abf3c9` |
 | **Vercel Deployment ID Atual** | Aguardando registro de deploy |
 | **Vercel Deployment ID Rollback** | Aguardando registro de deploy |
-| **Branch de Produção** | `003-sports-team-mgmt` |
-| **Data e Hora** | 07/08/2026 14:30 BRT |
 | **Migrations Prisma** | Validadas na instância PostgreSQL de CI (`prisma migrate deploy`) |
 | **Testes Unitários (Vitest)** | **46/46 Aprovados** (`401 ms`) |
 | **Testes E2E (Playwright)** | **18 Especificações Configuradas em `e2e/*` (Execução em CI Pendente)** |
 | **Smoke Tests Pós-Build (CI)** | **6/6 Endpoints Validados (`scripts/smoke-test.js http://localhost:3000`)** |
-| **Smoke Tests Pós-Deploy (Prod)** | ⏳ **Pendente de execução contra URL implantada** |
-| **Status do Pipeline CI** | 🟢 **BUILD & CI SUCCESSFUL** |
+| **Smoke Tests Pós-Deploy (Prod)** | ⏳ **Aguardando execução contra a URL de Produção Vercel** |
 | **Responsável Técnico** | Dheryk Medeiros (DevOps / DBA Lead) |
 
 ---
@@ -148,8 +146,8 @@ jobs:
 3. **`/api/version`**: Retorna dinamicamente a versão da aplicação (`1.0.0`), commit SHA (`VERCEL_GIT_COMMIT_SHA` / `GITHUB_SHA`) e ambiente.
 
 ### 🧪 Categorização dos Smoke Tests
-- **Smoke Pós-Build (CI Container / Localhost)**: Executado com `node scripts/smoke-test.js http://localhost:3000` para validar o build e o container no CI.
-- **Smoke Pós-Deploy (Vercel Production)**: Executado com `node scripts/smoke-test.js https://site-time.vercel.app` para validar a implantação na infraestrutura da Vercel.
+- **Smoke Pós-Build (CI Container / Localhost)**: Executado com `node scripts/smoke-test.js http://localhost:3000` para validar o build e o container no CI (Status: **6/6 Aprovados no Run #142**).
+- **Smoke Pós-Deploy (Vercel Production)**: Executado com `node scripts/smoke-test.js https://site-time.vercel.app` (Status: **⏳ Aguardando execução contra a Vercel**).
 
 ```text
 🚀 Running Post-Build Smoke Tests against: http://localhost:3000
