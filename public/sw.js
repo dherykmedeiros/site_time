@@ -67,7 +67,21 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 2. API GET requests: Network-First (cache fallback for offline viewing of squad/matches)
+  // 2. Sensitive API requests: NetworkOnly (NEVER cache sensitive endpoints)
+  const SENSITIVE_PATHS = ["/api/auth", "/api/finances", "/api/audit", "/api/reports", "/api/team/settings"];
+  if (SENSITIVE_PATHS.some((path) => url.pathname.startsWith(path))) {
+    event.respondWith(
+      fetch(request).catch(() => {
+        return new Response(JSON.stringify({ error: "Conexão necessária para esta operação", offline: true }), {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        });
+      })
+    );
+    return;
+  }
+
+  // 3. General Read API requests: Network-First (cache fallback for offline viewing)
   if (url.pathname.startsWith("/api/")) {
     event.respondWith(
       fetch(request)
