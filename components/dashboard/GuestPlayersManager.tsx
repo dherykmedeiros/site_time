@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { playerPositionLabels, playerPositions } from "@/lib/player-positions";
+import { maskCpf } from "@/lib/utils";
 import { Plus, Trash2, Users, UserPlus, X } from "lucide-react";
 
 interface GuestPlayer {
@@ -250,7 +251,7 @@ export function GuestPlayersManager({ matchId, requiresDocumentDetails: propRequ
                           )}
                           {guest.cpf && (
                             <span className="font-mono text-[11px] bg-white/5 px-1.5 py-0.5 rounded text-[var(--text-subtle)]">
-                              CPF: {guest.cpf}
+                              CPF: {maskCpf(guest.cpf)}
                             </span>
                           )}
                         </div>

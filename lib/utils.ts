@@ -94,6 +94,16 @@ export function isPastDate(date: Date): boolean {
   return date < new Date();
 }
 
+/**
+ * Formata e mascara o CPF para conformidade com a LGPD (ex: ***.***.753-30)
+ */
+export function maskCpf(cpf: string | null | undefined): string {
+  if (!cpf) return "";
+  const cleaned = cpf.replace(/\D/g, "");
+  if (cleaned.length !== 11) return cpf;
+  return `***.***.${cleaned.slice(6, 9)}-${cleaned.slice(9)}`;
+}
+
 // SSRF-safe URL allowlist: local uploads or HTTPS with no internal IPs
 const BLOCKED_HOSTS_RE =
   /^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|\[::1\]|0\.0\.0\.0)/i;
