@@ -42,8 +42,9 @@ export async function sendPushToUser(
         data: {
           teamId: user.teamId,
           userId,
+          type: payload.tag || "SYSTEM",
           title: payload.title,
-          message: payload.body,
+          body: payload.body,
           link: payload.url || "/",
           read: false,
         },
