@@ -11,7 +11,7 @@ export const createTransactionSchema = z.object({
     .min(2, "Descrição deve ter no mínimo 2 caracteres")
     .max(200, "Descrição deve ter no máximo 200 caracteres"),
   category: z.enum(
-    ["MEMBERSHIP", "FRIENDLY_FEE", "VENUE_RENTAL", "REFEREE", "EQUIPMENT", "OTHER"],
+    ["MEMBERSHIP", "MATCH_FEE", "FRIENDLY_FEE", "SPONSORSHIP", "DONATION", "VENUE_RENTAL", "REFEREE", "EQUIPMENT", "OTHER"],
     { message: "Categoria inválida" }
   ),
   date: z
@@ -48,7 +48,7 @@ export const updateTransactionSchema = z.object({
     .optional(),
   category: z
     .enum(
-      ["MEMBERSHIP", "FRIENDLY_FEE", "VENUE_RENTAL", "REFEREE", "EQUIPMENT", "OTHER"],
+      ["MEMBERSHIP", "MATCH_FEE", "FRIENDLY_FEE", "SPONSORSHIP", "DONATION", "VENUE_RENTAL", "REFEREE", "EQUIPMENT", "OTHER"],
       { message: "Categoria inválida" }
     )
     .optional(),
