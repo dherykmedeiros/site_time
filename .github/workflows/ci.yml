@@ -1,0 +1,88 @@
+name: CI/CD Pipeline - Site Time
+
+on:
+  push:
+    branches: [ main, 003-sports-team-mgmt ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: site_time_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js v20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Instalar Dependências
+        run: npm ci
+
+      - name: Gerar Prisma Client & Executar Migrations no CI
+        env:
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/site_time_test
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
+
+      - name: Executar Checagem de Tipos TypeScript (tsc)
+        run: npx tsc --noEmit
+
+      - name: Executar Testes Unitários e Regras de Negócio (Vitest)
+        run: npx vitest run
+
+      - name: Instalar Navegadores do Playwright
+        run: npx playwright install --with-deps
+
+      - name: Executar Build de Produção
+        env:
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/site_time_test
+          NEXTAUTH_SECRET: test-secret-key-12345
+        run: npm run build
+
+      - name: Gerenciar Ciclo de Vida do Servidor & Testes (Strict Exit Code)
+        shell: bash
+        env:
+          DATABASE_URL: postgresql://postgres:password@localhost:5432/site_time_test
+          NEXTAUTH_SECRET: test-secret-key-12345
+          PORT: 3000
+        run: |
+          set -e
+          npm run start &
+          APP_PID=$!
+          
+          cleanup() {
+            kill "$APP_PID" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          npx wait-on http://localhost:3000/api/health --timeout 60000
+          npx playwright test
+          node scripts/smoke-test.js http://localhost:3000
+
+      - name: Upload de Relatório de Evidências Playwright
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30

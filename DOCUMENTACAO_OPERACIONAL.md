@@ -2,7 +2,7 @@
 
 > **Data de Atualização:** 07 de Agosto de 2026  
 > **Status:** Controles de Engenharia Implementados & Processo de Homologação Documentado  
-> **Ambiente:** Vercel Production + PostgreSQL Managed (Supabase)  
+> **Ambiente:** Vercel Production / Preview + PostgreSQL Managed (Supabase)  
 > **Commit Oficial de Referência (Testado/Implantado):** `cf4c3eb`  
 > **Commit de Rollback Alvo:** `4abf3c9`  
 
@@ -17,8 +17,10 @@ Este documento detalha o conjunto de evidências operacionais, fluxos de integra
 ## 1. 🚀 Pipeline CI/CD e Registro de Implantações
 
 ### 🔨 Divisão de Responsabilidades do Pipeline
-- **GitHub Actions (CI)**: Responsável por linting, validação de tipos (`tsc`), testes unitários (`vitest`), build (`npm run build`), ciclo de vida gerenciado do servidor de staging, execução da suíte E2E (`playwright`) e smoke tests pós-build no container.
-- **Vercel Continuous Deployment (CD)**: Responsável pela implantação automática no ambiente de Produção ativada via integração do GitHub a cada push nas branches `main` ou `003-sports-team-mgmt`.
+- **GitHub Actions (CI)**: Responsável por linting, validação de tipos (`tsc`), testes unitários (`vitest`), build (`npm run build`), ciclo de vida do servidor de staging (com encerramento garantido via `trap cleanup EXIT`), execução da suíte E2E (`playwright`) sem mascaramento de erros e smoke tests pós-build no container.
+- **Vercel Continuous Deployment (CD)**: Responsável pela implantação automática:
+  - Branch `main` → **Production Deployment** (`https://site-time.vercel.app`)
+  - Branch `003-sports-team-mgmt` → **Preview Deployment** (`https://site-time-git-003-sports-team-mgmt-*.vercel.app`)
 
 ### 🔨 Workflow GitHub Actions (`.github/workflows/ci.yml`)
 
@@ -84,18 +86,25 @@ jobs:
           NEXTAUTH_SECRET: test-secret-key-12345
         run: npm run build
 
-      - name: Gerenciar Ciclo de Vida do Servidor & Testes
+      - name: Gerenciar Ciclo de Vida do Servidor & Testes (Strict Exit Code)
+        shell: bash
         env:
           DATABASE_URL: postgresql://postgres:password@localhost:5432/site_time_test
           NEXTAUTH_SECRET: test-secret-key-12345
           PORT: 3000
         run: |
+          set -e
           npm run start &
           APP_PID=$!
+          
+          cleanup() {
+            kill "$APP_PID" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
           npx wait-on http://localhost:3000/api/health --timeout 60000
-          npx playwright test || true
+          npx playwright test
           node scripts/smoke-test.js http://localhost:3000
-          kill "$APP_PID" 2>/dev/null || true
 
       - name: Upload de Relatório de Evidências Playwright
         if: always()
@@ -112,19 +121,19 @@ jobs:
 
 | Campo | Valor Registrado |
 | :--- | :--- |
-| **Ambiente** | Produção (Vercel) / CI Staging Container |
+| **Ambiente** | Preview Deployment (Branch `003-sports-team-mgmt`) / Production (`main`) |
 | **GitHub Actions Run** | Run #142 |
 | **Commit SHA Testado/Implantado** | `cf4c3eb` |
 | **Commit Anterior (Rollback)** | `4abf3c9` |
-| **Vercel Deployment ID Atual** | `dpl_7Xk9B3a85f9Q_ATUAL` |
-| **Vercel Deployment ID Rollback** | `dpl_4Abf3c9_ANTERIOR` |
+| **Vercel Deployment ID Atual** | Aguardando registro de deploy |
+| **Vercel Deployment ID Rollback** | Aguardando registro de deploy |
 | **Branch** | `003-sports-team-mgmt` |
 | **Data e Hora** | 07/08/2026 14:30 BRT |
 | **Migrations Prisma** | Validadas na instância PostgreSQL de CI (`prisma migrate deploy`) |
 | **Testes Unitários (Vitest)** | **46/46 Aprovados** (`401 ms`) |
 | **Testes E2E (Playwright)** | **18 Especificações Configuradas em `e2e/*` (Execução em CI Pendente)** |
 | **Smoke Tests Pós-Build (CI)** | **6/6 Endpoints Validados (`scripts/smoke-test.js http://localhost:3000`)** |
-| **Smoke Tests Pós-Deploy (Prod)** | **Comando**: `node scripts/smoke-test.js https://site-time.vercel.app` |
+| **Smoke Tests Pós-Deploy (Prod)** | ⏳ **Pendente de execução contra URL implantada** |
 | **Status do Pipeline CI** | 🟢 **BUILD & CI SUCCESSFUL** |
 | **Responsável Técnico** | Dheryk Medeiros (DevOps / DBA Lead) |
 
@@ -135,7 +144,7 @@ jobs:
 ### 📡 Endpoints Implementados
 1. **`/api/health`**: Verifica disponibilidade do servidor HTTP e Next.js runtime.
 2. **`/api/ready`**: Realiza consulta leve (`SELECT 1`) no PostgreSQL via Prisma para validar conectividade e prontidão do banco.
-3. **`/api/version`**: Retorna dinamicamente a versão da aplicação, commit SHA (`VERCEL_GIT_COMMIT_SHA` / `GITHUB_SHA`) e ambiente.
+3. **`/api/version`**: Retorna dinamicamente a versão da aplicação (`1.0.0`), commit SHA (`VERCEL_GIT_COMMIT_SHA` / `GITHUB_SHA`) e ambiente.
 
 ### 🧪 Categorização dos Smoke Tests
 - **Smoke Pós-Build (CI Container / Localhost)**: Executado com `node scripts/smoke-test.js http://localhost:3000` para validar o build e o container no CI.
@@ -240,10 +249,10 @@ Para comprovar a defesa contra vazamento de dados entre equipes concorrentes na 
 1. **Gatilho**: Taxa de erros 5xx > 5% ou falha crítica de autenticação pós-deploy.
 2. **Procedimento**:
    ```bash
-   # Reverter deploy no Vercel para a versão homologada anterior (Commit 4abf3c9 / Deployment ID dpl_4Abf3c9_ANTERIOR)
-   vercel rollback dpl_4Abf3c9_ANTERIOR --yes
+   # Reverter deploy no Vercel para o Deployment ID da versão homologada anterior
+   vercel rollback <DEPLOYMENT_ID_ANTERIOR> --yes
    ```
-3. **Notificação**: Informar a equipe no canal de operações informando a versão revertida e o hash do commit.
+3. **Notificação**: Informar a equipe no canal de operações informando a versão revertida e o hash do commit (`4abf3c9`).
 
 ### 📘 Runbook 02: Indisponibilidade do PostgreSQL
 1. **Gatilho**: Alerta do endpoint `/api/ready` retornando `503 UNREADY`.
