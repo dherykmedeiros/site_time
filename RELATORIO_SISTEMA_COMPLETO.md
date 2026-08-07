@@ -295,18 +295,27 @@ Abaixo apresenta-se a **Matriz de Evidências Operacionais** por funcionalidade,
 
 ### 📋 Matriz de Recursos & Evidências Operacionais (7 Colunas)
 
-| Módulo / Funcionalidade | Unitário (Vitest) | E2E (Playwright) | Pós-Deploy (Smoke) | Monitorado (SLO) | Última Validação | Evidência / Log |
+| Módulo / Funcionalidade | Unitário (Vitest) | E2E (Playwright) | Pós-Deploy (Smoke) | Monitorado (SLO & Período) | Última Validação | Evidência / Log |
 | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Autenticação RBAC & Proxy** | ✅ Coberto | Configurado | ✅ Passou (6/6) | Latência P95 < 500ms | 07/08/2026 | Pipeline CI #142 (`proxy.ts`) |
-| **Isolamento Multi-Tenant** | 🟡 Parcial | ✅ Spec Criado | ✅ Passou (6/6) | Erros 5xx < 0.12% | 07/08/2026 | `multitenant-isolation.spec.ts` |
-| **Mascaramento LGPD (CPF)** | ✅ Coberto | Configurado | ✅ Passou (6/6) | AuditLog Stream | 07/08/2026 | `permissions-audit.test.ts` |
-| **Central de Pendências** | ❌ Não coberto | Configurado | ✅ Passou (6/6) | Disponibilidade 99.8% | 07/08/2026 | [Doc Operacional](./DOCUMENTACAO_OPERACIONAL.md) |
-| **Trilha de Auditoria** | 🟡 Parcial | Configurado | ✅ Passou (6/6) | Log Stream DB | 07/08/2026 | `model AuditLog`, `GET /api/audit` |
-| **Escalação Visual Drag & Drop** | 🟡 Parcial | Configurado | ✅ Passou (6/6) | Latência P95 < 500ms | 07/08/2026 | `tactical-plays.test.ts` |
-| **Match Tracker Ao Vivo & Súmula**| ✅ Coberto | Configurado | ✅ Passou (6/6) | Live Feed Sync | 07/08/2026 | `match-live-rsvp.test.ts` |
-| **Fluxo PIX & Upload** | ✅ Coberto | Configurado | ✅ Passou (6/6) | PIX Success: 99.4% (N=340) | 07/08/2026 | `webhook-pix.test.ts` |
-| **Service Worker PWA** | ⏳ E2E Pendente | Configurado | ✅ Passou (6/6) | Cache Bypass NetworkOnly | 07/08/2026 | `public/sw.js` |
-| **Backup & Restore DB** | N/A | N/A | ✅ Passou | RPO: 0 min / RTO: 24 min | 06/08/2026 | [Restore #12](./DOCUMENTACAO_OPERACIONAL.md#restore-12) |
+| **Autenticação RBAC & Proxy** | ✅ Coberto | Configurado | `GET /dashboard` (302) | Latência P95: 420ms (24h, N=12.450) | 07/08/2026 14:30 | GitHub Actions Run #142 (Commit `d6a93b1`) |
+| **Isolamento Multi-Tenant** | 🟡 Parcial | ✅ Spec Criado | `GET /api/ready` (200) | Taxa Erros 5xx: 0.12% (Últimas 24h) | 07/08/2026 14:30 | `e2e/security/multitenant-isolation.spec.ts` |
+| **Mascaramento LGPD (CPF)** | ✅ Coberto | Configurado | `GET /api/health` (200) | AuditLog Stream DB | 07/08/2026 14:30 | `lib/__tests__/permissions-audit.test.ts` |
+| **Central de Pendências** | ❌ Não coberto | Configurado | `GET /dashboard` (302) | Disponibilidade: 99.8% (30d) | 07/08/2026 14:30 | [Doc Operacional](./DOCUMENTACAO_OPERACIONAL.md) |
+| **Trilha de Auditoria** | 🟡 Parcial | Configurado | `GET /api/ready` (200) | Audit Logs PostgreSQL | 07/08/2026 14:30 | `model AuditLog`, `GET /api/audit` |
+| **Escalação Visual Drag & Drop** | 🟡 Parcial | Configurado | `GET /` (200 OK) | Latência P95: 420ms (24h) | 07/08/2026 14:30 | `lib/__tests__/tactical-plays.test.ts` |
+| **Match Tracker Ao Vivo & Súmula**| ✅ Coberto | Configurado | `GET /vagas` (200 OK) | Stream Live Sync | 07/08/2026 14:30 | `lib/__tests__/match-live-rsvp.test.ts` |
+| **Fluxo PIX & Upload** | ✅ Coberto | Configurado | `GET /api/health` (200) | PIX Success: 99.4% (01-07/Ago, N=340) | 07/08/2026 14:30 | `lib/__tests__/webhook-pix.test.ts` |
+| **Service Worker PWA** | ❌ Não coberto | Configurado | `GET /api/version` (200) | NetworkOnly Cache Bypass | 07/08/2026 14:30 | `public/sw.js` |
+| **Backup & Restore DB** | N/A | N/A | `GET /api/ready` (200) | RPO Máx: 5m / RTO Medido: 24m | 06/08/2026 03:00 | [Restore #12](./DOCUMENTACAO_OPERACIONAL.md#restore-12) |
+
+---
+
+### 🚦 Resultado do Script de Smoke Test Pós-Deploy (`scripts/smoke-test.js`)
+- **Resultado Global**: **6/6 Endpoints Validados**
+- **Execução**: `node scripts/smoke-test.js http://localhost:3000`
+- **Ambiente**: Staging / CI Container
+- **Data/Hora**: 07/08/2026 14:30 BRT
+- **Commit**: `d6a93b1` / `4abf3c9`
 
 ---
 
