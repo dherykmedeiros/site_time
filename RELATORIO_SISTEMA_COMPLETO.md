@@ -3,7 +3,7 @@
 > **Data do Relatório:** 07 de Agosto de 2026  
 > **Status do Projeto:** Ativo / Produção / PWA Full-Stack  
 > **Arquitetura:** Next.js 16 (App Router), React 19, Tailwind CSS v4, Prisma ORM 7, PostgreSQL, NextAuth v4.  
-> **Production URL Vivo:** `https://site-time-8gb8.vercel.app`  
+> **Production URL Declarada/Configurada:** `https://site-time-8gb8.vercel.app`  
 
 ---
 
@@ -227,7 +227,7 @@ O sistema integra:
 2. **` /dashboard/approvals ` — Central de Pendências & Aprovações**: Amistosos e compras de material.
 3. **` /dashboard/squad ` — Gestão de Elenco**: Lista de atletas com fotos e posições.
 4. **` /dashboard/squad/[id] ` — Perfil Detalhado do Atleta**: 4 abas (Geral, Stats/Radar, Partidas/RSVP, Financeiro).
-5. **` /dashboard/squad/mensalidade ` — Matriz de Mensalidades**: Caixinha mensal do elenco.
+5. **` /dashboard/squad/mensalidade ` — Matriz Mensal de Pagamentos de Mensalidade do Elenco**: Admin / Finance.
 6. **` /dashboard/matches ` — Gestão de Partidas**: Agendados, concluídos e cancelados.
 7. **` /dashboard/finances ` — Gestão Financeira**: Fluxo de caixa e relatórios.
 8. **` /dashboard/fines ` — Regulamento & Suspensões**: Advertências e punições.
@@ -294,9 +294,9 @@ O sistema integra:
 
 ### 📊 Resumo Executivo do Estado Atual de Homologação
 - **Último Commit Validado no CI**: `cf4c3eb` (GitHub Actions **Run #142**)
-- **HEAD Atual do Repositório**: `3ad7a3a` (Push efetuado — Aguardando execução do Run #143 no CI)
+- **HEAD Atual do Repositório**: `c6ef183` (Push efetuado — Aguardando execução do Run #143 no CI)
 - **Playwright E2E**: 18 Especificações configuradas em `e2e/*` (Execução no CI pendente)
-- **Smoke Pós-Deploy em Produção**: ⏳ Aguardando execução contra `https://site-time-8gb8.vercel.app`
+- **Smoke Pós-Deploy Planejado**: ⏳ Será executado com `node scripts/smoke-test.js https://site-time-8gb8.vercel.app` (Status: Pendente)
 - **Vercel Deployment IDs**: Aguardando registro do painel da Vercel
 
 ---
@@ -339,8 +339,8 @@ O sistema integra:
 | `lib/__tests__/webhook-pix.test.ts` | 10 | Validação de assinatura HMAC e processamento de baixas PIX. |
 | `lib/__tests__/match-live-rsvp.test.ts` | 9 | Agregação de placar ao vivo, alteração e sincronização de presenças (RSVP). |
 | `lib/__tests__/match-rsvp-sync.test.ts` | 4 | Criação automática de RSVPs pendentes para novos atletas. |
-| `lib/__tests__/match-votes.test.ts` | 8 | Votação e apuração do Craque do Jogo. |
 | `lib/__tests__/tactical-plays.test.ts` | 9 | Validação de coordenadas e salvamento de jogadas ensaiadas. |
+| `lib/__tests__/match-votes.test.ts` | 8 | Votação e apuração do Craque do Jogo. |
 
 #### 2. Testes End-to-End e de Rotas (Playwright) — **Suíte Configurada em 18 Specs**
 - **Status**: Suíte Playwright E2E completamente configurada nos arquivos `e2e/*` (18 especificações de teste), pronta para execução em pipeline de integração contínua (CI/CD) em ambiente com servidor ativo.
