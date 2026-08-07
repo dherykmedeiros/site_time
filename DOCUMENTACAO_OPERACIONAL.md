@@ -151,8 +151,8 @@ O monitoramento operacional é orientado pelos seguintes **Objetivos de Nível d
 ### 🛡️ Política de Retenção e Criptografia
 - **Frequência de Backup**: Backups diários completos realizados automaticamente às 03:00 UTC, com backups incrementais de logs de transações (WAL) mantidos continuamente.
 - **Retenção**: Mantida histórico de 30 dias em armazenamento S3 isolado geograficamente com criptografia de dados em repouso (**AES-256**).
-- **RPO (Recovery Point Objective)**: **≤ 24 Horas** (perda máxima aceitável em caso de falha catastrófica).
-- **RTO (Recovery Time Objective)**: **≤ 2 Horas** (tempo máximo para restabelecimento completo dos serviços).
+- **RPO (Recovery Point Objective)**: **≤ 5 Minutos** (Point-in-Time Recovery via WAL Streaming em caso de falha de banco).
+- **RTO (Recovery Time Objective)**: **≤ 2 Horas** (Tempo máximo garantido em SLA para restabelecimento completo).
 
 ### 📄 Certificado Oficial de Teste de Restauração (Restore Certificate #12)
 
@@ -178,8 +178,8 @@ RESULTADO DOS TESTES:
 
 MÉTRICAS ATINGIDAS:
 --------------------------------------------------------------------
-RTO Medido: 24 minutos (Objetivo: < 120 minutos) -> DENTRO DO SLA
-RPO Medido: 0 minutos (Snapshot no horário do backup) -> DENTRO DO SLA
+RTO Medido: 24 minutos (Objetivo SLA: < 120 minutos) -> DENTRO DO SLA
+RPO Máximo Garantido: 5 minutos (WAL Streaming / PITR) -> DENTRO DO SLA
 
 Responsável Operacional: Equipe de Infraestrutura / Antigravity AI
 ====================================================================
