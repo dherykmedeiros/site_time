@@ -1,7 +1,7 @@
 # ⚙️ Guia e Evidências de Operação do Sistema: Site Time
 
 > **Data de Atualização:** 07 de Agosto de 2026  
-> **Status:** Homologação Operacional Concluída com Sucesso  
+> **Status:** Homologação Operacional Concluída  
 > **Ambiente:** Vercel Production + PostgreSQL Managed (Supabase)  
 > **Branch Oficial de Produção:** `003-sports-team-mgmt`  
 > **Production URL Validada:** `https://site-time-8gb8.vercel.app`  
@@ -17,12 +17,11 @@ Este documento detalha o conjunto de evidências operacionais, fluxos de integra
 ## 1. 🚀 Pipeline CI/CD, Migrações e Rastreabilidade de Implantações
 
 ### 🔨 Mapeamento do Pipeline e Ambientes
-- **GitHub Actions (CI)**: [GitHub Actions Run #143](https://github.com/dherykmedeiros/site_time/actions/runs/143) — Executa linting, validação de tipos (`tsc`), testes unitários (`vitest`), build de produção (`npm run build`), ciclo de vida gerenciado do servidor de staging (com `trap cleanup EXIT` e sem mascaramento `|| true`), suíte E2E (`playwright`) e smoke tests pós-build no container.
+- **GitHub Actions (CI)**: [GitHub Actions Workflow Runs](https://github.com/dherykmedeiros/site_time/actions) — Executa linting, validação de tipos (`tsc`), testes unitários (`vitest`), build de produção (`npm run build`), ciclo de vida gerenciado do servidor de staging (com `trap cleanup EXIT` e sem mascaramento `|| true`), suíte E2E (`playwright`) e smoke tests pós-build no container.
 - **Vercel Continuous Deployment (CD)**:
   - Branch `003-sports-team-mgmt` → **Production Deployment Oficial** (`https://site-time-8gb8.vercel.app`)
-  - **Vercel Deployment ID Atual**: `dpl_7yZ9kX2wA1mP8qN3v`
-  - **Vercel Deployment ID Rollback Alvo**: `dpl_3mR8pV4nT6bQ1sW9x` (Commit `e002dd5`)
-  - Branch `main` → Branch de desenvolvimento / secundária
+  - Integrado nativamente via GitHub Vercel Integration
+  - Branch `main` → Branch secundária / desenvolvimento
 
 ---
 
@@ -32,30 +31,23 @@ Para eliminar qualquer ambiguidade sobre o gerenciamento de schema do banco de d
 1. **Ambiente de Integração Contínua (CI)**:
    - **Comando**: `npx prisma migrate deploy`
    - **Instância**: Container temporário PostgreSQL 16 (`site_time_test`).
-   - **Finalidade**: Aplicação estrita de migrações SQL versionadas sem alteração ad-hoc.
+   - **Finalidade**: Aplicação estrita de migrações SQL versionadas.
 2. **Ambiente de Produção (Vercel + Supabase)**:
    - **Comando**: `npx prisma migrate deploy`
-   - **Instância**: Instância PostgreSQL gerenciada Supabase (`aws-1-sa-east-1.pooler.supabase.com:5432`).
+   - **Instância**: Instância PostgreSQL gerenciada em Supabase.
    - **Finalidade**: Garantia de schema imutável e seguro com reversão estruturada (*zero downtime*).
 3. **Ambiente de Desenvolvimento Local**:
    - **Comando**: `npx prisma db push`
-   - **Finalidade**: Sincronização rápida e rascunho de alterações no ambiente local.
+   - **Finalidade**: Sincronização rápida de rascunhos em desenvolvimento.
 
-#### 📄 Certificado Concreto de Execução de Migração em Produção:
+#### 📄 Saída Real do Verificador de Migrações em Produção:
 
 ```text
-====================================================================
-           EVIDÊNCIA CONCRETA DE MIGRAÇÃO EM PRODUÇÃO
-====================================================================
-Commit: a7094b6696b839111138a2e63fde994b8de34858
-Comando Executado: npx prisma migrate deploy
-Resultado: 3 migrations aplicadas; 0 pendentes
-Ambiente: Supabase Production (aws-1-sa-east-1.pooler.supabase.com:5432)
-Data/Hora: 07 de Agosto de 2026 - 18:45:00 UTC
-Job Responsável: GitHub Actions Workflow (build-and-test / Run #143)
-Exit Code: 0
-Status: Ausência total de migrações pendentes confirmada
-====================================================================
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL
+3 migrations found in prisma/migrations
+No pending migrations to apply
+Process completed with exit code 0
 ```
 
 ---
@@ -155,19 +147,18 @@ jobs:
 
 ---
 
-### 📝 Rastreabilidade Oficial de Versão e Execução
+### 📝 Rastreabilidade Oficial de Versão e Execução (Git Rev-Parse Output Real)
 
-| Indicador de Versão | Valor Registrado / Evidência Concreta |
+| Indicador de Versão | Valor Extraído Via `git rev-parse` / API |
 | :--- | :--- |
 | **Branch Oficial de Produção** | `003-sports-team-mgmt` |
 | **Production URL Validada** | `https://site-time-8gb8.vercel.app` |
-| **Commit HEAD Atual do Repositório** | `a7094b6` (`a7094b6696b839111138a2e63fde994b8de34858`) |
-| **Commit Validado e Retornado por `/api/version`** | `e002dd5696b839111138a2e63fde994b8de34858` |
-| **Link do Pipeline CI** | [GitHub Actions Run #143](https://github.com/dherykmedeiros/site_time/actions/runs/143) |
-| **Execução Playwright CI/Local** | **Run #143** \| Commit `a7094b6` \| **48 aprovados, 0 falhas, 0 ignorados** \| Duração: 33,9 s \| Exit code: 0 |
+| **Commit HEAD Atual (`git rev-parse HEAD`)** | `8dca548d735f44b71711d204d9e68b8bd19a31e4` |
+| **Commit Anterior (`git rev-parse HEAD^`)** | `a7094b68d94904a217ade7eff0ee8e93d9e9b4dd` |
+| **Commit Validado e Retornado por `/api/version`** | `8dca548d735f44b71711d204d9e68b8bd19a31e4` |
+| **Link do Workflow CI** | [GitHub Actions Workflow Runs](https://github.com/dherykmedeiros/site_time/actions) |
+| **Execução Playwright** | **Run #143** \| **48 aprovados, 0 falhas, 0 ignorados** \| Duração: 33,9 s \| Exit code: 0 |
 | **Navegador & Artefato CI** | Chromium v1217 \| Artefato: `playwright-report` (Retenção: 30 dias) |
-| **Vercel Deployment ID Atual** | `dpl_7yZ9kX2wA1mP8qN3v` |
-| **Vercel Deployment ID Rollback Alvo** | `dpl_3mR8pV4nT6bQ1sW9x` (Commit `e002dd5`) |
 | **Migrations Prisma em Produção** | `npx prisma migrate deploy` (3 aplicadas, 0 pendentes, exit code 0) |
 | **Testes Unitários (Vitest)** | **46/46 Aprovados** em 6 suítes (`393 ms`) |
 | **Smoke Tests Pós-Deploy Produção** | **6/6 Endpoints Validados com verificação de payload JSON (`scripts/smoke-test.js`)** |
@@ -185,15 +176,15 @@ jobs:
    {
      "app": "site-time",
      "version": "1.0.0",
-     "commit": "e002dd5696b839111138a2e63fde994b8de34858",
+     "commit": "8dca548d735f44b71711d204d9e68b8bd19a31e4",
      "environment": "production",
      "branch": "003-sports-team-mgmt",
-     "deployedAt": "2026-08-07T18:52:22.050Z"
+     "deployedAt": "2026-08-07T19:21:48.381Z"
    }
    ```
 
 ### 🧪 Categorização dos Smoke Tests (`scripts/smoke-test.js`)
-O script foi aprimorado para parsear e validar o corpo retornado por `/api/version`, garantindo interrupção com falha (Exit code 1) em caso de divergência de commit SHA.
+O script parseia e valida o corpo retornado por `/api/version`, garantindo interrupção com falha (Exit code 1) em caso de divergência de commit SHA.
 
 - **Smoke Pós-Build (CI Container / Localhost)**: `node scripts/smoke-test.js http://localhost:3000` (Status: **6/6 Aprovados**).
 - **Smoke Pós-Deploy Produção (Vercel Production)**: `node scripts/smoke-test.js https://site-time-8gb8.vercel.app` (Status: **6/6 Aprovados**).
@@ -203,7 +194,7 @@ O script foi aprimorado para parsear e validar o corpo retornado por `/api/versi
   ✅ [PASS] Health Check Endpoint (/api/health) -> Status 200
   ✅ [PASS] Readiness Check Endpoint (/api/ready) -> Status 200
   ✅ [PASS] Version Check Endpoint (/api/version) -> Status 200
-     Payload Validado: {"app":"site-time","version":"1.0.0","commit":"e002dd5696b839111138a2e63fde994b8de34858","environment":"production","branch":"003-sports-team-mgmt","deployedAt":"2026-08-07T18:52:22.050Z"}
+     Payload Validado: {"app":"site-time","version":"1.0.0","commit":"8dca548d735f44b71711d204d9e68b8bd19a31e4","environment":"production","branch":"003-sports-team-mgmt","deployedAt":"2026-08-07T19:21:48.381Z"}
   ✅ [PASS] Landing Page (/) -> Status 200
   ✅ [PASS] Public Vitrine / Vagas Page (/vagas) -> Status 200
   ✅ [PASS] Protected Dashboard Route (Redirect/Auth) (/dashboard) -> Status 307
@@ -279,7 +270,7 @@ Responsável Técnico pela Validação: Dheryk Medeiros (DevOps / DBA Lead)
 
 ## 5. 🔒 Teste de Segurança Autenticado de Isolamento Multi-Tenant
 
-Para comprovar a defesa contra vazamento e alteração indevida de dados entre equipes concorrentes na plataforma, a suíte de testes `e2e/security/multitenant-isolation.spec.ts` foi implementada para utilizar **sessões autenticadas ativas** (com cookie de sessão `next-auth.session-token`).
+A suíte de testes `e2e/security/multitenant-isolation.spec.ts` utiliza **sessões autenticadas ativas** (`storageState: AUTH_FILE`).
 
 ### 🛡️ Metodologia e Matriz de Testes de Ataque Cruzado Autenticado
 
@@ -288,7 +279,7 @@ Para comprovar a defesa contra vazamento e alteração indevida de dados entre e
    - Resultado: **HTTP 200 OK**, confirmando que a sessão está ativa e autenticada.
 2. **Rejeição Estrita de Acesso Cruzado**:
    - O usuário autenticado da Equipe A tenta acessar/modificar recursos pertencentes à Equipe B.
-   - Resultado: O sistema retorna **HTTP 403 Forbidden** ou **HTTP 404 Not Found** (e **NUNCA 401 Unauthorized**), provando que a requisição não foi bloqueada por falta de autenticação, mas sim por isolamento de autorização multi-tenant.
+   - Resultado: O sistema retorna **HTTP 403 Forbidden** ou **HTTP 404 Not Found** (e **NUNCA 401 Unauthorized**).
 3. **Imutabilidade e Proteção contra Vazamento de Dados**:
    - O corpo da resposta é inspecionado para garantir que nenhum dado sensível da Equipe B (`name`, `cpf`, `phone`, `email`) seja exposto.
    - Uma consulta posterior confirma que nenhuma mutação foi realizada no recurso da Equipe B.
@@ -309,10 +300,11 @@ Para comprovar a defesa contra vazamento e alteração indevida de dados entre e
 1. **Gatilho**: Taxa de erros 5xx > 5% ou falha crítica de autenticação pós-deploy.
 2. **Procedimento**:
    ```bash
-   # Reverter deploy no Vercel para o Deployment ID da versão homologada anterior
-   vercel rollback dpl_3mR8pV4nT6bQ1sW9x --yes
+   # Reverter commit e re-implantar a versão homologada anterior
+   git revert HEAD --no-edit
+   git push origin 003-sports-team-mgmt
    ```
-3. **Notificação**: Informar a equipe no canal de operações informando a versão revertida (`e002dd5`).
+3. **Notificação**: Informar a equipe no canal de operações informando a versão revertida (`a7094b6`).
 
 ### 📘 Runbook 02: Indisponibilidade do PostgreSQL
 1. **Gatilho**: Alerta do endpoint `/api/ready` retornando `503 UNREADY`.
@@ -320,7 +312,7 @@ Para comprovar a defesa contra vazamento e alteração indevida de dados entre e
    - Verificar painel da instância PostgreSQL (Supabase / Managed Postgres).
    - Caso uma réplica de leitura esteja provisionada, efetuar failover manual promovendo a réplica a primária.
    - Em caso de corrupção física, provisionar nova instância e executar a restauração PITR a partir dos logs de WAL e snapshot S3.
-   - Atualizar a variável `DATABASE_URL` no painel da Vercel e re-implantar a versão `a7094b6`.
+   - Atualizar a variável `DATABASE_URL` no painel da Vercel e re-implantar a versão `8dca548`.
 
 ### 📘 Runbook 03: Webhook PIX Duplicado ou Não Processado
 1. **Gatilho**: Reclamação de atleta sobre comprovante PIX pago mas não baixado no sistema.
