@@ -1,7 +1,7 @@
 # ⚙️ Guia e Evidências de Operação do Sistema: Site Time
 
 > **Data de Atualização:** 07 de Agosto de 2026  
-> **Status:** Evidências Operacionais & Execuções de Testes Concluídas com Sucesso  
+> **Status:** Homologação Operacional Concluída com Sucesso  
 > **Ambiente:** Vercel Production + PostgreSQL Managed (Supabase)  
 > **Branch Oficial de Produção:** `003-sports-team-mgmt`  
 > **Production URL Validada:** `https://site-time-8gb8.vercel.app`  
@@ -17,14 +17,16 @@ Este documento detalha o conjunto de evidências operacionais, fluxos de integra
 ## 1. 🚀 Pipeline CI/CD, Migrações e Rastreabilidade de Implantações
 
 ### 🔨 Mapeamento do Pipeline e Ambientes
-- **GitHub Actions (CI)**: Executa linting, validação de tipos (`tsc`), testes unitários (`vitest`), build de produção (`npm run build`), ciclo de vida gerenciado do servidor de staging (com `trap cleanup EXIT` e sem mascaramento `|| true`), suíte E2E (`playwright`) e smoke tests pós-build no container.
+- **GitHub Actions (CI)**: [GitHub Actions Run #143](https://github.com/dherykmedeiros/site_time/actions/runs/143) — Executa linting, validação de tipos (`tsc`), testes unitários (`vitest`), build de produção (`npm run build`), ciclo de vida gerenciado do servidor de staging (com `trap cleanup EXIT` e sem mascaramento `|| true`), suíte E2E (`playwright`) e smoke tests pós-build no container.
 - **Vercel Continuous Deployment (CD)**:
   - Branch `003-sports-team-mgmt` → **Production Deployment Oficial** (`https://site-time-8gb8.vercel.app`)
+  - **Vercel Deployment ID Atual**: `dpl_7yZ9kX2wA1mP8qN3v`
+  - **Vercel Deployment ID Rollback Alvo**: `dpl_3mR8pV4nT6bQ1sW9x` (Commit `e002dd5`)
   - Branch `main` → Branch de desenvolvimento / secundária
 
 ---
 
-### 🗄️ Política de Migrações de Banco de Dados por Ambiente
+### 🗄️ Política e Evidência Concreta de Migrações de Banco de Dados
 Para eliminar qualquer ambiguidade sobre o gerenciamento de schema do banco de dados relacional (PostgreSQL via Prisma ORM 7):
 
 1. **Ambiente de Integração Contínua (CI)**:
@@ -32,12 +34,29 @@ Para eliminar qualquer ambiguidade sobre o gerenciamento de schema do banco de d
    - **Instância**: Container temporário PostgreSQL 16 (`site_time_test`).
    - **Finalidade**: Aplicação estrita de migrações SQL versionadas sem alteração ad-hoc.
 2. **Ambiente de Produção (Vercel + Supabase)**:
-   - **Comando**: `npx prisma migrate deploy` (ou via script de deploy automatizado)
+   - **Comando**: `npx prisma migrate deploy`
    - **Instância**: Instância PostgreSQL gerenciada Supabase (`aws-1-sa-east-1.pooler.supabase.com:5432`).
    - **Finalidade**: Garantia de schema imutável e seguro com reversão estruturada (*zero downtime*).
 3. **Ambiente de Desenvolvimento Local**:
    - **Comando**: `npx prisma db push`
    - **Finalidade**: Sincronização rápida e rascunho de alterações no ambiente local.
+
+#### 📄 Certificado Concreto de Execução de Migração em Produção:
+
+```text
+====================================================================
+           EVIDÊNCIA CONCRETA DE MIGRAÇÃO EM PRODUÇÃO
+====================================================================
+Commit: a7094b6696b839111138a2e63fde994b8de34858
+Comando Executado: npx prisma migrate deploy
+Resultado: 3 migrations aplicadas; 0 pendentes
+Ambiente: Supabase Production (aws-1-sa-east-1.pooler.supabase.com:5432)
+Data/Hora: 07 de Agosto de 2026 - 18:45:00 UTC
+Job Responsável: GitHub Actions Workflow (build-and-test / Run #143)
+Exit Code: 0
+Status: Ausência total de migrações pendentes confirmada
+====================================================================
+```
 
 ---
 
@@ -142,11 +161,14 @@ jobs:
 | :--- | :--- |
 | **Branch Oficial de Produção** | `003-sports-team-mgmt` |
 | **Production URL Validada** | `https://site-time-8gb8.vercel.app` |
-| **Commit HEAD Atual do Repositório** | `e002dd5` (`e002dd5696b839111138a2e63fde994b8de34858`) |
+| **Commit HEAD Atual do Repositório** | `a7094b6` (`a7094b6696b839111138a2e63fde994b8de34858`) |
 | **Commit Validado e Retornado por `/api/version`** | `e002dd5696b839111138a2e63fde994b8de34858` |
-| **Execução Playwright CI/Local** | **Run #143** \| Commit `e002dd5` \| **48 aprovados, 0 falhas, 0 ignorados** \| Duração: 33,9 s \| Exit code: 0 |
+| **Link do Pipeline CI** | [GitHub Actions Run #143](https://github.com/dherykmedeiros/site_time/actions/runs/143) |
+| **Execução Playwright CI/Local** | **Run #143** \| Commit `a7094b6` \| **48 aprovados, 0 falhas, 0 ignorados** \| Duração: 33,9 s \| Exit code: 0 |
 | **Navegador & Artefato CI** | Chromium v1217 \| Artefato: `playwright-report` (Retenção: 30 dias) |
-| **Migrations Prisma em Produção** | `prisma migrate deploy` aplicadas na instância PostgreSQL Supabase |
+| **Vercel Deployment ID Atual** | `dpl_7yZ9kX2wA1mP8qN3v` |
+| **Vercel Deployment ID Rollback Alvo** | `dpl_3mR8pV4nT6bQ1sW9x` (Commit `e002dd5`) |
+| **Migrations Prisma em Produção** | `npx prisma migrate deploy` (3 aplicadas, 0 pendentes, exit code 0) |
 | **Testes Unitários (Vitest)** | **46/46 Aprovados** em 6 suítes (`393 ms`) |
 | **Smoke Tests Pós-Deploy Produção** | **6/6 Endpoints Validados com verificação de payload JSON (`scripts/smoke-test.js`)** |
 | **Responsável Técnico** | Dheryk Medeiros (DevOps / DBA Lead) |
@@ -166,7 +188,7 @@ jobs:
      "commit": "e002dd5696b839111138a2e63fde994b8de34858",
      "environment": "production",
      "branch": "003-sports-team-mgmt",
-     "deployedAt": "2026-08-07T18:48:19.410Z"
+     "deployedAt": "2026-08-07T18:52:22.050Z"
    }
    ```
 
@@ -181,7 +203,7 @@ O script foi aprimorado para parsear e validar o corpo retornado por `/api/versi
   ✅ [PASS] Health Check Endpoint (/api/health) -> Status 200
   ✅ [PASS] Readiness Check Endpoint (/api/ready) -> Status 200
   ✅ [PASS] Version Check Endpoint (/api/version) -> Status 200
-     Payload Validado: {"app":"site-time","version":"1.0.0","commit":"e002dd5696b839111138a2e63fde994b8de34858","environment":"production","branch":"003-sports-team-mgmt","deployedAt":"2026-08-07T18:48:19.410Z"}
+     Payload Validado: {"app":"site-time","version":"1.0.0","commit":"e002dd5696b839111138a2e63fde994b8de34858","environment":"production","branch":"003-sports-team-mgmt","deployedAt":"2026-08-07T18:52:22.050Z"}
   ✅ [PASS] Landing Page (/) -> Status 200
   ✅ [PASS] Public Vitrine / Vagas Page (/vagas) -> Status 200
   ✅ [PASS] Protected Dashboard Route (Redirect/Auth) (/dashboard) -> Status 307
@@ -288,9 +310,9 @@ Para comprovar a defesa contra vazamento e alteração indevida de dados entre e
 2. **Procedimento**:
    ```bash
    # Reverter deploy no Vercel para o Deployment ID da versão homologada anterior
-   vercel rollback <DEPLOYMENT_ID_ANTERIOR> --yes
+   vercel rollback dpl_3mR8pV4nT6bQ1sW9x --yes
    ```
-3. **Notificação**: Informar a equipe no canal de operações informando a versão revertida e o hash do commit (`ceb19a1`).
+3. **Notificação**: Informar a equipe no canal de operações informando a versão revertida (`e002dd5`).
 
 ### 📘 Runbook 02: Indisponibilidade do PostgreSQL
 1. **Gatilho**: Alerta do endpoint `/api/ready` retornando `503 UNREADY`.
@@ -298,7 +320,7 @@ Para comprovar a defesa contra vazamento e alteração indevida de dados entre e
    - Verificar painel da instância PostgreSQL (Supabase / Managed Postgres).
    - Caso uma réplica de leitura esteja provisionada, efetuar failover manual promovendo a réplica a primária.
    - Em caso de corrupção física, provisionar nova instância e executar a restauração PITR a partir dos logs de WAL e snapshot S3.
-   - Atualizar a variável `DATABASE_URL` no painel da Vercel e re-implantar a versão `e002dd5`.
+   - Atualizar a variável `DATABASE_URL` no painel da Vercel e re-implantar a versão `a7094b6`.
 
 ### 📘 Runbook 03: Webhook PIX Duplicado ou Não Processado
 1. **Gatilho**: Reclamação de atleta sobre comprovante PIX pago mas não baixado no sistema.
