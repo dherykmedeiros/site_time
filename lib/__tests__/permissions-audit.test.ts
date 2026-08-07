@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { hasPermission, hasAnyPermission, canUser, ROLE_PERMISSIONS } from "../permissions";
+import { hasPermission, hasAnyPermission } from "../permissions";
 import { maskCpf } from "../utils";
 
 describe("RBAC Permissions Engine", () => {
@@ -7,7 +7,7 @@ describe("RBAC Permissions Engine", () => {
     expect(hasPermission("ADMIN", "team:manage")).toBe(true);
     expect(hasPermission("ADMIN", "finance:manage")).toBe(true);
     expect(hasPermission("ADMIN", "match:create")).toBe(true);
-    expect(hasPermission("ADMIN", "player:manage")).toBe(true);
+    expect(hasPermission("ADMIN", "player:create")).toBe(true);
   });
 
   it("should restrict financial management for PLAYER role", () => {
