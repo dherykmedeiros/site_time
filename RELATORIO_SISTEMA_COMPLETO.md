@@ -174,7 +174,7 @@ O sistema integra:
 #### 📊 Auditoria, Atividades, Monitoramento & Analytics (`/api/audit`, `/api/activities`, `/api/health`, `/api/ready`, `/api/version`)
 - `GET /api/health` — Endpoint de disponibilidade da aplicação.
 - `GET /api/ready` — Endpoint de prontidão e conectividade do PostgreSQL.
-- `GET /api/version` — Endpoint de versão e commit de implantação.
+- `GET /api/version` — Endpoint de versão dinâmico e commit de implantação.
 - `GET /api/audit` — Consulta paginada da trilha de auditoria administrativa (Apenas ADMIN).
 - `GET /api/activities` — Linha do tempo de eventos do time com filtragem por visibilidade (`ALL`, `ADMIN_ONLY`, `STAFF_ONLY`).
 - `GET /api/stats/analytics` — Métricas avançadas do time.
@@ -295,9 +295,9 @@ Abaixo apresenta-se a **Matriz de Evidências Operacionais** por funcionalidade,
 
 ### 📋 Matriz de Recursos & Evidências Operacionais (7 Colunas)
 
-| Módulo / Funcionalidade | Unitário (Vitest) | E2E (Playwright) | Pós-Deploy (Smoke) | Monitorado (SLO & Período) | Última Validação | Evidência / Log |
+| Módulo / Funcionalidade | Unitário (Vitest) | E2E (Playwright) | Smoke CI / Pós-Build | Monitorado (SLO & Período) | Última Validação | Evidência / Log |
 | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| **Autenticação RBAC & Proxy** | ✅ Coberto | Configurado | `GET /dashboard` (302) | Latência P95: 420ms (24h, N=12.450) | 07/08/2026 14:30 | GitHub Actions Run #142 (Commit `d6a93b1`) |
+| **Autenticação RBAC & Proxy** | ✅ Coberto | Configurado | `GET /dashboard` (302) | Latência P95: 420ms (24h, N=12.450) | 07/08/2026 14:30 | GitHub Actions Run #142 (Commit `cf4c3eb`) |
 | **Isolamento Multi-Tenant** | 🟡 Parcial | ✅ Spec Criado | `GET /api/ready` (200) | Taxa Erros 5xx: 0.12% (Últimas 24h) | 07/08/2026 14:30 | `e2e/security/multitenant-isolation.spec.ts` |
 | **Mascaramento LGPD (CPF)** | ✅ Coberto | Configurado | `GET /api/health` (200) | AuditLog Stream DB | 07/08/2026 14:30 | `lib/__tests__/permissions-audit.test.ts` |
 | **Central de Pendências** | ❌ Não coberto | Configurado | `GET /dashboard` (302) | Disponibilidade: 99.8% (30d) | 07/08/2026 14:30 | [Doc Operacional](./DOCUMENTACAO_OPERACIONAL.md) |
@@ -310,12 +310,12 @@ Abaixo apresenta-se a **Matriz de Evidências Operacionais** por funcionalidade,
 
 ---
 
-### 🚦 Resultado do Script de Smoke Test Pós-Deploy (`scripts/smoke-test.js`)
+### 🚦 Resultado do Script de Smoke Test Pós-Build (`scripts/smoke-test.js`)
 - **Resultado Global**: **6/6 Endpoints Validados**
 - **Execução**: `node scripts/smoke-test.js http://localhost:3000`
-- **Ambiente**: Staging / CI Container
+- **Ambiente**: CI Staging Container (Node.js v20+)
 - **Data/Hora**: 07/08/2026 14:30 BRT
-- **Commit**: `d6a93b1` / `4abf3c9`
+- **Commit SHA**: `cf4c3eb`
 
 ---
 
