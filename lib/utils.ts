@@ -133,7 +133,9 @@ export function extractCoordsFromGoogleMaps(url: string): { latitude: number; lo
 
   // Extract clean URL if text surrounds it (e.g. from mobile share sheet)
   const urlMatch = url.match(/(https?:\/\/[^\s>"]+)/i);
-  const targetStr = (urlMatch ? urlMatch[1] : url).trim();
+  let targetStr = (urlMatch ? urlMatch[1] : url).trim();
+  // Strip trailing punctuation often attached from mobile share sheets (e.g. "https://maps.app.goo.gl/xyz.")
+  targetStr = targetStr.replace(/[.,;:!?)]+$/, "");
 
   // Pattern 0: Direct "lat, lon" or "lat,lon" input
   const simpleCoordsRegex = /^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/;
@@ -153,20 +155,20 @@ export function extractCoordsFromGoogleMaps(url: string): { latitude: number; lo
   } catch {}
 
   const patterns: Array<{ regex: RegExp; latIndex: number; lonIndex: number }> = [
-    // Pattern 1: /@(-?\d+\.\d+),(-?\d+\.\d+)/ (most common in web search/maps)
-    { regex: /@(-?\d+\.\d+),(-?\d+\.\d+)/, latIndex: 1, lonIndex: 2 },
-    // Pattern 2: /place/(-?\d+\.\d+),(-?\d+\.\d+)/
-    { regex: /\/place\/(-?\d+\.\d+),(-?\d+\.\d+)/, latIndex: 1, lonIndex: 2 },
-    // Pattern 3: Protobuf !3d(lat)!4d(lon) - standard in Google Maps mobile/desktop place links
+    // Pattern 1: Protobuf !3d(lat)!4d(lon) - standard in Google Maps mobile/desktop place links (EXACT PLACE PIN)
     { regex: /!3d(-?\d+\.\d+).*?!4d(-?\d+\.\d+)/, latIndex: 1, lonIndex: 2 },
-    // Pattern 4: Protobuf !2d(lon)!3d(lat)
+    // Pattern 2: Protobuf !2d(lon)!3d(lat) - EXACT PLACE PIN variant
     { regex: /!2d(-?\d+\.\d+).*?!3d(-?\d+\.\d+)/, latIndex: 2, lonIndex: 1 },
-    // Pattern 5: q=, query=, ll=, destination=, daddr=, saddr=, center=, cbll= in URL query params
+    // Pattern 3: /place/(-?\d+\.\d+),(-?\d+\.\d+) - Explicit place path
+    { regex: /\/place\/(-?\d+\.\d+),(-?\d+\.\d+)/, latIndex: 1, lonIndex: 2 },
+    // Pattern 4: q=, query=, ll=, destination=, daddr=, saddr=, center=, cbll= in URL query params
     { regex: /[?&](?:q|query|daddr|saddr|destination|center|cbll|ll)=(-?\d+\.\d+)(?:%2C|,|\s+)(-?\d+\.\d+)/i, latIndex: 1, lonIndex: 2 },
-    // Pattern 6: /search/(-?\d+\.\d+),(-?\d+\.\d+)
+    // Pattern 5: /search/(-?\d+\.\d+),(-?\d+\.\d+)
     { regex: /\/search\/(-?\d+\.\d+)(?:%2C|,|\s+)(-?\d+\.\d+)/i, latIndex: 1, lonIndex: 2 },
-    // Pattern 7: Waze to=ll.lat,lon
+    // Pattern 6: Waze to=ll.lat,lon
     { regex: /to=ll\.(-?\d+\.\d+)(?:%2C|,)(-?\d+\.\d+)/i, latIndex: 1, lonIndex: 2 },
+    // Pattern 7: /@(-?\d+\.\d+),(-?\d+\.\d+)/ - Camera viewport center (FALLBACK ONLY if no pin coords exist)
+    { regex: /@(-?\d+\.\d+),(-?\d+\.\d+)/, latIndex: 1, lonIndex: 2 },
   ];
 
   for (const strToTest of [targetStr, decodedStr]) {
@@ -198,7 +200,8 @@ export async function resolveGoogleMapsUrl(url: string): Promise<string> {
 
   // Extract clean URL if text surrounds it (e.g. from mobile share sheet)
   const urlMatch = url.match(/(https?:\/\/[^\s>"]+)/i);
-  const cleanUrl = (urlMatch ? urlMatch[1] : url).trim();
+  let cleanUrl = (urlMatch ? urlMatch[1] : url).trim();
+  cleanUrl = cleanUrl.replace(/[.,;:!?)]+$/, "");
 
   // If coordinates are already extractable from the URL directly, no need to resolve network call
   if (extractCoordsFromGoogleMaps(cleanUrl)) {
@@ -225,12 +228,13 @@ export async function resolveGoogleMapsUrl(url: string): Promise<string> {
       return cleanUrl;
     }
 
-    // Call GET request with browser/mobile User-Agent to follow full redirects
+    // Call GET request with Desktop User-Agent to ensure Google redirects to standard web URL with !3d and !4d
     const res = await fetch(cleanUrl, {
       method: "GET",
       redirect: "follow",
       headers: {
-        "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
       }
     });
 
@@ -245,7 +249,7 @@ export async function resolveGoogleMapsUrl(url: string): Promise<string> {
     // Check canonical / og:url / meta refresh in HTML
     const ogUrlMatch = html.match(/<meta[^>]+property=["']og:url["'][^>]+content=["']([^"']+)["']/i) ||
                        html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:url["']/i) ||
-                       html.match(/<meta[^>]+http-equiv=["']refresh["'][^>]+content=["'][^"']*url=([^"']+)["']/i);
+                       html.match(/<meta[^>]+http-equiv=["']refresh["'][^>]+content=["']([^"']*url=([^"']+))["']/i);
     if (ogUrlMatch && ogUrlMatch[1]) {
       const canonicalUrl = ogUrlMatch[1];
       if (extractCoordsFromGoogleMaps(canonicalUrl)) {
@@ -254,8 +258,8 @@ export async function resolveGoogleMapsUrl(url: string): Promise<string> {
     }
 
     // Check static map or center parameter inside HTML
-    const htmlCoordMatch = html.match(/center=(-?\d+\.\d+)(?:%2C|,)(-?\d+\.\d+)/i) ||
-                           html.match(/!3d(-?\d+\.\d+).*?!4d(-?\d+\.\d+)/i) ||
+    const htmlCoordMatch = html.match(/!3d(-?\d+\.\d+).*?!4d(-?\d+\.\d+)/i) ||
+                           html.match(/center=(-?\d+\.\d+)(?:%2C|,)(-?\d+\.\d+)/i) ||
                            html.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/i);
     if (htmlCoordMatch) {
       return `https://www.google.com/maps/@${htmlCoordMatch[1]},${htmlCoordMatch[2]},17z`;
