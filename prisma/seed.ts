@@ -17,32 +17,13 @@ async function main() {
   console.log("🌱 Iniciando seed completo do banco de dados...");
   const now = new Date();
 
-  // 1. Clear existing data safely
-  await prisma.pushSubscription.deleteMany({});
-  await prisma.achievement.deleteMany({});
-  await prisma.membershipPayment.deleteMany({});
-  await prisma.inviteToken.deleteMany({});
-  await prisma.transaction.deleteMany({});
-  await prisma.openMatchSlot.deleteMany({});
-  await prisma.friendlyRequest.deleteMany({});
-  await prisma.matchStats.deleteMany({});
-  await prisma.rSVP.deleteMany({});
-  await prisma.matchPositionLimit.deleteMany({});
-  await prisma.matchLineupSelection.deleteMany({});
-  await prisma.matchAttendance.deleteMany({});
-  await prisma.matchChecklistItem.deleteMany({});
-  await prisma.match.deleteMany({});
-  await prisma.playerAvailabilityRule.deleteMany({});
-  await prisma.user.deleteMany({});
-  await prisma.player.deleteMany({});
-  await prisma.season.deleteMany({});
-  await prisma.team.deleteMany({});
+  // Safe seed: preserve existing records, use upsert for default team/users
 
-  console.log("🗑️ Banco de dados limpo com sucesso!");
-
-  // 2. Create Teams
-  const team = await prisma.team.create({
-    data: {
+  // 2. Create Teams safely via upsert
+  const team = await prisma.team.upsert({
+    where: { slug: "fc-trovao-azul" },
+    update: {},
+    create: {
       name: "FC Trovão Azul",
       slug: "fc-trovao-azul",
       description: "Equipe principal de futebol society da zona norte.",
@@ -57,8 +38,10 @@ async function main() {
     },
   });
 
-  const team2 = await prisma.team.create({
-    data: {
+  const team2 = await prisma.team.upsert({
+    where: { slug: "uniao-leste-fc" },
+    update: {},
+    create: {
       name: "União Leste FC",
       slug: "uniao-leste-fc",
       description: "Equipe de amistosos de fim de semana.",
@@ -73,12 +56,14 @@ async function main() {
     },
   });
 
-  console.log("✅ Times criados:", team.name, "|", team2.name);
+  console.log("✅ Times sincronizados:", team.name, "|", team2.name);
 
   // 3. Create Admin User linked to Team A
   const passwordHash = await bcrypt.hash("Admin123456", 12);
-  const admin = await prisma.user.create({
-    data: {
+  const admin = await prisma.user.upsert({
+    where: { email: "admin@admin.com" },
+    update: { teamId: team.id },
+    create: {
       email: "admin@admin.com",
       name: "Administrador Geral",
       passwordHash,
