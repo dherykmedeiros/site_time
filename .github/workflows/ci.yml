@@ -35,7 +35,9 @@ jobs:
           cache: 'npm'
 
       - name: Instalar Dependências
-        run: npm ci --include=optional || npm install
+        run: |
+          npm ci || npm install
+          npm i --no-save @tailwindcss/oxide-linux-x64-gnu @tailwindcss/oxide-linux-x64-musl
 
       - name: Gerar Prisma Client & Executar Migrations no CI
         env:
