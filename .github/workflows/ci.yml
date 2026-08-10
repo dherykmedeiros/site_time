@@ -45,6 +45,7 @@ jobs:
         run: |
           npx prisma generate
           npx prisma db push --accept-data-loss --force-reset
+          npx prisma db seed
 
       - name: Executar Checagem de Tipos TypeScript (tsc)
         run: npx tsc --noEmit
