@@ -222,7 +222,7 @@ export function getTacticalPositions(starters: LineupEntryInput[]): MappedTactic
     const pos = (p?.position || "FORWARD").toUpperCase();
     if (pos === "GOALKEEPER") {
       gks.push(s);
-    } else if (["DEFENDER", "LEFT_BACK", "RIGHT_BACK"].includes(pos)) {
+    } else if (["DEFENDER", "LEFT_BACK", "RIGHT_BACK", "LEFT_WINGBACK", "RIGHT_WINGBACK"].includes(pos)) {
       defs.push(s);
     } else if (["MIDFIELDER", "DEFENSIVE_MIDFIELDER"].includes(pos)) {
       mids.push(s);

@@ -39,3 +39,33 @@ export const playerPositionShortLabels: Record<(typeof playerPositions)[number],
   LEFT_WINGER: "PE",
   RIGHT_WINGER: "PD",
 };
+
+export function formatPlayerPosition(pos?: string | null, short = false): string {
+  if (!pos) return "";
+  if (short) {
+    if (pos in playerPositionShortLabels) {
+      return playerPositionShortLabels[pos as keyof typeof playerPositionShortLabels];
+    }
+  } else {
+    if (pos in playerPositionLabels) {
+      return playerPositionLabels[pos as keyof typeof playerPositionLabels];
+    }
+  }
+
+  const fallbackMap: Record<string, string> = {
+    LEFT_WINGBACK: short ? "AE" : "Ala esquerdo",
+    RIGHT_WINGBACK: short ? "AD" : "Ala direito",
+    LEFT_BACK: short ? "LE" : "Lateral esquerdo",
+    RIGHT_BACK: short ? "LD" : "Lateral direito",
+    DEFENSIVE_MIDFIELDER: short ? "VOL" : "Volante",
+    LEFT_WINGER: short ? "PE" : "Ponta esquerda",
+    RIGHT_WINGER: short ? "PD" : "Ponta direita",
+  };
+
+  if (fallbackMap[pos]) return fallbackMap[pos];
+
+  return pos
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (l) => l.toUpperCase());
+}

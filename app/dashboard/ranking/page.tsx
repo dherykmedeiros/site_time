@@ -24,6 +24,8 @@ const positionLabels: Record<string, string> = {
   DEFENDER: "Zagueiro",
   LEFT_BACK: "Lateral Esq.",
   RIGHT_BACK: "Lateral Dir.",
+  LEFT_WINGBACK: "Ala Esq.",
+  RIGHT_WINGBACK: "Ala Dir.",
   MIDFIELDER: "Meio-camp.",
   DEFENSIVE_MIDFIELDER: "Volante",
   FORWARD: "Atacante",

@@ -136,6 +136,8 @@ const positionLabels: Record<string, string> = {
   DEFENDER: "Zagueiro",
   LEFT_BACK: "Lateral esquerdo",
   RIGHT_BACK: "Lateral direito",
+  LEFT_WINGBACK: "Ala esquerdo",
+  RIGHT_WINGBACK: "Ala direito",
   MIDFIELDER: "Meio-campista",
   DEFENSIVE_MIDFIELDER: "Volante",
   FORWARD: "Atacante",

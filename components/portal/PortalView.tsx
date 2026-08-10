@@ -84,7 +84,7 @@ export default function PortalView({
       .filter((p: any) => p.position === "GOALKEEPER")
       .sort(sortByMatchesDesc);
     const defenders = team.players
-      .filter((p: any) => ["DEFENDER", "LEFT_BACK", "RIGHT_BACK"].includes(p.position))
+      .filter((p: any) => ["DEFENDER", "LEFT_BACK", "RIGHT_BACK", "LEFT_WINGBACK", "RIGHT_WINGBACK"].includes(p.position))
       .sort(sortByMatchesDesc);
     const midfielders = team.players
       .filter((p: any) => ["MIDFIELDER", "DEFENSIVE_MIDFIELDER"].includes(p.position))

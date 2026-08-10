@@ -57,6 +57,8 @@ const positionLabels: Record<string, string> = {
   DEFENDER: "ZAG",
   LEFT_BACK: "LE",
   RIGHT_BACK: "LD",
+  LEFT_WINGBACK: "AE",
+  RIGHT_WINGBACK: "AD",
   MIDFIELDER: "MEI",
   DEFENSIVE_MIDFIELDER: "VOL",
   FORWARD: "ATA",
