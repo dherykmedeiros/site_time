@@ -616,7 +616,7 @@ export default function DashboardShell({
         {/* Main area */}
         <div className="flex flex-1 flex-col overflow-hidden">
           {/* Mobile header */}
-          <header className="flex h-16 shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--bg-elevated)]/90 px-4 backdrop-blur-xl md:hidden">
+          <header className="relative z-40 flex h-16 shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--bg-elevated)]/90 px-4 backdrop-blur-xl md:hidden">
             <button onClick={() => setMobileMenuOpen(true)} className="rounded-lg p-1.5 text-[var(--text)] hover:bg-[var(--bg-elevated)] cursor-pointer">
               <Menu size={24} />
             </button>
@@ -625,7 +625,7 @@ export default function DashboardShell({
           </header>
 
           {/* Desktop page header */}
-          <header className="hidden shrink-0 border-b border-[var(--border)] bg-[var(--bg-elevated)]/60 px-8 py-5 backdrop-blur-md md:block">
+          <header className="relative z-40 hidden shrink-0 border-b border-[var(--border)] bg-[var(--bg-elevated)]/60 px-8 py-5 backdrop-blur-md md:block">
             <div className="mx-auto flex w-full max-w-7xl items-center justify-between">
               <div>
                 <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--text-subtle)]">

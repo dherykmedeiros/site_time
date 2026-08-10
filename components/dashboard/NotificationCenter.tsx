@@ -136,7 +136,7 @@ export default function NotificationCenter() {
   }
 
   return (
-    <div className="relative inline-block" ref={dropdownRef}>
+    <div className="relative inline-block z-50" ref={dropdownRef}>
       {/* Bell Icon Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -153,7 +153,7 @@ export default function NotificationCenter() {
 
       {/* Floating Glassmorphic Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 sm:w-96 max-h-[500px] flex flex-col z-[999] bg-[var(--bg-card)] border border-[var(--border-active)] shadow-2xl rounded-2xl overflow-hidden backdrop-blur-2xl animate-in fade-in slide-in-from-top-3 duration-200">
+        <div className="absolute right-0 mt-3 w-80 sm:w-96 max-h-[500px] flex flex-col z-[99999] bg-[var(--bg-card)] border border-[var(--border-active)] shadow-2xl rounded-2xl overflow-hidden backdrop-blur-2xl animate-in fade-in slide-in-from-top-3 duration-200">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--border)] bg-[var(--brand-soft)]/20">
             <span className="text-xs font-black uppercase tracking-[0.15em] text-[var(--brand)] flex items-center gap-1.5 font-serif">
