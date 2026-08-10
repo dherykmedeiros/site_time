@@ -6,6 +6,7 @@ import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
 import { trackOperationalEvent } from "@/lib/telemetry";
 import { syncMissingRSVPsForTeam } from "@/lib/match-rsvp-sync";
+import { formatPlayerPosition } from "@/lib/player-positions";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -52,7 +53,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   // Check player is active
   const player = await prisma.player.findUnique({
     where: { id: user.playerId },
-    select: { id: true, status: true, teamId: true, position: true, name: true, fullName: true, cpf: true },
+    select: { id: true, status: true, teamId: true, position: true, secondaryPosition: true, name: true, fullName: true, cpf: true },
   });
 
   if (!player || player.status !== "ACTIVE") {
@@ -200,40 +201,93 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 
-  if (status === "CONFIRMED") {
-    const positionLimit = match.positionLimits.find((l) => l.position === player.position);
-
-    if (positionLimit) {
-      const currentRsvp = await prisma.rSVP.findUnique({
-        where: {
-          playerId_matchId: {
-            playerId: player.id,
-            matchId,
-          },
-        },
-        select: { status: true },
-      });
-
-      const confirmedCount = await prisma.rSVP.count({
-        where: {
+  if (status === "CONFIRMED" && match.positionLimits.length > 0) {
+    const currentRsvp = await prisma.rSVP.findUnique({
+      where: {
+        playerId_matchId: {
+          playerId: player.id,
           matchId,
-          status: "CONFIRMED",
-          player: { position: player.position },
-          ...(currentRsvp?.status === "CONFIRMED" ? { playerId: { not: player.id } } : {}),
         },
-      });
+      },
+      select: { status: true },
+    });
 
-      if (confirmedCount >= positionLimit.maxPlayers) {
-        return NextResponse.json(
-          {
-            error: `Limite atingido para a posição ${player.position}`,
-            code: "POSITION_LIMIT_REACHED",
-            position: player.position,
-            maxPlayers: positionLimit.maxPlayers,
+    const confirmedRsvps = await prisma.rSVP.findMany({
+      where: {
+        matchId,
+        status: "CONFIRMED",
+        ...(currentRsvp?.status === "CONFIRMED" ? { playerId: { not: player.id } } : {}),
+      },
+      select: {
+        player: {
+          select: {
+            position: true,
+            secondaryPosition: true,
           },
-          { status: 409 }
-        );
+        },
+      },
+    });
+
+    const limitsMap = new Map<string, number>();
+    for (const l of match.positionLimits) {
+      limitsMap.set(l.position, l.maxPlayers);
+    }
+
+    const positionCounts: Record<string, number> = {};
+
+    for (const rsvp of confirmedRsvps) {
+      const primary = rsvp.player.position;
+      const secondary = rsvp.player.secondaryPosition;
+
+      const primaryLimit = limitsMap.get(primary);
+      const currentPrimaryCount = positionCounts[primary] || 0;
+
+      if (primaryLimit === undefined || currentPrimaryCount < primaryLimit) {
+        positionCounts[primary] = currentPrimaryCount + 1;
+      } else if (secondary) {
+        const secondaryLimit = limitsMap.get(secondary);
+        const currentSecondaryCount = positionCounts[secondary] || 0;
+        if (secondaryLimit === undefined || currentSecondaryCount < secondaryLimit) {
+          positionCounts[secondary] = currentSecondaryCount + 1;
+        } else {
+          positionCounts[primary] = currentPrimaryCount + 1;
+        }
+      } else {
+        positionCounts[primary] = currentPrimaryCount + 1;
       }
+    }
+
+    const primaryPos = player.position;
+    const secondaryPos = player.secondaryPosition;
+
+    const primaryLimit = limitsMap.get(primaryPos);
+    const primaryAvailable = primaryLimit === undefined || (positionCounts[primaryPos] || 0) < primaryLimit;
+
+    let secondaryAvailable = false;
+    if (secondaryPos && secondaryPos !== primaryPos) {
+      const secondaryLimit = limitsMap.get(secondaryPos);
+      secondaryAvailable = secondaryLimit === undefined || (positionCounts[secondaryPos] || 0) < secondaryLimit;
+    }
+
+    if (!primaryAvailable && !secondaryAvailable) {
+      const hasSecondary = Boolean(secondaryPos && secondaryPos !== primaryPos);
+      const posFormatted = formatPlayerPosition(primaryPos);
+      const secPosFormatted = hasSecondary ? formatPlayerPosition(secondaryPos) : "";
+
+      const errorMessage = hasSecondary
+        ? `Limite atingido para as posições ${posFormatted} e ${secPosFormatted}`
+        : `Limite atingido para a posição ${posFormatted}`;
+
+      return NextResponse.json(
+        {
+          error: errorMessage,
+          code: "POSITION_LIMIT_REACHED",
+          position: primaryPos,
+          secondaryPosition: secondaryPos || undefined,
+          maxPlayers: primaryLimit ?? 0,
+        },
+        { status: 409 }
+      );
     }
   }
 

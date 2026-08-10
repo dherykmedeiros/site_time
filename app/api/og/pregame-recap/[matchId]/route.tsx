@@ -4,6 +4,7 @@ import { resolveTheme } from "../../themes";
 import { trackOperationalEvent } from "@/lib/telemetry";
 import { renderHtmlToImage } from "../../html-renderer";
 import { baseLayout, esc, cut, resolveAssetUrl } from "../../html-templates";
+import { formatPlayerPosition } from "@/lib/player-positions";
 
 export const runtime = "nodejs";
 
@@ -79,7 +80,8 @@ export async function GET(request: Request, context: RouteContext) {
 
     // Show top 4 confirmed players list
     const confirmedList = recap.attendance.confirmed.slice(0, 4).map((p: { name: string; position: string }) => {
-      const positionLabel = p.position ? ` (${p.position})` : '';
+      const formattedPos = formatPlayerPosition(p.position, true);
+      const positionLabel = formattedPos ? ` (${formattedPos})` : '';
       return `<div style="font-size:14px;font-weight:600;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);padding:6px 12px;border-radius:10px;display:flex;align-items:center;gap:4px;color:white">
         <span style="color:#34d399">✓</span> ${esc(cut(p.name, 14))}${esc(positionLabel)}
       </div>`;
