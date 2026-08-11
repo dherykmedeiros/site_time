@@ -128,7 +128,8 @@ export default async function HomePage() {
         </div>
       </header>
 
-      {/* Hero Section */}
+      <main>
+        {/* Hero Section */}
       <section className="relative overflow-hidden px-4 pt-16 pb-20 md:pt-24 md:pb-28">
         {/* Glow Effects */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none" />
@@ -403,6 +404,7 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+    </main>
 
       {/* Footer */}
       <footer className="border-t border-white/10 bg-[#040608] py-12 px-4 font-mono text-xs text-slate-500">
