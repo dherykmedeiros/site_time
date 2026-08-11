@@ -22,16 +22,11 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
 
-  const where: { teamId: string; status?: "ACTIVE" | "INACTIVE" } = {
-    teamId: session.user.teamId,
-  };
-
-  if (status === "ACTIVE" || status === "INACTIVE") {
-    where.status = status;
-  }
+  const currentYear = new Date().getFullYear();
+  const startOfCurrentYear = new Date(currentYear, 0, 1);
 
   const players = await prisma.player.findMany({
-    where,
+    where: { teamId: session.user.teamId },
     orderBy: { shirtNumber: "asc" },
     select: {
       id: true,
@@ -42,12 +37,14 @@ export async function GET(request: Request) {
       photoUrl: true,
       status: true,
       createdAt: true,
+      updatedAt: true,
       user: { select: { id: true, role: true } },
     },
   });
 
-  return NextResponse.json({
-    players: players.map((p) => ({
+  const formattedPlayers = players.map((p) => {
+    const isArchived = p.status === "INACTIVE" && p.updatedAt < startOfCurrentYear;
+    return {
       id: p.id,
       name: p.name,
       position: p.position,
@@ -55,11 +52,33 @@ export async function GET(request: Request) {
       shirtNumber: p.shirtNumber,
       photoUrl: p.photoUrl,
       status: p.status,
+      isArchived,
+      inactivityYear: p.updatedAt.getFullYear(),
       hasAccount: !!p.user,
       role: p.user?.role || "PLAYER",
       createdAt: p.createdAt.toISOString(),
-    })),
+      updatedAt: p.updatedAt.toISOString(),
+    };
   });
+
+  let filtered = formattedPlayers;
+
+  if (status === "ACTIVE") {
+    filtered = formattedPlayers.filter((p) => p.status === "ACTIVE");
+  } else if (status === "INACTIVE") {
+    filtered = formattedPlayers.filter((p) => p.status === "INACTIVE" && !p.isArchived);
+  } else if (status === "ARCHIVED") {
+    filtered = formattedPlayers.filter((p) => p.isArchived);
+  } else if (status === "ALL_INCLUDING_ARCHIVED") {
+    filtered = formattedPlayers;
+  } else if (status === "ALL") {
+    filtered = formattedPlayers.filter((p) => !p.isArchived);
+  } else {
+    // Default: Exclude old archived players from prior years to keep squad list clean
+    filtered = formattedPlayers.filter((p) => !p.isArchived);
+  }
+
+  return NextResponse.json({ players: filtered });
 }
 
 // POST /api/players — Create a new player (ADMIN/COACH)

@@ -26,6 +26,8 @@ interface Player {
   shirtNumber: number;
   photoUrl: string | null;
   status: "ACTIVE" | "INACTIVE";
+  isArchived?: boolean;
+  inactivityYear?: number;
   hasAccount: boolean;
   role?: "ADMIN" | "PLAYER" | "COACH" | "MATERIAL_DIRECTOR";
   createdAt: string;
@@ -277,17 +279,23 @@ export default function SquadPage() {
       {/* Filters & Search */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="app-surface flex flex-wrap gap-2 rounded-[16px] p-2">
-          {["ALL", "ACTIVE", "INACTIVE"].map((s) => (
+          {[
+            { id: "ALL", label: "🟢 Elenco Atual" },
+            { id: "ACTIVE", label: "Ativos" },
+            { id: "INACTIVE", label: "Inativos (Ano Atual)" },
+            { id: "ARCHIVED", label: "📁 Arquivados (Anos Anteriores)" },
+            { id: "ALL_INCLUDING_ARCHIVED", label: "📋 Todos" },
+          ].map((item) => (
             <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
+              key={item.id}
+              onClick={() => setStatusFilter(item.id)}
               className={`rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors ${
-                statusFilter === s
+                statusFilter === item.id
                   ? "bg-[var(--brand)] text-white"
                   : "bg-[var(--bg)] text-[var(--text-muted)] hover:bg-[var(--border)] border border-[var(--border)]"
               }`}
             >
-              {s === "ALL" ? "Todos" : s === "ACTIVE" ? "Ativos" : "Inativos"}
+              {item.label}
             </button>
           ))}
         </div>
@@ -358,8 +366,8 @@ export default function SquadPage() {
                       )}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-2 sm:hidden">
-                      <Badge variant={player.status === "ACTIVE" ? "success" : "warning"}>
-                        {player.status === "ACTIVE" ? "Ativo" : "Inativo"}
+                      <Badge variant={player.status === "ACTIVE" ? "success" : player.isArchived ? "default" : "warning"}>
+                        {player.status === "ACTIVE" ? "Ativo" : player.isArchived ? `📁 Arquivado (${player.inactivityYear})` : "Inativo"}
                       </Badge>
                       {player.hasAccount && (
                         <Badge variant="info">Conta vinculada</Badge>
@@ -372,8 +380,8 @@ export default function SquadPage() {
                     </div>
                   </div>
                   <div className="hidden gap-2 sm:flex">
-                    <Badge variant={player.status === "ACTIVE" ? "success" : "warning"}>
-                      {player.status === "ACTIVE" ? "Ativo" : "Inativo"}
+                    <Badge variant={player.status === "ACTIVE" ? "success" : player.isArchived ? "default" : "warning"}>
+                      {player.status === "ACTIVE" ? "Ativo" : player.isArchived ? `📁 Arquivado (${player.inactivityYear})` : "Inativo"}
                     </Badge>
                     {player.hasAccount && (
                       <Badge variant="info">Conta vinculada</Badge>
