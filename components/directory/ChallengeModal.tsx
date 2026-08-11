@@ -12,6 +12,7 @@ interface RegisteredTeam {
   slug: string;
   badgeUrl: string | null;
   city: string | null;
+  defaultVenue?: string | null;
 }
 
 interface OpenSlotInfo {
@@ -44,6 +45,7 @@ export function ChallengeModal({ slot, onClose, onSuccess }: ChallengeModalProps
   const [errorMsg, setErrorMsg] = useState("");
 
   const [registeredTeams, setRegisteredTeams] = useState<RegisteredTeam[]>([]);
+  const [myTeam, setMyTeam] = useState<RegisteredTeam | null>(null);
   const [selectedTeamId, setSelectedTeamId] = useState<string>("");
 
   useEffect(() => {
@@ -62,6 +64,24 @@ export function ChallengeModal({ slot, onClose, onSuccess }: ChallengeModalProps
       fetchTeams();
     }
   }, [slot]);
+
+  useEffect(() => {
+    async function fetchMyTeam() {
+      if (!session?.user?.teamId || !slot) return;
+      try {
+        const res = await fetch("/api/teams");
+        if (res.ok) {
+          const data = await res.json();
+          setMyTeam(data);
+          setSelectedTeamId(data.id);
+          setTeamName(data.name);
+        }
+      } catch {
+        // Fallback silently
+      }
+    }
+    fetchMyTeam();
+  }, [session, slot]);
 
   useEffect(() => {
     if (session?.user?.email && !email) {
@@ -134,7 +154,47 @@ export function ChallengeModal({ slot, onClose, onSuccess }: ChallengeModalProps
           <p>📍 {slot.venueLabel || "Local a combinar"} {slot.team.city ? `(${slot.team.city})` : ""}</p>
         </div>
 
-        {registeredTeams.length > 0 && (
+        {myTeam && selectedTeamId === myTeam.id ? (
+          <div className="space-y-2 p-3.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#10b981]">
+                🛡️ DESAFIANDO COM SEU CLUBE VERIFICADO
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedTeamId("");
+                  setTeamName("");
+                }}
+                className="text-[10px] text-slate-400 underline hover:text-white"
+              >
+                Alterar time
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              {myTeam.badgeUrl ? (
+                <img
+                  src={myTeam.badgeUrl}
+                  alt={myTeam.name}
+                  className="h-9 w-9 rounded-full border border-emerald-500 object-cover bg-black"
+                />
+              ) : (
+                <div className="h-9 w-9 flex items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-500 text-[#10b981] font-bold text-xs">
+                  {myTeam.name.slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <p className="text-xs font-bold text-white uppercase">{myTeam.name}</p>
+                <p className="text-[11px] text-slate-300">
+                  📍 Mando de campo: <strong className="text-[#10b981]">{myTeam.defaultVenue || "A definir"}</strong>
+                </p>
+              </div>
+            </div>
+            <p className="text-[11px] text-[#10b981] font-semibold">
+              ✓ Dados do clube e e-mail de contato ({session?.user?.email}) vinculados automaticamente.
+            </p>
+          </div>
+        ) : registeredTeams.length > 0 ? (
           <div className="space-y-1.5 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
             <label className="block text-xs font-semibold text-[#10b981]">
               🛡️ Seu time já é cadastrado no VARzea?
@@ -147,7 +207,7 @@ export function ChallengeModal({ slot, onClose, onSuccess }: ChallengeModalProps
               <option value="">-- Não cadastrado / Digitar manualmente --</option>
               {registeredTeams.map((t) => (
                 <option key={t.id} value={t.id}>
-                  ⚽ {t.name} {t.city ? `(${t.city})` : ""}
+                  ⚽ {t.name} {t.city ? `(${t.city})` : ""} {t.defaultVenue ? `· 📍 ${t.defaultVenue}` : ""}
                 </option>
               ))}
             </select>
@@ -157,7 +217,7 @@ export function ChallengeModal({ slot, onClose, onSuccess }: ChallengeModalProps
               </p>
             )}
           </div>
-        )}
+        ) : null}
 
         <Input
           label="Nome do Seu Time"

@@ -12,6 +12,7 @@ interface RegisteredTeam {
   slug: string;
   badgeUrl: string | null;
   city: string | null;
+  defaultVenue?: string | null;
 }
 
 interface FriendlyRequestFormProps {
@@ -31,6 +32,7 @@ export function FriendlyRequestForm({
   const [error, setError] = useState("");
 
   const [registeredTeams, setRegisteredTeams] = useState<RegisteredTeam[]>([]);
+  const [myTeam, setMyTeam] = useState<RegisteredTeam | null>(null);
   const [selectedTeamId, setSelectedTeamId] = useState<string>("");
 
   const [requesterTeamName, setRequesterTeamName] = useState("");
@@ -40,6 +42,7 @@ export function FriendlyRequestForm({
   const [suggestedVenue, setSuggestedVenue] = useState(initialSuggestedVenue);
   const [proposedFee, setProposedFee] = useState("");
 
+  // 1. Fetch public registered teams for fallback dropdown
   useEffect(() => {
     async function fetchTeams() {
       try {
@@ -55,7 +58,29 @@ export function FriendlyRequestForm({
     fetchTeams();
   }, []);
 
-  // Pre-fill logged in user's email if available
+  // 2. Fetch authenticated user's own team and auto-fill ALL details
+  useEffect(() => {
+    async function fetchMyTeam() {
+      if (!session?.user?.teamId) return;
+      try {
+        const res = await fetch("/api/teams");
+        if (res.ok) {
+          const data = await res.json();
+          setMyTeam(data);
+          setSelectedTeamId(data.id);
+          setRequesterTeamName(data.name);
+          if (data.defaultVenue && !initialSuggestedVenue) {
+            setSuggestedVenue(data.defaultVenue);
+          }
+        }
+      } catch {
+        // Silent fallback
+      }
+    }
+    fetchMyTeam();
+  }, [session, initialSuggestedVenue]);
+
+  // 3. Pre-fill logged in user's email if available
   useEffect(() => {
     if (session?.user?.email && !contactEmail) {
       setContactEmail(session.user.email);
@@ -68,6 +93,9 @@ export function FriendlyRequestForm({
     const team = registeredTeams.find((t) => t.id === teamId);
     if (team) {
       setRequesterTeamName(team.name);
+      if (team.defaultVenue && !initialSuggestedVenue) {
+        setSuggestedVenue(team.defaultVenue);
+      }
     }
   }
 
@@ -149,7 +177,48 @@ export function FriendlyRequestForm({
         </div>
       )}
 
-      {registeredTeams.length > 0 && (
+      {myTeam && selectedTeamId === myTeam.id ? (
+        <div className="rounded-none border-2 border-emerald-500 bg-[#090d0f] p-4 space-y-2 shadow-[4px_4px_0px_0px_#10b981]">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#10b981]">
+              🛡️ IDENTIDADE DO SEU CLUBE VERIFICADA
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedTeamId("");
+                setRequesterTeamName("");
+                setSuggestedVenue("");
+              }}
+              className="text-[10px] text-slate-400 underline hover:text-white uppercase font-bold"
+            >
+              Alterar time
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            {myTeam.badgeUrl ? (
+              <img
+                src={myTeam.badgeUrl}
+                alt={myTeam.name}
+                className="h-10 w-10 rounded-full border border-emerald-500 object-cover bg-black"
+              />
+            ) : (
+              <div className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-500 text-[#10b981] font-black text-sm">
+                {myTeam.name.slice(0, 2).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-black text-white uppercase tracking-tight">{myTeam.name}</p>
+              <p className="text-xs text-slate-300">
+                📍 Mando de campo: <strong className="text-[#10b981]">{myTeam.defaultVenue || "A definir"}</strong> {myTeam.city ? `(${myTeam.city})` : ""}
+              </p>
+            </div>
+          </div>
+          <p className="text-[11px] text-[#10b981] font-bold">
+            ✓ Seu clube, e-mail ({session?.user?.email}) e mando de campo foram carregados automaticamente.
+          </p>
+        </div>
+      ) : registeredTeams.length > 0 ? (
         <div className="space-y-1.5 p-3 border border-emerald-500/30 bg-emerald-500/5">
           <label className="block text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider">
             🛡️ Seu time já possui cadastro na plataforma VARzea?
@@ -162,17 +231,17 @@ export function FriendlyRequestForm({
             <option value="">-- Não cadastrado / Digitar manualmente --</option>
             {registeredTeams.map((t) => (
               <option key={t.id} value={t.id}>
-                ⚽ {t.name} {t.city ? `(${t.city})` : ""}
+                ⚽ {t.name} {t.city ? `(${t.city})` : ""} {t.defaultVenue ? `· 📍 ${t.defaultVenue}` : ""}
               </option>
             ))}
           </select>
           {selectedTeamId && (
             <p className="text-[11px] font-mono text-[#10b981] font-bold">
-              ✓ Time cadastrado selecionado! O amistoso será agendado em ambos os clubes após aprovação.
+              ✓ Time cadastrado selecionado! O campo e dados do clube foram carregados.
             </p>
           )}
         </div>
-      )}
+      ) : null}
 
       <Input
         label="Nome da sua equipe *"

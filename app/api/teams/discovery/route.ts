@@ -85,6 +85,7 @@ export async function GET(request: Request) {
       badgeUrl: true,
       city: true,
       region: true,
+      defaultVenue: true,
       fieldType: true,
       competitiveLevel: true,
       openMatchSlots: {
