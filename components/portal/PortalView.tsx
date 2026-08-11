@@ -226,8 +226,13 @@ export default function PortalView({
               </span>
             )}
           </div>
-          <div className="right font-mono">
-            <Link href="/" className="text-[var(--brand)] font-bold hover:underline">VARzea Home ⚽</Link>
+          <div className="right font-mono flex items-center gap-3">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1 bg-[#10b981]/20 hover:bg-[#10b981]/30 border border-[#10b981]/50 text-[#10b981] px-2.5 py-0.5 rounded font-mono font-black text-[10px] uppercase tracking-wider transition-colors shadow-sm"
+            >
+              <span>🏠</span> Home VARzea
+            </Link>
             <a href="?tab=secretaria#amistoso">Solicitar amistoso</a>
             <a href="?tab=secretaria#recrutamento">Quero jogar</a>
             <Link href="/dashboard">Acesso restrito ↗</Link>
@@ -254,6 +259,9 @@ export default function PortalView({
           </nav>
           <div className="actions">
             <ThemeToggle />
+            <Link href="/" className="btn secondary text-xs hidden lg:inline-flex items-center gap-1 font-mono">
+              🏠 Início VARzea
+            </Link>
             <a href="?tab=secretaria#amistoso" className="btn secondary hidden md:inline-flex">Desafiar equipe</a>
             <a href="?tab=album#elenco" className="btn green hidden md:inline-flex">Conhecer elenco <span className="btn-arr">→</span></a>
             <label htmlFor="mobile-menu-toggle" className="mobile-menu-btn md:hidden flex items-center justify-center p-2 rounded cursor-pointer text-[var(--ink)] hover:bg-[var(--surface-2)]">
@@ -1220,7 +1228,7 @@ export default function PortalView({
         <div className="wrap">
           <div className="top">
             <div className="brand-col col-span-2">
-              <Link href="/" className="brand">
+              <Link href={team.slug ? `/${team.slug}` : "/"} className="brand">
                 <ClubCrest variant="footer" initials={clubInitials} badgeUrl={team.badgeUrl} />
                 <div className="txt">
                   <div className="top">Fundado em {team.foundedYear || new Date(team.createdAt).getFullYear()}</div>
@@ -1230,6 +1238,9 @@ export default function PortalView({
               <p className="mt-4 max-w-xs text-xs opacity-75 leading-relaxed">
                 Aqui a paixão não é cobrada em bilheteria — e o suor pesa mais que qualquer contrato milionário.
               </p>
+              <Link href="/" className="mt-4 inline-flex items-center gap-1.5 text-xs text-[var(--primary)] font-mono font-bold hover:underline">
+                <span>🏠</span> Ir para a Plataforma VARzea (Página Inicial)
+              </Link>
             </div>
             <div>
               <h4>Clube</h4>

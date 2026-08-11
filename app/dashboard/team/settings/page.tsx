@@ -851,12 +851,12 @@ export default function TeamSettingsPage() {
             <p className="text-sm text-[var(--text-muted)]">
               <strong>Portal Oficial do Time:</strong>{" "}
               <a
-                href="/"
+                href={`/${team.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-semibold text-[var(--brand)] hover:underline"
               >
-                / (Página Inicial)
+                /{team.slug}
               </a>
             </p>
           </CardContent>
@@ -1065,12 +1065,12 @@ export default function TeamSettingsPage() {
 
             <div className="flex flex-wrap gap-2">
               <a
-                href="/"
+                href={team?.slug ? `/${team.slug}` : "/"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--brand)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--brand-strong)]"
               >
-                Abrir Portal do Time
+                Abrir Portal do Time ({team?.slug ? `/${team.slug}` : ""})
               </a>
             </div>
           </CardContent>
