@@ -259,9 +259,6 @@ export default function PortalView({
           </nav>
           <div className="actions">
             <ThemeToggle />
-            <Link href="/" className="btn secondary text-xs hidden lg:inline-flex items-center gap-1 font-mono">
-              🏠 Início VARzea
-            </Link>
             <a href="?tab=secretaria#amistoso" className="btn secondary hidden md:inline-flex">Desafiar equipe</a>
             <a href="?tab=album#elenco" className="btn green hidden md:inline-flex">Conhecer elenco <span className="btn-arr">→</span></a>
             <label htmlFor="mobile-menu-toggle" className="mobile-menu-btn md:hidden flex items-center justify-center p-2 rounded cursor-pointer text-[var(--ink)] hover:bg-[var(--surface-2)]">
