@@ -50,6 +50,16 @@ const filterOptions = [
   { value: "REJECTED", label: "Rejeitados" },
 ];
 
+function parseSuggestedDateTimeToISO(str: string): string {
+  if (!str) return "";
+  const match = str.match(/(\d{2})\/(\d{2})\/(\d{4})\s+às\s+(\d{2}):(\d{2})/);
+  if (match) {
+    const [, day, month, year, hours, minutes] = match;
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+  return "";
+}
+
 export default function FriendlyRequestsPage() {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "ADMIN";
@@ -119,7 +129,7 @@ export default function FriendlyRequestsPage() {
   function openApproveModal(req: FriendlyRequest) {
     setSelectedRequest(req);
     setActionType("approve");
-    setMatchDate("");
+    setMatchDate(parseSuggestedDateTimeToISO(req.suggestedDates));
     setMatchVenue(req.suggestedVenue || "");
     setActionError("");
   }

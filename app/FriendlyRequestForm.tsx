@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
 import { useSession } from "next-auth/react";
 
 interface RegisteredTeam {
@@ -38,7 +37,9 @@ export function FriendlyRequestForm({
   const [requesterTeamName, setRequesterTeamName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
-  const [suggestedDates, setSuggestedDates] = useState(initialSuggestedDates);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedTime, setSelectedTime] = useState("");
+  const [dateNotes, setDateNotes] = useState("");
   const [suggestedVenue, setSuggestedVenue] = useState(initialSuggestedVenue);
   const [proposedFee, setProposedFee] = useState("");
 
@@ -104,6 +105,19 @@ export function FriendlyRequestForm({
     setLoading(true);
     setError("");
 
+    const dateFormatted = selectedDate
+      ? new Date(`${selectedDate}T00:00:00`).toLocaleDateString("pt-BR")
+      : "";
+    const computedSuggestedDates = selectedDate && selectedTime
+      ? `${dateFormatted} às ${selectedTime}${dateNotes.trim() ? ` (${dateNotes.trim()})` : ""}`
+      : initialSuggestedDates || dateNotes.trim() || `${selectedDate} ${selectedTime}`.trim();
+
+    if (!computedSuggestedDates) {
+      setError("Selecione a data e o horário sugeridos para o jogo.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/friendly-requests", {
         method: "POST",
@@ -113,7 +127,7 @@ export function FriendlyRequestForm({
           requesterTeamName,
           contactEmail,
           contactPhone: contactPhone || undefined,
-          suggestedDates,
+          suggestedDates: computedSuggestedDates,
           suggestedVenue: suggestedVenue || undefined,
           proposedFee: proposedFee ? parseFloat(proposedFee) : undefined,
           requesterTeamId: selectedTeamId || undefined,
@@ -151,8 +165,9 @@ export function FriendlyRequestForm({
             setSuccess(false);
             setRequesterTeamName("");
             setContactEmail("");
-            setContactPhone("");
-            setSuggestedDates(initialSuggestedDates);
+            setSelectedDate("");
+            setSelectedTime("");
+            setDateNotes("");
             setSuggestedVenue(initialSuggestedVenue);
             setProposedFee("");
           }}
@@ -275,15 +290,35 @@ export function FriendlyRequestForm({
         className="rounded-none border-2 border-slate-800 bg-black/40 text-white placeholder-gray-600 focus:border-[var(--team-primary)] focus:shadow-[3px_3px_0px_0px_var(--team-primary)] shadow-none transition-all focus:ring-0"
       />
 
-      <Textarea
-        label="Datas/horários sugeridos *"
-        value={suggestedDates}
-        onChange={(e) => setSuggestedDates(e.target.value)}
-        required
-        minLength={5}
-        maxLength={500}
-        rows={3}
-        placeholder="Ex: Sábados a tarde, preferencialmente 15h ou 16h"
+      {/* Structured Calendar & Time Selection */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Input
+          label="Data sugerida para a partida *"
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          required={!initialSuggestedDates}
+          min={new Date().toISOString().split("T")[0]}
+          className="rounded-none border-2 border-slate-800 bg-black/40 text-white focus:border-[var(--team-primary)] focus:shadow-[3px_3px_0px_0px_var(--team-primary)] shadow-none transition-all focus:ring-0"
+        />
+
+        <Input
+          label="Horário sugerido (Início) *"
+          type="time"
+          value={selectedTime}
+          onChange={(e) => setSelectedTime(e.target.value)}
+          required={!initialSuggestedDates}
+          className="rounded-none border-2 border-slate-800 bg-black/40 text-white focus:border-[var(--team-primary)] focus:shadow-[3px_3px_0px_0px_var(--team-primary)] shadow-none transition-all focus:ring-0"
+        />
+      </div>
+
+      <Input
+        label="Observações sobre data/horário (opcional)"
+        type="text"
+        value={dateNotes}
+        onChange={(e) => setDateNotes(e.target.value)}
+        maxLength={200}
+        placeholder="Ex: Preferência por jogo de 2 tempos de 40min"
         className="rounded-none border-2 border-slate-800 bg-black/40 text-white placeholder-gray-600 focus:border-[var(--team-primary)] focus:shadow-[3px_3px_0px_0px_var(--team-primary)] shadow-none transition-all focus:ring-0"
       />
 
