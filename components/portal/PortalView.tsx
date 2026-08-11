@@ -227,6 +227,7 @@ export default function PortalView({
             )}
           </div>
           <div className="right font-mono">
+            <Link href="/" className="text-[var(--brand)] font-bold hover:underline">VARzea Home ⚽</Link>
             <a href="?tab=secretaria#amistoso">Solicitar amistoso</a>
             <a href="?tab=secretaria#recrutamento">Quero jogar</a>
             <Link href="/dashboard">Acesso restrito ↗</Link>
@@ -236,7 +237,7 @@ export default function PortalView({
 
       <header className="site">
         <div className="wrap">
-          <Link href="/" className="brand">
+          <Link href={team.slug ? `/${team.slug}` : "/"} className="brand">
             <ClubCrest initials={clubInitials} badgeUrl={team.badgeUrl} />
             <div className="txt">
               <div className="top">Fundado em {team.foundedYear || new Date(team.createdAt).getFullYear()} · {team.city || "Fortaleza"}/{team.region || "CE"}</div>
