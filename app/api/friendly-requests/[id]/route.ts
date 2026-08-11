@@ -27,6 +27,18 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   const friendlyRequest = await prisma.friendlyRequest.findFirst({
     where: { id, teamId: session.user.teamId },
+    include: {
+      requesterTeam: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          badgeUrl: true,
+          city: true,
+          region: true,
+        },
+      },
+    },
   });
 
   if (!friendlyRequest) {
@@ -46,6 +58,17 @@ export async function GET(request: Request, { params }: RouteParams) {
     proposedFee: friendlyRequest.proposedFee ? Number(friendlyRequest.proposedFee) : null,
     status: friendlyRequest.status,
     rejectionReason: friendlyRequest.rejectionReason,
+    requesterTeamId: friendlyRequest.requesterTeamId,
+    requesterTeam: friendlyRequest.requesterTeam
+      ? {
+          id: friendlyRequest.requesterTeam.id,
+          name: friendlyRequest.requesterTeam.name,
+          slug: friendlyRequest.requesterTeam.slug,
+          badgeUrl: friendlyRequest.requesterTeam.badgeUrl,
+          city: friendlyRequest.requesterTeam.city,
+          region: friendlyRequest.requesterTeam.region,
+        }
+      : null,
     createdAt: friendlyRequest.createdAt.toISOString(),
     updatedAt: friendlyRequest.updatedAt.toISOString(),
   });
@@ -76,7 +99,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   const friendlyRequest = await prisma.friendlyRequest.findFirst({
     where: { id, teamId: session.user.teamId },
-    include: { team: { select: { name: true, defaultVenue: true } } },
+    include: {
+      team: { select: { name: true, defaultVenue: true, badgeUrl: true } },
+      requesterTeam: { select: { id: true, name: true, badgeUrl: true } },
+    },
   });
 
   if (!friendlyRequest) {
@@ -133,34 +159,66 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           data: { status: "APPROVED" },
         });
 
-      const createdMatch = await tx.match.create({
-        data: {
-          date,
-          venue,
-          opponent: friendlyRequest.requesterTeamName,
-          type: "FRIENDLY",
-          status: "SCHEDULED",
-          teamId: session.user.teamId!,
-        },
-      });
-
-      // Auto-create PENDING RSVPs for active players
-      const activePlayers = await tx.player.findMany({
-        where: { teamId: session.user.teamId!, status: "ACTIVE" },
-        select: { id: true },
-      });
-
-      if (activePlayers.length > 0) {
-        await tx.rSVP.createMany({
-          data: activePlayers.map((p) => ({
-            playerId: p.id,
-            matchId: createdMatch.id,
-          })),
+        // 1. Create match for Host Team
+        const createdHostMatch = await tx.match.create({
+          data: {
+            date,
+            venue,
+            opponent: friendlyRequest.requesterTeamName,
+            opponentBadgeUrl: friendlyRequest.requesterTeam?.badgeUrl || null,
+            type: "FRIENDLY",
+            status: "SCHEDULED",
+            teamId: session.user.teamId!,
+          },
         });
-      }
 
-      return [updated, createdMatch] as const;
-    });
+        // Auto-create PENDING RSVPs for active players of Host Team
+        const activeHostPlayers = await tx.player.findMany({
+          where: { teamId: session.user.teamId!, status: "ACTIVE" },
+          select: { id: true },
+        });
+
+        if (activeHostPlayers.length > 0) {
+          await tx.rSVP.createMany({
+            data: activeHostPlayers.map((p) => ({
+              playerId: p.id,
+              matchId: createdHostMatch.id,
+            })),
+          });
+        }
+
+        // 2. Automated Bilateral Match Creation for Requester Team (If registered on VARzea)
+        if (friendlyRequest.requesterTeamId) {
+          const createdRequesterMatch = await tx.match.create({
+            data: {
+              date,
+              venue,
+              opponent: friendlyRequest.team.name,
+              opponentBadgeUrl: friendlyRequest.team.badgeUrl || null,
+              type: "FRIENDLY",
+              status: "SCHEDULED",
+              teamId: friendlyRequest.requesterTeamId,
+            },
+          });
+
+          // Auto-create PENDING RSVPs for active players of Requester Team
+          const activeRequesterPlayers = await tx.player.findMany({
+            where: { teamId: friendlyRequest.requesterTeamId, status: "ACTIVE" },
+            select: { id: true },
+          });
+
+          if (activeRequesterPlayers.length > 0) {
+            await tx.rSVP.createMany({
+              data: activeRequesterPlayers.map((p) => ({
+                playerId: p.id,
+                matchId: createdRequesterMatch.id,
+              })),
+            });
+          }
+        }
+
+        return [updated, createdHostMatch] as const;
+      });
 
     // Send approval email (non-blocking)
     sendFriendlyApprovalEmail({

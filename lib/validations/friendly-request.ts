@@ -27,6 +27,7 @@ export const createFriendlyRequestSchema = z.object({
     .min(0, "Valor deve ser >= 0")
     .optional()
     .nullable(),
+  requesterTeamId: z.string().optional().nullable(),
 });
 
 export const processFriendlyRequestSchema = z.object({

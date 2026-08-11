@@ -223,7 +223,8 @@ model Team {
   users            User[]
   players          Player[]
   matches          Match[]
-  friendlyRequests FriendlyRequest[]
+  friendlyRequests FriendlyRequest[] @relation("HostFriendlyRequests")
+  requestedFriendlies FriendlyRequest[] @relation("ChallengerFriendlyRequests")
   transactions     Transaction[]
   inviteTokens     InviteToken[]
   membershipPayments MembershipPayment[]
@@ -484,11 +485,14 @@ model FriendlyRequest {
   status            FriendlyRequestStatus @default(PENDING)
   rejectionReason   String?
   teamId            String
-  team              Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team              Team                  @relation("HostFriendlyRequests", fields: [teamId], references: [id], onDelete: Cascade)
+  requesterTeamId   String?
+  requesterTeam     Team?                 @relation("ChallengerFriendlyRequests", fields: [requesterTeamId], references: [id], onDelete: SetNull)
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
 
   @@index([teamId])
+  @@index([requesterTeamId])
   @@index([teamId, status])
   @@map("friendly_requests")
 }

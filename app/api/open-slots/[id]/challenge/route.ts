@@ -14,6 +14,7 @@ const challengeSchema = z.object({
   contactPhone: z.string().trim().max(30).optional().nullable(),
   proposedFee: z.number().min(0).optional().nullable(),
   message: z.string().trim().max(500).optional().nullable(),
+  requesterTeamId: z.string().optional().nullable(),
 });
 
 // POST /api/open-slots/:id/challenge — Enviar proposta de desafio para uma vaga aberta
@@ -55,12 +56,25 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
     );
   }
 
-  const { requesterTeamName, contactEmail, contactPhone, proposedFee, message } = parsed.data;
+  const { requesterTeamName, contactEmail, contactPhone, proposedFee, message, requesterTeamId } = parsed.data;
 
   // Build suggested dates label from slot date and time
   const dateFormatted = slot.date.toISOString().slice(0, 10);
   const suggestedDates = slot.timeLabel ? `${dateFormatted} às ${slot.timeLabel}` : dateFormatted;
   const suggestedVenue = slot.venueLabel || "A combinar";
+
+  let resolvedRequesterTeamId = requesterTeamId || null;
+  if (!resolvedRequesterTeamId && requesterTeamName) {
+    const matchedTeam = await prisma.team.findFirst({
+      where: {
+        name: { equals: requesterTeamName, mode: "insensitive" },
+      },
+      select: { id: true },
+    });
+    if (matchedTeam) {
+      resolvedRequesterTeamId = matchedTeam.id;
+    }
+  }
 
   // Create friendly request for host team
   const friendlyRequest = await prisma.friendlyRequest.create({
@@ -73,6 +87,7 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
       suggestedVenue,
       proposedFee: proposedFee ? proposedFee : null,
       status: "PENDING",
+      requesterTeamId: resolvedRequesterTeamId,
     },
   });
 

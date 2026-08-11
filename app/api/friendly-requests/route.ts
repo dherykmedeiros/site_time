@@ -31,6 +31,18 @@ export const GET = withErrorHandler(async (request: Request) => {
 
   const requests = await prisma.friendlyRequest.findMany({
     where,
+    include: {
+      requesterTeam: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          badgeUrl: true,
+          city: true,
+          region: true,
+        },
+      },
+    },
     orderBy: { createdAt: "desc" },
     take: 200,
   });
@@ -45,6 +57,17 @@ export const GET = withErrorHandler(async (request: Request) => {
       suggestedVenue: r.suggestedVenue,
       proposedFee: r.proposedFee ? Number(r.proposedFee) : null,
       status: r.status,
+      requesterTeamId: r.requesterTeamId,
+      requesterTeam: r.requesterTeam
+        ? {
+            id: r.requesterTeam.id,
+            name: r.requesterTeam.name,
+            slug: r.requesterTeam.slug,
+            badgeUrl: r.requesterTeam.badgeUrl,
+            city: r.requesterTeam.city,
+            region: r.requesterTeam.region,
+          }
+        : null,
       createdAt: r.createdAt.toISOString(),
     })),
   });
@@ -100,6 +123,19 @@ export const POST = withErrorHandler(async (request: Request) => {
     );
   }
 
+  let resolvedRequesterTeamId = data.requesterTeamId || null;
+  if (!resolvedRequesterTeamId && data.requesterTeamName) {
+    const matchedTeam = await prisma.team.findFirst({
+      where: {
+        name: { equals: data.requesterTeamName, mode: "insensitive" },
+      },
+      select: { id: true },
+    });
+    if (matchedTeam) {
+      resolvedRequesterTeamId = matchedTeam.id;
+    }
+  }
+
   const friendlyRequest = await prisma.friendlyRequest.create({
     data: {
       requesterTeamName: data.requesterTeamName,
@@ -109,6 +145,7 @@ export const POST = withErrorHandler(async (request: Request) => {
       suggestedVenue: data.suggestedVenue || null,
       proposedFee: data.proposedFee ?? null,
       teamId: team.id,
+      requesterTeamId: resolvedRequesterTeamId,
     },
   });
 

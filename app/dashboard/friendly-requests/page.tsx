@@ -19,6 +19,15 @@ interface FriendlyRequest {
   suggestedVenue: string | null;
   proposedFee: number | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
+  requesterTeamId?: string | null;
+  requesterTeam?: {
+    id: string;
+    name: string;
+    slug: string;
+    badgeUrl: string | null;
+    city: string | null;
+    region: string | null;
+  } | null;
   createdAt: string;
 }
 
@@ -170,14 +179,35 @@ export default function FriendlyRequestsPage() {
               <CardContent className="py-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold text-[var(--text)]">
                         {req.requesterTeamName}
                       </h3>
                       <Badge variant={statusVariants[req.status]}>
                         {statusLabels[req.status]}
                       </Badge>
+
+                      {req.requesterTeam && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-mono font-bold text-emerald-400">
+                          🛡️ Time Cadastrado no VARzea
+                        </span>
+                      )}
                     </div>
+
+                    {req.requesterTeam && (
+                      <p className="text-xs text-emerald-400/90 font-mono font-semibold pt-0.5">
+                        📍 {req.requesterTeam.city || "Cidade N/I"} {req.requesterTeam.region ? `(${req.requesterTeam.region})` : ""} ·{" "}
+                        <a
+                          href={`/${req.requesterTeam.slug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline hover:text-emerald-300"
+                        >
+                          Ver Arena do Clube ↗
+                        </a>
+                      </p>
+                    )}
+
                     <p className="text-sm text-[var(--text-muted)]">
                       📧 {req.contactEmail}
                       {req.contactPhone && ` • 📞 ${req.contactPhone}`}
@@ -235,10 +265,18 @@ export default function FriendlyRequestsPage() {
           {actionError && (
             <p className="rounded-[12px] border border-[#efc1b7] bg-[#fff1ee] p-3 text-sm text-[var(--danger)]">{actionError}</p>
           )}
-          <p className="text-sm text-[var(--text-muted)]">
-            Ao aprovar, uma partida será criada automaticamente no calendário do
-            time.
-          </p>
+          {selectedRequest?.requesterTeam ? (
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300 font-mono">
+              ⚡ <strong>TIME CADASTRADO NO VARZEA!</strong>
+              <p className="mt-1">
+                Ao aprovar, a partida será agendada automaticamente nos calendários do <strong>{session?.user?.teamId ? "seu time" : "time anfitrião"}</strong> e do <strong>{selectedRequest.requesterTeamName}</strong>, criando convocações (RSVP) para os elencos de ambos os clubes.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--text-muted)]">
+              Ao aprovar, uma partida será criada automaticamente no calendário do time.
+            </p>
+          )}
           <Input
             label="Data da Partida"
             type="datetime-local"

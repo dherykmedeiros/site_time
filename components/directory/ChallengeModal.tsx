@@ -1,9 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { useSession } from "next-auth/react";
+
+interface RegisteredTeam {
+  id: string;
+  name: string;
+  slug: string;
+  badgeUrl: string | null;
+  city: string | null;
+}
 
 interface OpenSlotInfo {
   id: string;
@@ -25,6 +34,7 @@ interface ChallengeModalProps {
 }
 
 export function ChallengeModal({ slot, onClose, onSuccess }: ChallengeModalProps) {
+  const { data: session } = useSession();
   const [teamName, setTeamName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -32,6 +42,41 @@ export function ChallengeModal({ slot, onClose, onSuccess }: ChallengeModalProps
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  const [registeredTeams, setRegisteredTeams] = useState<RegisteredTeam[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState<string>("");
+
+  useEffect(() => {
+    async function fetchTeams() {
+      try {
+        const res = await fetch("/api/teams/discovery?limit=100");
+        if (res.ok) {
+          const data = await res.json();
+          setRegisteredTeams(data.teams || []);
+        }
+      } catch {
+        // Fallback silently
+      }
+    }
+    if (slot) {
+      fetchTeams();
+    }
+  }, [slot]);
+
+  useEffect(() => {
+    if (session?.user?.email && !email) {
+      setEmail(session.user.email);
+    }
+  }, [session, email]);
+
+  function handleSelectRegisteredTeam(teamId: string) {
+    setSelectedTeamId(teamId);
+    if (!teamId) return;
+    const found = registeredTeams.find((t) => t.id === teamId);
+    if (found) {
+      setTeamName(found.name);
+    }
+  }
 
   if (!slot) return null;
 
@@ -56,6 +101,7 @@ export function ChallengeModal({ slot, onClose, onSuccess }: ChallengeModalProps
           contactPhone: phone.trim() || null,
           proposedFee: fee ? parseFloat(fee) : null,
           message: message.trim() || null,
+          requesterTeamId: selectedTeamId || null,
         }),
       });
 
@@ -87,6 +133,31 @@ export function ChallengeModal({ slot, onClose, onSuccess }: ChallengeModalProps
           <p>📅 {new Date(slot.date).toLocaleDateString("pt-BR")} {slot.timeLabel ? `às ${slot.timeLabel}` : ""}</p>
           <p>📍 {slot.venueLabel || "Local a combinar"} {slot.team.city ? `(${slot.team.city})` : ""}</p>
         </div>
+
+        {registeredTeams.length > 0 && (
+          <div className="space-y-1.5 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
+            <label className="block text-xs font-semibold text-[#10b981]">
+              🛡️ Seu time já é cadastrado no VARzea?
+            </label>
+            <select
+              value={selectedTeamId}
+              onChange={(e) => handleSelectRegisteredTeam(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-[#16130f] p-2 text-xs text-white outline-none focus:border-[#10b981]"
+            >
+              <option value="">-- Não cadastrado / Digitar manualmente --</option>
+              {registeredTeams.map((t) => (
+                <option key={t.id} value={t.id}>
+                  ⚽ {t.name} {t.city ? `(${t.city})` : ""}
+                </option>
+              ))}
+            </select>
+            {selectedTeamId && (
+              <p className="text-[11px] text-[#10b981]">
+                ✓ O amistoso será agendado nos 2 times automaticamente após aprovação.
+              </p>
+            )}
+          </div>
+        )}
 
         <Input
           label="Nome do Seu Time"
