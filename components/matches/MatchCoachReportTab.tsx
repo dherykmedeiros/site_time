@@ -162,10 +162,10 @@ export function MatchCoachReportTab({
 
         // Initialize evaluations for participating match stats if missing
         match.stats.forEach((p) => {
-          const key = p.playerId || p.guestPlayerId || p.playerName;
+          const key = p.guestPlayerId ? p.guestPlayerId : (p.playerId || p.playerName);
           if (key && !evalMap[key]) {
             evalMap[key] = {
-              playerId: p.playerId || null,
+              playerId: p.guestPlayerId ? null : (p.playerId || null),
               guestPlayerId: p.guestPlayerId || null,
               rating: 7,
               feedback: "",

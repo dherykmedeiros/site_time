@@ -280,12 +280,43 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
 
   // Process individual player evaluations
   for (const ev of evaluations) {
+    let validPlayerId: string | null = null;
+    let validGuestPlayerId: string | null = null;
+
     if (ev.playerId) {
+      const playerExists = await prisma.player.findFirst({
+        where: { id: ev.playerId, teamId },
+        select: { id: true },
+      });
+      if (playerExists) {
+        validPlayerId = playerExists.id;
+      } else {
+        const guestExists = await prisma.guestPlayer.findFirst({
+          where: { id: ev.playerId },
+          select: { id: true },
+        });
+        if (guestExists) {
+          validGuestPlayerId = guestExists.id;
+        }
+      }
+    }
+
+    if (!validPlayerId && !validGuestPlayerId && ev.guestPlayerId) {
+      const guestExists = await prisma.guestPlayer.findFirst({
+        where: { id: ev.guestPlayerId },
+        select: { id: true },
+      });
+      if (guestExists) {
+        validGuestPlayerId = guestExists.id;
+      }
+    }
+
+    if (validPlayerId) {
       await prisma.matchCoachEvaluation.upsert({
         where: {
           reportId_playerId: {
             reportId: report.id,
-            playerId: ev.playerId,
+            playerId: validPlayerId,
           },
         },
         update: {
@@ -294,17 +325,17 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
         },
         create: {
           reportId: report.id,
-          playerId: ev.playerId,
+          playerId: validPlayerId,
           rating: ev.rating,
           feedback: ev.feedback ?? "",
         },
       });
-    } else if (ev.guestPlayerId) {
+    } else if (validGuestPlayerId) {
       await prisma.matchCoachEvaluation.upsert({
         where: {
           reportId_guestPlayerId: {
             reportId: report.id,
-            guestPlayerId: ev.guestPlayerId,
+            guestPlayerId: validGuestPlayerId,
           },
         },
         update: {
@@ -313,7 +344,7 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
         },
         create: {
           reportId: report.id,
-          guestPlayerId: ev.guestPlayerId,
+          guestPlayerId: validGuestPlayerId,
           rating: ev.rating,
           feedback: ev.feedback ?? "",
         },

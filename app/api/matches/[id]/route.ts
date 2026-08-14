@@ -649,8 +649,8 @@ async function buildMatchDetailResponse(
       })),
     ],
     stats: match.matchStats.map((stat) => ({
-      playerId: stat.playerId || stat.guestPlayerId,
-      guestPlayerId: stat.guestPlayerId,
+      playerId: stat.playerId || null,
+      guestPlayerId: stat.guestPlayerId || null,
       playerName: stat.player?.name ?? stat.guestPlayer?.name ?? "Convidado",
       goals: stat.goals,
       assists: stat.assists,
