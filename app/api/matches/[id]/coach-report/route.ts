@@ -30,7 +30,7 @@ const coachReportSchema = z.object({
     z.object({
       playerId: z.string().optional().nullable(),
       guestPlayerId: z.string().optional().nullable(),
-      rating: z.number().min(1).max(10),
+      rating: z.coerce.number().min(1).max(10).optional().default(5),
       feedback: z.string().optional().nullable(),
     })
   ).optional().default([]),
@@ -128,7 +128,7 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
 
   // Strict View Permission Check:
   const isAdminOrCoachRole = session.user.role === "ADMIN" || session.user.role === "COACH";
-  const isDesignatedCoach = session.user.playerId && match.coachPlayerId === session.user.playerId;
+  const isDesignatedCoach = Boolean(session.user.playerId && match.coachPlayerId === session.user.playerId);
 
   if (!isAdminOrCoachRole && !isDesignatedCoach) {
     return NextResponse.json(
@@ -142,7 +142,7 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
   }
 
   // Strict Edit Permission Check:
-  const canEdit = isDesignatedCoach || (session.user.role === "ADMIN" && !match.coachPlayerId);
+  const canEdit = isAdminOrCoachRole || isDesignatedCoach;
 
   // Build list of ONLY confirmed players and guests for starter selection
   const confirmedPlayers = [
@@ -221,12 +221,12 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
   }
 
   // Strict Edit Check:
-  const isDesignatedCoach = session.user.playerId && match.coachPlayerId === session.user.playerId;
-  const isAdminWithoutCoach = session.user.role === "ADMIN" && !match.coachPlayerId;
+  const isDesignatedCoach = Boolean(session.user.playerId && match.coachPlayerId === session.user.playerId);
+  const isCoachOrAdminRole = session.user.role === "ADMIN" || session.user.role === "COACH";
 
-  if (!isDesignatedCoach && !isAdminWithoutCoach) {
+  if (!isDesignatedCoach && !isCoachOrAdminRole) {
     return NextResponse.json(
-      { error: "Apenas o atleta definido como treinador desta partida pode editar o relatório." },
+      { error: "Apenas a comissão técnica, administradores ou o treinador da partida podem editar este relatório." },
       { status: 403 }
     );
   }

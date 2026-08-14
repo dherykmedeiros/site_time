@@ -162,11 +162,11 @@ export function MatchCoachReportTab({
 
         // Initialize evaluations for participating match stats if missing
         match.stats.forEach((p) => {
-          const key = p.playerId || p.guestPlayerId;
+          const key = p.playerId || p.guestPlayerId || p.playerName;
           if (key && !evalMap[key]) {
             evalMap[key] = {
-              playerId: p.playerId,
-              guestPlayerId: p.guestPlayerId,
+              playerId: p.playerId || null,
+              guestPlayerId: p.guestPlayerId || null,
               rating: 7,
               feedback: "",
             };
@@ -262,21 +262,27 @@ export function MatchCoachReportTab({
     setSubstitutions((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleRatingChange = (key: string, rating: number) => {
+  const handleRatingChange = (key: string, rating: number, playerId?: string | null, guestPlayerId?: string | null) => {
     setEvaluations((prev) => ({
       ...prev,
       [key]: {
         ...prev[key],
+        playerId: prev[key]?.playerId ?? playerId ?? null,
+        guestPlayerId: prev[key]?.guestPlayerId ?? guestPlayerId ?? null,
         rating,
+        feedback: prev[key]?.feedback ?? "",
       },
     }));
   };
 
-  const handleFeedbackChange = (key: string, feedback: string) => {
+  const handleFeedbackChange = (key: string, feedback: string, playerId?: string | null, guestPlayerId?: string | null) => {
     setEvaluations((prev) => ({
       ...prev,
       [key]: {
         ...prev[key],
+        playerId: prev[key]?.playerId ?? playerId ?? null,
+        guestPlayerId: prev[key]?.guestPlayerId ?? guestPlayerId ?? null,
+        rating: prev[key]?.rating ?? 5,
         feedback,
       },
     }));
@@ -855,7 +861,7 @@ export function MatchCoachReportTab({
                       {canEdit ? (
                         <select
                           value={ev.rating}
-                          onChange={(e) => handleRatingChange(key, Number(e.target.value))}
+                          onChange={(e) => handleRatingChange(key, Number(e.target.value), p.playerId, p.guestPlayerId)}
                           className="rounded-xl border border-white/10 bg-[#16130f] px-3 py-1 text-sm font-black text-emerald-400 outline-none focus:border-[#36c2a8]"
                         >
                           {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((n) => (
@@ -878,7 +884,7 @@ export function MatchCoachReportTab({
                       <input
                         type="text"
                         value={ev.feedback}
-                        onChange={(e) => handleFeedbackChange(key, e.target.value)}
+                        onChange={(e) => handleFeedbackChange(key, e.target.value, p.playerId, p.guestPlayerId)}
                         placeholder={`Parecer do treinador sobre a atuação de ${p.playerName}...`}
                         className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-xs text-white placeholder:text-white/20 outline-none focus:border-[#36c2a8]"
                       />
