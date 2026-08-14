@@ -293,33 +293,50 @@ export function MatchCoachReportTab({
     setFeedbackMsg(null);
     setErrorMsg(null);
 
-    const evalList = Object.values(evaluations);
+    // Sanitize substitutions & evaluations before sending to API
+    const cleanSubstitutions = substitutions
+      .filter((s) => Boolean(s.playerOutId && s.playerInId))
+      .map((s) => ({
+        playerOutId: String(s.playerOutId),
+        playerInId: String(s.playerInId),
+        minute: s.minute || "",
+        reason: s.reason || "",
+      }));
+
+    const cleanEvaluations = Object.values(evaluations)
+      .filter((e) => Boolean(e.playerId || e.guestPlayerId))
+      .map((e) => ({
+        playerId: e.playerId || null,
+        guestPlayerId: e.guestPlayerId || null,
+        rating: Number(e.rating) || 5,
+        feedback: e.feedback || "",
+      }));
 
     try {
       const res = await fetch(`/api/matches/${match.id}/coach-report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          summary,
-          formation,
-          starterPlayerIds,
-          substitutions,
-          startingStrategy,
-          substitutionsNotes,
-          strengths,
-          improvements,
+          summary: summary || "",
+          formation: formation || "4-3-3 (Ofensivo / Triângulo no Meio)",
+          starterPlayerIds: starterPlayerIds || [],
+          substitutions: cleanSubstitutions,
+          startingStrategy: startingStrategy || "",
+          substitutionsNotes: substitutionsNotes || "",
+          strengths: strengths || "",
+          improvements: improvements || "",
           status: "PUBLISHED",
-          evaluations: evalList,
+          evaluations: cleanEvaluations,
         }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        setFeedbackMsg("Relatório tático, escalação e substituições salvos com sucesso!");
+        setFeedbackMsg("Relatório tático, escalação e avaliações salvos com sucesso!");
         fetchMatch();
         loadReport();
-        setTimeout(() => setFeedbackMsg(null), 3000);
+        setTimeout(() => setFeedbackMsg(null), 4000);
       } else {
         setErrorMsg(data.error || "Erro ao salvar relatório tático");
       }
@@ -899,17 +916,49 @@ export function MatchCoachReportTab({
             })
           )}
 
-          {/* Botão de Salvar (Apenas Treinador Designado) */}
+          {/* Botão de Salvar & Feedback com Barra Flutuante Mobile */}
           {canEdit && (
-            <div className="pt-4 flex justify-end">
-              <Button
-                onClick={handleSaveReport}
-                disabled={saving}
-                className="bg-[#10b981] hover:bg-[#34d399] text-black font-bold text-xs uppercase tracking-wider px-6 py-2.5 shadow-lg"
-              >
-                {saving ? "Salvando..." : "💾 Publicar Relatório Tático & Titulares"}
-              </Button>
-            </div>
+            <>
+              <div className="pt-4 space-y-3">
+                {feedbackMsg && (
+                  <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-xs font-bold text-emerald-400">
+                    ✅ {feedbackMsg}
+                  </div>
+                )}
+                {errorMsg && (
+                  <div className="p-3.5 rounded-xl border border-red-500/30 bg-red-500/10 text-xs font-bold text-red-400">
+                    ⚠️ {errorMsg}
+                  </div>
+                )}
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    onClick={handleSaveReport}
+                    disabled={saving}
+                    loading={saving}
+                    className="w-full sm:w-auto bg-[#10b981] hover:bg-[#34d399] active:scale-95 touch-manipulation text-black font-extrabold text-xs uppercase tracking-wider px-6 py-3 shadow-lg"
+                  >
+                    {saving ? "Salvando..." : "💾 Publicar Relatório Tático & Titulares"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Sticky Action Bar for Mobile Devices */}
+              <div className="sm:hidden fixed bottom-4 left-4 right-4 z-40 p-3 rounded-2xl bg-[#16130f]/95 border border-emerald-500/40 backdrop-blur-md shadow-2xl flex items-center justify-between gap-3">
+                <div className="text-[11px] font-bold text-emerald-400 leading-tight">
+                  Relatório do Treinador
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleSaveReport}
+                  disabled={saving}
+                  loading={saving}
+                  className="bg-[#10b981] hover:bg-[#34d399] active:scale-95 touch-manipulation text-black font-black text-xs uppercase px-4 py-2.5 shadow-md"
+                >
+                  {saving ? "Salvando..." : "💾 Publicar"}
+                </Button>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
