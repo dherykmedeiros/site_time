@@ -209,41 +209,56 @@ export function PostGameForm({
         }
       }
 
-      // Validate stats
-      for (const stat of playerStats) {
-        if (stat.yellowCards > 2) {
-          setErrorMsg(`${stat.playerName}: máximo 2 cartões amarelos`);
-          setLoading(false);
-          return;
+      if (playerStats.length > 0) {
+        // Validate stats
+        for (const stat of playerStats) {
+          if (stat.yellowCards > 2) {
+            setErrorMsg(`${stat.playerName}: máximo 2 cartões amarelos`);
+            setLoading(false);
+            return;
+          }
+          if (stat.redCards > 1) {
+            setErrorMsg(`${stat.playerName}: máximo 1 cartão vermelho`);
+            setLoading(false);
+            return;
+          }
         }
-        if (stat.redCards > 1) {
-          setErrorMsg(`${stat.playerName}: máximo 1 cartão vermelho`);
-          setLoading(false);
-          return;
+
+        const statsPayload = {
+          stats: playerStats.map((s) => ({
+            playerId: s.guestPlayerId ? null : s.playerId,
+            guestPlayerId: s.guestPlayerId || null,
+            goals: s.goals,
+            assists: s.assists,
+            yellowCards: s.yellowCards,
+            redCards: s.redCards,
+          })),
+        };
+
+        const res = await fetch(`/api/matches/${matchId}/stats`, {
+          method: mode === "edit" ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(statsPayload),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          if (data.code === "STATS_ALREADY_EXIST") {
+            const putRes = await fetch(`/api/matches/${matchId}/stats`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(statsPayload),
+            });
+            if (!putRes.ok) {
+              const putData = await putRes.json();
+              setErrorMsg(putData.error || "Erro ao registrar estatísticas");
+              return;
+            }
+          } else {
+            setErrorMsg(data.error || "Erro ao registrar estatísticas");
+            return;
+          }
         }
-      }
-
-      const statsPayload = {
-        stats: playerStats.map((s) => ({
-          playerId: s.guestPlayerId ? null : s.playerId,
-          guestPlayerId: s.guestPlayerId || null,
-          goals: s.goals,
-          assists: s.assists,
-          yellowCards: s.yellowCards,
-          redCards: s.redCards,
-        })),
-      };
-
-      const res = await fetch(`/api/matches/${matchId}/stats`, {
-        method: mode === "edit" ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(statsPayload),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        setErrorMsg(data.error || "Erro ao registrar estatísticas");
-        return;
       }
 
       onSuccess?.();
@@ -552,13 +567,13 @@ export function PostGameForm({
           )}
 
           <div className="flex gap-3 pt-2">
-            {playerStats.length > 0 && (
+            {(playerStats.length > 0 || mode === "edit") && (
               <Button onClick={handleSubmitStats} disabled={loading}>
-                {loading ? "Salvando..." : "Salvar Estatísticas"}
+                {loading ? "Salvando..." : mode === "edit" ? "Salvar Alterações" : "Salvar Estatísticas"}
               </Button>
             )}
             <Button variant="secondary" onClick={handleSkipStats}>
-              {mode === "edit" ? "Fechar" : playerStats.length > 0 ? "Pular Estatísticas" : "Concluir"}
+              {mode === "edit" ? "Cancelar" : playerStats.length > 0 ? "Pular Estatísticas" : "Concluir"}
             </Button>
           </div>
         </>

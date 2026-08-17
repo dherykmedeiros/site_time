@@ -1792,7 +1792,7 @@ export default function MatchDetailPage() {
           initialStats={match.stats}
           initialIsHome={match.isHome}
           opponentBadgeUrl={match.opponentBadgeUrl}
-          allowOpponentBadgeEdit={!match.opponentBadgeUrl}
+          allowOpponentBadgeEdit
           allowIsHomeEdit
           onSuccess={async () => {
             setShowEditPostGame(false);
