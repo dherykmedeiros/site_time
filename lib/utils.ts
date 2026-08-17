@@ -125,8 +125,102 @@ export function isSafeUrl(value: string): boolean {
 }
 
 /**
+ * Parses DMS (Degrees Minutes Seconds) or DMM (Degrees Decimal Minutes) strings into decimal degrees.
+ * Supports:
+ * - 23°33'01.9"S 46°38'00.0"W
+ * - 23° 33' 01.9" S, 46° 38' 00.0" O (Portuguese Oeste)
+ * - 23°33.031'S, 46°38.000'W
+ * - -23°33'01.9", -46°38'00.0"
+ * - 23.55052° S, 46.63330° W
+ * - 23.55052S, 46.63330W
+ */
+export function parseDMSCoordinates(text: string): { latitude: number; longitude: number } | null {
+  if (!text) return null;
+
+  // Normalize quotes and spaces
+  const clean = text
+    .replace(/[″”]/g, '"')
+    .replace(/[′’]/g, "'")
+    .replace(/\+/g, " ")
+    .trim();
+
+  // Pattern for DMS: deg° [min'] [sec"] [H] or decimal deg [H]
+  const dmsPartRegex =
+    /(-?\d+(?:\.\d+)?)\s*°?(?:\s*(\d+(?:\.\d+)?)\s*')?(?:\s*(\d+(?:\.\d+)?)\s*")?\s*([NSEWO])?/i;
+
+  // Split by comma, slash, or space between coordinate components
+  const parts = clean.split(/[,;\/]+|\s+(?=[+-]?\d|S|N|E|W|O)/i).map((s) => s.trim()).filter(Boolean);
+
+  if (parts.length >= 2) {
+    const latMatch = parts[0].match(dmsPartRegex);
+    const lonMatch = parts[1].match(dmsPartRegex);
+
+    if (latMatch && lonMatch) {
+      const parseComponent = (match: RegExpMatchArray, isLat: boolean): number | null => {
+        const deg = parseFloat(match[1]);
+        if (isNaN(deg)) return null;
+        const min = match[2] ? parseFloat(match[2]) : 0;
+        const sec = match[3] ? parseFloat(match[3]) : 0;
+        const hemi = match[4] ? match[4].toUpperCase() : null;
+
+        let decimal = Math.abs(deg) + min / 60 + sec / 3600;
+        if (deg < 0 || hemi === "S" || hemi === "W" || hemi === "O") {
+          decimal = -decimal;
+        }
+
+        if (isLat && (decimal < -90 || decimal > 90)) return null;
+        if (!isLat && (decimal < -180 || decimal > 180)) return null;
+
+        return decimal;
+      };
+
+      const lat = parseComponent(latMatch, true);
+      const lon = parseComponent(lonMatch, false);
+
+      if (lat !== null && lon !== null) {
+        return {
+          latitude: Number(lat.toFixed(6)),
+          longitude: Number(lon.toFixed(6)),
+        };
+      }
+    }
+  }
+
+  // Single regex matching full DMS pair: e.g. 23°33'01.9"S 46°38'00.0"W
+  const fullDmsRegex =
+    /(\d+(?:\.\d+)?)\s*°\s*(?:(\d+(?:\.\d+)?)\s*')?\s*(?:(\d+(?:\.\d+)?)\s*")?\s*([NS])\s*[,;\s]\s*(\d+(?:\.\d+)?)\s*°\s*(?:(\d+(?:\.\d+)?)\s*')?\s*(?:(\d+(?:\.\d+)?)\s*")?\s*([EWO])/i;
+  const fullMatch = clean.match(fullDmsRegex);
+  if (fullMatch) {
+    const latDeg = parseFloat(fullMatch[1]);
+    const latMin = fullMatch[2] ? parseFloat(fullMatch[2]) : 0;
+    const latSec = fullMatch[3] ? parseFloat(fullMatch[3]) : 0;
+    const latHemi = fullMatch[4].toUpperCase();
+
+    const lonDeg = parseFloat(fullMatch[5]);
+    const lonMin = fullMatch[6] ? parseFloat(fullMatch[6]) : 0;
+    const lonSec = fullMatch[7] ? parseFloat(fullMatch[7]) : 0;
+    const lonHemi = fullMatch[8].toUpperCase();
+
+    let lat = latDeg + latMin / 60 + latSec / 3600;
+    if (latHemi === "S") lat = -lat;
+
+    let lon = lonDeg + lonMin / 60 + lonSec / 3600;
+    if (lonHemi === "W" || lonHemi === "O") lon = -lon;
+
+    if (isValidLatLon(lat, lon)) {
+      return {
+        latitude: Number(lat.toFixed(6)),
+        longitude: Number(lon.toFixed(6)),
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
  * Extracts latitude and longitude from a Google Maps URL, Apple Maps, Waze, or simple coordinate string.
- * Supports text containing URLs pasted from mobile share sheets.
+ * Supports text containing URLs pasted from mobile share sheets or dropped pin links.
  */
 export function extractCoordsFromGoogleMaps(url: string): { latitude: number; longitude: number } | null {
   if (!url) return null;
@@ -137,37 +231,57 @@ export function extractCoordsFromGoogleMaps(url: string): { latitude: number; lo
   // Strip trailing punctuation often attached from mobile share sheets (e.g. "https://maps.app.goo.gl/xyz.")
   targetStr = targetStr.replace(/[.,;:!?)]+$/, "");
 
-  // Pattern 0: Direct "lat, lon" or "lat,lon" input
-  const simpleCoordsRegex = /^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/;
-  const simpleMatch = targetStr.match(simpleCoordsRegex);
+  // Pattern 0A: DMS Coordinates in input text
+  const dmsCoords = parseDMSCoordinates(targetStr);
+  if (dmsCoords) {
+    return dmsCoords;
+  }
+
+  // Pattern 0B: Direct "lat, lon" or "lat lon" or "(lat, lon)" or "lat; lon"
+  const cleanCoordsStr = targetStr.replace(/^[(\[]|[)\]]$/g, "").trim();
+  const simpleCoordsRegex = /^(-?\d+\.\d+)\s*[,;\s]+\s*(-?\d+\.\d+)$/;
+  const simpleMatch = cleanCoordsStr.match(simpleCoordsRegex);
   if (simpleMatch) {
     const lat = parseFloat(simpleMatch[1]);
     const lon = parseFloat(simpleMatch[2]);
     if (isValidLatLon(lat, lon)) {
-      return { latitude: lat, longitude: lon };
+      return { latitude: Number(lat.toFixed(6)), longitude: Number(lon.toFixed(6)) };
     }
   }
 
-  // Decode URL components if query string exists (to handle %2C for commas)
+  // Decode URL components if query string exists (to handle %2C for commas, %20 for spaces)
   let decodedStr = targetStr;
   try {
     decodedStr = decodeURIComponent(targetStr);
   } catch {}
 
+  // Check if decoded URL path contains DMS (e.g. /place/23°33'01.9"S+46°38'00.0"W/...)
+  const placeDmsMatch = decodedStr.match(/\/place\/([^/@?]+)/i);
+  if (placeDmsMatch && placeDmsMatch[1]) {
+    const parsedPlaceDms = parseDMSCoordinates(placeDmsMatch[1]);
+    if (parsedPlaceDms) {
+      return parsedPlaceDms;
+    }
+  }
+
   const patterns: Array<{ regex: RegExp; latIndex: number; lonIndex: number }> = [
-    // Pattern 1: Protobuf !3d(lat)!4d(lon) - standard in Google Maps mobile/desktop place links (EXACT PLACE PIN)
-    { regex: /!3d(-?\d+\.\d+).*?!4d(-?\d+\.\d+)/, latIndex: 1, lonIndex: 2 },
-    // Pattern 2: Protobuf !2d(lon)!3d(lat) - EXACT PLACE PIN variant
-    { regex: /!2d(-?\d+\.\d+).*?!3d(-?\d+\.\d+)/, latIndex: 2, lonIndex: 1 },
-    // Pattern 3: /place/(-?\d+\.\d+),(-?\d+\.\d+) - Explicit place path
-    { regex: /\/place\/(-?\d+\.\d+),(-?\d+\.\d+)/, latIndex: 1, lonIndex: 2 },
+    // Pattern 1: Protobuf !3d(lat)!4d(lon) - standard in Google Maps place links (EXACT PLACE/DROPPED PIN)
+    { regex: /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/, latIndex: 1, lonIndex: 2 },
+    // Pattern 2: Protobuf !1d(lon)!2d(lat) - Directions / Pin variant in Google Maps
+    { regex: /!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)/, latIndex: 2, lonIndex: 1 },
+    // Pattern 3: /place/(-?\d+\.\d+),(-?\d+\.\d+) or /place/(-?\d+\.\d+)\+(-?\d+\.\d+) - Explicit place path
+    { regex: /\/place\/(-?\d+\.\d+)(?:%2C|,|\+)(-?\d+\.\d+)/i, latIndex: 1, lonIndex: 2 },
     // Pattern 4: q=, query=, ll=, destination=, daddr=, saddr=, center=, cbll= in URL query params
-    { regex: /[?&](?:q|query|daddr|saddr|destination|center|cbll|ll)=(-?\d+\.\d+)(?:%2C|,|\s+)(-?\d+\.\d+)/i, latIndex: 1, lonIndex: 2 },
-    // Pattern 5: /search/(-?\d+\.\d+),(-?\d+\.\d+)
-    { regex: /\/search\/(-?\d+\.\d+)(?:%2C|,|\s+)(-?\d+\.\d+)/i, latIndex: 1, lonIndex: 2 },
-    // Pattern 6: Waze to=ll.lat,lon
-    { regex: /to=ll\.(-?\d+\.\d+)(?:%2C|,)(-?\d+\.\d+)/i, latIndex: 1, lonIndex: 2 },
-    // Pattern 7: /@(-?\d+\.\d+),(-?\d+\.\d+)/ - Camera viewport center (FALLBACK ONLY if no pin coords exist)
+    { regex: /[?&](?:q|query|daddr|saddr|destination|center|cbll|ll)=(?:loc:)?(-?\d+\.\d+)(?:%2C|,|\+|\s+)(-?\d+\.\d+)/i, latIndex: 1, lonIndex: 2 },
+    // Pattern 5: staticmap center= or markers=
+    { regex: /[?&](?:center|markers)=(?:[^&|]*\|)?(-?\d+\.\d+)(?:%2C|,)(-?\d+\.\d+)/i, latIndex: 1, lonIndex: 2 },
+    // Pattern 6: /search/(-?\d+\.\d+),(-?\d+\.\d+)
+    { regex: /\/search\/(-?\d+\.\d+)(?:%2C|,|\+|\s+)(-?\d+\.\d+)/i, latIndex: 1, lonIndex: 2 },
+    // Pattern 7: /dir//(-?\d+\.\d+),(-?\d+\.\d+)
+    { regex: /\/dir\/[^\/]*\/(-?\d+\.\d+)(?:%2C|,|\+)(-?\d+\.\d+)/i, latIndex: 1, lonIndex: 2 },
+    // Pattern 8: Waze to=ll.lat,lon or ll=lat,lon
+    { regex: /(?:to=ll\.|[?&]ll=)(-?\d+\.\d+)(?:%2C|,)(-?\d+\.\d+)/i, latIndex: 1, lonIndex: 2 },
+    // Pattern 9: /@(-?\d+\.\d+),(-?\d+\.\d+)/ - Camera viewport center (FALLBACK if no explicit pin coords exist)
     { regex: /@(-?\d+\.\d+),(-?\d+\.\d+)/, latIndex: 1, lonIndex: 2 },
   ];
 
@@ -178,7 +292,10 @@ export function extractCoordsFromGoogleMaps(url: string): { latitude: number; lo
         const lat = parseFloat(match[latIndex]);
         const lon = parseFloat(match[lonIndex]);
         if (isValidLatLon(lat, lon)) {
-          return { latitude: lat, longitude: lon };
+          return {
+            latitude: Number(lat.toFixed(6)),
+            longitude: Number(lon.toFixed(6)),
+          };
         }
       }
     }
@@ -239,6 +356,19 @@ export async function resolveGoogleMapsUrl(url: string): Promise<string> {
     });
 
     const finalUrl = res.url;
+
+    // Check if redirect ended at a consent or interstitial redirect containing the destination URL
+    try {
+      const finalParsedUrl = new URL(finalUrl);
+      const continueParam =
+        finalParsedUrl.searchParams.get("continue") ||
+        finalParsedUrl.searchParams.get("url") ||
+        finalParsedUrl.searchParams.get("q");
+      if (continueParam && extractCoordsFromGoogleMaps(continueParam)) {
+        return continueParam;
+      }
+    } catch {}
+
     if (extractCoordsFromGoogleMaps(finalUrl)) {
       return finalUrl;
     }
@@ -246,38 +376,57 @@ export async function resolveGoogleMapsUrl(url: string): Promise<string> {
     // Fallback: Check response HTML if redirect stopped at an HTML landing/preview page
     const html = await res.text();
     
-    // Check canonical / og:url / meta refresh in HTML
-    const ogUrlMatch = html.match(/<meta[^>]+property=["']og:url["'][^>]+content=["']([^"']+)["']/i) ||
-                       html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:url["']/i) ||
-                       html.match(/<meta[^>]+http-equiv=["']refresh["'][^>]+content=["']([^"']*url=([^"']+))["']/i);
-    if (ogUrlMatch && ogUrlMatch[1]) {
-      const canonicalUrl = ogUrlMatch[1];
-      if (extractCoordsFromGoogleMaps(canonicalUrl)) {
+    // 1. Check canonical / og:url / meta refresh in HTML
+    const ogUrlMatch =
+      html.match(/<meta[^>]+property=["']og:url["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:url["']/i) ||
+      html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+http-equiv=["']refresh["'][^>]+content=["']([^"']*url=([^"']+))["']/i);
+    if (ogUrlMatch) {
+      const canonicalUrl = ogUrlMatch[1] || ogUrlMatch[2];
+      if (canonicalUrl && extractCoordsFromGoogleMaps(canonicalUrl)) {
         return canonicalUrl;
       }
     }
 
-    // Check static map or center parameter inside HTML
-    const htmlCoordMatch = html.match(/!3d(-?\d+\.\d+).*?!4d(-?\d+\.\d+)/i) ||
-                           html.match(/center=(-?\d+\.\d+)(?:%2C|,)(-?\d+\.\d+)/i) ||
-                           html.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/i);
+    // 2. Check static map image preview in HTML (og:image or itemprop="image")
+    const ogImageMatch =
+      html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i) ||
+      html.match(/<meta[^>]+itemprop=["']image["'][^>]+content=["']([^"']+)["']/i);
+    if (ogImageMatch && ogImageMatch[1]) {
+      const coords = extractCoordsFromGoogleMaps(ogImageMatch[1]);
+      if (coords) {
+        return `https://www.google.com/maps/@${coords.latitude},${coords.longitude},17z`;
+      }
+    }
+
+    // 3. Check JSON-LD GeoCoordinates
+    const jsonLdMatch = html.match(/"@type"\s*:\s*"GeoCoordinates"[\s\S]*?"latitude"\s*:\s*(-?\d+\.\d+)[\s\S]*?"longitude"\s*:\s*(-?\d+\.\d+)/i);
+    if (jsonLdMatch) {
+      const lat = parseFloat(jsonLdMatch[1]);
+      const lon = parseFloat(jsonLdMatch[2]);
+      if (isValidLatLon(lat, lon)) {
+        return `https://www.google.com/maps/@${lat},${lon},17z`;
+      }
+    }
+
+    // 4. Check explicit static map or center parameter inside HTML
+    const htmlCoordMatch =
+      html.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/i) ||
+      html.match(/center=(-?\d+\.\d+)(?:%2C|,)(-?\d+\.\d+)/i) ||
+      html.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/i);
     if (htmlCoordMatch) {
       return `https://www.google.com/maps/@${htmlCoordMatch[1]},${htmlCoordMatch[2]},17z`;
     }
 
-    // Check embedded JS arrays in HTML payload (e.g. window.BSO or Google Maps payloads: [scale/id, lon, lat])
-    const arrayMatches = [...html.matchAll(/\[\s*\d+(?:\.\d+)?\s*,\s*(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)\s*\]/g)];
-    for (const match of arrayMatches) {
-      const val1 = parseFloat(match[1]);
-      const val2 = parseFloat(match[2]);
-
-      // Check if val2 is lat and val1 is lon
-      if (isValidLatLon(val2, val1)) {
-        return `https://www.google.com/maps/@${val2},${val1},17z`;
-      }
-      // Check if val1 is lat and val2 is lon
-      if (isValidLatLon(val1, val2)) {
-        return `https://www.google.com/maps/@${val1},${val2},17z`;
+    // 5. Check Google Maps APP_INITIALIZATION_STATE payload: window.APP_INITIALIZATION_STATE=[[[scale,lon,lat]...]]
+    const appStateMatch = html.match(/window\.APP_INITIALIZATION_STATE\s*=\s*\[\[\[\d+(?:\.\d+)?\s*,\s*(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)\s*\]/);
+    if (appStateMatch) {
+      const lon = parseFloat(appStateMatch[1]);
+      const lat = parseFloat(appStateMatch[2]);
+      if (isValidLatLon(lat, lon)) {
+        return `https://www.google.com/maps/@${lat},${lon},17z`;
       }
     }
 

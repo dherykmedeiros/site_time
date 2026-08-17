@@ -1289,7 +1289,7 @@ export default function MatchDetailPage() {
           <span className="flex items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5 text-[#34d399]" />
             {match.venue}
-            {match.latitude && match.longitude && (
+            {match.latitude !== null && match.longitude !== null && (
               <a
                 href={`https://www.google.com/maps/search/?api=1&query=${match.latitude},${match.longitude}`}
                 target="_blank"
@@ -1457,7 +1457,7 @@ export default function MatchDetailPage() {
       {/* ── Check-in Banner (Fácil Localização) ──────────────── */}
       {isScheduled && session?.user?.playerId && (() => {
         const loggedInPlayerRsvp = match.rsvps.find((r) => r.playerId === session?.user?.playerId);
-        if (loggedInPlayerRsvp?.status !== "CONFIRMED" || match.isPlayerSuspended || !match.latitude || !match.longitude) {
+        if (loggedInPlayerRsvp?.status !== "CONFIRMED" || match.isPlayerSuspended || match.latitude === null || match.longitude === null) {
           return null;
         }
 

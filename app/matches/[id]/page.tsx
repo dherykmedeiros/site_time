@@ -274,7 +274,7 @@ export default async function PublicMatchPage({
               </span>
               <p className="mt-1 font-extrabold text-[var(--text)] text-sm flex flex-wrap items-center gap-2">
                 {match.venue}
-                {match.latitude && match.longitude && (
+                {match.latitude !== null && match.longitude !== null && (
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${match.latitude},${match.longitude}`}
                     target="_blank"

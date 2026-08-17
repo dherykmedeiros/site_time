@@ -28,9 +28,10 @@ export async function GET() {
     const vName = m.venue?.trim();
     if (!vName) continue;
 
-    const mapsUrl = m.latitude && m.longitude
-      ? `https://www.google.com/maps/search/?api=1&query=${m.latitude},${m.longitude}`
-      : null;
+    const mapsUrl =
+      m.latitude !== null && m.longitude !== null && !isNaN(m.latitude) && !isNaN(m.longitude)
+        ? `https://www.google.com/maps/search/?api=1&query=${m.latitude},${m.longitude}`
+        : null;
 
     if (!venueMap.has(vName)) {
       venueMap.set(vName, {
