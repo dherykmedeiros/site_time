@@ -87,20 +87,33 @@ export function PostGameForm({
   }, []);
 
   // Initialize stats for confirmed players
+  const getEffectiveId = (item: { playerId?: string | null; guestPlayerId?: string | null }) =>
+    item.guestPlayerId || item.playerId || "";
+
   const confirmedPlayers = rsvps.filter((r) => r.status === "CONFIRMED");
-  const initialStatsByPlayer = new Map((initialStats || []).map((item) => [item.playerId, item]));
+  const initialStatsByEffectiveId = new Map(
+    (initialStats || []).map((item) => [getEffectiveId(item), item])
+  );
+
+  const confirmedEffectiveIds = new Set(
+    confirmedPlayers.map((r) => r.guestPlayerId || r.playerId)
+  );
+
   const mergedPlayers = [
     ...confirmedPlayers.map((r) => ({
-      playerId: r.playerId,
-      guestPlayerId: r.isGuest ? r.playerId : null,
+      playerId: r.isGuest ? null : r.playerId,
+      guestPlayerId: r.isGuest ? (r.guestPlayerId || r.playerId) : null,
       playerName: r.playerName,
       status: r.status,
     })),
     ...((initialStats || [])
-      .filter((item) => !confirmedPlayers.some((player) => player.playerId === item.playerId))
+      .filter((item) => {
+        const effId = getEffectiveId(item);
+        return effId && !confirmedEffectiveIds.has(effId);
+      })
       .map((item) => ({
-        playerId: item.playerId,
-        guestPlayerId: item.guestPlayerId,
+        playerId: item.guestPlayerId ? null : item.playerId,
+        guestPlayerId: item.guestPlayerId || null,
         playerName: item.playerName,
         status: "CONFIRMED",
         respondedAt: null,
@@ -108,19 +121,27 @@ export function PostGameForm({
   ];
 
   const [playerStats, setPlayerStats] = useState<PlayerStatInput[]>(
-    mergedPlayers.map((r) => ({
-      playerId: r.playerId,
-      guestPlayerId: r.guestPlayerId || null,
-      playerName: r.playerName,
-      goals: initialStatsByPlayer.get(r.playerId)?.goals ?? 0,
-      assists: initialStatsByPlayer.get(r.playerId)?.assists ?? 0,
-      yellowCards: initialStatsByPlayer.get(r.playerId)?.yellowCards ?? 0,
-      redCards: initialStatsByPlayer.get(r.playerId)?.redCards ?? 0,
-    }))
+    mergedPlayers.map((r) => {
+      const effId = getEffectiveId(r);
+      const stat = initialStatsByEffectiveId.get(effId);
+      return {
+        playerId: r.playerId || stat?.playerId || "",
+        guestPlayerId: r.guestPlayerId || stat?.guestPlayerId || null,
+        playerName: r.playerName,
+        goals: stat?.goals ?? 0,
+        assists: stat?.assists ?? 0,
+        yellowCards: stat?.yellowCards ?? 0,
+        redCards: stat?.redCards ?? 0,
+      };
+    })
+  );
+
+  const playerStatsEffectiveIds = new Set(
+    playerStats.map((ps) => ps.guestPlayerId || ps.playerId)
   );
 
   const eligiblePlayers = squadPlayers.filter(
-    (sp) => !playerStats.some((ps) => ps.playerId === sp.id)
+    (sp) => !playerStatsEffectiveIds.has(sp.id)
   );
 
   function updatePlayerStat(
@@ -484,7 +505,7 @@ export function PostGameForm({
             <div className="space-y-4">
               {playerStats.map((stat, idx) => (
                 <div
-                  key={stat.playerId}
+                  key={stat.guestPlayerId || stat.playerId || `stat-${idx}`}
                   className="rounded-xl border border-white/10 bg-[#090f0c] p-4"
                 >
                   <div className="mb-3 flex items-center justify-between">
