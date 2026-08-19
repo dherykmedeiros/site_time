@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   // Build the match filter
   const matchWhere: Record<string, unknown> = { teamId };
   if (seasonId) matchWhere.seasonId = seasonId;
-  if (matchType && (matchType === "FRIENDLY" || matchType === "CHAMPIONSHIP")) {
+  if (matchType && (matchType === "FRIENDLY" || matchType === "CHAMPIONSHIP" || matchType === "TRAINING")) {
     matchWhere.type = matchType;
   }
 

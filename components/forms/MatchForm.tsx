@@ -69,6 +69,7 @@ interface MatchFormProps {
 const typeOptions = [
   { value: "FRIENDLY", label: "Amistoso" },
   { value: "CHAMPIONSHIP", label: "Campeonato" },
+  { value: "TRAINING", label: "Amistoso Treino" },
 ];
 
 const typeLabels: Record<string, string> = {
@@ -810,6 +811,17 @@ interface SavedVenue {
         error={errors.type?.message}
         {...register("type")}
       />
+
+      {watch("type") === "TRAINING" && (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400 font-semibold space-y-1">
+          <div className="flex items-center gap-1.5 font-bold">
+            <span>⚽ Amistoso Treino (Time A vs Time B)</span>
+          </div>
+          <p className="text-[11px] text-[#8fa39b] leading-relaxed">
+            Jogo interno onde os atletas do clube e convidados são separados em <strong>Time A</strong> e <strong>Time B</strong>. A comissão técnica (Admin / Técnico) poderá organizar as duas escalações na aba de Escalação.
+          </p>
+        </div>
+      )}
 
       <Input
         label="Chave Pix para Pagamento da Taxa (opcional)"

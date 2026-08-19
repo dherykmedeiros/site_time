@@ -39,6 +39,7 @@ interface MatchSumulaData {
   }>;
   lineupSelections: Array<{
     role: "STARTER" | "BENCH";
+    teamSide?: string | null;
     sortOrder: number;
     player: { id: string; name: string; shirtNumber: number; position: string } | null;
     guestPlayer: { id: string; name: string } | null;
@@ -170,7 +171,11 @@ export default function MatchSumulaPage({ params }: { params: Promise<{ id: stri
 
             <div className="text-right">
               <span className="inline-block rounded-full bg-white/10 print:bg-black/5 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white print:text-black">
-                {data.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
+                {data.type === "FRIENDLY"
+                  ? "Amistoso"
+                  : data.type === "TRAINING"
+                  ? "Amistoso Treino"
+                  : "Campeonato"}
               </span>
               <p className="mt-2 text-sm font-semibold text-[#8fa39b] print:text-gray-700">
                 {formatDate(data.date)}

@@ -50,6 +50,7 @@ const statusVariants: Record<string, "info" | "success" | "danger"> = {
 const typeLabels: Record<string, string> = {
   FRIENDLY: "Amistoso",
   CHAMPIONSHIP: "Campeonato",
+  TRAINING: "Amistoso Treino",
 };
 
 const statusFilterOptions = [
@@ -63,6 +64,7 @@ const typeFilterOptions = [
   { value: "ALL", label: "Todos os tipos" },
   { value: "FRIENDLY", label: "Amistoso" },
   { value: "CHAMPIONSHIP", label: "Campeonato" },
+  { value: "TRAINING", label: "Amistoso Treino" },
 ];
 
 function formatMatchDate(isoDate: string) {

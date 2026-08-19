@@ -42,7 +42,7 @@ export const createMatchSchema = z.object({
     .max(100, "Adversário deve ter no máximo 100 caracteres"),
   isHome: z.boolean().optional(),
   opponentBadgeUrl: optionalBadgeUrlSchema,
-  type: z.enum(["FRIENDLY", "CHAMPIONSHIP"], {
+  type: z.enum(["FRIENDLY", "CHAMPIONSHIP", "TRAINING"], {
     message: "Tipo inválido",
   }),
   seasonId: z.string().min(1, "Temporada inválida").optional().nullable(),
@@ -91,7 +91,7 @@ export const updateMatchSchema = z.object({
   isHome: z.boolean().optional(),
   opponentBadgeUrl: optionalBadgeUrlSchema,
   type: z
-    .enum(["FRIENDLY", "CHAMPIONSHIP"], {
+    .enum(["FRIENDLY", "CHAMPIONSHIP", "TRAINING"], {
       message: "Tipo inválido",
     })
     .optional(),
@@ -176,17 +176,30 @@ const lineupStarterPlacementSchema = z.object({
   playerId: z.string().cuid("Jogador inválido"),
   fieldX: z.number().int().min(8).max(92).nullable().optional(),
   fieldY: z.number().int().min(10).max(88).nullable().optional(),
+  teamSide: z.enum(["A", "B"]).optional().default("A"),
 });
+
+const lineupBenchItemSchema = z.union([
+  z.string().cuid("Jogador inválido"),
+  z.object({
+    playerId: z.string().cuid("Jogador inválido"),
+    teamSide: z.enum(["A", "B"]).optional().default("A"),
+  }),
+]);
 
 export const patchMatchLineupSchema = z
   .object({
     formation: lineupFormationSchema.nullable().optional(),
     blockPreset: lineupBlockPresetSchema.nullable().optional(),
-    starters: z.array(lineupStarterPlacementSchema).max(11, "Titulares devem ser no máximo 11"),
-    bench: z.array(z.string().cuid("Jogador inválido")).max(30),
+    starters: z.array(lineupStarterPlacementSchema).max(22, "Titulares devem ser no máximo 22"),
+    bench: z.array(lineupBenchItemSchema).max(50),
   })
   .strict()
-  .refine((data: { starters: Array<{ playerId: string }>; bench: string[] }) => new Set([...data.starters.map((entry) => entry.playerId), ...data.bench]).size === data.starters.length + data.bench.length, {
+  .refine((data) => {
+    const starterIds = data.starters.map((entry) => entry.playerId);
+    const benchIds = data.bench.map((entry) => (typeof entry === "string" ? entry : entry.playerId));
+    return new Set([...starterIds, ...benchIds]).size === starterIds.length + benchIds.length;
+  }, {
     message: "Jogadores duplicados na escalação",
     path: ["starters"],
   });
@@ -277,7 +290,7 @@ export const createMatchStatsSchema = z.object({
 export const matchListQuerySchema = z
   .object({
     status: z.enum(["SCHEDULED", "COMPLETED", "CANCELLED"]).optional(),
-    type: z.enum(["FRIENDLY", "CHAMPIONSHIP"]).optional(),
+    type: z.enum(["FRIENDLY", "CHAMPIONSHIP", "TRAINING"]).optional(),
     from: optionalIsoDate,
     to: optionalIsoDate,
   })

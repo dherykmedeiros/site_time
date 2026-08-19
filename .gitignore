@@ -44,3 +44,9 @@ public/uploads/*
 /app/generated/prisma
 .codex/
 get-shit-done/
+
+# Playwright & Testing
+/playwright-report/
+/test-results/
+/e2e/.auth/
+*.webm

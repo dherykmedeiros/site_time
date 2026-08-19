@@ -49,6 +49,7 @@ enum AvailabilityLevel {
 enum MatchType {
   FRIENDLY
   CHAMPIONSHIP
+  TRAINING
 }
 
 enum MatchStatus {
@@ -384,6 +385,7 @@ model MatchLineupSelection {
   playerId      String?
   guestPlayerId String?
   role          MatchLineupRole
+  teamSide      String?         @default("A") // "A" ou "B"
   sortOrder     Int
   fieldX        Int?
   fieldY        Int?

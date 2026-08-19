@@ -1048,7 +1048,35 @@ export default function MatchDetailPage() {
     const dateStr = new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
       timeStyle: "short",
+      timeZone: "America/Sao_Paulo",
     }).format(new Date(match.date));
+
+    if (match.type === "TRAINING") {
+      const startersA = lineupData.lineup.starters.filter((s: any) => s.teamSide === "A" || !s.teamSide);
+      const startersB = lineupData.lineup.starters.filter((s: any) => s.teamSide === "B");
+      const benchA = lineupData.lineup.bench.filter((b: any) => b.teamSide === "A" || !b.teamSide);
+      const benchB = lineupData.lineup.bench.filter((b: any) => b.teamSide === "B");
+
+      const lines: string[] = [
+        `⚽ *AMISTOSO TREINO: TIME A x TIME B*`,
+        `📅 ${dateStr} | 📍 ${match.venue}`,
+        ``,
+        `🟢 *TIME A (Colete Verde / Mandante):*`,
+        `*Titulares:*`,
+        ...startersA.map((s, index) => `${index + 1}. ${s.playerName}`),
+        ...(benchA.length > 0 ? [`*Reservas:*`, ...benchA.map((b) => `▫️ ${b.playerName}`)] : []),
+        ``,
+        `🟠 *TIME B (Colete Laranja / Visitante):*`,
+        `*Titulares:*`,
+        ...startersB.map((s, index) => `${index + 1}. ${s.playerName}`),
+        ...(benchB.length > 0 ? [`*Reservas:*`, ...benchB.map((b) => `▫️ ${b.playerName}`)] : []),
+      ];
+
+      if (match.shareUrl) {
+        lines.push(``, `🔗 Veja a partida: ${match.shareUrl}`);
+      }
+      return lines.join("\n");
+    }
 
     const formation = lineupData.lineup.meta.formation;
     const lines: string[] = [

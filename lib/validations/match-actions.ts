@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const matchTypeEnum = z.enum(["FRIENDLY", "CHAMPIONSHIP"]);
+export const matchTypeEnum = z.enum(["FRIENDLY", "CHAMPIONSHIP", "TRAINING"]);
 export const rsvpStatusEnum = z.enum(["PENDING", "CONFIRMED", "DECLINED"]);
 export const liveEventTypeEnum = z.enum([
   "GOAL",

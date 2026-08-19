@@ -4,6 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { SuggestedLineupCard } from "@/components/dashboard/SuggestedLineupCard";
+import { TrainingLineupManager } from "@/components/matches/TrainingLineupManager";
 import type { MatchDetail, MatchLineupResponse } from "@/app/dashboard/matches/[id]/page";
 
 interface MatchLineupTabProps {
@@ -41,6 +42,18 @@ export function MatchLineupTab({
   setLineupShareText,
   setCopyMsg,
 }: MatchLineupTabProps) {
+  // If match type is TRAINING, use the dedicated TrainingLineupManager
+  if (match.type === "TRAINING") {
+    return (
+      <TrainingLineupManager
+        match={match}
+        lineupData={lineupData}
+        onSaveLineup={handleSaveLineup}
+        saveLoading={lineupSaving}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {lineupData && (

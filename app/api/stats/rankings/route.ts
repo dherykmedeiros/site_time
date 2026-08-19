@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const limit = Math.min(parseInt(searchParams.get("limit") || "10", 10) || 10, 100);
 
   const matchWhere: Record<string, unknown> = { teamId };
-  if (matchType && (matchType === "FRIENDLY" || matchType === "CHAMPIONSHIP")) {
+  if (matchType && (matchType === "FRIENDLY" || matchType === "CHAMPIONSHIP" || matchType === "TRAINING")) {
     matchWhere.type = matchType;
   }
 
