@@ -4,11 +4,10 @@ import { autoBalanceTrainingTeams, TrainingPlayerCandidate, buildMatchLineupSnap
 
 describe("Amistoso Treino (Training Match) Validations and Squad Division", () => {
   describe("Zod Schemas", () => {
-    it("allows creating a match with type TRAINING", () => {
+    it("allows creating a match with type TRAINING without specifying opponent (defaults to Time B)", () => {
       const parsed = createMatchSchema.safeParse({
         date: new Date().toISOString(),
         venue: "Arena do Clube",
-        opponent: "Time B",
         type: "TRAINING",
       });
 
@@ -17,6 +16,17 @@ describe("Amistoso Treino (Training Match) Validations and Squad Division", () =
         expect(parsed.data.type).toBe("TRAINING");
         expect(parsed.data.opponent).toBe("Time B");
       }
+    });
+
+    it("requires opponent name when creating a FRIENDLY match", () => {
+      const parsed = createMatchSchema.safeParse({
+        date: new Date().toISOString(),
+        venue: "Arena do Clube",
+        type: "FRIENDLY",
+        opponent: "",
+      });
+
+      expect(parsed.success).toBe(false);
     });
 
     it("allows updating a match with type TRAINING", () => {

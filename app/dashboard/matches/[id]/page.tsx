@@ -1024,12 +1024,14 @@ export default function MatchDetailPage() {
       .filter((r) => r.status === "PENDING")
       .map((r) => r.playerName);
 
+    const isTraining = match.type === "TRAINING";
+
     const lines: string[] = [
-      `⚽ JOGO MARCADO!`,
+      isTraining ? `⚽ *AMISTOSO TREINO MARCADO!*` : `⚽ JOGO MARCADO!`,
       ``,
       `📅 ${dateStr}`,
       `📍 ${match.venue}`,
-      `🏆 vs ${match.opponent}`,
+      isTraining ? `⚔️ *Confronto Interno: Time A x Time B*` : `🏆 vs ${match.opponent}`,
       ``,
     ];
 
@@ -1258,7 +1260,11 @@ export default function MatchDetailPage() {
         {/* Match title row */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-4">
-            {match.opponentBadgeUrl ? (
+            {match.type === "TRAINING" ? (
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-lg font-black text-emerald-400">
+                A×B
+              </div>
+            ) : match.opponentBadgeUrl ? (
               <img
                 src={match.opponentBadgeUrl}
                 alt={match.opponent}
@@ -1271,18 +1277,24 @@ export default function MatchDetailPage() {
             )}
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                vs {match.opponent}
+                {match.type === "TRAINING" ? "Amistoso Treino: Time A x Time B" : `vs ${match.opponent}`}
               </h1>
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
                 <Badge variant={statusVariants[match.status]}>
                   {statusLabels[match.status]}
                 </Badge>
                 <Badge variant="default">
-                  {match.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
+                  {match.type === "FRIENDLY"
+                    ? "Amistoso"
+                    : match.type === "TRAINING"
+                    ? "Amistoso Treino"
+                    : "Campeonato"}
                 </Badge>
-                <Badge variant="default">
-                  {match.isHome ? "🏠 Casa" : "✈️ Visitante"}
-                </Badge>
+                {match.type !== "TRAINING" && (
+                  <Badge variant="default">
+                    {match.isHome ? "🏠 Casa" : "✈️ Visitante"}
+                  </Badge>
+                )}
                 {match.season && (
                   <Badge variant="default">{match.season.name}</Badge>
                 )}
@@ -1295,7 +1307,7 @@ export default function MatchDetailPage() {
             <div className="flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-black/30 px-5 py-3 backdrop-blur-sm">
               <div className="text-center">
                 <span className="block text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">
-                  {match.isHome ? "NÓS" : "ADV"}
+                  {match.type === "TRAINING" ? "TIME A" : match.isHome ? "NÓS" : "ADV"}
                 </span>
                 <span className={`block text-3xl font-black mt-0.5 ${match.isHome ? "text-[#6ee7b7]" : "text-[#fca5a5]"}`}>
                   {match.homeScore}
@@ -1304,7 +1316,7 @@ export default function MatchDetailPage() {
               <span className="text-lg font-bold text-white/20">×</span>
               <div className="text-center">
                 <span className="block text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">
-                  {match.isHome ? "ADV" : "NÓS"}
+                  {match.type === "TRAINING" ? "TIME B" : match.isHome ? "ADV" : "NÓS"}
                 </span>
                 <span className={`block text-3xl font-black mt-0.5 ${match.isHome ? "text-[#fca5a5]" : "text-[#6ee7b7]"}`}>
                   {match.awayScore}

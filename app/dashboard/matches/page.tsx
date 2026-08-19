@@ -22,7 +22,7 @@ interface MatchSummary {
   opponent: string;
   isHome: boolean;
   opponentBadgeUrl: string | null;
-  type: "FRIENDLY" | "CHAMPIONSHIP";
+  type: "FRIENDLY" | "CHAMPIONSHIP" | "TRAINING";
   homeScore: number | null;
   awayScore: number | null;
   status: "SCHEDULED" | "COMPLETED" | "CANCELLED";
@@ -254,7 +254,7 @@ export default function MatchesPage() {
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-[var(--text)]">
-                          vs {match.opponent}
+                          {match.type === "TRAINING" ? "Amistoso Treino: Time A x Time B" : `vs ${match.opponent}`}
                         </span>
                         {isNextMatch && (
                           <Badge variant="warning">🔥 Próximo Jogo</Badge>

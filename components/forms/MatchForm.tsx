@@ -456,6 +456,12 @@ interface SavedVenue {
         status: recordType,
       };
 
+      if (data.type === "TRAINING") {
+        body.opponent = data.opponent?.trim() || "Time B";
+        body.isHome = true;
+        body.opponentBadgeUrl = null;
+      }
+
       if (recordType === "SCHEDULED") {
         body.homeScore = null;
         body.awayScore = null;
@@ -738,89 +744,91 @@ interface SavedVenue {
         </p>
       </div>
 
-      <Input
-        label="Adversário"
-        placeholder="Nome do time adversário"
-        error={errors.opponent?.message}
-        {...register("opponent")}
-      />
-
       <Select
-        label="Mando de campo"
-        options={[
-          { value: "home", label: "Casa" },
-          { value: "away", label: "Visitante" },
-        ]}
-        value={watch("isHome") === false ? "away" : "home"}
-        onChange={(e) => {
-          const newIsHome = e.target.value === "home";
-          const currentIsHome = watch("isHome") ?? true;
-          if (newIsHome !== currentIsHome) {
-            const currentHomeScore = watch("homeScore");
-            const currentAwayScore = watch("awayScore");
-            setValue("isHome", newIsHome, { shouldValidate: true });
-            setValue("homeScore", currentAwayScore, { shouldValidate: true });
-            setValue("awayScore", currentHomeScore, { shouldValidate: true });
-          }
-        }}
-      />
-
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-[var(--text-subtle)]">
-          Escudo do adversario (opcional)
-        </label>
-        <div className="flex items-center gap-3">
-          {opponentBadgePreview ? (
-            <img
-              src={opponentBadgePreview}
-              alt="Escudo adversario"
-              className="h-16 w-16 rounded-lg border border-[var(--border)] object-cover"
-            />
-          ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-[var(--border)] text-[var(--text-subtle)]">
-              <span className="text-lg">VS</span>
-            </div>
-          )}
-
-          <label className="cursor-pointer">
-            <span className="inline-flex items-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold uppercase tracking-wider text-white hover:bg-white/10 transition-colors shadow-sm">
-              {uploadingBadge ? "Enviando..." : "Fazer upload"}
-            </span>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={handleOpponentBadgeUpload}
-              disabled={uploadingBadge}
-            />
-          </label>
-        </div>
-      </div>
-
-      <Input
-        label="URL do escudo adversário (opcional)"
-        placeholder="https://... ou /uploads/..."
-        error={errors.opponentBadgeUrl?.message}
-        {...register("opponentBadgeUrl")}
-      />
-
-      <Select
-        label="Tipo"
+        label="Tipo de Jogo"
         options={typeOptions}
         placeholder="Selecione o tipo"
         error={errors.type?.message}
         {...register("type")}
       />
 
-      {watch("type") === "TRAINING" && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400 font-semibold space-y-1">
-          <div className="flex items-center gap-1.5 font-bold">
-            <span>⚽ Amistoso Treino (Time A vs Time B)</span>
+      {watch("type") === "TRAINING" ? (
+        <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-r from-[#0d1f18] via-[#091410] to-[#0d1f18] p-4 space-y-2">
+          <div className="flex items-center gap-2 font-bold text-sm text-emerald-400">
+            <span>⚽ Confronto Interno: Time A vs Time B</span>
           </div>
-          <p className="text-[11px] text-[#8fa39b] leading-relaxed">
-            Jogo interno onde os atletas do clube e convidados são separados em <strong>Time A</strong> e <strong>Time B</strong>. A comissão técnica (Admin / Técnico) poderá organizar as duas escalações na aba de Escalação.
+          <p className="text-xs text-[#8fa39b] leading-relaxed">
+            Jogo interno onde todos os atletas do clube e convidados confirmados na partida serão distribuídos entre <strong>Time A</strong> (Colete Verde) e <strong>Time B</strong> (Colete Laranja). A comissão técnica (Admin / Técnico) poderá organizar ou equilibrar automaticamente as duas escalações na aba de <strong>Escalação</strong>.
           </p>
         </div>
+      ) : (
+        <>
+          <Input
+            label="Adversário"
+            placeholder="Nome do time adversário"
+            error={errors.opponent?.message}
+            {...register("opponent")}
+          />
+
+          <Select
+            label="Mando de campo"
+            options={[
+              { value: "home", label: "Casa" },
+              { value: "away", label: "Visitante" },
+            ]}
+            value={watch("isHome") === false ? "away" : "home"}
+            onChange={(e) => {
+              const newIsHome = e.target.value === "home";
+              const currentIsHome = watch("isHome") ?? true;
+              if (newIsHome !== currentIsHome) {
+                const currentHomeScore = watch("homeScore");
+                const currentAwayScore = watch("awayScore");
+                setValue("isHome", newIsHome, { shouldValidate: true });
+                setValue("homeScore", currentAwayScore, { shouldValidate: true });
+                setValue("awayScore", currentHomeScore, { shouldValidate: true });
+              }
+            }}
+          />
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-[var(--text-subtle)]">
+              Escudo do adversario (opcional)
+            </label>
+            <div className="flex items-center gap-3">
+              {opponentBadgePreview ? (
+                <img
+                  src={opponentBadgePreview}
+                  alt="Escudo adversario"
+                  className="h-16 w-16 rounded-lg border border-[var(--border)] object-cover"
+                />
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-[var(--border)] text-[var(--text-subtle)]">
+                  <span className="text-lg">VS</span>
+                </div>
+              )}
+
+              <label className="cursor-pointer">
+                <span className="inline-flex items-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold uppercase tracking-wider text-white hover:bg-white/10 transition-colors shadow-sm">
+                  {uploadingBadge ? "Enviando..." : "Fazer upload"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleOpponentBadgeUpload}
+                  disabled={uploadingBadge}
+                />
+              </label>
+            </div>
+          </div>
+
+          <Input
+            label="URL do escudo adversário (opcional)"
+            placeholder="https://... ou /uploads/..."
+            error={errors.opponentBadgeUrl?.message}
+            {...register("opponentBadgeUrl")}
+          />
+        </>
       )}
 
       <Input

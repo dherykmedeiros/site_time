@@ -38,9 +38,10 @@ export const createMatchSchema = z.object({
   opponent: z
     .string()
     .trim()
-    .min(2, "Adversário deve ter no mínimo 2 caracteres")
-    .max(100, "Adversário deve ter no máximo 100 caracteres"),
-  isHome: z.boolean().optional(),
+    .max(100, "Adversário deve ter no máximo 100 caracteres")
+    .optional()
+    .default("Time B"),
+  isHome: z.boolean().optional().default(true),
   opponentBadgeUrl: optionalBadgeUrlSchema,
   type: z.enum(["FRIENDLY", "CHAMPIONSHIP", "TRAINING"], {
     message: "Tipo inválido",
@@ -69,6 +70,14 @@ export const createMatchSchema = z.object({
   longitude: z.coerce.number().min(-180, "Longitude deve ser >= -180").max(180, "Longitude deve ser <= 180").optional().nullable(),
   mapsUrl: z.string().trim().optional().nullable(),
   requiresDocumentDetails: z.boolean().optional(),
+}).superRefine((data, ctx) => {
+  if (data.type !== "TRAINING" && (!data.opponent || data.opponent.trim().length < 2)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Adversário deve ter no mínimo 2 caracteres",
+      path: ["opponent"],
+    });
+  }
 });
 
 export const updateMatchSchema = z.object({
