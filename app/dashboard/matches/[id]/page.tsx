@@ -84,6 +84,7 @@ export interface MatchDetail {
   pixKey: string | null;
   season?: { id: string; name: string; type: string; status: string } | null;
   positionLimits?: Array<{ position: string; maxPlayers: number }>;
+  guestPlayers?: Array<{ id: string; name: string; position?: string | null; shirtNumber?: number | null }>;
   latitude?: number | null;
   longitude?: number | null;
   userAttendance?: { present: boolean; checkedInAt: string | null } | null;
@@ -96,6 +97,11 @@ export interface MatchLineupResponse {
   generatedAt: string;
   imageUrl: string;
   lineup: SuggestedLineupResponse;
+  trainingDivision?: {
+    teamA: { starters: any[]; bench: any[] };
+    teamB: { starters: any[]; bench: any[] };
+    unassigned: any[];
+  };
 }
 
 export type ScheduledWorkspaceSection = "overview" | "presence" | "lineup" | "operations" | "postgame" | "gallery" | "live" | "guests" | "charges";

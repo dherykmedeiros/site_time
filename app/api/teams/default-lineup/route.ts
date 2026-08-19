@@ -158,7 +158,7 @@ export async function PATCH(request: Request) {
 
   const allPlayerIds = [
     ...parsed.data.starters.map(entry => entry.playerId),
-    ...parsed.data.bench,
+    ...parsed.data.bench.map(item => (typeof item === "string" ? item : item.playerId)),
   ];
 
   const invalidPlayers = allPlayerIds.filter(id => !activePlayerIds.has(id));
@@ -198,9 +198,9 @@ export async function PATCH(request: Request) {
         fieldX: entry.fieldX ?? null,
         fieldY: entry.fieldY ?? null,
       })),
-      ...parsed.data.bench.map((playerId, index) => ({
+      ...parsed.data.bench.map((item, index) => ({
         teamId,
-        playerId,
+        playerId: typeof item === "string" ? item : item.playerId,
         role: "BENCH" as const,
         sortOrder: index,
       })),

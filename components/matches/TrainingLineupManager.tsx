@@ -50,24 +50,42 @@ export function TrainingLineupManager({
   const allEligibleCandidates: TrainingPlayerItem[] = useMemo(() => {
     const list: TrainingPlayerItem[] = [];
 
+    // Map stats by playerId to get position if available
+    const statPosMap = new Map<string, { position?: string }>();
+    (match.stats || []).forEach((st) => {
+      if (st.playerId) statPosMap.set(st.playerId, { position: st.position });
+    });
+
+    // If lineup data has starters/bench, map their positions and shirt numbers
+    const lineupPlayerMap = new Map<string, { position?: string; shirtNumber?: number | null }>();
+    if (lineupData?.lineup) {
+      [...lineupData.lineup.starters, ...lineupData.lineup.bench].forEach((p: any) => {
+        if (p.playerId) {
+          lineupPlayerMap.set(p.playerId, { position: p.position, shirtNumber: p.shirtNumber });
+        }
+      });
+    }
+
     // Regular confirmed players
     match.rsvps
       .filter((r) => r.status === "CONFIRMED")
       .forEach((r) => {
+        const fromLineup = lineupPlayerMap.get(r.playerId);
+        const fromStats = statPosMap.get(r.playerId);
         list.push({
           id: r.playerId,
           playerId: r.playerId,
           guestPlayerId: null,
           name: r.playerName,
-          position: r.player.position,
-          shirtNumber: r.player.shirtNumber,
+          position: fromLineup?.position || fromStats?.position || "MIDFIELDER",
+          shirtNumber: fromLineup?.shirtNumber ?? null,
           role: "STARTER",
           teamSide: "A",
           isGuest: false,
         });
       });
 
-    // Guest players (always confirmed)
+    // Guest players (if attached on match or in lineup)
     (match.guestPlayers || []).forEach((g) => {
       list.push({
         id: g.id,
@@ -82,8 +100,29 @@ export function TrainingLineupManager({
       });
     });
 
+    // If lineup data has any guest not already in list
+    if (lineupData?.lineup) {
+      [...lineupData.lineup.starters, ...lineupData.lineup.bench]
+        .filter((p: any) => p.isGuest || p.playerId?.startsWith?.("guest_"))
+        .forEach((g: any) => {
+          if (!list.some((item) => item.id === g.playerId)) {
+            list.push({
+              id: g.playerId,
+              playerId: null,
+              guestPlayerId: g.playerId,
+              name: g.playerName,
+              position: g.position || "FORWARD",
+              shirtNumber: g.shirtNumber ?? null,
+              role: "STARTER",
+              teamSide: g.teamSide === "B" ? "B" : "A",
+              isGuest: true,
+            });
+          }
+        });
+    }
+
     return list;
-  }, [match.rsvps, match.guestPlayers]);
+  }, [match.rsvps, match.stats, match.guestPlayers, lineupData]);
 
   // Squad State
   const [teamAStarters, setTeamAStarters] = useState<TrainingPlayerItem[]>([]);
