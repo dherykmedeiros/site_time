@@ -440,9 +440,8 @@ export function TrainingLineupManager({
       );
     }
 
-    if (match.shareUrl) {
-      lines.push(``, `🔗 Acompanhe: ${match.shareUrl}`);
-    }
+    const dashboardMatchUrl = typeof window !== "undefined" ? `${window.location.origin}/dashboard/matches/${match.id}` : `/dashboard/matches/${match.id}`;
+    lines.push(``, `🔗 Detalhes no aplicativo: ${dashboardMatchUrl}`);
 
     return lines.join("\n");
   };

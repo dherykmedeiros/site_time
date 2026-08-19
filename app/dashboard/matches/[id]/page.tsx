@@ -921,10 +921,11 @@ export default function MatchDetailPage() {
   }
 
   function handleCopyLink() {
-    if (!match?.shareUrl) return;
+    if (!match) return;
+    const matchDashboardUrl = `${window.location.origin}/dashboard/matches/${match.id}`;
     trackGeneralMatchShareCopy();
-    navigator.clipboard.writeText(match.shareUrl).then(() => {
-      setCopyMsg("Link copiado!");
+    navigator.clipboard.writeText(matchDashboardUrl).then(() => {
+      setCopyMsg("Link do jogo copiado!");
       setTimeout(() => setCopyMsg(""), 2000);
     });
   }
@@ -948,9 +949,10 @@ export default function MatchDetailPage() {
   function handleCopyRecapLink() {
     if (!match) return;
     trackRecapCtaClick("copy_link");
-    const recapUrl = `${window.location.origin}/api/og/team-recap/${match.id}`;
+    const recapUrl = getRecapCardUrl();
+    if (!recapUrl) return;
     navigator.clipboard.writeText(recapUrl).then(() => {
-      setCopyMsg("Link do recap copiado!");
+      setCopyMsg("Link do card copiado!");
       setTimeout(() => setCopyMsg(""), 2000);
     });
   }
@@ -980,9 +982,10 @@ export default function MatchDetailPage() {
   function handleCopyPregameRecapLink() {
     if (!match) return;
     trackPregameCtaClick("copy_link");
-    const pregameRecapUrl = getPregameRecapCardUrl();
-    navigator.clipboard.writeText(pregameRecapUrl).then(() => {
-      setCopyMsg("Link do pré-jogo copiado!");
+    const pregameUrl = getPregameRecapCardUrl();
+    if (!pregameUrl) return;
+    navigator.clipboard.writeText(pregameUrl).then(() => {
+      setCopyMsg("Link do card pré-jogo copiado!");
       setTimeout(() => setCopyMsg(""), 2000);
     });
   }
@@ -1015,6 +1018,7 @@ export default function MatchDetailPage() {
     const dateStr = new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
       timeStyle: "short",
+      timeZone: "America/Sao_Paulo",
     }).format(new Date(match.date));
 
     const confirmedNames = match.rsvps
@@ -1046,7 +1050,7 @@ export default function MatchDetailPage() {
       lines.push(``);
     }
 
-    lines.push(`👉 Confirme aqui: ${window.location.origin}/matches/${match.id}?t=${match.shareToken}`);
+    lines.push(`👉 Confirme sua presença no app: ${window.location.origin}/dashboard/matches/${match.id}`);
     return lines.join("\n");
   }
 
@@ -1058,6 +1062,8 @@ export default function MatchDetailPage() {
       timeStyle: "short",
       timeZone: "America/Sao_Paulo",
     }).format(new Date(match.date));
+
+    const dashboardMatchUrl = `${window.location.origin}/dashboard/matches/${match.id}`;
 
     if (match.type === "TRAINING") {
       const startersA = lineupData.lineup.starters.filter((s: any) => s.teamSide === "A" || !s.teamSide);
@@ -1080,9 +1086,7 @@ export default function MatchDetailPage() {
         ...(benchB.length > 0 ? [`*Reservas:*`, ...benchB.map((b) => `▫️ ${b.playerName}`)] : []),
       ];
 
-      if (match.shareUrl) {
-        lines.push(``, `🔗 Veja a partida: ${match.shareUrl}`);
-      }
+      lines.push(``, `🔗 Detalhes da partida: ${dashboardMatchUrl}`);
       return lines.join("\n");
     }
 
@@ -1106,7 +1110,7 @@ export default function MatchDetailPage() {
       );
     }
 
-    lines.push(``, `🔗 Veja a partida: ${match.shareUrl}`);
+    lines.push(``, `🔗 Detalhes da partida: ${dashboardMatchUrl}`);
     return lines.join("\n");
   }
 
@@ -1134,7 +1138,7 @@ export default function MatchDetailPage() {
     lines.push(
       ``,
       `🖼️ Card recap: ${getRecapCardUrl()}`,
-      `👉 Ver partida: ${match.shareUrl}`
+      `👉 Detalhes da partida: ${window.location.origin}/dashboard/matches/${match.id}`
     );
     return lines.join("\n");
   }
