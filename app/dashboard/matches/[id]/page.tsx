@@ -1117,6 +1117,34 @@ export default function MatchDetailPage() {
   function buildResultText() {
     if (!match || match.homeScore === null || match.awayScore === null) return "";
 
+    if (match.type === "TRAINING") {
+      const scoreA = match.homeScore;
+      const scoreB = match.awayScore;
+      const result = scoreA > scoreB ? "🔵 Vitória do Time A" : scoreA < scoreB ? "🔴 Vitória do Time B" : "🟡 Empate";
+
+      const scorers = match.stats
+        .filter((s) => s.goals > 0)
+        .map((s) => `${s.playerName} (${s.goals})`);
+
+      const lines = [
+        `⚽ RESULTADO DO AMISTOSO TREINO`,
+        ``,
+        `${result}`,
+        `🔵 Time A ${scoreA} × ${scoreB} Time B 🔴`,
+      ];
+
+      if (scorers.length > 0) {
+        lines.push(``, `⚽ Gols:`, ...scorers.map((s) => `▪️ ${s}`));
+      }
+
+      lines.push(
+        ``,
+        `🖼️ Card recap: ${getRecapCardUrl()}`,
+        `👉 Detalhes da partida: ${window.location.origin}/dashboard/matches/${match.id}`
+      );
+      return lines.join("\n");
+    }
+
     const our = match.isHome ? match.homeScore : match.awayScore;
     const opp = match.isHome ? match.awayScore : match.homeScore;
     const result = our > opp ? "✅ Vitória" : our < opp ? "❌ Derrota" : "🟡 Empate";
@@ -1836,6 +1864,8 @@ export default function MatchDetailPage() {
         <PostGameForm
           mode="edit"
           matchId={match.id}
+          matchType={match.type}
+          lineupData={lineupData}
           rsvps={match.rsvps}
           initialHomeScore={match.homeScore}
           initialAwayScore={match.awayScore}

@@ -25,6 +25,7 @@ export interface PlayerInfo {
   id: string;
   name: string;
   shirtNumber: number;
+  teamSide?: string;
 }
 
 export interface LiveEventItem {
@@ -45,6 +46,7 @@ export interface RSVPItem {
 
 export interface LiveScoreboardProps {
   matchId: string;
+  matchType?: string;
   teamName: string;
   opponentName: string;
   venue: string;
@@ -62,6 +64,7 @@ export interface LiveScoreboardProps {
 
 export function LiveScoreboard({
   matchId,
+  matchType,
   teamName,
   opponentName,
   venue,
@@ -76,6 +79,7 @@ export function LiveScoreboard({
   playersList,
   currentPlayerId,
 }: LiveScoreboardProps) {
+  const isTraining = matchType === "TRAINING";
   const [homeScore, setHomeScore] = useState(initialHomeScore);
   const [awayScore, setAwayScore] = useState(initialAwayScore);
   const [liveStatus, setLiveStatus] = useState(initialLiveStatus);
@@ -200,8 +204,8 @@ export function LiveScoreboard({
 
   const currentRsvp = rsvps.find((r) => r.playerId === currentPlayerId)?.status;
 
-  const homeTeamName = isHome ? teamName : opponentName;
-  const awayTeamName = isHome ? opponentName : teamName;
+  const homeTeamName = isTraining ? "TIME A" : isHome ? teamName : opponentName;
+  const awayTeamName = isTraining ? "TIME B" : isHome ? opponentName : teamName;
 
   return (
     <div className="max-w-md mx-auto bg-slate-900 text-white min-h-screen pb-12 flex flex-col font-sans">
@@ -209,7 +213,7 @@ export function LiveScoreboard({
       <div className="bg-slate-800 p-4 border-b border-slate-700 flex justify-between items-center">
         <div className="flex items-center gap-2 text-emerald-400 font-semibold text-sm">
           <Zap className="w-4 h-4 animate-pulse" />
-          <span>PLACAR AO VIVO</span>
+          <span>{isTraining ? "AMISTOSO TREINO AO VIVO" : "PLACAR AO VIVO"}</span>
         </div>
         <span className="bg-emerald-500/20 text-emerald-300 text-xs px-2.5 py-1 rounded-full border border-emerald-500/30 font-medium">
           {liveStatus === "NOT_STARTED"
@@ -229,14 +233,14 @@ export function LiveScoreboard({
         <div className="flex justify-around items-center my-4">
           {/* Time Mandante */}
           <div className="flex-1 flex flex-col items-center">
-            <div className="w-14 h-14 rounded-full bg-slate-700 flex items-center justify-center mb-2 shadow-inner border border-slate-600">
-              <Shield className="w-7 h-7 text-slate-300" />
+            <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-2 shadow-inner border ${isTraining ? "bg-emerald-950 border-emerald-500 text-emerald-400 font-black text-lg" : "bg-slate-700 border-slate-600"}`}>
+              {isTraining ? "A" : <Shield className="w-7 h-7 text-slate-300" />}
             </div>
             <h2 className="font-bold text-sm text-slate-200 line-clamp-1">
               {homeTeamName}
             </h2>
             <span className="text-xs text-slate-400 mt-0.5">
-              {isHome ? "(Mandante)" : ""}
+              {isTraining ? "(Colete)" : isHome ? "(Mandante)" : ""}
             </span>
           </div>
 
@@ -253,14 +257,14 @@ export function LiveScoreboard({
 
           {/* Time Visitante */}
           <div className="flex-1 flex flex-col items-center">
-            <div className="w-14 h-14 rounded-full bg-slate-700 flex items-center justify-center mb-2 shadow-inner border border-slate-600">
-              <Shield className="w-7 h-7 text-slate-300" />
+            <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-2 shadow-inner border ${isTraining ? "bg-blue-950 border-blue-500 text-blue-400 font-black text-lg" : "bg-slate-700 border-slate-600"}`}>
+              {isTraining ? "B" : <Shield className="w-7 h-7 text-slate-300" />}
             </div>
             <h2 className="font-bold text-sm text-slate-200 line-clamp-1">
               {awayTeamName}
             </h2>
             <span className="text-xs text-slate-400 mt-0.5">
-              {!isHome ? "(Mandante)" : ""}
+              {isTraining ? "(Sem Colete)" : !isHome ? "(Mandante)" : ""}
             </span>
           </div>
         </div>
@@ -365,6 +369,11 @@ export function LiveScoreboard({
                       {evt.player && (
                         <span className="text-slate-300 font-normal">
                           - #{evt.player.shirtNumber} {evt.player.name}
+                          {isTraining && evt.player.teamSide && (
+                            <span className="ml-1 text-xs text-emerald-400 font-bold">
+                              (Time {evt.player.teamSide})
+                            </span>
+                          )}
                         </span>
                       )}
                     </div>
@@ -423,7 +432,7 @@ export function LiveScoreboard({
                           : "bg-slate-900 text-slate-400 border-slate-700"
                       }`}
                     >
-                      {teamName} (Nosso Time)
+                      {isTraining ? "🔵 Time A" : `${teamName} (Nosso Time)`}
                     </button>
                     <button
                       type="button"
@@ -434,7 +443,7 @@ export function LiveScoreboard({
                           : "bg-slate-900 text-slate-400 border-slate-700"
                       }`}
                     >
-                      {opponentName} (Adversário)
+                      {isTraining ? "🔴 Time B" : `${opponentName} (Adversário)`}
                     </button>
                   </div>
                 </div>
@@ -482,7 +491,7 @@ export function LiveScoreboard({
                   <option value="">Nenhum / Não especificado</option>
                   {playersList.map((p) => (
                     <option key={p.id} value={p.id}>
-                      #{p.shirtNumber} - {p.name}
+                      #{p.shirtNumber} - {p.name} {isTraining && p.teamSide ? `(Time ${p.teamSide})` : ""}
                     </option>
                   ))}
                 </select>

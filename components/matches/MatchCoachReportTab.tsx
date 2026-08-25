@@ -83,23 +83,43 @@ export function MatchCoachReportTab({
   currentUserPlayerId,
   fetchMatch,
 }: MatchCoachReportTabProps) {
+  const isTraining = match.type === "TRAINING";
+
   const [activePlayers, setActivePlayers] = useState<ActivePlayerOption[]>([]);
   const [confirmedPlayers, setConfirmedPlayers] = useState<ConfirmedPlayerOption[]>([]);
 
+  // Active sub-tab for training matches ("A" or "B")
+  const [activeTab, setActiveTab] = useState<"A" | "B">("A");
+
+  // Coach IDs
   const [selectedCoachId, setSelectedCoachId] = useState<string>(match.coachPlayerId || "");
+  const [selectedCoachBId, setSelectedCoachBId] = useState<string>((match as any).coachPlayerBId || "");
+
+  // Team A state
   const [formation, setFormation] = useState<string>("4-3-3 (Ofensivo / Triângulo no Meio)");
   const [starterPlayerIds, setStarterPlayerIds] = useState<string[]>([]);
   const [substitutions, setSubstitutions] = useState<SubstitutionItem[]>([]);
-
   const [summary, setSummary] = useState<string>("");
   const [startingStrategy, setStartingStrategy] = useState<string>("");
   const [substitutionsNotes, setSubstitutionsNotes] = useState<string>("");
   const [strengths, setStrengths] = useState<string>("");
   const [improvements, setImprovements] = useState<string>("");
-  const [evaluations, setEvaluations] = useState<Record<string, EvaluationState>>({});
+  const [evaluationsA, setEvaluationsA] = useState<Record<string, EvaluationState>>({});
+
+  // Team B state
+  const [formationB, setFormationB] = useState<string>("4-3-3 (Ofensivo / Triângulo no Meio)");
+  const [starterPlayerIdsB, setStarterPlayerIdsB] = useState<string[]>([]);
+  const [substitutionsB, setSubstitutionsB] = useState<SubstitutionItem[]>([]);
+  const [summaryB, setSummaryB] = useState<string>("");
+  const [startingStrategyB, setStartingStrategyB] = useState<string>("");
+  const [substitutionsNotesB, setSubstitutionsNotesB] = useState<string>("");
+  const [strengthsB, setStrengthsB] = useState<string>("");
+  const [improvementsB, setImprovementsB] = useState<string>("");
+  const [evaluationsB, setEvaluationsB] = useState<Record<string, EvaluationState>>({});
 
   const [canView, setCanView] = useState<boolean>(true);
-  const [canEdit, setCanEdit] = useState<boolean>(false);
+  const [canEditA, setCanEditA] = useState<boolean>(false);
+  const [canEditB, setCanEditB] = useState<boolean>(false);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
@@ -108,7 +128,6 @@ export function MatchCoachReportTab({
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Load active players list for coach selector (Only Admin/Coach role)
   const loadActivePlayers = useCallback(async () => {
     if (!isCoachOrAdmin) return;
     try {
@@ -122,7 +141,6 @@ export function MatchCoachReportTab({
     }
   }, [isCoachOrAdmin]);
 
-  // Load coach report data
   const loadReport = useCallback(async () => {
     setLoading(true);
     setErrorMsg(null);
@@ -131,49 +149,80 @@ export function MatchCoachReportTab({
       if (res.ok) {
         const data = await res.json();
         setCanView(data.canView ?? true);
-        setCanEdit(data.canEdit ?? false);
+        setCanEditA(data.canEditA ?? false);
+        setCanEditB(data.canEditB ?? false);
 
-        if (data.coachPlayerId) {
-          setSelectedCoachId(data.coachPlayerId);
-        }
+        if (data.coachPlayerId) setSelectedCoachId(data.coachPlayerId);
+        if (data.coachPlayerBId) setSelectedCoachBId(data.coachPlayerBId);
+
+        // Team A
         setFormation(data.formation || "4-3-3 (Ofensivo / Triângulo no Meio)");
         setStarterPlayerIds(data.starterPlayerIds || []);
         setSubstitutions(data.substitutions || []);
-        setConfirmedPlayers(data.confirmedPlayers || []);
         setSummary(data.summary || "");
         setStartingStrategy(data.startingStrategy || "");
         setSubstitutionsNotes(data.substitutionsNotes || "");
         setStrengths(data.strengths || "");
         setImprovements(data.improvements || "");
 
-        // Map existing evaluations
-        const evalMap: Record<string, EvaluationState> = {};
+        // Team B
+        setFormationB(data.formationB || "4-3-3 (Ofensivo / Triângulo no Meio)");
+        setStarterPlayerIdsB(data.starterPlayerIdsB || []);
+        setSubstitutionsB(data.substitutionsB || []);
+        setSummaryB(data.summaryB || "");
+        setStartingStrategyB(data.startingStrategyB || "");
+        setSubstitutionsNotesB(data.substitutionsNotesB || "");
+        setStrengthsB(data.strengthsB || "");
+        setImprovementsB(data.improvementsB || "");
+
+        setConfirmedPlayers(data.confirmedPlayers || []);
+
+        // Map existing evaluations separated by team side
+        const evalMapA: Record<string, EvaluationState> = {};
+        const evalMapB: Record<string, EvaluationState> = {};
+
         (data.evaluations || []).forEach((ev: any) => {
           const key = ev.playerId || ev.guestPlayerId;
           if (key) {
-            evalMap[key] = {
+            const item: EvaluationState = {
               playerId: ev.playerId,
               guestPlayerId: ev.guestPlayerId,
               rating: ev.rating || 5,
               feedback: ev.feedback || "",
             };
+            if (ev.teamSide === "B") {
+              evalMapB[key] = item;
+            } else {
+              evalMapA[key] = item;
+            }
           }
         });
 
         // Initialize evaluations for participating match stats if missing
         match.stats.forEach((p) => {
           const key = p.guestPlayerId ? p.guestPlayerId : (p.playerId || p.playerName);
-          if (key && !evalMap[key]) {
-            evalMap[key] = {
-              playerId: p.guestPlayerId ? null : (p.playerId || null),
-              guestPlayerId: p.guestPlayerId || null,
-              rating: 7,
-              feedback: "",
-            };
+          if (key) {
+            if (!evalMapA[key]) {
+              evalMapA[key] = {
+                playerId: p.guestPlayerId ? null : (p.playerId || null),
+                guestPlayerId: p.guestPlayerId || null,
+                rating: 7,
+                feedback: "",
+              };
+            }
+            if (!evalMapB[key]) {
+              evalMapB[key] = {
+                playerId: p.guestPlayerId ? null : (p.playerId || null),
+                guestPlayerId: p.guestPlayerId || null,
+                rating: 7,
+                feedback: "",
+              };
+            }
           }
         });
 
-        setEvaluations(evalMap);
+        setEvaluationsA(evalMapA);
+        setEvaluationsB(evalMapB);
       } else {
         const data = await res.json().catch(() => ({}));
         setCanView(false);
@@ -191,22 +240,30 @@ export function MatchCoachReportTab({
     loadReport();
   }, [loadActivePlayers, loadReport]);
 
-  const handleAssignCoach = async (coachId: string) => {
+  const handleAssignCoach = async (coachId: string, side: "A" | "B" = "A") => {
     setAssigningCoach(true);
     setFeedbackMsg(null);
     setErrorMsg(null);
+
+    const payload = side === "B"
+      ? { coachPlayerBId: coachId || null, teamSide: "B" }
+      : { coachPlayerId: coachId || null, teamSide: "A" };
 
     try {
       const res = await fetch(`/api/matches/${match.id}/coach`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ coachPlayerId: coachId || null }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
       if (res.ok) {
-        setSelectedCoachId(coachId);
-        setFeedbackMsg("Treinador responsável da partida designado com sucesso!");
+        if (side === "B") {
+          setSelectedCoachBId(coachId);
+        } else {
+          setSelectedCoachId(coachId);
+        }
+        setFeedbackMsg(`Treinador do Time ${side} designado com sucesso!`);
         fetchMatch();
         loadReport();
         setTimeout(() => setFeedbackMsg(null), 3000);
@@ -220,72 +277,124 @@ export function MatchCoachReportTab({
     }
   };
 
-  const toggleStarterPlayer = (playerId: string) => {
-    setStarterPlayerIds((prev) =>
-      prev.includes(playerId)
-        ? prev.filter((id) => id !== playerId)
-        : [...prev, playerId]
-    );
+  const toggleStarterPlayer = (playerId: string, side: "A" | "B" = "A") => {
+    if (side === "B") {
+      setStarterPlayerIdsB((prev) =>
+        prev.includes(playerId)
+          ? prev.filter((id) => id !== playerId)
+          : [...prev, playerId]
+      );
+    } else {
+      setStarterPlayerIds((prev) =>
+        prev.includes(playerId)
+          ? prev.filter((id) => id !== playerId)
+          : [...prev, playerId]
+      );
+    }
   };
 
-  const addSubstitutionRow = () => {
-    // Candidates to exit (titulares)
-    const starterOptions = confirmedPlayers.filter((p) => starterPlayerIds.includes(p.id));
-    // Candidates to enter (reservas/banco)
-    const reserveOptions = confirmedPlayers.filter((p) => !starterPlayerIds.includes(p.id));
+  const addSubstitutionRow = (side: "A" | "B" = "A") => {
+    const list = isTraining
+      ? confirmedPlayers.filter((p) => (p as any).teamSide === side)
+      : confirmedPlayers;
+
+    const currentStarters = side === "B" ? starterPlayerIdsB : starterPlayerIds;
+    const starterOptions = list.filter((p) => currentStarters.includes(p.id));
+    const reserveOptions = list.filter((p) => !currentStarters.includes(p.id));
 
     if (starterOptions.length === 0 || reserveOptions.length === 0) {
       alert("Para registrar uma substituição, é necessário selecionar os Titulares primeiro!");
       return;
     }
 
-    setSubstitutions((prev) => [
-      ...prev,
-      {
-        playerOutId: starterOptions[0].id,
-        playerInId: reserveOptions[0].id,
-        minute: "15' 2ºT",
-        reason: "",
-      },
-    ]);
+    const newSub: SubstitutionItem = {
+      playerOutId: starterOptions[0].id,
+      playerInId: reserveOptions[0].id,
+      minute: "15' 2ºT",
+      reason: "",
+    };
+
+    if (side === "B") {
+      setSubstitutionsB((prev) => [...prev, newSub]);
+    } else {
+      setSubstitutions((prev) => [...prev, newSub]);
+    }
   };
 
-  const updateSubstitutionRow = (index: number, field: keyof SubstitutionItem, value: string) => {
-    setSubstitutions((prev) => {
-      const copy = [...prev];
-      copy[index] = { ...copy[index], [field]: value };
-      return copy;
-    });
+  const updateSubstitutionRow = (index: number, field: keyof SubstitutionItem, value: string, side: "A" | "B" = "A") => {
+    if (side === "B") {
+      setSubstitutionsB((prev) => {
+        const copy = [...prev];
+        copy[index] = { ...copy[index], [field]: value };
+        return copy;
+      });
+    } else {
+      setSubstitutions((prev) => {
+        const copy = [...prev];
+        copy[index] = { ...copy[index], [field]: value };
+        return copy;
+      });
+    }
   };
 
-  const removeSubstitutionRow = (index: number) => {
-    setSubstitutions((prev) => prev.filter((_, i) => i !== index));
+  const removeSubstitutionRow = (index: number, side: "A" | "B" = "A") => {
+    if (side === "B") {
+      setSubstitutionsB((prev) => prev.filter((_, i) => i !== index));
+    } else {
+      setSubstitutions((prev) => prev.filter((_, i) => i !== index));
+    }
   };
 
-  const handleRatingChange = (key: string, rating: number, playerId?: string | null, guestPlayerId?: string | null) => {
-    setEvaluations((prev) => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        playerId: prev[key]?.playerId ?? playerId ?? null,
-        guestPlayerId: prev[key]?.guestPlayerId ?? guestPlayerId ?? null,
-        rating,
-        feedback: prev[key]?.feedback ?? "",
-      },
-    }));
+  const handleRatingChange = (key: string, rating: number, playerId?: string | null, guestPlayerId?: string | null, side: "A" | "B" = "A") => {
+    if (side === "B") {
+      setEvaluationsB((prev) => ({
+        ...prev,
+        [key]: {
+          ...prev[key],
+          playerId: prev[key]?.playerId ?? playerId ?? null,
+          guestPlayerId: prev[key]?.guestPlayerId ?? guestPlayerId ?? null,
+          rating,
+          feedback: prev[key]?.feedback ?? "",
+        },
+      }));
+    } else {
+      setEvaluationsA((prev) => ({
+        ...prev,
+        [key]: {
+          ...prev[key],
+          playerId: prev[key]?.playerId ?? playerId ?? null,
+          guestPlayerId: prev[key]?.guestPlayerId ?? guestPlayerId ?? null,
+          rating,
+          feedback: prev[key]?.feedback ?? "",
+        },
+      }));
+    }
   };
 
-  const handleFeedbackChange = (key: string, feedback: string, playerId?: string | null, guestPlayerId?: string | null) => {
-    setEvaluations((prev) => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        playerId: prev[key]?.playerId ?? playerId ?? null,
-        guestPlayerId: prev[key]?.guestPlayerId ?? guestPlayerId ?? null,
-        rating: prev[key]?.rating ?? 5,
-        feedback,
-      },
-    }));
+  const handleFeedbackChange = (key: string, feedback: string, playerId?: string | null, guestPlayerId?: string | null, side: "A" | "B" = "A") => {
+    if (side === "B") {
+      setEvaluationsB((prev) => ({
+        ...prev,
+        [key]: {
+          ...prev[key],
+          playerId: prev[key]?.playerId ?? playerId ?? null,
+          guestPlayerId: prev[key]?.guestPlayerId ?? guestPlayerId ?? null,
+          rating: prev[key]?.rating ?? 5,
+          feedback,
+        },
+      }));
+    } else {
+      setEvaluationsA((prev) => ({
+        ...prev,
+        [key]: {
+          ...prev[key],
+          playerId: prev[key]?.playerId ?? playerId ?? null,
+          guestPlayerId: prev[key]?.guestPlayerId ?? guestPlayerId ?? null,
+          rating: prev[key]?.rating ?? 5,
+          feedback,
+        },
+      }));
+    }
   };
 
   const handleSaveReport = async () => {
@@ -293,8 +402,7 @@ export function MatchCoachReportTab({
     setFeedbackMsg(null);
     setErrorMsg(null);
 
-    // Sanitize substitutions & evaluations before sending to API
-    const cleanSubstitutions = substitutions
+    const cleanSubstitutionsA = substitutions
       .filter((s) => Boolean(s.playerOutId && s.playerInId))
       .map((s) => ({
         playerOutId: String(s.playerOutId),
@@ -303,11 +411,31 @@ export function MatchCoachReportTab({
         reason: s.reason || "",
       }));
 
-    const cleanEvaluations = Object.values(evaluations)
+    const cleanSubstitutionsB = substitutionsB
+      .filter((s) => Boolean(s.playerOutId && s.playerInId))
+      .map((s) => ({
+        playerOutId: String(s.playerOutId),
+        playerInId: String(s.playerInId),
+        minute: s.minute || "",
+        reason: s.reason || "",
+      }));
+
+    const cleanEvaluationsA = Object.values(evaluationsA)
       .filter((e) => Boolean(e.playerId || e.guestPlayerId))
       .map((e) => ({
         playerId: e.playerId || null,
         guestPlayerId: e.guestPlayerId || null,
+        teamSide: "A" as const,
+        rating: Number(e.rating) || 5,
+        feedback: e.feedback || "",
+      }));
+
+    const cleanEvaluationsB = Object.values(evaluationsB)
+      .filter((e) => Boolean(e.playerId || e.guestPlayerId))
+      .map((e) => ({
+        playerId: e.playerId || null,
+        guestPlayerId: e.guestPlayerId || null,
+        teamSide: "B" as const,
         rating: Number(e.rating) || 5,
         feedback: e.feedback || "",
       }));
@@ -317,23 +445,34 @@ export function MatchCoachReportTab({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          // Team A
           summary: summary || "",
           formation: formation || "4-3-3 (Ofensivo / Triângulo no Meio)",
           starterPlayerIds: starterPlayerIds || [],
-          substitutions: cleanSubstitutions,
+          substitutions: cleanSubstitutionsA,
           startingStrategy: startingStrategy || "",
           substitutionsNotes: substitutionsNotes || "",
           strengths: strengths || "",
           improvements: improvements || "",
+          // Team B
+          summaryB: summaryB || "",
+          formationB: formationB || "4-3-3 (Ofensivo / Triângulo no Meio)",
+          starterPlayerIdsB: starterPlayerIdsB || [],
+          substitutionsB: cleanSubstitutionsB,
+          startingStrategyB: startingStrategyB || "",
+          substitutionsNotesB: substitutionsNotesB || "",
+          strengthsB: strengthsB || "",
+          improvementsB: improvementsB || "",
+
           status: "PUBLISHED",
-          evaluations: cleanEvaluations,
+          evaluations: isTraining ? [...cleanEvaluationsA, ...cleanEvaluationsB] : cleanEvaluationsA,
         }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        setFeedbackMsg("Relatório tático, escalação e avaliações salvos com sucesso!");
+        setFeedbackMsg("Relatório tático e avaliações salvos com sucesso!");
         fetchMatch();
         loadReport();
         setTimeout(() => setFeedbackMsg(null), 4000);
@@ -347,13 +486,6 @@ export function MatchCoachReportTab({
     }
   };
 
-  const getRatingBadgeColor = (rating: number) => {
-    if (rating >= 9) return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
-    if (rating >= 7) return "bg-green-500/10 text-green-400 border-green-500/30";
-    if (rating >= 5) return "bg-yellow-500/10 text-yellow-400 border-yellow-500/30";
-    return "bg-red-500/10 text-red-400 border-red-500/30";
-  };
-
   if (loading) {
     return <div className="p-8 text-center text-[var(--text-muted)] font-medium">Carregando relatório do treinador...</div>;
   }
@@ -365,28 +497,48 @@ export function MatchCoachReportTab({
         <Lock className="h-10 w-10 text-red-400 mx-auto mb-3" />
         <h2 className="text-lg font-bold text-red-400">Acesso Restrito ao Relatório Tático</h2>
         <p className="text-sm text-[var(--text-subtle)] mt-1 max-w-md mx-auto">
-          {errorMsg || "Apenas a comissão técnica, administradores ou o atleta definido como treinador desta partida podem visualizar este relatório."}
+          {errorMsg || "Apenas a comissão técnica, administradores ou os atletas definidos como treinadores desta partida podem visualizar este relatório."}
         </p>
       </Card>
     );
   }
 
-  const assignedCoach = activePlayers.find((p) => p.id === selectedCoachId) || match.coachPlayer;
-  const starterPlayers = confirmedPlayers.filter((p) => starterPlayerIds.includes(p.id));
-  const reservePlayers = confirmedPlayers.filter((p) => !starterPlayerIds.includes(p.id));
+  const assignedCoachA = activePlayers.find((p) => p.id === selectedCoachId) || match.coachPlayer;
+  const assignedCoachB = activePlayers.find((p) => p.id === selectedCoachBId) || (match as any).coachPlayerB;
 
-  // Automatic match stats analysis (Pulling empirical data!)
-  const topScorer = [...match.stats].sort((a, b) => b.goals - a.goals)[0];
-  const topAssister = [...match.stats].sort((a, b) => b.assists - a.assists)[0];
+  // Active side configuration
+  const currentSide = isTraining ? activeTab : "A";
+  const currentCanEdit = currentSide === "B" ? canEditB : canEditA;
+  const currentFormation = currentSide === "B" ? formationB : formation;
+  const currentSetFormation = currentSide === "B" ? setFormationB : setFormation;
+  const currentStarters = currentSide === "B" ? starterPlayerIdsB : starterPlayerIds;
+  const currentSubs = currentSide === "B" ? substitutionsB : substitutions;
+  const currentSummary = currentSide === "B" ? summaryB : summary;
+  const currentSetSummary = currentSide === "B" ? setSummaryB : setSummary;
+  const currentStrategy = currentSide === "B" ? startingStrategyB : startingStrategy;
+  const currentSetStrategy = currentSide === "B" ? setStartingStrategyB : setStartingStrategy;
+  const currentSubNotes = currentSide === "B" ? substitutionsNotesB : substitutionsNotes;
+  const currentSetSubNotes = currentSide === "B" ? setSubstitutionsNotesB : setSubstitutionsNotes;
+  const currentStrengths = currentSide === "B" ? strengthsB : strengths;
+  const currentSetStrengths = currentSide === "B" ? setStrengthsB : setStrengths;
+  const currentImprovements = currentSide === "B" ? improvementsB : improvements;
+  const currentSetImprovements = currentSide === "B" ? setImprovementsB : setImprovements;
+  const currentEvaluations = currentSide === "B" ? evaluationsB : evaluationsA;
+
+  const sidePlayers = isTraining
+    ? confirmedPlayers.filter((p) => ((p as any).teamSide || "A") === currentSide)
+    : confirmedPlayers;
+
+  const currentCoach = currentSide === "B" ? assignedCoachB : assignedCoachA;
 
   return (
     <div className="space-y-6">
       {/* Banner de Permissões */}
-      {!canEdit && (
-        <div className="p-3.5 rounded-xl border border-amber-500/20 bg-amber-500/10 flex items-center gap-3 text-xs font-semibold text-amber-450">
+      {!currentCanEdit && (
+        <div className="p-3.5 rounded-xl border border-amber-500/20 bg-amber-500/10 flex items-center gap-3 text-xs font-semibold text-amber-300">
           <Lock className="h-4 w-4 shrink-0" />
           <span>
-            <strong>Modo de Leitura:</strong> Apenas o atleta designado como treinador desta partida pode editar as informações.
+            <strong>Modo de Leitura ({isTraining ? `Time ${currentSide}` : "Geral"}):</strong> Apenas o atleta designado como treinador do Time {currentSide} (ou a comissão técnica) pode editar as informações deste time.
           </span>
         </div>
       )}
@@ -400,46 +552,113 @@ export function MatchCoachReportTab({
                 <Shield className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="text-lg font-black text-[var(--text)]">Relatório Tático & Pós-Jogo do Treinador</h2>
+                <h2 className="text-lg font-black text-[var(--text)]">
+                  {isTraining ? "Comissão Técnica & Relatório Tático do Treino" : "Relatório Tático & Pós-Jogo do Treinador"}
+                </h2>
                 <p className="text-xs text-[var(--text-subtle)]">
-                  Definição dos titulares, esquemas táticos, registro de substituições e notas técnicas.
+                  {isTraining
+                    ? "Definição de esquemas táticos, substituições e notas individuais por treinador do Time A e Time B."
+                    : "Definição dos titulares, esquemas táticos, registro de substituições e notas técnicas."}
                 </p>
               </div>
             </div>
 
             {/* Designar Treinador (Exclusivo ADMIN/COACH) */}
             {isCoachOrAdmin && (
-              <div className="flex flex-col gap-1 sm:items-end">
-                <label className="text-[10px] font-black uppercase tracking-wider text-[#8fa39b]">
-                  Designar Treinador do Jogo (ADMIN):
-                </label>
-                <select
-                  value={selectedCoachId}
-                  disabled={assigningCoach}
-                  onChange={(e) => handleAssignCoach(e.target.value)}
-                  className="rounded-xl border border-white/10 bg-[#16130f] px-3 py-1.5 text-xs font-bold text-white outline-none focus:border-[#36c2a8]"
-                >
-                  <option value="">-- Selecionar Treinador --</option>
-                  {activePlayers.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      #{p.shirtNumber} - {p.name} {p.fullName ? `(${p.fullName})` : ""}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                    {isTraining ? "Treinador Time A (Colete):" : "Designar Treinador (ADMIN):"}
+                  </label>
+                  <select
+                    value={selectedCoachId}
+                    disabled={assigningCoach}
+                    onChange={(e) => handleAssignCoach(e.target.value, "A")}
+                    className="rounded-xl border border-emerald-500/30 bg-[#16130f] px-3 py-1.5 text-xs font-bold text-white outline-none focus:border-[#36c2a8]"
+                  >
+                    <option value="">-- Treinador Time A --</option>
+                    {activePlayers.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        #{p.shirtNumber} - {p.name} {p.fullName ? `(${p.fullName})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {isTraining && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-blue-400">
+                      Treinador Time B (Sem Colete):
+                    </label>
+                    <select
+                      value={selectedCoachBId}
+                      disabled={assigningCoach}
+                      onChange={(e) => handleAssignCoach(e.target.value, "B")}
+                      className="rounded-xl border border-blue-500/30 bg-[#16130f] px-3 py-1.5 text-xs font-bold text-white outline-none focus:border-[#3b82f6]"
+                    >
+                      <option value="">-- Treinador Time B --</option>
+                      {activePlayers.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          #{p.shirtNumber} - {p.name} {p.fullName ? `(${p.fullName})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             )}
           </div>
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* Card do Treinador Designado */}
-          {assignedCoach ? (
+          {/* Card dos Treinadores Designados */}
+          {isTraining ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Treinador Time A */}
+              <div className="flex items-center gap-3 p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-950/20">
+                <div className="h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-bold text-emerald-400 text-sm overflow-hidden shrink-0">
+                  {assignedCoachA?.photoUrl ? (
+                    <img src={assignedCoachA.photoUrl} alt={assignedCoachA.name} className="h-full w-full object-cover" />
+                  ) : (
+                    assignedCoachA?.name?.charAt(0).toUpperCase() || "A"
+                  )}
+                </div>
+                <div>
+                  <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest block">
+                    Treinador Time A (Colete)
+                  </span>
+                  <span className="text-xs font-black text-white">
+                    {assignedCoachA ? `#${assignedCoachA.shirtNumber || "0"} — ${assignedCoachA.name}` : "Não designado"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Treinador Time B */}
+              <div className="flex items-center gap-3 p-3.5 rounded-xl border border-blue-500/30 bg-blue-950/20">
+                <div className="h-10 w-10 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center font-bold text-blue-400 text-sm overflow-hidden shrink-0">
+                  {assignedCoachB?.photoUrl ? (
+                    <img src={assignedCoachB.photoUrl} alt={assignedCoachB.name} className="h-full w-full object-cover" />
+                  ) : (
+                    assignedCoachB?.name?.charAt(0).toUpperCase() || "B"
+                  )}
+                </div>
+                <div>
+                  <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest block">
+                    Treinador Time B (Sem Colete)
+                  </span>
+                  <span className="text-xs font-black text-white">
+                    {assignedCoachB ? `#${assignedCoachB.shirtNumber || "0"} — ${assignedCoachB.name}` : "Não designado"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : assignedCoachA ? (
             <div className="flex items-center gap-3 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10">
               <div className="h-11 w-11 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-bold text-emerald-400 text-sm overflow-hidden shrink-0">
-                {assignedCoach.photoUrl ? (
-                  <img src={assignedCoach.photoUrl} alt={assignedCoach.name} className="h-full w-full object-cover" />
+                {assignedCoachA.photoUrl ? (
+                  <img src={assignedCoachA.photoUrl} alt={assignedCoachA.name} className="h-full w-full object-cover" />
                 ) : (
-                  assignedCoach.name.charAt(0).toUpperCase()
+                  assignedCoachA.name.charAt(0).toUpperCase()
                 )}
               </div>
               <div>
@@ -447,7 +666,7 @@ export function MatchCoachReportTab({
                   Treinador Responsável Pela Partida
                 </span>
                 <span className="text-sm font-black text-white">
-                  #{assignedCoach.shirtNumber || "0"} — {assignedCoach.name} {assignedCoach.fullName ? `(${assignedCoach.fullName})` : ""}
+                  #{assignedCoachA.shirtNumber || "0"} — {assignedCoachA.name} {assignedCoachA.fullName ? `(${assignedCoachA.fullName})` : ""}
                 </span>
               </div>
             </div>
@@ -456,33 +675,6 @@ export function MatchCoachReportTab({
               ⚠️ Nenhum atleta foi designado como treinador para esta partida ainda.
             </div>
           )}
-
-          {/* Destaques da Partida Automáticos (Dados Puxados) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl border border-white/10 bg-white/[0.02]">
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">
-                ⚽
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-[#8fa39b] uppercase block">Destaque de Gols</span>
-                <span className="text-xs font-black text-white">
-                  {topScorer && topScorer.goals > 0 ? `${topScorer.playerName} (${topScorer.goals} gols)` : "Nenhum gol registrado"}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold">
-                🅰️
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-[#8fa39b] uppercase block">Destaque de Assistências</span>
-                <span className="text-xs font-black text-white">
-                  {topAssister && topAssister.assists > 0 ? `${topAssister.playerName} (${topAssister.assists} assist)` : "Nenhuma assistência registrada"}
-                </span>
-              </div>
-            </div>
-          </div>
 
           {/* Feedback & Error messages */}
           {feedbackMsg && (
@@ -496,21 +688,55 @@ export function MatchCoachReportTab({
             </div>
           )}
 
-          {/* ── SEÇÃO 1: FORMAÇÃO & ATLETAS TITULARES (INTERATIVO) ─────── */}
-          <div className="space-y-4 pt-2 border-t border-white/5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <label className="text-xs font-bold text-[#6ee7b7] flex items-center gap-1.5">
-                <Target className="h-4 w-4" /> 1. Formação Tática & Escolha dos Titulares:
-              </label>
+          {/* Sub-Aba Seletora para Treino (Time A vs Time B) */}
+          {isTraining && (
+            <div className="flex items-center gap-2 border-b border-white/10 pt-2 pb-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab("A")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition ${
+                  activeTab === "A"
+                    ? "bg-emerald-500 text-black shadow-lg shadow-emerald-900/30"
+                    : "bg-white/5 text-[#8fa39b] hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <span>🔵 Relatório Time A</span>
+                {assignedCoachA && <span className="text-[10px] opacity-80">({assignedCoachA.name})</span>}
+              </button>
 
-              {/* Formação Tática Selector */}
+              <button
+                type="button"
+                onClick={() => setActiveTab("B")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition ${
+                  activeTab === "B"
+                    ? "bg-blue-500 text-black shadow-lg shadow-blue-900/30"
+                    : "bg-white/5 text-[#8fa39b] hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <span>🔴 Relatório Time B</span>
+                {assignedCoachB && <span className="text-[10px] opacity-80">({assignedCoachB.name})</span>}
+              </button>
+            </div>
+          )}
+
+          {/* ── SEÇÃO 1: FORMAÇÃO & ATLETAS TITULARES (INTERATIVO) ─────── */}
+          <div className="space-y-4 pt-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[#8fa39b]">Esquema:</span>
-                {canEdit ? (
+                <Target className={`h-5 w-5 ${currentSide === "B" ? "text-blue-400" : "text-emerald-400"}`} />
+                <h3 className="text-sm font-black text-white uppercase tracking-wide">
+                  1. Formação & Titulares {isTraining ? `(Time ${currentSide})` : ""}
+                </h3>
+              </div>
+
+              {/* Seletor de Formação */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[#8fa39b]">Esquema Tático:</span>
+                {currentCanEdit ? (
                   <select
-                    value={formation}
-                    onChange={(e) => setFormation(e.target.value)}
-                    className="rounded-xl border border-white/10 bg-[#16130f] px-3 py-1 text-xs font-bold text-emerald-400 outline-none focus:border-[#36c2a8]"
+                    value={currentFormation}
+                    onChange={(e) => currentSetFormation(e.target.value)}
+                    className="rounded-xl border border-white/10 bg-[#16130f] px-3 py-1.5 text-xs font-black text-white outline-none focus:border-[#36c2a8]"
                   >
                     {FORMATIONS_FUT11.map((fmt) => (
                       <option key={fmt} value={fmt}>
@@ -519,232 +745,204 @@ export function MatchCoachReportTab({
                     ))}
                   </select>
                 ) : (
-                  <span className="px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs font-black text-emerald-400">
-                    ⚡ {formation}
-                  </span>
+                  <Badge variant="default" className="text-xs font-bold">
+                    {currentFormation}
+                  </Badge>
                 )}
               </div>
             </div>
 
-            {/* Seleção Interativa de Titulares (Apenas Atletas que Confirmaram) */}
-            {canEdit ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-[#8fa39b]">
-                  <span>Selecione os atletas que iniciaram como <strong>TITULARES</strong> (apenas presenças confirmadas):</span>
-                  <span className="font-bold text-emerald-400">
-                    {starterPlayerIds.length} Titulares Selecionados
-                  </span>
-                </div>
+            {/* Seleção Interativa de Titulares */}
+            <div>
+              <label className="block text-[11px] font-bold text-[#8fa39b] mb-2">
+                Selecione os atletas que iniciaram jogando como <strong>Titulares</strong> {isTraining ? `no Time ${currentSide}` : ""}:
+              </label>
 
-                {confirmedPlayers.length === 0 ? (
-                  <p className="text-xs text-yellow-400 italic py-2">
-                    Nenhum atleta confirmou presença nesta partida até o momento.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                    {confirmedPlayers.map((p) => {
-                      const isStarter = starterPlayerIds.includes(p.id);
-                      const posLabel = playerPositionLabels[p.position as keyof typeof playerPositionLabels] || p.position;
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                {sidePlayers.map((p) => {
+                  const isStarter = currentStarters.includes(p.id);
+                  const rawPos = p.position;
+                  const posLabel = rawPos ? (playerPositionLabels[rawPos as keyof typeof playerPositionLabels] || rawPos) : "";
 
-                      return (
-                        <div
-                          key={p.id}
-                          onClick={() => toggleStarterPlayer(p.id)}
-                          className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all duration-150 ${
-                            isStarter
-                              ? "border-emerald-500/40 bg-emerald-500/15 shadow-sm"
-                              : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <div className="h-7 w-7 rounded-full bg-white/10 border border-white/10 flex items-center justify-center font-bold text-xs text-white">
-                              {p.shirtNumber ? `#${p.shirtNumber}` : p.name.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold text-white leading-tight">{p.name}</p>
-                              <p className="text-[10px] text-[#8fa39b]">{posLabel}</p>
-                            </div>
-                          </div>
-
-                          <div
-                            className={`h-5 w-5 rounded-md border flex items-center justify-center text-xs font-black transition-colors ${
-                              isStarter
-                                ? "border-emerald-400 bg-emerald-400 text-black"
-                                : "border-white/20 bg-transparent text-transparent"
-                            }`}
-                          >
-                            ✓
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      disabled={!currentCanEdit}
+                      onClick={() => toggleStarterPlayer(p.id, currentSide)}
+                      className={`flex items-center gap-2 p-2 rounded-xl border text-left text-xs transition ${
+                        isStarter
+                          ? currentSide === "B"
+                            ? "bg-blue-500/20 border-blue-500 text-white font-bold"
+                            : "bg-emerald-500/20 border-emerald-500 text-white font-bold"
+                          : "bg-white/[0.02] border-white/10 text-[#8fa39b] hover:bg-white/[0.05]"
+                      } ${!currentCanEdit ? "cursor-default" : "cursor-pointer"}`}
+                    >
+                      <span className="w-5 text-center font-mono font-bold">
+                        {p.shirtNumber ? `#${p.shirtNumber}` : "-"}
+                      </span>
+                      <div className="flex-1 truncate">
+                        <p className="truncate font-semibold">{p.name}</p>
+                        {posLabel && <p className="text-[10px] text-[#8fa39b] truncate">{posLabel}</p>}
+                      </div>
+                      {isStarter && (
+                        <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${currentSide === "B" ? "bg-blue-500 text-black" : "bg-emerald-500 text-black"}`}>
+                          11
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
-            ) : (
-              /* Modo de Leitura dos Titulares */
-              <div className="space-y-2">
-                <p className="text-xs font-bold text-[#8fa39b]">Time Titular Escala de Jogo ({starterPlayers.length} atletas):</p>
-                {starterPlayers.length === 0 ? (
-                  <p className="text-xs text-[var(--text-subtle)] italic">Titulares não especificados pelo treinador.</p>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                    {starterPlayers.map((p) => {
-                      const posLabel = playerPositionLabels[p.position as keyof typeof playerPositionLabels] || p.position;
-                      return (
-                        <div key={p.id} className="p-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-center gap-2">
-                          <span className="text-xs font-black text-emerald-400">#{p.shirtNumber || "0"}</span>
-                          <div className="overflow-hidden">
-                            <p className="text-xs font-bold text-white truncate">{p.name}</p>
-                            <p className="text-[9px] text-[#8fa39b]">{posLabel}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
+            </div>
 
-            {/* Motivação Tática Inicial */}
+            {/* Estratégia Inicial */}
             <div>
               <label className="block text-[11px] font-bold text-[#8fa39b] mb-1">
-                Motivação Tática & Ideia de Jogo Inicial (Opcional):
+                Estratégia & Proposta de Jogo Inicial {isTraining ? `do Time ${currentSide}` : ""}:
               </label>
-              {canEdit ? (
+              {currentCanEdit ? (
                 <textarea
-                  value={startingStrategy}
-                  onChange={(e) => setStartingStrategy(e.target.value)}
-                  placeholder="Observações adicionais sobre o plano tático inicial..."
+                  value={currentStrategy}
+                  onChange={(e) => currentSetStrategy(e.target.value)}
+                  placeholder="Instruções táticas iniciais (ex: Marcação pressão alta, saída curta, transição rápida)..."
                   rows={2}
                   className="w-full rounded-xl border border-white/10 bg-black/40 p-2.5 text-xs text-white placeholder:text-white/30 outline-none focus:border-[#36c2a8]"
                 />
               ) : (
-                startingStrategy && (
+                currentStrategy && (
                   <div className="p-3 rounded-xl border border-white/5 bg-white/[0.02] text-xs text-[var(--text)] whitespace-pre-line">
-                    {startingStrategy}
+                    {currentStrategy}
                   </div>
                 )
               )}
             </div>
           </div>
 
-          {/* ── SEÇÃO 2: GERENCIADOR PRÁTICO DE SUBSTITUIÇÕES ─────────── */}
-          <div className="space-y-3 pt-2 border-t border-white/5">
+          {/* ── SEÇÃO 2: SUBSTITUIÇÕES (INTERATIVO) ────────────────────── */}
+          <div className="space-y-4 pt-2 border-t border-white/5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-[#6ee7b7] flex items-center gap-1.5">
-                <ArrowRightLeft className="h-4 w-4" /> 2. Registro Prático de Substituições Realizadas:
-              </label>
+              <div className="flex items-center gap-2">
+                <ArrowRightLeft className="h-5 w-5 text-amber-400" />
+                <h3 className="text-sm font-black text-white uppercase tracking-wide">
+                  2. Substituições Táticas {isTraining ? `(Time ${currentSide})` : ""}
+                </h3>
+              </div>
 
-              {canEdit && (
-                <Button
-                  onClick={addSubstitutionRow}
-                  className="bg-white/10 hover:bg-white/20 text-white font-bold text-xs px-3 py-1 h-auto"
+              {currentCanEdit && (
+                <button
+                  type="button"
+                  onClick={() => addSubstitutionRow(currentSide)}
+                  className="flex items-center gap-1 text-xs font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20"
                 >
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Add Substituição
-                </Button>
+                  <Plus className="h-3.5 w-3.5" /> Adicionar Troca
+                </button>
               )}
             </div>
 
-            {canEdit ? (
+            {currentSubs.length === 0 ? (
+              <p className="text-xs text-[var(--text-subtle)] italic">
+                Nenhuma alteração cadastrada para este time.
+              </p>
+            ) : (
               <div className="space-y-3">
-                {substitutions.length === 0 ? (
-                  <p className="text-xs text-[var(--text-subtle)] italic py-2">
-                    Nenhuma substituição cadastrada. Clique no botão acima para adicionar as trocas feitas no jogo.
-                  </p>
-                ) : (
-                  substitutions.map((sub, idx) => {
-                    const starterOptions = confirmedPlayers.filter((p) => starterPlayerIds.includes(p.id));
-                    const reserveOptions = confirmedPlayers.filter((p) => !starterPlayerIds.includes(p.id));
+                {currentSubs.map((sub, idx) => {
+                  const starterOptions = sidePlayers.filter((p) => currentStarters.includes(p.id));
+                  const reserveOptions = sidePlayers.filter((p) => !currentStarters.includes(p.id));
 
-                    return (
-                      <div key={idx} className="p-3 rounded-xl border border-white/10 bg-black/40 space-y-2">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          <div>
-                            <label className="text-[10px] font-bold text-red-400 block mb-0.5">🔴 Saiu (Titular):</label>
+                  return (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl border border-white/10 bg-[#121212] space-y-2 text-xs"
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {/* Saiu */}
+                        <div>
+                          <label className="block text-[10px] font-bold text-red-400 mb-0.5">🔴 Saiu (Titular):</label>
+                          {currentCanEdit ? (
                             <select
                               value={sub.playerOutId}
-                              onChange={(e) => updateSubstitutionRow(idx, "playerOutId", e.target.value)}
-                              className="w-full rounded-lg border border-white/10 bg-[#16130f] px-2.5 py-1 text-xs font-bold text-white outline-none"
+                              onChange={(e) => updateSubstitutionRow(idx, "playerOutId", e.target.value, currentSide)}
+                              className="w-full rounded-lg border border-white/10 bg-[#16130f] px-2 py-1 text-xs text-white outline-none"
                             >
                               {starterOptions.map((p) => (
                                 <option key={p.id} value={p.id}>
-                                  #{p.shirtNumber} - {p.name}
+                                  #{p.shirtNumber} {p.name}
                                 </option>
                               ))}
                             </select>
-                          </div>
+                          ) : (
+                            <span className="text-red-400 font-bold">
+                              #{sidePlayers.find((p) => p.id === sub.playerOutId)?.shirtNumber} {sidePlayers.find((p) => p.id === sub.playerOutId)?.name}
+                            </span>
+                          )}
+                        </div>
 
-                          <div>
-                            <label className="text-[10px] font-bold text-emerald-400 block mb-0.5">🟢 Entrou (Reserva):</label>
+                        {/* Entrou */}
+                        <div>
+                          <label className="block text-[10px] font-bold text-emerald-400 mb-0.5">🟢 Entrou (Reserva):</label>
+                          {currentCanEdit ? (
                             <select
                               value={sub.playerInId}
-                              onChange={(e) => updateSubstitutionRow(idx, "playerInId", e.target.value)}
-                              className="w-full rounded-lg border border-white/10 bg-[#16130f] px-2.5 py-1 text-xs font-bold text-white outline-none"
+                              onChange={(e) => updateSubstitutionRow(idx, "playerInId", e.target.value, currentSide)}
+                              className="w-full rounded-lg border border-white/10 bg-[#16130f] px-2 py-1 text-xs text-white outline-none"
                             >
                               {reserveOptions.map((p) => (
                                 <option key={p.id} value={p.id}>
-                                  #{p.shirtNumber} - {p.name}
+                                  #{p.shirtNumber} {p.name}
                                 </option>
                               ))}
                             </select>
-                          </div>
+                          ) : (
+                            <span className="text-emerald-400 font-bold">
+                              #{sidePlayers.find((p) => p.id === sub.playerInId)?.shirtNumber} {sidePlayers.find((p) => p.id === sub.playerInId)?.name}
+                            </span>
+                          )}
+                        </div>
 
-                          <div>
-                            <label className="text-[10px] font-bold text-[#8fa39b] block mb-0.5">⏱️ Minuto / Tempo:</label>
+                        {/* Minuto */}
+                        <div>
+                          <label className="block text-[10px] font-bold text-amber-400 mb-0.5">⏱️ Minuto/Tempo:</label>
+                          {currentCanEdit ? (
                             <input
                               type="text"
                               value={sub.minute}
-                              onChange={(e) => updateSubstitutionRow(idx, "minute", e.target.value)}
-                              placeholder="ex: 15' 2ºT"
-                              className="w-full rounded-lg border border-white/10 bg-[#16130f] px-2.5 py-1 text-xs text-white outline-none"
+                              onChange={(e) => updateSubstitutionRow(idx, "minute", e.target.value, currentSide)}
+                              placeholder="Ex: 15' 2ºT"
+                              className="w-full rounded-lg border border-white/10 bg-[#16130f] px-2 py-1 text-xs text-white outline-none"
                             />
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={sub.reason}
-                            onChange={(e) => updateSubstitutionRow(idx, "reason", e.target.value)}
-                            placeholder="Motivo tático / justificativa da troca (ex: Cansaço / Dar mais velocidade pela ponta)..."
-                            className="flex-1 rounded-lg border border-white/10 bg-[#16130f] px-2.5 py-1 text-xs text-white outline-none"
-                          />
-                          <button
-                            onClick={() => removeSubstitutionRow(idx)}
-                            className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          ) : (
+                            <span className="text-amber-400">{sub.minute || "Intervalo"}</span>
+                          )}
                         </div>
                       </div>
-                    );
-                  })
-                )}
-              </div>
-            ) : (
-              /* Modo de Leitura das Substituições */
-              <div className="space-y-2">
-                {substitutions.length === 0 ? (
-                  <p className="text-xs text-[var(--text-subtle)] italic">Nenhuma substituição cadastrada nesta partida.</p>
-                ) : (
-                  substitutions.map((sub, idx) => {
-                    const playerOut = confirmedPlayers.find((p) => p.id === sub.playerOutId);
-                    const playerIn = confirmedPlayers.find((p) => p.id === sub.playerInId);
 
-                    return (
-                      <div key={idx} className="p-3 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="font-black text-amber-400 shrink-0">⏱️ {sub.minute || "Troca"}</span>
-                          <span className="text-red-400 font-bold">🔴 Saiu: #{playerOut?.shirtNumber || 0} {playerOut?.name || "Atleta"}</span>
-                          <span className="text-white">➔</span>
-                          <span className="text-emerald-400 font-bold">🟢 Entrou: #{playerIn?.shirtNumber || 0} {playerIn?.name || "Atleta"}</span>
-                        </div>
-                        {sub.reason && <span className="text-[#8fa39b] italic">"{sub.reason}"</span>}
+                      {/* Motivo */}
+                      <div className="flex items-center gap-2">
+                        {currentCanEdit ? (
+                          <>
+                            <input
+                              type="text"
+                              value={sub.reason}
+                              onChange={(e) => updateSubstitutionRow(idx, "reason", e.target.value, currentSide)}
+                              placeholder="Motivo tático / justificativa da troca (ex: Cansaço / Mais velocidade)..."
+                              className="flex-1 rounded-lg border border-white/10 bg-[#16130f] px-2.5 py-1 text-xs text-white outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeSubstitutionRow(idx, currentSide)}
+                              className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        ) : (
+                          sub.reason && <span className="text-[#8fa39b] italic">"{sub.reason}"</span>
+                        )}
                       </div>
-                    );
-                  })
-                )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -753,18 +951,18 @@ export function MatchCoachReportTab({
               <label className="block text-[11px] font-bold text-[#8fa39b] mb-1">
                 Observações Adicionais sobre as Substituições:
               </label>
-              {canEdit ? (
+              {currentCanEdit ? (
                 <textarea
-                  value={substitutionsNotes}
-                  onChange={(e) => setSubstitutionsNotes(e.target.value)}
+                  value={currentSubNotes}
+                  onChange={(e) => currentSetSubNotes(e.target.value)}
                   placeholder="Considerações gerais do treinador sobre as alterações..."
                   rows={2}
                   className="w-full rounded-xl border border-white/10 bg-black/40 p-2.5 text-xs text-white placeholder:text-white/30 outline-none focus:border-[#36c2a8]"
                 />
               ) : (
-                substitutionsNotes && (
+                currentSubNotes && (
                   <div className="p-3 rounded-xl border border-white/5 bg-white/[0.02] text-xs text-[var(--text)] whitespace-pre-line">
-                    {substitutionsNotes}
+                    {currentSubNotes}
                   </div>
                 )
               )}
@@ -777,17 +975,17 @@ export function MatchCoachReportTab({
               <label className="block text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                 <Sparkles className="h-4 w-4" /> Pontos Fortes Observados:
               </label>
-              {canEdit ? (
+              {currentCanEdit ? (
                 <textarea
-                  value={strengths}
-                  onChange={(e) => setStrengths(e.target.value)}
+                  value={currentStrengths}
+                  onChange={(e) => currentSetStrengths(e.target.value)}
                   placeholder="O que funcionou bem taticamente nesta partida..."
                   rows={3}
                   className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-white placeholder:text-white/30 outline-none focus:border-[#36c2a8]"
                 />
               ) : (
                 <div className="p-3 rounded-xl border border-white/5 bg-white/[0.02] text-xs text-[var(--text)] leading-relaxed whitespace-pre-line">
-                  {strengths || "Não informado."}
+                  {currentStrengths || "Não informado."}
                 </div>
               )}
             </div>
@@ -796,17 +994,17 @@ export function MatchCoachReportTab({
               <label className="block text-xs font-bold text-yellow-400 flex items-center gap-1.5">
                 <AlertCircle className="h-4 w-4" /> Aspectos a Trabalhar nos Treinos:
               </label>
-              {canEdit ? (
+              {currentCanEdit ? (
                 <textarea
-                  value={improvements}
-                  onChange={(e) => setImprovements(e.target.value)}
+                  value={currentImprovements}
+                  onChange={(e) => currentSetImprovements(e.target.value)}
                   placeholder="Erros a corrigir e aspectos para evoluir..."
                   rows={3}
                   className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-white placeholder:text-white/30 outline-none focus:border-[#36c2a8]"
                 />
               ) : (
                 <div className="p-3 rounded-xl border border-white/5 bg-white/[0.02] text-xs text-[var(--text)] leading-relaxed whitespace-pre-line">
-                  {improvements || "Não informado."}
+                  {currentImprovements || "Não informado."}
                 </div>
               )}
             </div>
@@ -815,19 +1013,19 @@ export function MatchCoachReportTab({
           {/* Resumo Geral */}
           <div className="space-y-2 pt-2 border-t border-white/5">
             <label className="block text-xs font-bold text-white flex items-center gap-1.5">
-              📋 Resumo Geral & Conclusão do Treinador:
+              📋 Resumo Geral & Conclusão do Treinador {isTraining ? `(Time ${currentSide})` : ""}:
             </label>
-            {canEdit ? (
+            {currentCanEdit ? (
               <textarea
-                value={summary}
-                onChange={(e) => setSummary(e.target.value)}
+                value={currentSummary}
+                onChange={(e) => currentSetSummary(e.target.value)}
                 placeholder="Parecer geral da atuação da equipe..."
                 rows={3}
                 className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-white placeholder:text-white/30 outline-none focus:border-[#36c2a8]"
               />
             ) : (
               <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] text-xs text-[var(--text)] leading-relaxed whitespace-pre-line">
-                {summary || "Sem parecer geral adicional registrado."}
+                {currentSummary || "Sem parecer geral adicional registrado."}
               </div>
             )}
           </div>
@@ -837,19 +1035,31 @@ export function MatchCoachReportTab({
       {/* Avaliações Individuais dos Atletas */}
       <Card>
         <CardHeader>
-          <h3 className="text-base font-bold text-white">Notas e Parecer Técnico Individual por Atleta</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-white">
+              Notas e Parecer Técnico Individual {isTraining ? `(Atletas do Time ${currentSide})` : "por Atleta"}
+            </h3>
+            {isTraining && (
+              <Badge variant="default" className="text-xs font-bold">
+                {sidePlayers.length} atletas
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {match.stats.length === 0 ? (
+          {sidePlayers.length === 0 ? (
             <p className="text-xs text-[var(--text-subtle)] text-center py-4">
-              Nenhum jogador registrado nas estatísticas desta partida.
+              Nenhum jogador registrado neste time.
             </p>
           ) : (
-            match.stats.map((p) => {
-              const key = p.playerId || p.guestPlayerId || p.playerName;
-              const ev = evaluations[key] || { rating: 5, feedback: "" };
-              const rawPosition = p.position || (ev as any).position;
+            sidePlayers.map((p) => {
+              const key = p.playerId || p.guestPlayerId || p.name;
+              const ev = currentEvaluations[key] || { rating: 5, feedback: "" };
+              const rawPosition = p.position;
               const posLabel = rawPosition ? (playerPositionLabels[rawPosition as keyof typeof playerPositionLabels] || rawPosition) : "";
+
+              // Stat if available
+              const playerStat = match.stats.find((st) => (st.playerId || st.guestPlayerId) === (p.playerId || p.guestPlayerId));
 
               return (
                 <div
@@ -859,26 +1069,28 @@ export function MatchCoachReportTab({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="h-9 w-9 rounded-full bg-white/10 border border-white/10 flex items-center justify-center font-bold text-xs text-white">
-                        {p.playerName.charAt(0).toUpperCase()}
+                        {p.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-sm">{p.playerName}</span>
+                          <span className="font-bold text-white text-sm">{p.name}</span>
                           {posLabel && <span className="text-[10px] font-bold text-[#8fa39b]">({posLabel})</span>}
                         </div>
-                        <div className="text-[11px] text-[#8fa39b] mt-0.5">
-                          ⚽ Gols: {p.goals} · 🅰️ Assist: {p.assists} · 🟨 Cartões: {p.yellowCards}
-                        </div>
+                        {playerStat && (
+                          <div className="text-[11px] text-[#8fa39b] mt-0.5">
+                            ⚽ Gols: {playerStat.goals} · 🅰️ Assist: {playerStat.assists} · 🟨 Cartões: {playerStat.yellowCards}
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     {/* Nota do Treinador */}
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-[#8fa39b]">Nota do Treinador:</span>
-                      {canEdit ? (
+                      {currentCanEdit ? (
                         <select
                           value={ev.rating}
-                          onChange={(e) => handleRatingChange(key, Number(e.target.value), p.playerId, p.guestPlayerId)}
+                          onChange={(e) => handleRatingChange(key, Number(e.target.value), p.playerId, p.guestPlayerId, currentSide)}
                           className="rounded-xl border border-white/10 bg-[#16130f] px-3 py-1 text-sm font-black text-emerald-400 outline-none focus:border-[#36c2a8]"
                         >
                           {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map((n) => (
@@ -888,7 +1100,7 @@ export function MatchCoachReportTab({
                           ))}
                         </select>
                       ) : (
-                        <span className={`px-2.5 py-1 rounded-lg border font-black text-xs ${getRatingBadgeColor(ev.rating)}`}>
+                        <span className="px-2.5 py-1 rounded-lg border border-white/10 font-black text-xs text-emerald-400">
                           {ev.rating} ⭐
                         </span>
                       )}
@@ -897,12 +1109,12 @@ export function MatchCoachReportTab({
 
                   {/* Feedback Individual do Treinador */}
                   <div>
-                    {canEdit ? (
+                    {currentCanEdit ? (
                       <input
                         type="text"
                         value={ev.feedback}
-                        onChange={(e) => handleFeedbackChange(key, e.target.value, p.playerId, p.guestPlayerId)}
-                        placeholder={`Parecer do treinador sobre a atuação de ${p.playerName}...`}
+                        onChange={(e) => handleFeedbackChange(key, e.target.value, p.playerId, p.guestPlayerId, currentSide)}
+                        placeholder={`Parecer do treinador sobre a atuação de ${p.name}...`}
                         className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-xs text-white placeholder:text-white/20 outline-none focus:border-[#36c2a8]"
                       />
                     ) : (
@@ -916,49 +1128,21 @@ export function MatchCoachReportTab({
             })
           )}
 
-          {/* Botão de Salvar & Feedback com Barra Flutuante Mobile */}
-          {canEdit && (
-            <>
-              <div className="pt-4 space-y-3">
-                {feedbackMsg && (
-                  <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-xs font-bold text-emerald-400">
-                    ✅ {feedbackMsg}
-                  </div>
-                )}
-                {errorMsg && (
-                  <div className="p-3.5 rounded-xl border border-red-500/30 bg-red-500/10 text-xs font-bold text-red-400">
-                    ⚠️ {errorMsg}
-                  </div>
-                )}
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    onClick={handleSaveReport}
-                    disabled={saving}
-                    loading={saving}
-                    className="w-full sm:w-auto bg-[#10b981] hover:bg-[#34d399] active:scale-95 touch-manipulation text-black font-extrabold text-xs uppercase tracking-wider px-6 py-3 shadow-lg"
-                  >
-                    {saving ? "Salvando..." : "💾 Publicar Relatório Tático & Titulares"}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Sticky Action Bar for Mobile Devices */}
-              <div className="sm:hidden fixed bottom-4 left-4 right-4 z-40 p-3 rounded-2xl bg-[#16130f]/95 border border-emerald-500/40 backdrop-blur-md shadow-2xl flex items-center justify-between gap-3">
-                <div className="text-[11px] font-bold text-emerald-400 leading-tight">
-                  Relatório do Treinador
-                </div>
+          {/* Botão de Salvar */}
+          {currentCanEdit && (
+            <div className="pt-4 space-y-3">
+              <div className="flex justify-end">
                 <Button
                   type="button"
                   onClick={handleSaveReport}
                   disabled={saving}
                   loading={saving}
-                  className="bg-[#10b981] hover:bg-[#34d399] active:scale-95 touch-manipulation text-black font-black text-xs uppercase px-4 py-2.5 shadow-md"
+                  className="w-full sm:w-auto bg-[#10b981] hover:bg-[#34d399] active:scale-95 touch-manipulation text-black font-extrabold text-xs uppercase tracking-wider px-6 py-3 shadow-lg"
                 >
-                  {saving ? "Salvando..." : "💾 Publicar"}
+                  {saving ? "Salvando..." : isTraining ? `💾 Salvar Relatório & Notas (Time ${currentSide})` : "💾 Publicar Relatório Tático & Titulares"}
                 </Button>
               </div>
-            </>
+            </div>
           )}
         </CardContent>
       </Card>

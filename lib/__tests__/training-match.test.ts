@@ -187,4 +187,30 @@ describe("Amistoso Treino (Training Match) Validations and Squad Division", () =
       expect((snapshot.lineup.starters[1] as any).teamSide).toBe("B");
     });
   });
+
+  describe("calculateNewScore for TRAINING matches", () => {
+    it("increments homeScore (Time A) when teamIsScorer is true", async () => {
+      const { calculateNewScore } = await import("../match-live-service");
+      const score = calculateNewScore(
+        { homeScore: 1, awayScore: 1 },
+        true,
+        true,
+        "TRAINING"
+      );
+      expect(score.homeScore).toBe(2);
+      expect(score.awayScore).toBe(1);
+    });
+
+    it("increments awayScore (Time B) when teamIsScorer is false", async () => {
+      const { calculateNewScore } = await import("../match-live-service");
+      const score = calculateNewScore(
+        { homeScore: 1, awayScore: 1 },
+        true,
+        false,
+        "TRAINING"
+      );
+      expect(score.homeScore).toBe(1);
+      expect(score.awayScore).toBe(2);
+    });
+  });
 });

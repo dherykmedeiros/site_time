@@ -15,8 +15,16 @@ export interface ScoreState {
 export function calculateNewScore(
   current: ScoreState,
   isHome: boolean,
-  teamIsScorer: boolean
+  teamIsScorer: boolean,
+  matchType?: string
 ): ScoreState {
+  if (matchType === "TRAINING") {
+    return {
+      homeScore: teamIsScorer ? current.homeScore + 1 : current.homeScore,
+      awayScore: !teamIsScorer ? current.awayScore + 1 : current.awayScore,
+    };
+  }
+
   const isOurGoal = teamIsScorer;
   const isHomeGoal = (isHome && isOurGoal) || (!isHome && !isOurGoal);
 
