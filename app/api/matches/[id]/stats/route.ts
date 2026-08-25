@@ -216,15 +216,19 @@ export async function POST(request: Request, { params }: RouteParams) {
       })),
     });
 
-    const teamGoals = stats.reduce((sum, s) => sum + (s.goals || 0), 0);
-    const currentOurScore = match.isHome ? match.homeScore : match.awayScore;
+    // For TRAINING matches, the score (Time A vs Time B) is already set correctly
+    // in Step 1 of PostGameForm — do NOT overwrite it by summing all goals.
+    if (match.type !== "TRAINING") {
+      const teamGoals = stats.reduce((sum, s) => sum + (s.goals || 0), 0);
+      const currentOurScore = match.isHome ? match.homeScore : match.awayScore;
 
-    if (currentOurScore === null || currentOurScore === undefined || teamGoals > currentOurScore) {
-      const scoreUpdate = match.isHome ? { homeScore: teamGoals } : { awayScore: teamGoals };
-      await tx.match.update({
-        where: { id: matchId },
-        data: scoreUpdate,
-      });
+      if (currentOurScore === null || currentOurScore === undefined || teamGoals > currentOurScore) {
+        const scoreUpdate = match.isHome ? { homeScore: teamGoals } : { awayScore: teamGoals };
+        await tx.match.update({
+          where: { id: matchId },
+          data: scoreUpdate,
+        });
+      }
     }
 
     for (const s of stats) {
@@ -360,15 +364,18 @@ export async function PUT(request: Request, { params }: RouteParams) {
       })),
     });
 
-    const teamGoals = stats.reduce((sum, s) => sum + (s.goals || 0), 0);
-    const currentOurScore = match.isHome ? match.homeScore : match.awayScore;
+    // For TRAINING matches, the score (Time A vs Time B) is already set correctly — do NOT overwrite.
+    if (match.type !== "TRAINING") {
+      const teamGoals = stats.reduce((sum, s) => sum + (s.goals || 0), 0);
+      const currentOurScore = match.isHome ? match.homeScore : match.awayScore;
 
-    if (currentOurScore === null || currentOurScore === undefined || teamGoals > currentOurScore) {
-      const scoreUpdate = match.isHome ? { homeScore: teamGoals } : { awayScore: teamGoals };
-      await tx.match.update({
-        where: { id: matchId },
-        data: scoreUpdate,
-      });
+      if (currentOurScore === null || currentOurScore === undefined || teamGoals > currentOurScore) {
+        const scoreUpdate = match.isHome ? { homeScore: teamGoals } : { awayScore: teamGoals };
+        await tx.match.update({
+          where: { id: matchId },
+          data: scoreUpdate,
+        });
+      }
     }
 
     // Ensure attendance is marked as present for all these players
