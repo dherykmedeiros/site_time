@@ -160,9 +160,9 @@ interface ThemeConfig {
 
 ---
 
-## Research Task 6: Cache-Control on Vercel for OG Routes
+## Research Task 6: Cache-Control for OG routes behind Coolify
 
-**Question**: What Cache-Control headers are needed for effective CDN caching on Vercel?
+**Question**: What Cache-Control headers are needed for effective caching in the proxy/CDN deployed with Coolify?
 
 **Decision**: `Cache-Control: public, s-maxage=3600, stale-while-revalidate=600`
 
@@ -170,8 +170,8 @@ interface ThemeConfig {
 - `s-maxage=3600`: CDN caches for 1 hour. Client-side `max-age` is NOT set (browser always revalidates with CDN).
 - `stale-while-revalidate=600`: Within 10 minutes after 1h expiry, CDN serves stale while revalidating in background — prevents cache stampede.
 - `public`: Allows CDN and shared caches to store the response. Recap images are public by design.
-- Vercel CDN respects `s-maxage` from Route Handlers automatically.
-- `x-vercel-cache: HIT` header confirms CDN cache hit in production.
+- The reverse proxy/CDN must be configured to preserve and honor `s-maxage` from Route Handlers.
+- Cache-hit evidence comes from the headers or logs of the selected proxy/CDN; `x-vercel-cache` is not a portable assertion.
 
 **Implementation**:
 ```typescript

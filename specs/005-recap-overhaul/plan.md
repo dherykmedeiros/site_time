@@ -13,7 +13,7 @@ Comprehensive overhaul of the recap and sharing system: fix share URLs to always
 **Primary Dependencies**: Next.js 16 (App Router, Turbopack), Prisma ORM, Tailwind CSS, NextAuth.js, Zod, `next/og` (Satori → PNG)
 **Storage**: PostgreSQL via Prisma — no new models; all recaps computed from existing tables (Season, Match, MatchStats, MatchAttendance, Player, Team)
 **Testing**: Manual testing + existing npm test/lint scripts
-**Target Platform**: Vercel (serverless), CDN-cached OG images, mobile-first share UX
+**Target Platform**: Hostinger VPS gerenciada por Coolify (container Next.js), imagens OG com cache HTTP no proxy/CDN configurado, UX de compartilhamento mobile-first
 **Project Type**: Web application (Next.js App Router)
 **Performance Goals**: OG images cached at CDN edge for 1h (`s-maxage=3600, stale-while-revalidate=600`); recap JSON responses < 200ms
 **Constraints**: No new Prisma migrations. Satori font loading limited to .ttf/.woff. `ImageResponse` max 4MB output.
@@ -167,7 +167,7 @@ No constitution violations detected. No complexity justification needed.
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Satori font loading fails on Vercel Edge | OG images fall back to Arial | Load `.ttf` from `public/fonts/` with absolute URL; test on Vercel preview deploy |
+| Satori/fontes falham no container Linux | OG images fall back to Arial ou retornam erro | Carregar `.ttf` com URL absoluta e testar as rotas OG na imagem final implantada pelo Coolify |
 | ImageResponse exceeds 4MB for Stories format | Route returns error | Keep designs simple; test with data-heavy recaps |
 | Web Share API `files` not supported on iOS Safari < 15.4 | Share button falls back to copy-link | Feature-detect `navigator.canShare({files: [...]})` before using files |
 | CDN cache serves stale data after match update | Old recap shown for up to 1h | Acceptable trade-off per spec; document in quickstart |

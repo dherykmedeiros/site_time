@@ -52,7 +52,7 @@ A team admin shares the vitrine link on WhatsApp or Twitter. The social platform
 **Acceptance Scenarios**:
 
 1. **Given** any OG image route (`/api/og/player-recap/...`, `/api/og/team-recap/...`, `/api/og/match/...`), **When** the route responds, **Then** the response includes `Cache-Control: public, s-maxage=3600, stale-while-revalidate=600`.
-2. **Given** a second request to the same OG URL within 3600 seconds, **When** served by CDN, **Then** the response is served from cache (verifiable via `x-vercel-cache: HIT` header on Vercel).
+2. **Given** a second request to the same OG URL within 3600 seconds, **When** served by the configured proxy/CDN, **Then** it is eligible to be served from cache; cache-hit verification uses that provider's headers or logs, not Vercel-specific headers.
 
 ---
 
@@ -249,7 +249,7 @@ Before sharing, a user sees a live thumbnail preview of the recap card rendered 
 - Users access recap/share features primarily on mobile devices (Android and iOS) where Web Share API is widely supported.
 - The existing vitrine page infrastructure (`/vitrine/[slug]`) will be extended to support new recap types (season, weekly, per-match player) without a full redesign.
 - Satori (used by `next/og`) supports loading custom `.ttf`/`.woff` font files, which will be bundled in the project assets.
-- Vercel's CDN respects `Cache-Control` headers set in OG route responses — no additional CDN configuration is needed.
+- The proxy/CDN in front of Coolify must preserve and honor the `Cache-Control` headers set by the OG routes; this is validated in the target environment.
 - The `MatchAttendance` model is already populated for past matches; no backfill migration is required for attendance data.
 - Team `primaryColor` and `secondaryColor` are hex strings (e.g., `#FF5500`). If null, the system defaults to a neutral palette.
 - "Weekly" means a rolling 7-day window from the current date, not a calendar week (Monday–Sunday). Same logic for "monthly" (rolling 30 days).
