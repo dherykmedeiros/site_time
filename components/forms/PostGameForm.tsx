@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
+import { Sparkles, ArrowLeftRight } from "lucide-react";
 
 interface RSVP {
   playerId: string;
@@ -21,6 +22,7 @@ interface PlayerStatInput {
   assists: number;
   yellowCards: number;
   redCards: number;
+  teamSide?: "A" | "B";
 }
 
 interface SquadPlayer {
@@ -33,6 +35,8 @@ interface SquadPlayer {
 
 interface PostGameFormProps {
   matchId: string;
+  matchType?: string;
+  lineupData?: any;
   rsvps: RSVP[];
   mode?: "create" | "edit";
   initialHomeScore?: number | null;
@@ -48,6 +52,8 @@ interface PostGameFormProps {
 
 export function PostGameForm({
   matchId,
+  matchType,
+  lineupData,
   rsvps,
   mode = "create",
   initialHomeScore,
@@ -60,6 +66,7 @@ export function PostGameForm({
   onSuccess,
   onCancel,
 }: PostGameFormProps) {
+  const isTraining = matchType === "TRAINING";
   const isHomeActual = initialIsHome ?? true;
   const [isHome, setIsHome] = useState(isHomeActual);
   const [ourScore, setOurScore] = useState<number>(
@@ -76,6 +83,48 @@ export function PostGameForm({
 
   const [squadPlayers, setSquadPlayers] = useState<SquadPlayer[]>([]);
   const [selectedPlayerToAdd, setSelectedPlayerToAdd] = useState("");
+  const [selectedSideToAdd, setSelectedSideToAdd] = useState<"A" | "B">("A");
+
+  // Track team sides for players (A or B)
+  const [playerSides, setPlayerSides] = useState<Record<string, "A" | "B">>({});
+
+  // Initialize player sides from lineupData or fetch if missing
+  useEffect(() => {
+    const sides: Record<string, "A" | "B"> = {};
+    if (lineupData?.trainingDivision) {
+      const div = lineupData.trainingDivision;
+      [...div.teamA.starters, ...div.teamA.bench].forEach((p: any) => {
+        const id = p.guestPlayerId || p.playerId || p.id;
+        if (id) sides[id] = "A";
+      });
+      [...div.teamB.starters, ...div.teamB.bench].forEach((p: any) => {
+        const id = p.guestPlayerId || p.playerId || p.id;
+        if (id) sides[id] = "B";
+      });
+      setPlayerSides(sides);
+    } else if (lineupData?.lineup) {
+      [...lineupData.lineup.starters, ...lineupData.lineup.bench].forEach((p: any) => {
+        const id = p.guestPlayerId || p.playerId || p.id;
+        if (id) sides[id] = p.teamSide === "B" ? "B" : "A";
+      });
+      setPlayerSides(sides);
+    } else if (isTraining) {
+      // Fetch lineup to get team sides
+      fetch(`/api/matches/${matchId}/lineup`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (d?.lineup) {
+            const fetchedSides: Record<string, "A" | "B"> = {};
+            [...d.lineup.starters, ...d.lineup.bench].forEach((p: any) => {
+              const id = p.guestPlayerId || p.playerId || p.id;
+              if (id) fetchedSides[id] = p.teamSide === "B" ? "B" : "A";
+            });
+            setPlayerSides((prev) => ({ ...fetchedSides, ...prev }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [lineupData, isTraining, matchId]);
 
   useEffect(() => {
     fetch("/api/players")
@@ -87,20 +136,33 @@ export function PostGameForm({
   }, []);
 
   // Initialize stats for confirmed players
+  const getEffectiveId = (item: { playerId?: string | null; guestPlayerId?: string | null }) =>
+    item.guestPlayerId || item.playerId || "";
+
   const confirmedPlayers = rsvps.filter((r) => r.status === "CONFIRMED");
-  const initialStatsByPlayer = new Map((initialStats || []).map((item) => [item.playerId, item]));
+  const initialStatsByEffectiveId = new Map(
+    (initialStats || []).map((item) => [getEffectiveId(item), item])
+  );
+
+  const confirmedEffectiveIds = new Set(
+    confirmedPlayers.map((r) => r.guestPlayerId || r.playerId)
+  );
+
   const mergedPlayers = [
     ...confirmedPlayers.map((r) => ({
-      playerId: r.playerId,
-      guestPlayerId: r.isGuest ? r.playerId : null,
+      playerId: r.isGuest ? null : r.playerId,
+      guestPlayerId: r.isGuest ? (r.guestPlayerId || r.playerId) : null,
       playerName: r.playerName,
       status: r.status,
     })),
     ...((initialStats || [])
-      .filter((item) => !confirmedPlayers.some((player) => player.playerId === item.playerId))
+      .filter((item) => {
+        const effId = getEffectiveId(item);
+        return effId && !confirmedEffectiveIds.has(effId);
+      })
       .map((item) => ({
-        playerId: item.playerId,
-        guestPlayerId: item.guestPlayerId,
+        playerId: item.guestPlayerId ? null : item.playerId,
+        guestPlayerId: item.guestPlayerId || null,
         playerName: item.playerName,
         status: "CONFIRMED",
         respondedAt: null,
@@ -108,24 +170,32 @@ export function PostGameForm({
   ];
 
   const [playerStats, setPlayerStats] = useState<PlayerStatInput[]>(
-    mergedPlayers.map((r) => ({
-      playerId: r.playerId,
-      guestPlayerId: r.guestPlayerId || null,
-      playerName: r.playerName,
-      goals: initialStatsByPlayer.get(r.playerId)?.goals ?? 0,
-      assists: initialStatsByPlayer.get(r.playerId)?.assists ?? 0,
-      yellowCards: initialStatsByPlayer.get(r.playerId)?.yellowCards ?? 0,
-      redCards: initialStatsByPlayer.get(r.playerId)?.redCards ?? 0,
-    }))
+    mergedPlayers.map((r) => {
+      const effId = getEffectiveId(r);
+      const stat = initialStatsByEffectiveId.get(effId);
+      return {
+        playerId: r.playerId || stat?.playerId || "",
+        guestPlayerId: r.guestPlayerId || stat?.guestPlayerId || null,
+        playerName: r.playerName,
+        goals: stat?.goals ?? 0,
+        assists: stat?.assists ?? 0,
+        yellowCards: stat?.yellowCards ?? 0,
+        redCards: stat?.redCards ?? 0,
+      };
+    })
+  );
+
+  const playerStatsEffectiveIds = new Set(
+    playerStats.map((ps) => ps.guestPlayerId || ps.playerId)
   );
 
   const eligiblePlayers = squadPlayers.filter(
-    (sp) => !playerStats.some((ps) => ps.playerId === sp.id)
+    (sp) => !playerStatsEffectiveIds.has(sp.id)
   );
 
   function updatePlayerStat(
     index: number,
-    field: keyof Omit<PlayerStatInput, "playerId" | "playerName">,
+    field: keyof Omit<PlayerStatInput, "playerId" | "playerName" | "teamSide">,
     value: number
   ) {
     setPlayerStats((prev) => {
@@ -139,11 +209,44 @@ export function PostGameForm({
     setPlayerStats((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   }
 
+  function togglePlayerSide(id: string) {
+    setPlayerSides((prev) => ({
+      ...prev,
+      [id]: prev[id] === "B" ? "A" : "B",
+    }));
+  }
+
+  // Calculated goals by team
+  const goalsSumA = useMemo(() => {
+    return playerStats
+      .filter((p) => {
+        const id = p.guestPlayerId || p.playerId;
+        return (playerSides[id] || "A") === "A";
+      })
+      .reduce((sum, p) => sum + p.goals, 0);
+  }, [playerStats, playerSides]);
+
+  const goalsSumB = useMemo(() => {
+    return playerStats
+      .filter((p) => {
+        const id = p.guestPlayerId || p.playerId;
+        return playerSides[id] === "B";
+      })
+      .reduce((sum, p) => sum + p.goals, 0);
+  }, [playerStats, playerSides]);
+
+  function handleSyncScoreWithGoals() {
+    setOurScore(goalsSumA);
+    setOpponentScore(goalsSumB);
+  }
+
   async function handleSubmitScore() {
     setLoading(true);
     setErrorMsg("");
 
-    const payload = isHome
+    const payload = isTraining
+      ? { homeScore: ourScore, awayScore: opponentScore, isHome: true }
+      : isHome
       ? { homeScore: ourScore, awayScore: opponentScore }
       : { homeScore: opponentScore, awayScore: ourScore };
 
@@ -177,12 +280,12 @@ export function PostGameForm({
     try {
       const metadataPayload: Record<string, unknown> = {};
 
-      if (allowIsHomeEdit) {
+      if (!isTraining && allowIsHomeEdit) {
         metadataPayload.isHome = isHome;
       }
 
       if (mode === "edit") {
-        if (isHome) {
+        if (isTraining || isHome) {
           metadataPayload.homeScore = ourScore;
           metadataPayload.awayScore = opponentScore;
         } else {
@@ -191,7 +294,7 @@ export function PostGameForm({
         }
       }
 
-      if (allowOpponentBadgeEdit && opponentBadgeInput.trim()) {
+      if (!isTraining && allowOpponentBadgeEdit && opponentBadgeInput.trim()) {
         metadataPayload.opponentBadgeUrl = opponentBadgeInput.trim();
       }
 
@@ -204,46 +307,61 @@ export function PostGameForm({
 
         if (!badgeRes.ok) {
           const badgeData = await badgeRes.json();
-          setErrorMsg(badgeData.error || "Erro ao salvar dados do pos-jogo");
+          setErrorMsg(badgeData.error || "Erro ao salvar dados do pós-jogo");
           return;
         }
       }
 
-      // Validate stats
-      for (const stat of playerStats) {
-        if (stat.yellowCards > 2) {
-          setErrorMsg(`${stat.playerName}: máximo 2 cartões amarelos`);
-          setLoading(false);
-          return;
+      if (playerStats.length > 0) {
+        // Validate stats
+        for (const stat of playerStats) {
+          if (stat.yellowCards > 2) {
+            setErrorMsg(`${stat.playerName}: máximo 2 cartões amarelos`);
+            setLoading(false);
+            return;
+          }
+          if (stat.redCards > 1) {
+            setErrorMsg(`${stat.playerName}: máximo 1 cartão vermelho`);
+            setLoading(false);
+            return;
+          }
         }
-        if (stat.redCards > 1) {
-          setErrorMsg(`${stat.playerName}: máximo 1 cartão vermelho`);
-          setLoading(false);
-          return;
+
+        const statsPayload = {
+          stats: playerStats.map((s) => ({
+            playerId: s.guestPlayerId ? null : s.playerId,
+            guestPlayerId: s.guestPlayerId || null,
+            goals: s.goals,
+            assists: s.assists,
+            yellowCards: s.yellowCards,
+            redCards: s.redCards,
+          })),
+        };
+
+        const res = await fetch(`/api/matches/${matchId}/stats`, {
+          method: mode === "edit" ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(statsPayload),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          if (data.code === "STATS_ALREADY_EXIST") {
+            const putRes = await fetch(`/api/matches/${matchId}/stats`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(statsPayload),
+            });
+            if (!putRes.ok) {
+              const putData = await putRes.json();
+              setErrorMsg(putData.error || "Erro ao registrar estatísticas");
+              return;
+            }
+          } else {
+            setErrorMsg(data.error || "Erro ao registrar estatísticas");
+            return;
+          }
         }
-      }
-
-      const statsPayload = {
-        stats: playerStats.map((s) => ({
-          playerId: s.guestPlayerId ? null : s.playerId,
-          guestPlayerId: s.guestPlayerId || null,
-          goals: s.goals,
-          assists: s.assists,
-          yellowCards: s.yellowCards,
-          redCards: s.redCards,
-        })),
-      };
-
-      const res = await fetch(`/api/matches/${matchId}/stats`, {
-        method: mode === "edit" ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(statsPayload),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        setErrorMsg(data.error || "Erro ao registrar estatísticas");
-        return;
       }
 
       onSuccess?.();
@@ -273,13 +391,13 @@ export function PostGameForm({
       const data = await res.json();
 
       if (!res.ok) {
-        setErrorMsg(data.error || "Erro ao enviar escudo do adversario");
+        setErrorMsg(data.error || "Erro ao enviar escudo do adversário");
         return;
       }
 
       setOpponentBadgeInput(data.url);
     } catch {
-      setErrorMsg("Erro ao enviar escudo do adversario");
+      setErrorMsg("Erro ao enviar escudo do adversário");
     } finally {
       setUploadingBadge(false);
     }
@@ -288,31 +406,32 @@ export function PostGameForm({
   return (
     <div className="space-y-4">
       {errorMsg && (
-        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-md bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
           {errorMsg}
         </div>
       )}
 
       {step === "score" && (
         <>
-          <p className="text-sm text-gray-600">
-            Registre o placar final da partida. Isso marcará a partida como
-            finalizada.
+          <p className="text-sm text-[var(--text-muted)]">
+            {isTraining
+              ? "Registre o placar final do Amistoso Treino entre Time A e Time B."
+              : "Registre o placar final da partida. Isso marcará a partida como finalizada."}
           </p>
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <Input
-                label={isHome ? "Nosso Time (Casa)" : "Nosso Time (Visitante)"}
+                label={isTraining ? "Time A (Colete)" : isHome ? "Nosso Time (Casa)" : "Nosso Time (Visitante)"}
                 type="number"
                 min={0}
                 value={ourScore}
                 onChange={(e) => setOurScore(parseInt(e.target.value) || 0)}
               />
             </div>
-            <span className="pt-6 text-2xl font-bold text-gray-400">x</span>
+            <span className="pt-6 text-2xl font-bold text-[var(--text-muted)]">x</span>
             <div className="flex-1">
               <Input
-                label={isHome ? "Adversário (Visitante)" : "Adversário (Casa)"}
+                label={isTraining ? "Time B (Sem Colete)" : isHome ? "Adversário (Visitante)" : "Adversário (Casa)"}
                 type="number"
                 min={0}
                 value={opponentScore}
@@ -336,22 +455,24 @@ export function PostGameForm({
       {step === "stats" && (
         <>
           {mode === "edit" && (
-            <div className="rounded-md border border-blue-100 bg-blue-50 p-3 text-sm text-blue-700">
-              No pos-jogo voce pode ajustar placar, mando casa/fora, escudo adversario (se vazio) e estatisticas.
+            <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-300">
+              {isTraining
+                ? "No pós-jogo do Amistoso Treino, você pode ajustar o placar do Time A e Time B e as estatísticas de cada lado."
+                : "No pós-jogo você pode ajustar placar, mando casa/fora, escudo adversário e estatísticas."}
             </div>
           )}
 
           {mode === "edit" && (
             <div className="grid grid-cols-2 gap-3">
               <Input
-                label={isHome ? "Placar nosso time (Casa)" : "Placar nosso time (Visitante)"}
+                label={isTraining ? "Placar Time A" : isHome ? "Placar nosso time (Casa)" : "Placar nosso time (Visitante)"}
                 type="number"
                 min={0}
                 value={ourScore}
                 onChange={(e) => setOurScore(parseInt(e.target.value) || 0)}
               />
               <Input
-                label={isHome ? "Placar adversario (Visitante)" : "Placar adversario (Casa)"}
+                label={isTraining ? "Placar Time B" : isHome ? "Placar adversário (Visitante)" : "Placar adversário (Casa)"}
                 type="number"
                 min={0}
                 value={opponentScore}
@@ -360,7 +481,29 @@ export function PostGameForm({
             </div>
           )}
 
-          {allowIsHomeEdit && (
+          {isTraining && (
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-xs">
+              <div className="flex items-center gap-3">
+                <span className="font-bold text-emerald-400">
+                  ⚽ Gols somados: Time A: {goalsSumA} × {goalsSumB} Time B
+                </span>
+                {(ourScore !== goalsSumA || opponentScore !== goalsSumB) && (
+                  <span className="text-yellow-400 text-[11px]">
+                    (Diferente do placar registrado: {ourScore} × {opponentScore})
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={handleSyncScoreWithGoals}
+                className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-2.5 py-1 rounded-lg transition text-xs shadow-sm"
+              >
+                <Sparkles className="w-3.5 h-3.5" /> Sincronizar com Placar
+              </button>
+            </div>
+          )}
+
+          {!isTraining && allowIsHomeEdit && (
             <Select
               label="Mando de campo"
               options={[
@@ -372,14 +515,14 @@ export function PostGameForm({
             />
           )}
 
-          {allowOpponentBadgeEdit && (
+          {!isTraining && allowOpponentBadgeEdit && (
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-[#8fa39b]">Escudo do adversário (opcional)</label>
               <div className="flex items-center gap-3">
                 {opponentBadgeInput ? (
                   <img
                     src={opponentBadgeInput}
-                    alt="Escudo adversario"
+                    alt="Escudo adversário"
                     className="h-16 w-16 rounded-lg border border-white/10 object-cover"
                   />
                 ) : (
@@ -402,7 +545,7 @@ export function PostGameForm({
               </div>
 
               <Input
-                label="URL do escudo adversario (opcional)"
+                label="URL do escudo adversário (opcional)"
                 placeholder="https://... ou /uploads/..."
                 value={opponentBadgeInput}
                 onChange={(e) => setOpponentBadgeInput(e.target.value)}
@@ -410,8 +553,10 @@ export function PostGameForm({
             </div>
           )}
 
-          <p className="text-sm text-gray-600 mb-4">
-            {mode === "edit"
+          <p className="text-sm text-[var(--text-muted)] mb-2">
+            {isTraining
+              ? "Registre gols, assistências e cartões separados por Time A e Time B."
+              : mode === "edit"
               ? "Atualize as estatísticas individuais da partida finalizada."
               : "Registre as estatísticas individuais dos jogadores confirmados."}
           </p>
@@ -433,6 +578,19 @@ export function PostGameForm({
                   onChange={(e) => setSelectedPlayerToAdd(e.target.value)}
                 />
               </div>
+              {isTraining && (
+                <div className="w-32">
+                  <Select
+                    label="Lado"
+                    options={[
+                      { value: "A", label: "Time A" },
+                      { value: "B", label: "Time B" },
+                    ]}
+                    value={selectedSideToAdd}
+                    onChange={(e) => setSelectedSideToAdd(e.target.value as "A" | "B")}
+                  />
+                </div>
+              )}
               <Button
                 type="button"
                 className="w-full sm:w-auto h-[42px] mt-2 sm:mt-0"
@@ -440,6 +598,7 @@ export function PostGameForm({
                   if (!selectedPlayerToAdd) return;
                   const player = squadPlayers.find((p) => p.id === selectedPlayerToAdd);
                   if (player) {
+                    setPlayerSides((prev) => ({ ...prev, [player.id]: selectedSideToAdd }));
                     setPlayerStats((prev) => [
                       ...prev,
                       {
@@ -465,11 +624,267 @@ export function PostGameForm({
             <div className="rounded-xl border border-[rgba(251,191,36,0.2)] bg-[rgba(251,191,36,0.1)] p-3 text-sm text-[#fbbf24] mb-4">
               Nenhum jogador confirmou presença. Utilize a seção acima para adicionar jogadores manualmente ou pule esta etapa.
             </div>
+          ) : isTraining ? (
+            /* Renderização dividida em Time A e Time B */
+            <div className="space-y-6">
+              {/* TIME A */}
+              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-black font-black text-xs">
+                      A
+                    </span>
+                    <h3 className="font-black text-sm text-emerald-400 uppercase tracking-wide">
+                      Time A (Colete)
+                    </h3>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
+                    ⚽ {goalsSumA} gols
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {playerStats
+                    .filter((p) => (playerSides[p.guestPlayerId || p.playerId] || "A") === "A")
+                    .map((stat) => {
+                      const actualIdx = playerStats.findIndex(
+                        (ps) => (ps.guestPlayerId || ps.playerId) === (stat.guestPlayerId || stat.playerId)
+                      );
+                      const idKey = stat.guestPlayerId || stat.playerId;
+
+                      return (
+                        <div
+                          key={idKey}
+                          className="rounded-xl border border-white/10 bg-[#090f0c] p-3.5 space-y-2"
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="font-semibold text-white text-sm flex items-center gap-2">
+                              <span>{stat.playerName}</span>
+                              {squadPlayers.find((sp) => sp.id === stat.playerId)?.status === "INACTIVE" && (
+                                <span className="text-[10px] font-semibold text-red-400 bg-red-950/50 border border-red-800/30 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                  Inativo
+                                </span>
+                              )}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => togglePlayerSide(idKey)}
+                                className="text-[11px] text-[#8fa39b] hover:text-white inline-flex items-center gap-1 px-2 py-1 bg-white/5 hover:bg-white/10 rounded-lg transition"
+                                title="Mover para Time B"
+                              >
+                                <ArrowLeftRight className="w-3 h-3" /> Mover p/ B
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removePlayerStat(actualIdx)}
+                                className="text-xs text-red-400 hover:text-red-300 font-bold px-2 py-1 hover:bg-red-500/10 rounded-lg transition"
+                                title="Remover jogador"
+                              >
+                                Remover
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                            <Input
+                              label="⚽ Gols"
+                              type="number"
+                              min={0}
+                              value={stat.goals}
+                              onChange={(e) =>
+                                updatePlayerStat(
+                                  actualIdx,
+                                  "goals",
+                                  parseInt(e.target.value) || 0
+                                )
+                              }
+                            />
+                            <Input
+                              label="🅰️ Assist."
+                              type="number"
+                              min={0}
+                              value={stat.assists}
+                              onChange={(e) =>
+                                updatePlayerStat(
+                                  actualIdx,
+                                  "assists",
+                                  parseInt(e.target.value) || 0
+                                )
+                              }
+                            />
+                            <Input
+                              label="🟨 (max 2)"
+                              type="number"
+                              min={0}
+                              max={2}
+                              value={stat.yellowCards}
+                              onChange={(e) =>
+                                updatePlayerStat(
+                                  actualIdx,
+                                  "yellowCards",
+                                  Math.min(2, parseInt(e.target.value) || 0)
+                                )
+                              }
+                            />
+                            <Input
+                              label="🟥 (max 1)"
+                              type="number"
+                              min={0}
+                              max={1}
+                              value={stat.redCards}
+                              onChange={(e) =>
+                                updatePlayerStat(
+                                  actualIdx,
+                                  "redCards",
+                                  Math.min(1, parseInt(e.target.value) || 0)
+                                )
+                              }
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {playerStats.filter((p) => (playerSides[p.guestPlayerId || p.playerId] || "A") === "A").length === 0 && (
+                    <p className="text-xs text-[var(--text-subtle)] italic py-2 text-center">
+                      Nenhum jogador no Time A.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* TIME B */}
+              <div className="rounded-2xl border border-blue-500/30 bg-blue-950/20 p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-blue-500/20 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-black font-black text-xs">
+                      B
+                    </span>
+                    <h3 className="font-black text-sm text-blue-400 uppercase tracking-wide">
+                      Time B (Sem Colete)
+                    </h3>
+                  </div>
+                  <span className="text-xs font-bold text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-md border border-blue-500/20">
+                    ⚽ {goalsSumB} gols
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {playerStats
+                    .filter((p) => playerSides[p.guestPlayerId || p.playerId] === "B")
+                    .map((stat) => {
+                      const actualIdx = playerStats.findIndex(
+                        (ps) => (ps.guestPlayerId || ps.playerId) === (stat.guestPlayerId || stat.playerId)
+                      );
+                      const idKey = stat.guestPlayerId || stat.playerId;
+
+                      return (
+                        <div
+                          key={idKey}
+                          className="rounded-xl border border-white/10 bg-[#090f0c] p-3.5 space-y-2"
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="font-semibold text-white text-sm flex items-center gap-2">
+                              <span>{stat.playerName}</span>
+                              {squadPlayers.find((sp) => sp.id === stat.playerId)?.status === "INACTIVE" && (
+                                <span className="text-[10px] font-semibold text-red-400 bg-red-950/50 border border-red-800/30 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                  Inativo
+                                </span>
+                              )}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => togglePlayerSide(idKey)}
+                                className="text-[11px] text-[#8fa39b] hover:text-white inline-flex items-center gap-1 px-2 py-1 bg-white/5 hover:bg-white/10 rounded-lg transition"
+                                title="Mover para Time A"
+                              >
+                                <ArrowLeftRight className="w-3 h-3" /> Mover p/ A
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removePlayerStat(actualIdx)}
+                                className="text-xs text-red-400 hover:text-red-300 font-bold px-2 py-1 hover:bg-red-500/10 rounded-lg transition"
+                                title="Remover jogador"
+                              >
+                                Remover
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                            <Input
+                              label="⚽ Gols"
+                              type="number"
+                              min={0}
+                              value={stat.goals}
+                              onChange={(e) =>
+                                updatePlayerStat(
+                                  actualIdx,
+                                  "goals",
+                                  parseInt(e.target.value) || 0
+                                )
+                              }
+                            />
+                            <Input
+                              label="🅰️ Assist."
+                              type="number"
+                              min={0}
+                              value={stat.assists}
+                              onChange={(e) =>
+                                updatePlayerStat(
+                                  actualIdx,
+                                  "assists",
+                                  parseInt(e.target.value) || 0
+                                )
+                              }
+                            />
+                            <Input
+                              label="🟨 (max 2)"
+                              type="number"
+                              min={0}
+                              max={2}
+                              value={stat.yellowCards}
+                              onChange={(e) =>
+                                updatePlayerStat(
+                                  actualIdx,
+                                  "yellowCards",
+                                  Math.min(2, parseInt(e.target.value) || 0)
+                                )
+                              }
+                            />
+                            <Input
+                              label="🟥 (max 1)"
+                              type="number"
+                              min={0}
+                              max={1}
+                              value={stat.redCards}
+                              onChange={(e) =>
+                                updatePlayerStat(
+                                  actualIdx,
+                                  "redCards",
+                                  Math.min(1, parseInt(e.target.value) || 0)
+                                )
+                              }
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {playerStats.filter((p) => playerSides[p.guestPlayerId || p.playerId] === "B").length === 0 && (
+                    <p className="text-xs text-[var(--text-subtle)] italic py-2 text-center">
+                      Nenhum jogador no Time B.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
           ) : (
+            /* Lista normal para jogos convencionais */
             <div className="space-y-4">
               {playerStats.map((stat, idx) => (
                 <div
-                  key={stat.playerId}
+                  key={stat.guestPlayerId || stat.playerId || `stat-${idx}`}
                   className="rounded-xl border border-white/10 bg-[#090f0c] p-4"
                 >
                   <div className="mb-3 flex items-center justify-between">
@@ -552,13 +967,13 @@ export function PostGameForm({
           )}
 
           <div className="flex gap-3 pt-2">
-            {playerStats.length > 0 && (
+            {(playerStats.length > 0 || mode === "edit") && (
               <Button onClick={handleSubmitStats} disabled={loading}>
-                {loading ? "Salvando..." : "Salvar Estatísticas"}
+                {loading ? "Salvando..." : mode === "edit" ? "Salvar Alterações" : "Salvar Estatísticas"}
               </Button>
             )}
             <Button variant="secondary" onClick={handleSkipStats}>
-              {mode === "edit" ? "Fechar" : playerStats.length > 0 ? "Pular Estatísticas" : "Concluir"}
+              {mode === "edit" ? "Cancelar" : playerStats.length > 0 ? "Pular Estatísticas" : "Concluir"}
             </Button>
           </div>
         </>

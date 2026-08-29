@@ -41,6 +41,12 @@ export default async function MatchLivePage({ params }: MatchLivePageProps) {
           },
         },
       },
+      lineupSelections: {
+        select: {
+          playerId: true,
+          teamSide: true,
+        },
+      },
       rsvps: {
         include: {
           player: {
@@ -59,8 +65,14 @@ export default async function MatchLivePage({ params }: MatchLivePageProps) {
     notFound();
   }
 
+  // Mapear teamSide dos jogadores escalados
+  const lineupSideMap = new Map<string, string>();
+  match.lineupSelections.forEach((sel) => {
+    if (sel.playerId && sel.teamSide) lineupSideMap.set(sel.playerId, sel.teamSide);
+  });
+
   // Buscar todos os jogadores do time para a seleção no formulário de eventos
-  const players = await prisma.player.findMany({
+  const playersRaw = await prisma.player.findMany({
     where: { teamId: match.teamId, status: "ACTIVE" },
     select: {
       id: true,
@@ -71,6 +83,13 @@ export default async function MatchLivePage({ params }: MatchLivePageProps) {
       shirtNumber: "asc",
     },
   });
+
+  const players = playersRaw.map((p) => ({
+    id: p.id,
+    name: p.name,
+    shirtNumber: p.shirtNumber,
+    teamSide: lineupSideMap.get(p.id) || "A",
+  }));
 
   // Garante a existência do registro MatchLive caso ainda não tenha sido criado
   let matchLiveId = match.matchLive?.id || "";
@@ -127,6 +146,7 @@ export default async function MatchLivePage({ params }: MatchLivePageProps) {
   return (
     <LiveScoreboard
       matchId={match.id}
+      matchType={match.type}
       teamName={match.team.name}
       opponentName={match.opponent}
       venue={match.venue}

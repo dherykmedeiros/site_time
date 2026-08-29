@@ -19,6 +19,7 @@ interface PositionLimitInput {
 
 interface SavedLineupSelectionInput {
   role: "STARTER" | "BENCH";
+  teamSide?: string | null;
   sortOrder: number;
   fieldX: number | null;
   fieldY: number | null;
@@ -27,23 +28,25 @@ interface SavedLineupSelectionInput {
     id: string;
     name: string;
     position: string;
+    shirtNumber?: number | null;
   };
 }
 
 function buildSavedLineupEntry(
   selection: SavedLineupSelectionInput,
   role: "STARTER" | "BENCH"
-): SuggestedLineupEntry {
+): SuggestedLineupEntry & { teamSide?: string } {
   return {
     playerId: selection.player.id,
     playerName: selection.player.name,
     position: selection.player.position as SuggestedLineupEntry["position"],
     fieldX: selection.fieldX ?? null,
     fieldY: selection.fieldY ?? null,
+    teamSide: selection.teamSide || "A",
     reason:
       role === "STARTER"
-        ? "Titular salvo manualmente para esta partida"
-        : "Mantido no banco manualmente para esta partida",
+        ? `Titular (${selection.teamSide === "B" ? "Time B" : "Time A"}) salvo para esta partida`
+        : `Reserva (${selection.teamSide === "B" ? "Time B" : "Time A"}) salvo para esta partida`,
   };
 }
 
@@ -141,5 +144,66 @@ export function buildMatchLineupSnapshot(args: {
   return {
     generatedAt: lastUpdatedAt.toISOString(),
     lineup,
+  };
+}
+
+export interface TrainingPlayerCandidate {
+  id: string;
+  name: string;
+  position: string;
+  shirtNumber?: number | null;
+  isGuest?: boolean;
+}
+
+export function autoBalanceTrainingTeams(players: TrainingPlayerCandidate[]) {
+  const goalkeepers: TrainingPlayerCandidate[] = [];
+  const defenders: TrainingPlayerCandidate[] = [];
+  const midfielders: TrainingPlayerCandidate[] = [];
+  const forwards: TrainingPlayerCandidate[] = [];
+  const others: TrainingPlayerCandidate[] = [];
+
+  for (const p of players) {
+    const pos = p.position?.toUpperCase() || "";
+    if (pos === "GOALKEEPER") {
+      goalkeepers.push(p);
+    } else if (["DEFENDER", "LEFT_BACK", "RIGHT_BACK", "LEFT_WINGBACK", "RIGHT_WINGBACK"].includes(pos)) {
+      defenders.push(p);
+    } else if (["MIDFIELDER", "DEFENSIVE_MIDFIELDER"].includes(pos)) {
+      midfielders.push(p);
+    } else if (["FORWARD", "LEFT_WINGER", "RIGHT_WINGER"].includes(pos)) {
+      forwards.push(p);
+    } else {
+      others.push(p);
+    }
+  }
+
+  const teamA: TrainingPlayerCandidate[] = [];
+  const teamB: TrainingPlayerCandidate[] = [];
+
+  const distribute = (bucket: TrainingPlayerCandidate[]) => {
+    bucket.forEach((item) => {
+      if (teamA.length <= teamB.length) {
+        teamA.push(item);
+      } else {
+        teamB.push(item);
+      }
+    });
+  };
+
+  distribute(goalkeepers);
+  distribute(defenders);
+  distribute(midfielders);
+  distribute(forwards);
+  distribute(others);
+
+  return {
+    teamA: {
+      starters: teamA.slice(0, 11),
+      bench: teamA.slice(11),
+    },
+    teamB: {
+      starters: teamB.slice(0, 11),
+      bench: teamB.slice(11),
+    },
   };
 }

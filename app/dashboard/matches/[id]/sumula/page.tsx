@@ -39,6 +39,7 @@ interface MatchSumulaData {
   }>;
   lineupSelections: Array<{
     role: "STARTER" | "BENCH";
+    teamSide?: string | null;
     sortOrder: number;
     player: { id: string; name: string; shirtNumber: number; position: string } | null;
     guestPlayer: { id: string; name: string } | null;
@@ -170,7 +171,11 @@ export default function MatchSumulaPage({ params }: { params: Promise<{ id: stri
 
             <div className="text-right">
               <span className="inline-block rounded-full bg-white/10 print:bg-black/5 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white print:text-black">
-                {data.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
+                {data.type === "FRIENDLY"
+                  ? "Amistoso"
+                  : data.type === "TRAINING"
+                  ? "Amistoso Treino"
+                  : "Campeonato"}
               </span>
               <p className="mt-2 text-sm font-semibold text-[#8fa39b] print:text-gray-700">
                 {formatDate(data.date)}
@@ -182,11 +187,14 @@ export default function MatchSumulaPage({ params }: { params: Promise<{ id: stri
           <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-4 rounded-xl bg-white/[0.03] print:bg-gray-100 p-4 border border-white/5 print:border-gray-300">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#8fa39b] print:text-gray-500">
-                Mandante x Visitante
+                {data.type === "TRAINING" ? "Confronto Interno" : "Mandante x Visitante"}
               </p>
               <p className="mt-0.5 text-sm font-bold text-white print:text-black">
-                {data.isHome ? `${data.team.name} (Casa)` : `${data.opponent} (Casa)`} vs{" "}
-                {data.isHome ? data.opponent : `${data.team.name} (Visitante)`}
+                {data.type === "TRAINING"
+                  ? "Time A (Colete) vs Time B (Sem Colete)"
+                  : data.isHome
+                  ? `${data.team.name} (Casa) vs ${data.opponent}`
+                  : `${data.opponent} (Casa) vs ${data.team.name} (Visitante)`}
               </p>
             </div>
 
@@ -203,7 +211,9 @@ export default function MatchSumulaPage({ params }: { params: Promise<{ id: stri
               </p>
               <p className="mt-0.5 text-sm font-black text-emerald-400 print:text-emerald-800">
                 {data.homeScore !== null && data.awayScore !== null
-                  ? `${data.homeScore} x ${data.awayScore}`
+                  ? data.type === "TRAINING"
+                    ? `Time A ${data.homeScore} x ${data.awayScore} Time B`
+                    : `${data.homeScore} x ${data.awayScore}`
                   : "Não registrado"}
               </p>
             </div>

@@ -184,11 +184,14 @@ export function MatchRatingTab({
       {isAdmin && match.canSubmitPostGame && showPostGame && (
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">Registrar Pós-Jogo</h2>
+            <h2 className="text-lg font-semibold">
+              {match.type === "TRAINING" ? "Registrar Pós-Jogo (Amistoso Treino)" : "Registrar Pós-Jogo"}
+            </h2>
           </CardHeader>
           <CardContent>
             <PostGameForm
               matchId={match.id}
+              matchType={match.type}
               rsvps={match.rsvps}
               initialIsHome={match.isHome}
               onSuccess={() => {
@@ -205,7 +208,9 @@ export function MatchRatingTab({
       {match.status === "COMPLETED" && match.stats.length > 0 && (
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">Estatísticas Individuais</h2>
+            <h2 className="text-lg font-semibold">
+              {match.type === "TRAINING" ? "Estatísticas Individuais (Amistoso Treino)" : "Estatísticas Individuais"}
+            </h2>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -221,7 +226,7 @@ export function MatchRatingTab({
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {match.stats.map((stat) => (
-                    <tr key={stat.playerId} className="hover:bg-white/[0.02]">
+                    <tr key={stat.playerId || stat.guestPlayerId} className="hover:bg-white/[0.02]">
                       <td className="py-2.5 font-medium">{stat.playerName}</td>
                       <td className="py-2.5 text-center">{stat.goals}</td>
                       <td className="py-2.5 text-center">{stat.assists}</td>
@@ -375,7 +380,9 @@ export function MatchRatingTab({
                 <div>
                   <p className="font-semibold text-blue-400">Compartilhar resultado</p>
                   <p className="text-sm text-[var(--text-muted)] mt-1">
-                    {match.isHome ? match.homeScore : match.awayScore} × {match.isHome ? match.awayScore : match.homeScore} vs {match.opponent} — divulgue o card de resultado!
+                    {match.type === "TRAINING"
+                      ? `Time A ${match.homeScore} × ${match.awayScore} Time B — divulgue o resultado do treino!`
+                      : `${match.isHome ? match.homeScore : match.awayScore} × ${match.isHome ? match.awayScore : match.homeScore} vs ${match.opponent} — divulgue o card de resultado!`}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">

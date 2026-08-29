@@ -200,34 +200,10 @@ export async function POST(request: Request, { params }: RouteParams) {
     );
   }
 
-  // Check for existing stats in database
-  const playerIds = stats.map((s) => s.playerId).filter(Boolean) as string[];
-  const guestPlayerIds = stats.map((s) => s.guestPlayerId).filter(Boolean) as string[];
-
-  const existingStats = await prisma.matchStats.findMany({
-    where: {
-      matchId,
-      OR: [
-        { playerId: { in: playerIds.length > 0 ? playerIds : [""] } },
-        { guestPlayerId: { in: guestPlayerIds.length > 0 ? guestPlayerIds : [""] } },
-      ],
-    },
-  });
-
-  if (existingStats.length > 0) {
-    return NextResponse.json(
-      {
-        error: "Stats já registrados para jogadores nesta partida",
-        code: "STATS_ALREADY_EXIST",
-        duplicatePlayerIds: existingStats.map((s) => s.playerId).filter(Boolean),
-        duplicateGuestIds: existingStats.map((s) => s.guestPlayerId).filter(Boolean),
-      },
-      { status: 400 }
-    );
-  }
-
-  // Batch create stats and ensure match attendance is marked as present
+  // Batch create/replace stats and ensure match attendance is marked as present
   await prisma.$transaction(async (tx) => {
+    await tx.matchStats.deleteMany({ where: { matchId } });
+
     await tx.matchStats.createMany({
       data: stats.map((s) => ({
         playerId: s.playerId || null,
@@ -240,13 +216,20 @@ export async function POST(request: Request, { params }: RouteParams) {
       })),
     });
 
-    const teamGoals = stats.reduce((sum, s) => sum + (s.goals || 0), 0);
-    const scoreUpdate = match.isHome ? { homeScore: teamGoals } : { awayScore: teamGoals };
+    // For TRAINING matches, the score (Time A vs Time B) is already set correctly
+    // in Step 1 of PostGameForm — do NOT overwrite it by summing all goals.
+    if (match.type !== "TRAINING") {
+      const teamGoals = stats.reduce((sum, s) => sum + (s.goals || 0), 0);
+      const currentOurScore = match.isHome ? match.homeScore : match.awayScore;
 
-    await tx.match.update({
-      where: { id: matchId },
-      data: scoreUpdate,
-    });
+      if (currentOurScore === null || currentOurScore === undefined || teamGoals > currentOurScore) {
+        const scoreUpdate = match.isHome ? { homeScore: teamGoals } : { awayScore: teamGoals };
+        await tx.match.update({
+          where: { id: matchId },
+          data: scoreUpdate,
+        });
+      }
+    }
 
     for (const s of stats) {
       if (s.playerId) {
@@ -381,13 +364,19 @@ export async function PUT(request: Request, { params }: RouteParams) {
       })),
     });
 
-    const teamGoals = stats.reduce((sum, s) => sum + (s.goals || 0), 0);
-    const scoreUpdate = match.isHome ? { homeScore: teamGoals } : { awayScore: teamGoals };
+    // For TRAINING matches, the score (Time A vs Time B) is already set correctly — do NOT overwrite.
+    if (match.type !== "TRAINING") {
+      const teamGoals = stats.reduce((sum, s) => sum + (s.goals || 0), 0);
+      const currentOurScore = match.isHome ? match.homeScore : match.awayScore;
 
-    await tx.match.update({
-      where: { id: matchId },
-      data: scoreUpdate,
-    });
+      if (currentOurScore === null || currentOurScore === undefined || teamGoals > currentOurScore) {
+        const scoreUpdate = match.isHome ? { homeScore: teamGoals } : { awayScore: teamGoals };
+        await tx.match.update({
+          where: { id: matchId },
+          data: scoreUpdate,
+        });
+      }
+    }
 
     // Ensure attendance is marked as present for all these players
     for (const s of stats) {

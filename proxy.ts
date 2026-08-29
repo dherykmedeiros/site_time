@@ -58,15 +58,7 @@ export default async function proxy(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    if (token.mustChangePassword && !pathname.startsWith("/dashboard/change-password")) {
-      return NextResponse.redirect(new URL("/dashboard/change-password", request.url));
-    }
-
-    if (
-      !token.teamId &&
-      !pathname.startsWith("/dashboard/settings") &&
-      !pathname.startsWith("/dashboard/change-password")
-    ) {
+    if (!token.teamId && !pathname.startsWith("/dashboard/settings")) {
       return NextResponse.redirect(new URL("/dashboard/settings", request.url));
     }
   }

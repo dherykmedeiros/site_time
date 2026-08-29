@@ -21,6 +21,7 @@ async function loadMatchForLineup(matchId: string, teamId: string) {
     },
     select: {
       id: true,
+      type: true,
       status: true,
       lineupFormation: true,
       lineupBlockPreset: true,
@@ -61,6 +62,7 @@ async function loadMatchForLineup(matchId: string, teamId: string) {
         ],
         select: {
           role: true,
+          teamSide: true,
           sortOrder: true,
           fieldX: true,
           fieldY: true,
@@ -72,6 +74,7 @@ async function loadMatchForLineup(matchId: string, teamId: string) {
               id: true,
               name: true,
               position: true,
+              shirtNumber: true,
             },
           },
           guestPlayer: {
@@ -79,6 +82,7 @@ async function loadMatchForLineup(matchId: string, teamId: string) {
               id: true,
               name: true,
               position: true,
+              shirtNumber: true,
             },
           },
         },
@@ -88,34 +92,39 @@ async function loadMatchForLineup(matchId: string, teamId: string) {
 }
 
 function buildLineupResponse(match: NonNullable<Awaited<ReturnType<typeof loadMatchForLineup>>>, request: Request) {
+  const confirmedPlayers = [
+    ...match.rsvps.map((rsvp: (typeof match.rsvps)[number]) => ({
+      playerId: rsvp.player.id,
+      playerName: rsvp.player.name,
+      position: rsvp.player.position,
+      shirtNumber: rsvp.player.shirtNumber,
+      createdAt: rsvp.player.createdAt,
+      status: rsvp.player.status,
+      rsvpStatus: rsvp.status,
+      isGuest: false,
+    })),
+    ...match.guestPlayers.map((guest: (typeof match.guestPlayers)[number]) => ({
+      playerId: guest.id,
+      playerName: guest.name,
+      position: guest.position || "FORWARD",
+      shirtNumber: guest.shirtNumber || 0,
+      createdAt: guest.createdAt,
+      status: "ACTIVE" as const,
+      rsvpStatus: "CONFIRMED" as const,
+      isGuest: true,
+    })),
+  ];
+
   const snapshot = buildMatchLineupSnapshot({
     matchId: match.id,
-    confirmedPlayers: [
-      ...match.rsvps.map((rsvp: (typeof match.rsvps)[number]) => ({
-        playerId: rsvp.player.id,
-        playerName: rsvp.player.name,
-        position: rsvp.player.position,
-        shirtNumber: rsvp.player.shirtNumber,
-        createdAt: rsvp.player.createdAt,
-        status: rsvp.player.status,
-        rsvpStatus: rsvp.status,
-      })),
-      ...match.guestPlayers.map((guest: (typeof match.guestPlayers)[number]) => ({
-        playerId: guest.id,
-        playerName: guest.name,
-        position: guest.position || "FORWARD",
-        shirtNumber: guest.shirtNumber || 0,
-        createdAt: guest.createdAt,
-        status: "ACTIVE" as const,
-        rsvpStatus: "CONFIRMED" as const,
-      })),
-    ],
+    confirmedPlayers,
     positionLimits: match.positionLimits.map((limit: (typeof match.positionLimits)[number]) => ({
       position: limit.position,
       maxPlayers: limit.maxPlayers,
     })),
     savedSelections: match.lineupSelections.map((selection: (typeof match.lineupSelections)[number]) => ({
       role: selection.role,
+      teamSide: selection.teamSide || "A",
       sortOrder: selection.sortOrder,
       fieldX: selection.fieldX,
       fieldY: selection.fieldY,
@@ -126,6 +135,7 @@ function buildLineupResponse(match: NonNullable<Awaited<ReturnType<typeof loadMa
             id: selection.guestPlayer!.id,
             name: selection.guestPlayer!.name,
             position: selection.guestPlayer!.position || "FORWARD",
+            shirtNumber: selection.guestPlayer!.shirtNumber,
           },
     })),
     savedFormation: match.lineupFormation,
@@ -135,11 +145,80 @@ function buildLineupResponse(match: NonNullable<Awaited<ReturnType<typeof loadMa
   const url = new URL(request.url);
   const imageUrl = `${url.origin}/api/og/match/${match.id}/lineup`;
 
+  // For training matches, also compute detailed trainingDivision
+  let trainingDivision = null;
+  if (match.type === "TRAINING") {
+    const assignedIds = new Set<string>();
+
+    const mapItem = (s: (typeof match.lineupSelections)[number]) => {
+      const id = s.playerId || s.guestPlayerId!;
+      assignedIds.add(id);
+      const p = s.player || s.guestPlayer!;
+      return {
+        id,
+        playerId: s.playerId,
+        guestPlayerId: s.guestPlayerId,
+        name: p.name,
+        position: p.position,
+        shirtNumber: p.shirtNumber,
+        fieldX: s.fieldX,
+        fieldY: s.fieldY,
+        role: s.role,
+        teamSide: s.teamSide || "A",
+        isGuest: Boolean(s.guestPlayerId),
+      };
+    };
+
+    const teamAStarters = match.lineupSelections
+      .filter((s) => (s.teamSide === "A" || !s.teamSide) && s.role === "STARTER")
+      .map(mapItem);
+    const teamABench = match.lineupSelections
+      .filter((s) => (s.teamSide === "A" || !s.teamSide) && s.role === "BENCH")
+      .map(mapItem);
+
+    const teamBStarters = match.lineupSelections
+      .filter((s) => s.teamSide === "B" && s.role === "STARTER")
+      .map(mapItem);
+    const teamBBench = match.lineupSelections
+      .filter((s) => s.teamSide === "B" && s.role === "BENCH")
+      .map(mapItem);
+
+    const eligibleConfirmed = confirmedPlayers.filter(
+      (p) => p.status === "ACTIVE" && p.rsvpStatus === "CONFIRMED"
+    );
+
+    const unassigned = eligibleConfirmed
+      .filter((p) => !assignedIds.has(p.playerId))
+      .map((p) => ({
+        id: p.playerId,
+        playerId: p.isGuest ? null : p.playerId,
+        guestPlayerId: p.isGuest ? p.playerId : null,
+        name: p.playerName,
+        position: p.position,
+        shirtNumber: p.shirtNumber,
+        isGuest: p.isGuest,
+      }));
+
+    trainingDivision = {
+      teamA: {
+        starters: teamAStarters,
+        bench: teamABench,
+      },
+      teamB: {
+        starters: teamBStarters,
+        bench: teamBBench,
+      },
+      unassigned,
+    };
+  }
+
   return NextResponse.json({
     matchId: match.id,
+    matchType: match.type,
     generatedAt: snapshot.generatedAt,
     imageUrl,
     lineup: snapshot.lineup,
+    trainingDivision,
   });
 }
 
@@ -209,16 +288,6 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     );
   }
 
-  if (parsed.data.starters.length > 11) {
-    return NextResponse.json(
-      {
-        error: "A escalação titular deve conter no máximo 11 atletas",
-        code: "INVALID_STARTERS_COUNT",
-      },
-      { status: 400 }
-    );
-  }
-
   const { id } = await params;
   const match = await loadMatchForLineup(id, session.user.teamId);
 
@@ -226,6 +295,17 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json(
       { error: "Partida não encontrada", code: "NOT_FOUND" },
       { status: 404 }
+    );
+  }
+
+  const maxStarters = match.type === "TRAINING" ? 22 : 11;
+  if (parsed.data.starters.length > maxStarters) {
+    return NextResponse.json(
+      {
+        error: `A escalação titular deve conter no máximo ${maxStarters} atletas`,
+        code: "INVALID_STARTERS_COUNT",
+      },
+      { status: 400 }
     );
   }
 
@@ -247,7 +327,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   const guestIds = new Set(match.guestPlayers.map((guest: (typeof match.guestPlayers)[number]) => guest.id));
 
-  const allPlayerIds = [...parsed.data.starters.map((entry: { playerId: string }) => entry.playerId), ...parsed.data.bench];
+  const allPlayerIds = [
+    ...parsed.data.starters.map((entry: { playerId: string }) => entry.playerId),
+    ...parsed.data.bench.map((item: string | { playerId: string }) => (typeof item === "string" ? item : item.playerId)),
+  ];
   const uniquePlayerIds = new Set(allPlayerIds);
   if (uniquePlayerIds.size !== allPlayerIds.length) {
     return NextResponse.json(
@@ -281,25 +364,29 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     });
 
     const data = [
-      ...parsed.data.starters.map((entry: { playerId: string; fieldX?: number | null; fieldY?: number | null }, index: number) => {
+      ...parsed.data.starters.map((entry: { playerId: string; fieldX?: number | null; fieldY?: number | null; teamSide?: string }, index: number) => {
         const isGuest = guestIds.has(entry.playerId);
         return {
           matchId: id,
           playerId: isGuest ? null : entry.playerId,
           guestPlayerId: isGuest ? entry.playerId : null,
           role: "STARTER" as const,
+          teamSide: entry.teamSide || "A",
           sortOrder: index,
           fieldX: entry.fieldX ?? null,
           fieldY: entry.fieldY ?? null,
         };
       }),
-      ...parsed.data.bench.map((playerId: string, index: number) => {
+      ...parsed.data.bench.map((item: string | { playerId: string; teamSide?: string }, index: number) => {
+        const playerId = typeof item === "string" ? item : item.playerId;
+        const teamSide = typeof item === "string" ? "A" : (item.teamSide || "A");
         const isGuest = guestIds.has(playerId);
         return {
           matchId: id,
           playerId: isGuest ? null : playerId,
           guestPlayerId: isGuest ? playerId : null,
           role: "BENCH" as const,
+          teamSide,
           sortOrder: index,
         };
       }),

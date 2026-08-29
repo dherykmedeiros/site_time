@@ -398,6 +398,7 @@ export default function RankingPage() {
                 <option value="ALL" className="bg-[#0a1814]">Todos os Tipos de Jogo</option>
                 <option value="CHAMPIONSHIP" className="bg-[#0a1814]">🏆 Apenas Campeonato</option>
                 <option value="FRIENDLY" className="bg-[#0a1814]">🤝 Apenas Amistosos</option>
+                <option value="TRAINING" className="bg-[#0a1814]">⚽ Apenas Amistoso Treino</option>
               </select>
 
               <select

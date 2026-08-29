@@ -49,6 +49,7 @@ enum AvailabilityLevel {
 enum MatchType {
   FRIENDLY
   CHAMPIONSHIP
+  TRAINING
 }
 
 enum MatchStatus {
@@ -294,7 +295,9 @@ model Player {
   votesGiven    MatchVote[] @relation("votesGiven")
   votesReceived MatchVote[] @relation("votesReceived")
   coachedMatches Match[] @relation("MatchCoach")
+  coachedMatchesB Match[] @relation("MatchCoachB")
   coachReports   MatchCoachReport[] @relation("CoachPlayer")
+  coachReportsB  MatchCoachReport[] @relation("CoachPlayerB")
   coachEvaluations MatchCoachEvaluation[]
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -366,6 +369,8 @@ model Match {
   votes        MatchVote[]
   coachPlayerId String?
   coachPlayer   Player?                 @relation("MatchCoach", fields: [coachPlayerId], references: [id], onDelete: SetNull)
+  coachPlayerBId String?
+  coachPlayerB  Player?                 @relation("MatchCoachB", fields: [coachPlayerBId], references: [id], onDelete: SetNull)
   coachReport   MatchCoachReport?
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
@@ -373,6 +378,7 @@ model Match {
   @@index([teamId])
   @@index([seasonId])
   @@index([coachPlayerId])
+  @@index([coachPlayerBId])
   @@index([teamId, status])
   @@index([teamId, date])
   @@map("matches")
@@ -384,6 +390,7 @@ model MatchLineupSelection {
   playerId      String?
   guestPlayerId String?
   role          MatchLineupRole
+  teamSide      String?         @default("A") // "A" ou "B"
   sortOrder     Int
   fieldX        Int?
   fieldY        Int?
@@ -1198,25 +1205,36 @@ model NotificationPreference {
 // ─── Relatório do Treinador & Avaliações ───────────────────────────
 
 model MatchCoachReport {
-  id                 String                  @id @default(cuid())
-  matchId            String                  @unique
-  match              Match                   @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  coachPlayerId      String?
-  coachPlayer        Player?                 @relation("CoachPlayer", fields: [coachPlayerId], references: [id], onDelete: SetNull)
-  summary            String?                 @db.Text
-  formation          String?
-  starterPlayerIds   Json?
-  substitutions      Json?
-  startingStrategy   String?                 @db.Text
-  substitutionsNotes String?                 @db.Text
-  strengths          String?                 @db.Text
-  improvements       String?                 @db.Text
-  status             String                  @default("DRAFT") // DRAFT, PUBLISHED
-  evaluations        MatchCoachEvaluation[]
-  createdAt          DateTime                @default(now())
-  updatedAt          DateTime                @updatedAt
+  id                  String                  @id @default(cuid())
+  matchId             String                  @unique
+  match               Match                   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  coachPlayerId       String?
+  coachPlayer         Player?                 @relation("CoachPlayer", fields: [coachPlayerId], references: [id], onDelete: SetNull)
+  coachPlayerBId      String?
+  coachPlayerB        Player?                 @relation("CoachPlayerB", fields: [coachPlayerBId], references: [id], onDelete: SetNull)
+  summary             String?                 @db.Text
+  formation           String?
+  starterPlayerIds    Json?
+  substitutions       Json?
+  startingStrategy    String?                 @db.Text
+  substitutionsNotes  String?                 @db.Text
+  strengths           String?                 @db.Text
+  improvements        String?                 @db.Text
+  summaryB            String?                 @db.Text
+  formationB          String?
+  starterPlayerIdsB   Json?
+  substitutionsB      Json?
+  startingStrategyB   String?                 @db.Text
+  substitutionsNotesB String?                 @db.Text
+  strengthsB          String?                 @db.Text
+  improvementsB       String?                 @db.Text
+  status              String                  @default("DRAFT") // DRAFT, PUBLISHED
+  evaluations         MatchCoachEvaluation[]
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
 
   @@index([coachPlayerId])
+  @@index([coachPlayerBId])
   @@map("match_coach_reports")
 }
 
@@ -1228,6 +1246,7 @@ model MatchCoachEvaluation {
   player        Player?           @relation(fields: [playerId], references: [id], onDelete: Cascade)
   guestPlayerId String?
   guestPlayer   GuestPlayer?      @relation(fields: [guestPlayerId], references: [id], onDelete: Cascade)
+  teamSide      String?           @default("A") // "A" ou "B"
   rating        Int               @default(5) // 1 a 10
   feedback      String?           @db.Text
   createdAt     DateTime          @default(now())
@@ -1238,6 +1257,7 @@ model MatchCoachEvaluation {
   @@index([reportId])
   @@index([playerId])
   @@index([guestPlayerId])
+  @@index([teamSide])
   @@map("match_coach_evaluations")
 }
 

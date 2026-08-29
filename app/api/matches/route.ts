@@ -50,7 +50,7 @@ export const GET = withErrorHandler(async (request: Request) => {
     where.status = status as "SCHEDULED" | "COMPLETED" | "CANCELLED";
   }
   if (type) {
-    where.type = type as "FRIENDLY" | "CHAMPIONSHIP";
+    where.type = type as "FRIENDLY" | "CHAMPIONSHIP" | "TRAINING";
   }
   if (from || to) {
     where.date = {};
@@ -260,7 +260,7 @@ export const POST = withErrorHandler(async (request: Request) => {
           playerId: player.id,
           matchId: newMatch.id,
           status: "PENDING" as const,
-          summoned: type === "FRIENDLY",
+          summoned: type === "FRIENDLY" || type === "TRAINING",
         })),
       });
     }

@@ -247,8 +247,8 @@ export function MatchRsvpTab({
                   </div>
                 </div>
               ) : (
-                match.latitude &&
-                match.longitude &&
+                match.latitude !== null &&
+                match.longitude !== null &&
                 isCheckInOpen && (
                   <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 space-y-3">
                     <div className="flex items-start gap-3">

@@ -22,7 +22,7 @@ interface MatchSummary {
   opponent: string;
   isHome: boolean;
   opponentBadgeUrl: string | null;
-  type: "FRIENDLY" | "CHAMPIONSHIP";
+  type: "FRIENDLY" | "CHAMPIONSHIP" | "TRAINING";
   homeScore: number | null;
   awayScore: number | null;
   status: "SCHEDULED" | "COMPLETED" | "CANCELLED";
@@ -50,6 +50,7 @@ const statusVariants: Record<string, "info" | "success" | "danger"> = {
 const typeLabels: Record<string, string> = {
   FRIENDLY: "Amistoso",
   CHAMPIONSHIP: "Campeonato",
+  TRAINING: "Amistoso Treino",
 };
 
 const statusFilterOptions = [
@@ -63,6 +64,7 @@ const typeFilterOptions = [
   { value: "ALL", label: "Todos os tipos" },
   { value: "FRIENDLY", label: "Amistoso" },
   { value: "CHAMPIONSHIP", label: "Campeonato" },
+  { value: "TRAINING", label: "Amistoso Treino" },
 ];
 
 function formatMatchDate(isoDate: string) {
@@ -252,7 +254,7 @@ export default function MatchesPage() {
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-[var(--text)]">
-                          vs {match.opponent}
+                          {match.type === "TRAINING" ? "Amistoso Treino: Time A x Time B" : `vs ${match.opponent}`}
                         </span>
                         {isNextMatch && (
                           <Badge variant="warning">🔥 Próximo Jogo</Badge>

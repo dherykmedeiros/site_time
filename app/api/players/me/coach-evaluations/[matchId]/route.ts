@@ -25,11 +25,22 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
       id: true,
       opponent: true,
       date: true,
+      type: true,
       isHome: true,
       homeScore: true,
       awayScore: true,
       coachPlayer: {
         select: {
+          id: true,
+          name: true,
+          fullName: true,
+          photoUrl: true,
+          shirtNumber: true,
+        },
+      },
+      coachPlayerB: {
+        select: {
+          id: true,
           name: true,
           fullName: true,
           photoUrl: true,
@@ -43,6 +54,7 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
             where: { playerId },
             select: {
               id: true,
+              teamSide: true,
               rating: true,
               feedback: true,
               createdAt: true,
@@ -62,16 +74,19 @@ export const GET = withErrorHandler(async (request: Request, { params }: RoutePa
     return NextResponse.json({ error: "Nenhuma avaliação encontrada para o seu perfil nesta partida", code: "NOT_FOUND" }, { status: 404 });
   }
 
+  const isTeamB = match.type === "TRAINING" && evaluation.teamSide === "B";
+  const activeCoach = isTeamB ? (match.coachPlayerB || match.coachPlayer) : match.coachPlayer;
+
   return NextResponse.json({
     matchId: match.id,
-    opponent: match.opponent,
+    opponent: match.type === "TRAINING" ? "Time B" : match.opponent,
     date: match.date.toISOString(),
     isHome: match.isHome,
     homeScore: match.homeScore,
     awayScore: match.awayScore,
-    coachName: match.coachPlayer?.name ?? "Comissão Técnica",
-    coachFullName: match.coachPlayer?.fullName ?? null,
-    coachPhotoUrl: match.coachPlayer?.photoUrl ?? null,
+    coachName: activeCoach?.name ?? (isTeamB ? "Treinador Time B" : "Treinador Time A"),
+    coachFullName: activeCoach?.fullName ?? null,
+    coachPhotoUrl: activeCoach?.photoUrl ?? null,
     rating: evaluation.rating,
     feedback: evaluation.feedback || "O treinador não deixou comentários adicionais.",
   });

@@ -11,6 +11,8 @@ import {
   createMatchSchema,
   type CreateMatchInput,
 } from "@/lib/validations/match";
+import { MapPin, ExternalLink, Navigation, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { extractCoordsFromGoogleMaps } from "@/lib/utils";
 
 interface Season {
   id: string;
@@ -67,6 +69,7 @@ interface MatchFormProps {
 const typeOptions = [
   { value: "FRIENDLY", label: "Amistoso" },
   { value: "CHAMPIONSHIP", label: "Campeonato" },
+  { value: "TRAINING", label: "Amistoso Treino" },
 ];
 
 const typeLabels: Record<string, string> = {
@@ -173,6 +176,107 @@ interface SavedVenue {
         : "",
     },
   });
+
+  const [resolvedLocation, setResolvedLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    source?: "local" | "server" | "gps";
+  } | null>(() => {
+    if (defaultValues?.latitude !== undefined && defaultValues?.latitude !== null &&
+        defaultValues?.longitude !== undefined && defaultValues?.longitude !== null) {
+      return { latitude: defaultValues.latitude, longitude: defaultValues.longitude, source: "local" };
+    }
+    return null;
+  });
+  const [isResolvingLocation, setIsResolvingLocation] = useState(false);
+  const [locationResolutionError, setLocationResolutionError] = useState<string | null>(null);
+  const [isGettingGps, setIsGettingGps] = useState(false);
+
+  const watchedMapsUrl = watch("mapsUrl");
+  const resolveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (resolveTimeoutRef.current) {
+      clearTimeout(resolveTimeoutRef.current);
+    }
+
+    if (!watchedMapsUrl || !watchedMapsUrl.trim()) {
+      setResolvedLocation(null);
+      setLocationResolutionError(null);
+      setIsResolvingLocation(false);
+      return;
+    }
+
+    const trimmed = watchedMapsUrl.trim();
+
+    // 1. Tenta extrair instantaneamente no client (coordenadas diretas, DMS, URL com coords)
+    const localCoords = extractCoordsFromGoogleMaps(trimmed);
+    if (localCoords) {
+      setResolvedLocation({ latitude: localCoords.latitude, longitude: localCoords.longitude, source: "local" });
+      setLocationResolutionError(null);
+      setIsResolvingLocation(false);
+      return;
+    }
+
+    // 2. Se parece com URL (ex: maps.app.goo.gl encurtado), consulta o endpoint debounced
+    if (/^https?:\/\//i.test(trimmed)) {
+      setIsResolvingLocation(true);
+      setLocationResolutionError(null);
+      resolveTimeoutRef.current = setTimeout(async () => {
+        try {
+          const res = await fetch("/api/matches/resolve-location", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: trimmed }),
+          });
+          const data = await res.json();
+          if (res.ok && data.latitude && data.longitude) {
+            setResolvedLocation({ latitude: data.latitude, longitude: data.longitude, source: "server" });
+            setLocationResolutionError(null);
+          } else {
+            setResolvedLocation(null);
+            setLocationResolutionError(data.error || "Não foi possível extrair a localização do link informado.");
+          }
+        } catch {
+          setLocationResolutionError("Erro de conexão ao validar link de localização.");
+        } finally {
+          setIsResolvingLocation(false);
+        }
+      }, 500);
+    } else {
+      setIsResolvingLocation(false);
+      if (trimmed.length > 5) {
+        setLocationResolutionError("Formato não reconhecido. Use coordenadas (-23.55, -46.63), DMS ou link do Google Maps.");
+      }
+    }
+
+    return () => {
+      if (resolveTimeoutRef.current) clearTimeout(resolveTimeoutRef.current);
+    };
+  }, [watchedMapsUrl]);
+
+  const handleGetGpsLocation = () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      alert("Geolocalização não é suportada neste navegador.");
+      return;
+    }
+    setIsGettingGps(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(6));
+        const lon = Number(pos.coords.longitude.toFixed(6));
+        setValue("mapsUrl", `${lat}, ${lon}`, { shouldValidate: true });
+        setResolvedLocation({ latitude: lat, longitude: lon, source: "gps" });
+        setLocationResolutionError(null);
+        setIsGettingGps(false);
+      },
+      (err) => {
+        setIsGettingGps(false);
+        alert(`Não foi possível obter sua localização: ${err.message}`);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const watchedVenue = watch("venue");
   const prevVenueRef = useRef<string | undefined>(undefined);
@@ -351,6 +455,12 @@ interface SavedVenue {
         mapsUrl: data.mapsUrl?.trim() || null,
         status: recordType,
       };
+
+      if (data.type === "TRAINING") {
+        body.opponent = data.opponent?.trim() || "Time B";
+        body.isHome = true;
+        body.opponentBadgeUrl = null;
+      }
 
       if (recordType === "SCHEDULED") {
         body.homeScore = null;
@@ -560,91 +670,166 @@ interface SavedVenue {
         )}
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-2 rounded-xl bg-white/[0.02] border border-white/5 p-3.5">
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-medium text-[var(--text-subtle)]">
+            Link do Google Maps ou Coordenadas (opcional)
+          </label>
+          <button
+            type="button"
+            onClick={handleGetGpsLocation}
+            disabled={isGettingGps}
+            className="inline-flex items-center gap-1.5 text-xs text-[#34d399] hover:text-[#10b981] font-medium transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {isGettingGps ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Obtendo GPS...</span>
+              </>
+            ) : (
+              <>
+                <Navigation className="h-3.5 w-3.5" />
+                <span>Usar meu GPS atual</span>
+              </>
+            )}
+          </button>
+        </div>
+
         <Input
-          label="Link do Google Maps (opcional)"
-          placeholder="Ex: https://maps.app.goo.gl/XYZ ou coordenadas"
+          placeholder="Ex: https://maps.app.goo.gl/XYZ ou -23.55052, -46.6333"
           error={errors.mapsUrl?.message}
           {...register("mapsUrl")}
         />
+
+        {/* Live location feedback banner */}
+        {isResolvingLocation && (
+          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-white/5 border border-white/10 text-xs text-[#8fa39b] animate-pulse">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#36c2a8]" />
+            <span>Consultando e validando localização exata do campo...</span>
+          </div>
+        )}
+
+        {resolvedLocation && !isResolvingLocation && (
+          <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#10b981]/10 border border-[#10b981]/25 text-xs">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-[#10b981] shrink-0" />
+              <div>
+                <p className="font-semibold text-white">Localização confirmada</p>
+                <p className="text-[#a7f3d0] font-mono text-[11px]">
+                  {resolvedLocation.latitude.toFixed(6)}, {resolvedLocation.longitude.toFixed(6)}
+                </p>
+              </div>
+            </div>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${resolvedLocation.latitude},${resolvedLocation.longitude}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#10b981]/20 hover:bg-[#10b981]/30 text-[#10b981] font-semibold transition-colors shrink-0"
+            >
+              <ExternalLink className="h-3 w-3" />
+              Ver no Mapa
+            </a>
+          </div>
+        )}
+
+        {locationResolutionError && !isResolvingLocation && !resolvedLocation && (
+          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[#f87171]/10 border border-[#f87171]/20 text-xs text-[#f87171]">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{locationResolutionError}</span>
+          </div>
+        )}
+
         <p className="text-[11px] text-[var(--text-subtle)] leading-relaxed">
-          Cole o link compartilhado do Google Maps (ex: <code>https://maps.app.goo.gl/...</code> ou coordenadas diretas no formato <code>latitude, longitude</code>) para habilitar o check-in automático a 500m dos atletas.
+          Cole o link compartilhado do Google Maps (mesmo com pino no meio do campo), link curto <code>maps.app.goo.gl</code>, coordenadas diretas ou formato DMS para habilitar o check-in automático a 500m dos atletas.
         </p>
       </div>
 
-      <Input
-        label="Adversário"
-        placeholder="Nome do time adversário"
-        error={errors.opponent?.message}
-        {...register("opponent")}
-      />
-
       <Select
-        label="Mando de campo"
-        options={[
-          { value: "home", label: "Casa" },
-          { value: "away", label: "Visitante" },
-        ]}
-        value={watch("isHome") === false ? "away" : "home"}
-        onChange={(e) => {
-          const newIsHome = e.target.value === "home";
-          const currentIsHome = watch("isHome") ?? true;
-          if (newIsHome !== currentIsHome) {
-            const currentHomeScore = watch("homeScore");
-            const currentAwayScore = watch("awayScore");
-            setValue("isHome", newIsHome, { shouldValidate: true });
-            setValue("homeScore", currentAwayScore, { shouldValidate: true });
-            setValue("awayScore", currentHomeScore, { shouldValidate: true });
-          }
-        }}
-      />
-
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-[var(--text-subtle)]">
-          Escudo do adversario (opcional)
-        </label>
-        <div className="flex items-center gap-3">
-          {opponentBadgePreview ? (
-            <img
-              src={opponentBadgePreview}
-              alt="Escudo adversario"
-              className="h-16 w-16 rounded-lg border border-[var(--border)] object-cover"
-            />
-          ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-[var(--border)] text-[var(--text-subtle)]">
-              <span className="text-lg">VS</span>
-            </div>
-          )}
-
-          <label className="cursor-pointer">
-            <span className="inline-flex items-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold uppercase tracking-wider text-white hover:bg-white/10 transition-colors shadow-sm">
-              {uploadingBadge ? "Enviando..." : "Fazer upload"}
-            </span>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={handleOpponentBadgeUpload}
-              disabled={uploadingBadge}
-            />
-          </label>
-        </div>
-      </div>
-
-      <Input
-        label="URL do escudo adversário (opcional)"
-        placeholder="https://... ou /uploads/..."
-        error={errors.opponentBadgeUrl?.message}
-        {...register("opponentBadgeUrl")}
-      />
-
-      <Select
-        label="Tipo"
+        label="Tipo de Jogo"
         options={typeOptions}
         placeholder="Selecione o tipo"
         error={errors.type?.message}
         {...register("type")}
       />
+
+      {watch("type") === "TRAINING" ? (
+        <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-r from-[#0d1f18] via-[#091410] to-[#0d1f18] p-4 space-y-2">
+          <div className="flex items-center gap-2 font-bold text-sm text-emerald-400">
+            <span>⚽ Confronto Interno: Time A vs Time B</span>
+          </div>
+          <p className="text-xs text-[#8fa39b] leading-relaxed">
+            Jogo interno onde todos os atletas do clube e convidados confirmados na partida serão distribuídos entre <strong>Time A</strong> (Colete Verde) e <strong>Time B</strong> (Colete Laranja). A comissão técnica (Admin / Técnico) poderá organizar ou equilibrar automaticamente as duas escalações na aba de <strong>Escalação</strong>.
+          </p>
+        </div>
+      ) : (
+        <>
+          <Input
+            label="Adversário"
+            placeholder="Nome do time adversário"
+            error={errors.opponent?.message}
+            {...register("opponent")}
+          />
+
+          <Select
+            label="Mando de campo"
+            options={[
+              { value: "home", label: "Casa" },
+              { value: "away", label: "Visitante" },
+            ]}
+            value={watch("isHome") === false ? "away" : "home"}
+            onChange={(e) => {
+              const newIsHome = e.target.value === "home";
+              const currentIsHome = watch("isHome") ?? true;
+              if (newIsHome !== currentIsHome) {
+                const currentHomeScore = watch("homeScore");
+                const currentAwayScore = watch("awayScore");
+                setValue("isHome", newIsHome, { shouldValidate: true });
+                setValue("homeScore", currentAwayScore, { shouldValidate: true });
+                setValue("awayScore", currentHomeScore, { shouldValidate: true });
+              }
+            }}
+          />
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-[var(--text-subtle)]">
+              Escudo do adversario (opcional)
+            </label>
+            <div className="flex items-center gap-3">
+              {opponentBadgePreview ? (
+                <img
+                  src={opponentBadgePreview}
+                  alt="Escudo adversario"
+                  className="h-16 w-16 rounded-lg border border-[var(--border)] object-cover"
+                />
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-[var(--border)] text-[var(--text-subtle)]">
+                  <span className="text-lg">VS</span>
+                </div>
+              )}
+
+              <label className="cursor-pointer">
+                <span className="inline-flex items-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold uppercase tracking-wider text-white hover:bg-white/10 transition-colors shadow-sm">
+                  {uploadingBadge ? "Enviando..." : "Fazer upload"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleOpponentBadgeUpload}
+                  disabled={uploadingBadge}
+                />
+              </label>
+            </div>
+          </div>
+
+          <Input
+            label="URL do escudo adversário (opcional)"
+            placeholder="https://... ou /uploads/..."
+            error={errors.opponentBadgeUrl?.message}
+            {...register("opponentBadgeUrl")}
+          />
+        </>
+      )}
 
       <Input
         label="Chave Pix para Pagamento da Taxa (opcional)"

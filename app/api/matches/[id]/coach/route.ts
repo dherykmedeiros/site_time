@@ -10,7 +10,9 @@ interface RouteParams {
 }
 
 const assignCoachSchema = z.object({
-  coachPlayerId: z.string().nullable(),
+  coachPlayerId: z.string().nullable().optional(),
+  coachPlayerBId: z.string().nullable().optional(),
+  teamSide: z.enum(["A", "B"]).optional(),
 });
 
 // POST /api/matches/:id/coach — Designar atleta como treinador da partida (Exclusivo ADMIN / COACH)
@@ -40,33 +42,62 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
     );
   }
 
-  const { coachPlayerId } = parsed.data;
+  const { coachPlayerId, coachPlayerBId, teamSide } = parsed.data;
 
   const match = await prisma.match.findFirst({
     where: { id: matchId, teamId },
-    select: { id: true },
+    select: { id: true, type: true },
   });
 
   if (!match) {
     return NextResponse.json({ error: "Partida não encontrada", code: "NOT_FOUND" }, { status: 404 });
   }
 
-  if (coachPlayerId) {
-    const player = await prisma.player.findFirst({
-      where: { id: coachPlayerId, teamId, status: "ACTIVE" },
-      select: { id: true, name: true },
-    });
+  const updateData: Record<string, any> = {};
 
-    if (!player) {
-      return NextResponse.json({ error: "Atleta não encontrado ou inativo no time", code: "NOT_FOUND" }, { status: 404 });
+  // Validação Time A
+  if (coachPlayerId !== undefined) {
+    if (coachPlayerId) {
+      const player = await prisma.player.findFirst({
+        where: { id: coachPlayerId, teamId, status: "ACTIVE" },
+        select: { id: true, name: true },
+      });
+      if (!player) {
+        return NextResponse.json({ error: "Atleta do Time A não encontrado ou inativo no time", code: "NOT_FOUND" }, { status: 404 });
+      }
     }
+    updateData.coachPlayerId = coachPlayerId;
+  }
+
+  // Validação Time B
+  if (coachPlayerBId !== undefined) {
+    if (coachPlayerBId) {
+      const playerB = await prisma.player.findFirst({
+        where: { id: coachPlayerBId, teamId, status: "ACTIVE" },
+        select: { id: true, name: true },
+      });
+      if (!playerB) {
+        return NextResponse.json({ error: "Atleta do Time B não encontrado ou inativo no time", code: "NOT_FOUND" }, { status: 404 });
+      }
+    }
+    updateData.coachPlayerBId = coachPlayerBId;
   }
 
   const updatedMatch = await prisma.match.update({
     where: { id: matchId },
-    data: { coachPlayerId },
+    data: updateData,
     include: {
       coachPlayer: {
+        select: {
+          id: true,
+          name: true,
+          fullName: true,
+          photoUrl: true,
+          position: true,
+          shirtNumber: true,
+        },
+      },
+      coachPlayerB: {
         select: {
           id: true,
           name: true,
@@ -82,18 +113,22 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
   // Sync with MatchCoachReport if exists
   await prisma.matchCoachReport.updateMany({
     where: { matchId },
-    data: { coachPlayerId },
+    data: updateData,
   });
 
   trackOperationalEvent("match_coach_assigned", {
     matchId,
-    coachPlayerId,
+    coachPlayerId: updatedMatch.coachPlayerId,
+    coachPlayerBId: updatedMatch.coachPlayerBId,
+    teamSide,
     adminId: session.user.id,
   });
 
   return NextResponse.json({
-    message: "Treinador da partida designado com sucesso",
+    message: "Treinador(es) da partida designado(s) com sucesso",
     coachPlayerId: updatedMatch.coachPlayerId,
     coachPlayer: updatedMatch.coachPlayer,
+    coachPlayerBId: updatedMatch.coachPlayerBId,
+    coachPlayerB: updatedMatch.coachPlayerB,
   });
 });

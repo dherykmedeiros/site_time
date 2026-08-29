@@ -84,6 +84,7 @@ export interface MatchDetail {
   pixKey: string | null;
   season?: { id: string; name: string; type: string; status: string } | null;
   positionLimits?: Array<{ position: string; maxPlayers: number }>;
+  guestPlayers?: Array<{ id: string; name: string; position?: string | null; shirtNumber?: number | null }>;
   latitude?: number | null;
   longitude?: number | null;
   userAttendance?: { present: boolean; checkedInAt: string | null } | null;
@@ -96,6 +97,11 @@ export interface MatchLineupResponse {
   generatedAt: string;
   imageUrl: string;
   lineup: SuggestedLineupResponse;
+  trainingDivision?: {
+    teamA: { starters: any[]; bench: any[] };
+    teamB: { starters: any[]; bench: any[] };
+    unassigned: any[];
+  };
 }
 
 export type ScheduledWorkspaceSection = "overview" | "presence" | "lineup" | "operations" | "postgame" | "gallery" | "live" | "guests" | "charges";
@@ -915,10 +921,11 @@ export default function MatchDetailPage() {
   }
 
   function handleCopyLink() {
-    if (!match?.shareUrl) return;
+    if (!match) return;
+    const matchDashboardUrl = `${window.location.origin}/dashboard/matches/${match.id}`;
     trackGeneralMatchShareCopy();
-    navigator.clipboard.writeText(match.shareUrl).then(() => {
-      setCopyMsg("Link copiado!");
+    navigator.clipboard.writeText(matchDashboardUrl).then(() => {
+      setCopyMsg("Link do jogo copiado!");
       setTimeout(() => setCopyMsg(""), 2000);
     });
   }
@@ -942,9 +949,10 @@ export default function MatchDetailPage() {
   function handleCopyRecapLink() {
     if (!match) return;
     trackRecapCtaClick("copy_link");
-    const recapUrl = `${window.location.origin}/api/og/team-recap/${match.id}`;
+    const recapUrl = getRecapCardUrl();
+    if (!recapUrl) return;
     navigator.clipboard.writeText(recapUrl).then(() => {
-      setCopyMsg("Link do recap copiado!");
+      setCopyMsg("Link do card copiado!");
       setTimeout(() => setCopyMsg(""), 2000);
     });
   }
@@ -974,9 +982,10 @@ export default function MatchDetailPage() {
   function handleCopyPregameRecapLink() {
     if (!match) return;
     trackPregameCtaClick("copy_link");
-    const pregameRecapUrl = getPregameRecapCardUrl();
-    navigator.clipboard.writeText(pregameRecapUrl).then(() => {
-      setCopyMsg("Link do pré-jogo copiado!");
+    const pregameUrl = getPregameRecapCardUrl();
+    if (!pregameUrl) return;
+    navigator.clipboard.writeText(pregameUrl).then(() => {
+      setCopyMsg("Link do card pré-jogo copiado!");
       setTimeout(() => setCopyMsg(""), 2000);
     });
   }
@@ -1009,6 +1018,7 @@ export default function MatchDetailPage() {
     const dateStr = new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
       timeStyle: "short",
+      timeZone: "America/Sao_Paulo",
     }).format(new Date(match.date));
 
     const confirmedNames = match.rsvps
@@ -1018,12 +1028,14 @@ export default function MatchDetailPage() {
       .filter((r) => r.status === "PENDING")
       .map((r) => r.playerName);
 
+    const isTraining = match.type === "TRAINING";
+
     const lines: string[] = [
-      `⚽ JOGO MARCADO!`,
+      isTraining ? `⚽ *AMISTOSO TREINO MARCADO!*` : `⚽ JOGO MARCADO!`,
       ``,
       `📅 ${dateStr}`,
       `📍 ${match.venue}`,
-      `🏆 vs ${match.opponent}`,
+      isTraining ? `⚔️ *Confronto Interno: Time A x Time B*` : `🏆 vs ${match.opponent}`,
       ``,
     ];
 
@@ -1038,7 +1050,7 @@ export default function MatchDetailPage() {
       lines.push(``);
     }
 
-    lines.push(`👉 Confirme aqui: ${window.location.origin}/matches/${match.id}?t=${match.shareToken}`);
+    lines.push(`👉 Confirme sua presença no app: ${window.location.origin}/dashboard/matches/${match.id}`);
     return lines.join("\n");
   }
 
@@ -1048,7 +1060,35 @@ export default function MatchDetailPage() {
     const dateStr = new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
       timeStyle: "short",
+      timeZone: "America/Sao_Paulo",
     }).format(new Date(match.date));
+
+    const dashboardMatchUrl = `${window.location.origin}/dashboard/matches/${match.id}`;
+
+    if (match.type === "TRAINING") {
+      const startersA = lineupData.lineup.starters.filter((s: any) => s.teamSide === "A" || !s.teamSide);
+      const startersB = lineupData.lineup.starters.filter((s: any) => s.teamSide === "B");
+      const benchA = lineupData.lineup.bench.filter((b: any) => b.teamSide === "A" || !b.teamSide);
+      const benchB = lineupData.lineup.bench.filter((b: any) => b.teamSide === "B");
+
+      const lines: string[] = [
+        `⚽ *AMISTOSO TREINO: TIME A x TIME B*`,
+        `📅 ${dateStr} | 📍 ${match.venue}`,
+        ``,
+        `🟢 *TIME A (Colete Verde / Mandante):*`,
+        `*Titulares:*`,
+        ...startersA.map((s, index) => `${index + 1}. ${s.playerName}`),
+        ...(benchA.length > 0 ? [`*Reservas:*`, ...benchA.map((b) => `▫️ ${b.playerName}`)] : []),
+        ``,
+        `🟠 *TIME B (Colete Laranja / Visitante):*`,
+        `*Titulares:*`,
+        ...startersB.map((s, index) => `${index + 1}. ${s.playerName}`),
+        ...(benchB.length > 0 ? [`*Reservas:*`, ...benchB.map((b) => `▫️ ${b.playerName}`)] : []),
+      ];
+
+      lines.push(``, `🔗 Detalhes da partida: ${dashboardMatchUrl}`);
+      return lines.join("\n");
+    }
 
     const formation = lineupData.lineup.meta.formation;
     const lines: string[] = [
@@ -1070,12 +1110,40 @@ export default function MatchDetailPage() {
       );
     }
 
-    lines.push(``, `🔗 Veja a partida: ${match.shareUrl}`);
+    lines.push(``, `🔗 Detalhes da partida: ${dashboardMatchUrl}`);
     return lines.join("\n");
   }
 
   function buildResultText() {
     if (!match || match.homeScore === null || match.awayScore === null) return "";
+
+    if (match.type === "TRAINING") {
+      const scoreA = match.homeScore;
+      const scoreB = match.awayScore;
+      const result = scoreA > scoreB ? "🔵 Vitória do Time A" : scoreA < scoreB ? "🔴 Vitória do Time B" : "🟡 Empate";
+
+      const scorers = match.stats
+        .filter((s) => s.goals > 0)
+        .map((s) => `${s.playerName} (${s.goals})`);
+
+      const lines = [
+        `⚽ RESULTADO DO AMISTOSO TREINO`,
+        ``,
+        `${result}`,
+        `🔵 Time A ${scoreA} × ${scoreB} Time B 🔴`,
+      ];
+
+      if (scorers.length > 0) {
+        lines.push(``, `⚽ Gols:`, ...scorers.map((s) => `▪️ ${s}`));
+      }
+
+      lines.push(
+        ``,
+        `🖼️ Card recap: ${getRecapCardUrl()}`,
+        `👉 Detalhes da partida: ${window.location.origin}/dashboard/matches/${match.id}`
+      );
+      return lines.join("\n");
+    }
 
     const our = match.isHome ? match.homeScore : match.awayScore;
     const opp = match.isHome ? match.awayScore : match.homeScore;
@@ -1098,7 +1166,7 @@ export default function MatchDetailPage() {
     lines.push(
       ``,
       `🖼️ Card recap: ${getRecapCardUrl()}`,
-      `👉 Ver partida: ${match.shareUrl}`
+      `👉 Detalhes da partida: ${window.location.origin}/dashboard/matches/${match.id}`
     );
     return lines.join("\n");
   }
@@ -1224,7 +1292,11 @@ export default function MatchDetailPage() {
         {/* Match title row */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-4">
-            {match.opponentBadgeUrl ? (
+            {match.type === "TRAINING" ? (
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-lg font-black text-emerald-400">
+                A×B
+              </div>
+            ) : match.opponentBadgeUrl ? (
               <img
                 src={match.opponentBadgeUrl}
                 alt={match.opponent}
@@ -1237,18 +1309,24 @@ export default function MatchDetailPage() {
             )}
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                vs {match.opponent}
+                {match.type === "TRAINING" ? "Amistoso Treino: Time A x Time B" : `vs ${match.opponent}`}
               </h1>
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
                 <Badge variant={statusVariants[match.status]}>
                   {statusLabels[match.status]}
                 </Badge>
                 <Badge variant="default">
-                  {match.type === "FRIENDLY" ? "Amistoso" : "Campeonato"}
+                  {match.type === "FRIENDLY"
+                    ? "Amistoso"
+                    : match.type === "TRAINING"
+                    ? "Amistoso Treino"
+                    : "Campeonato"}
                 </Badge>
-                <Badge variant="default">
-                  {match.isHome ? "🏠 Casa" : "✈️ Visitante"}
-                </Badge>
+                {match.type !== "TRAINING" && (
+                  <Badge variant="default">
+                    {match.isHome ? "🏠 Casa" : "✈️ Visitante"}
+                  </Badge>
+                )}
                 {match.season && (
                   <Badge variant="default">{match.season.name}</Badge>
                 )}
@@ -1261,7 +1339,7 @@ export default function MatchDetailPage() {
             <div className="flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-black/30 px-5 py-3 backdrop-blur-sm">
               <div className="text-center">
                 <span className="block text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">
-                  {match.isHome ? "NÓS" : "ADV"}
+                  {match.type === "TRAINING" ? "TIME A" : match.isHome ? "NÓS" : "ADV"}
                 </span>
                 <span className={`block text-3xl font-black mt-0.5 ${match.isHome ? "text-[#6ee7b7]" : "text-[#fca5a5]"}`}>
                   {match.homeScore}
@@ -1270,7 +1348,7 @@ export default function MatchDetailPage() {
               <span className="text-lg font-bold text-white/20">×</span>
               <div className="text-center">
                 <span className="block text-[10px] font-bold uppercase tracking-widest text-[#8fa39b]">
-                  {match.isHome ? "ADV" : "NÓS"}
+                  {match.type === "TRAINING" ? "TIME B" : match.isHome ? "ADV" : "NÓS"}
                 </span>
                 <span className={`block text-3xl font-black mt-0.5 ${match.isHome ? "text-[#fca5a5]" : "text-[#6ee7b7]"}`}>
                   {match.awayScore}
@@ -1289,7 +1367,7 @@ export default function MatchDetailPage() {
           <span className="flex items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5 text-[#34d399]" />
             {match.venue}
-            {match.latitude && match.longitude && (
+            {match.latitude !== null && match.longitude !== null && (
               <a
                 href={`https://www.google.com/maps/search/?api=1&query=${match.latitude},${match.longitude}`}
                 target="_blank"
@@ -1457,7 +1535,7 @@ export default function MatchDetailPage() {
       {/* ── Check-in Banner (Fácil Localização) ──────────────── */}
       {isScheduled && session?.user?.playerId && (() => {
         const loggedInPlayerRsvp = match.rsvps.find((r) => r.playerId === session?.user?.playerId);
-        if (loggedInPlayerRsvp?.status !== "CONFIRMED" || match.isPlayerSuspended || !match.latitude || !match.longitude) {
+        if (loggedInPlayerRsvp?.status !== "CONFIRMED" || match.isPlayerSuspended || match.latitude === null || match.longitude === null) {
           return null;
         }
 
@@ -1786,13 +1864,15 @@ export default function MatchDetailPage() {
         <PostGameForm
           mode="edit"
           matchId={match.id}
+          matchType={match.type}
+          lineupData={lineupData}
           rsvps={match.rsvps}
           initialHomeScore={match.homeScore}
           initialAwayScore={match.awayScore}
           initialStats={match.stats}
           initialIsHome={match.isHome}
           opponentBadgeUrl={match.opponentBadgeUrl}
-          allowOpponentBadgeEdit={!match.opponentBadgeUrl}
+          allowOpponentBadgeEdit
           allowIsHomeEdit
           onSuccess={async () => {
             setShowEditPostGame(false);

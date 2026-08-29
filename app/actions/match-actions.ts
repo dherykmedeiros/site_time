@@ -173,7 +173,8 @@ export async function createMatchLiveEventAction(input: unknown) {
       const newScores = calculateNewScore(
         { homeScore: matchLive.homeScore, awayScore: matchLive.awayScore },
         matchLive.match.isHome,
-        parsed.teamIsScorer
+        parsed.teamIsScorer,
+        matchLive.match.type
       );
       updatedHomeScore = newScores.homeScore;
       updatedAwayScore = newScores.awayScore;
