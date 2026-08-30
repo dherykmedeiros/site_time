@@ -78,7 +78,7 @@ async function uploadToLocalStorage(buffer: Buffer, fileName: string): Promise<s
   const filePath = path.join(uploadDir, fileName);
   await writeFile(filePath, buffer);
 
-  return `/uploads/${fileName}`;
+  return `/api/assets/${fileName}`;
 }
 
 function detectImageType(buffer: Buffer): string | null {
