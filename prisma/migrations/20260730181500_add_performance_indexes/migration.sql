@@ -1,20 +1,20 @@
 -- CreateIndex
-CREATE INDEX "users_teamId_idx" ON "users"("teamId");
+CREATE INDEX IF NOT EXISTS "users_teamId_idx" ON "users"("teamId");
 
 -- CreateIndex
-CREATE INDEX "matches_teamId_date_idx" ON "matches"("teamId", "date");
+CREATE INDEX IF NOT EXISTS "matches_teamId_date_idx" ON "matches"("teamId", "date");
 
 -- CreateIndex
-CREATE INDEX "fines_teamId_status_idx" ON "fines"("teamId", "status");
+CREATE INDEX IF NOT EXISTS "fines_teamId_status_idx" ON "fines"("teamId", "status");
 
 -- CreateIndex
-CREATE INDEX "fines_playerId_status_idx" ON "fines"("playerId", "status");
+CREATE INDEX IF NOT EXISTS "fines_playerId_status_idx" ON "fines"("playerId", "status");
 
 -- CreateIndex
-CREATE INDEX "team_messages_teamId_createdAt_idx" ON "team_messages"("teamId", "createdAt");
+CREATE INDEX IF NOT EXISTS "team_messages_teamId_createdAt_idx" ON "team_messages"("teamId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "notifications_userId_createdAt_idx" ON "notifications"("userId", "createdAt");
+CREATE INDEX IF NOT EXISTS "notifications_userId_createdAt_idx" ON "notifications"("userId", "createdAt");
 
 -- CreateIndex
-CREATE INDEX "match_photos_teamId_createdAt_idx" ON "match_photos"("teamId", "createdAt");
+CREATE INDEX IF NOT EXISTS "match_photos_teamId_createdAt_idx" ON "match_photos"("teamId", "createdAt");
