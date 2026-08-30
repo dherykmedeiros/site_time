@@ -161,9 +161,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const url = canUseSupabaseStorage()
-      ? await uploadToSupabaseStorage(cleanBuffer, fileName, mimeType)
-      : await uploadToLocalStorage(cleanBuffer, fileName);
+    let url: string;
+    if (canUseSupabaseStorage()) {
+      try {
+        url = await uploadToSupabaseStorage(cleanBuffer, fileName, mimeType);
+      } catch (storageError) {
+        // Keep uploads available when an optional external storage service is
+        // unavailable; the persistent local volume is the fallback.
+        console.warn("Supabase Storage upload failed; using local storage", storageError);
+        url = await uploadToLocalStorage(cleanBuffer, fileName);
+      }
+    } else {
+      url = await uploadToLocalStorage(cleanBuffer, fileName);
+    }
 
     return NextResponse.json({ url }, { status: 201 });
   } catch (err) {
