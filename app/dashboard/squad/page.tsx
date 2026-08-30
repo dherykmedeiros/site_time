@@ -64,7 +64,7 @@ export default function SquadPage() {
   const [actionPlayer, setActionPlayer] = useState<Player | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<"ADMIN" | "COACH" | "MATERIAL_DIRECTOR" | "PLAYER">("PLAYER");
-  const [monthlyFeesEnabled, setMonthlyFeesEnabled] = useState(true);
+  const [monthlyFeesEnabled, setMonthlyFeesEnabled] = useState(false);
   const [openMenuPlayerId, setOpenMenuPlayerId] = useState<string | null>(null);
 
   const roleLabels: Record<string, { label: string; variant: "success" | "warning" | "danger" | "info" | "default" }> = {

@@ -560,13 +560,13 @@ export default function TeamSettingsPage() {
               <div>
                 <p className="text-sm font-semibold text-white">💰 Controle de Mensalidades</p>
                 <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                  Gerenciar mensalistas, pagamentos mensais recorrentes dos atletas e caixinha do clube.
+                  Desativado por padrão. Ative apenas se o time for cobrar mensalidades.
                 </p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer select-none">
                 <input
                   type="checkbox"
-                  checked={team?.monthlyFeesEnabled ?? true}
+                  checked={team?.monthlyFeesEnabled ?? false}
                   onChange={(e) => handleToggleMonthlyFees(e.target.checked)}
                   className="sr-only peer"
                 />

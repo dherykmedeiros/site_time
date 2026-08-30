@@ -231,7 +231,7 @@ model Team {
   membershipPayments MembershipPayment[]
   matchPayments    MatchPayment[]
   seasons          Season[]
-  monthlyFeesEnabled Boolean         @default(true)
+  monthlyFeesEnabled Boolean         @default(false)
   openMatchSlots   OpenMatchSlot[]
   rules            Rule[]
   fines            Fine[]

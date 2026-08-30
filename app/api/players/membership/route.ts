@@ -33,6 +33,18 @@ export async function GET(request: Request) {
   const { month, year } = parsed.data;
   const teamId = session.user.teamId;
 
+  const team = await prisma.team.findFirst({
+    where: { id: teamId },
+    select: { monthlyFeesEnabled: true },
+  });
+
+  if (!team?.monthlyFeesEnabled) {
+    return NextResponse.json(
+      { error: "O controle de mensalidades não está ativado para este time" },
+      { status: 403 }
+    );
+  }
+
   const [players, payments] = await Promise.all([
     prisma.player.findMany({
       where: { teamId, status: "ACTIVE" },

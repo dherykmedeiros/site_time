@@ -36,6 +36,18 @@ export async function POST(request: Request, context: RouteContext) {
   const { id: playerId } = await context.params;
   const teamId = session.user.teamId;
 
+  const team = await prisma.team.findFirst({
+    where: { id: teamId },
+    select: { monthlyFeesEnabled: true },
+  });
+
+  if (!team?.monthlyFeesEnabled) {
+    return NextResponse.json(
+      { error: "O controle de mensalidades não está ativado para este time" },
+      { status: 403 }
+    );
+  }
+
   const player = await prisma.player.findFirst({
     where: { id: playerId, teamId },
     select: { id: true, name: true },
