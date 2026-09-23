@@ -57,6 +57,7 @@ export const GET = withErrorHandler(async () => {
         friendlyInviteBufferBeforeDays: true,
         friendlyInviteBufferAfterDays: true,
         friendlyInviteAllowedWeekdays: true,
+        friendlyInviteWhatsapp: true,
       },
     }),
     prisma.openMatchSlot.findMany({
@@ -250,6 +251,9 @@ export const PATCH = withErrorHandler(async (request: Request) => {
       ...(parsedTeam.data.friendlyInviteAllowedWeekdays !== undefined
         ? { friendlyInviteAllowedWeekdays: parsedTeam.data.friendlyInviteAllowedWeekdays }
         : {}),
+      ...(parsedTeam.data.friendlyInviteWhatsapp !== undefined
+        ? { friendlyInviteWhatsapp: parsedTeam.data.friendlyInviteWhatsapp || null }
+        : {}),
     },
     select: {
       id: true,
@@ -264,6 +268,7 @@ export const PATCH = withErrorHandler(async (request: Request) => {
       friendlyInviteBufferBeforeDays: true,
       friendlyInviteBufferAfterDays: true,
       friendlyInviteAllowedWeekdays: true,
+      friendlyInviteWhatsapp: true,
       updatedAt: true,
     },
   });

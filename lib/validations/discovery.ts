@@ -37,9 +37,30 @@ export const updateTeamDiscoverySchema = z
     friendlyInviteBufferBeforeDays: z.number().int().min(0).max(14).optional(),
     friendlyInviteBufferAfterDays: z.number().int().min(0).max(14).optional(),
     friendlyInviteAllowedWeekdays: z.array(z.number().int().min(0).max(6)).max(7).optional(),
+    friendlyInviteWhatsapp: z
+      .union([
+        z.string().trim().max(20).refine(
+          (value) => value.replace(/\D/g, "").length >= 10,
+          "Informe um WhatsApp com DDD",
+        ),
+        z.literal(""),
+      ])
+      .optional()
+      .nullable(),
   })
   .strict()
   .superRefine((data, ctx) => {
+    if (
+      data.friendlyInvitesEnabled === true &&
+      (!data.friendlyInviteWhatsapp || data.friendlyInviteWhatsapp.replace(/\D/g, "").length < 10)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["friendlyInviteWhatsapp"],
+        message: "Informe o WhatsApp que receberá os convites",
+      });
+    }
+
     if (
       data.friendlyInviteMinNoticeDays !== undefined &&
       data.friendlyInviteMaxAdvanceDays !== undefined &&

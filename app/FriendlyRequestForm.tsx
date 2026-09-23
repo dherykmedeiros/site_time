@@ -239,6 +239,9 @@ export function FriendlyRequestForm({
       }
 
       setSuccess(true);
+      if (data.whatsappUrl) {
+        window.location.assign(data.whatsappUrl);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao enviar");
     } finally {
@@ -253,7 +256,7 @@ export function FriendlyRequestForm({
           [SUCESSO] SOLICITAÇÃO ENVIADA!
         </p>
         <p className="mt-2 text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">
-          A comissão técnica analisará a proposta e responderá por e-mail.
+          A comissão técnica analisará a proposta e responderá pelo WhatsApp informado.
         </p>
         <Button
           type="button"
@@ -263,6 +266,7 @@ export function FriendlyRequestForm({
             setSuccess(false);
             setRequesterTeamName("");
             setContactEmail("");
+            setContactPhone("");
             setSelectedDate("");
             setSelectedTime("");
             setDateNotes("");
@@ -369,20 +373,21 @@ export function FriendlyRequestForm({
       />
 
       <Input
-        label="E-mail de contato *"
+        label="E-mail de contato (opcional)"
         type="email"
         value={contactEmail}
         onChange={(e) => setContactEmail(e.target.value)}
-        required
         placeholder="contato@suaequipe.com"
         className="rounded-none border-2 border-slate-800 bg-black/40 text-white placeholder-gray-600 focus:border-[var(--team-primary)] focus:shadow-[3px_3px_0px_0px_var(--team-primary)] shadow-none transition-all focus:ring-0"
       />
 
       <Input
-        label="Telefone"
+        label="WhatsApp para contato *"
         type="tel"
         value={contactPhone}
         onChange={(e) => setContactPhone(e.target.value)}
+        required
+        minLength={10}
         maxLength={20}
         placeholder="(11) 99999-9999"
         className="rounded-none border-2 border-slate-800 bg-black/40 text-white placeholder-gray-600 focus:border-[var(--team-primary)] focus:shadow-[3px_3px_0px_0px_var(--team-primary)] shadow-none transition-all focus:ring-0"

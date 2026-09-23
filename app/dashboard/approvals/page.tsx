@@ -16,7 +16,7 @@ import { Handshake, Receipt, Package, CheckCircle, XCircle, Clock, Calendar, Map
 interface FriendlyRequest {
   id: string;
   requesterTeamName: string;
-  contactEmail: string;
+  contactEmail: string | null;
   contactPhone: string | null;
   suggestedDates: string;
   suggestedVenue: string | null;
@@ -256,7 +256,7 @@ export default function ApprovalsPage() {
                             {req.suggestedVenue && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> Local: {req.suggestedVenue}</span>}
                             {req.proposedFee !== null && <span className="flex items-center gap-1"><DollarSign className="w-3.5 h-3.5" /> Taxa: R$ {req.proposedFee.toFixed(2)}</span>}
                           </div>
-                          <p className="text-xs text-[var(--text-muted)]">Contato: {req.contactEmail} {req.contactPhone ? `| ${req.contactPhone}` : ""}</p>
+                          <p className="text-xs text-[var(--text-muted)]">Contato: {req.contactPhone}{req.contactEmail ? ` | ${req.contactEmail}` : ""}</p>
                         </div>
                         <div className="flex items-center gap-2 w-full md:w-auto">
                           <Button

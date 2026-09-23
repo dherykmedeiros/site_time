@@ -279,13 +279,15 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       });
 
     // Send approval email (non-blocking)
-    sendFriendlyApprovalEmail({
-      to: friendlyRequest.contactEmail,
-      requesterTeamName: friendlyRequest.requesterTeamName,
-      teamName: friendlyRequest.team.name,
-      matchDate: date.toLocaleDateString("pt-BR"),
-      venue,
-    }).catch(console.error);
+    if (friendlyRequest.contactEmail) {
+      sendFriendlyApprovalEmail({
+        to: friendlyRequest.contactEmail,
+        requesterTeamName: friendlyRequest.requesterTeamName,
+        teamName: friendlyRequest.team.name,
+        matchDate: date.toLocaleDateString("pt-BR"),
+        venue,
+      }).catch(console.error);
+    }
 
     return NextResponse.json({
       request: {
@@ -331,12 +333,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     });
 
     // Send rejection email (non-blocking)
-    sendFriendlyRejectionEmail({
-      to: friendlyRequest.contactEmail,
-      requesterTeamName: friendlyRequest.requesterTeamName,
-      teamName: friendlyRequest.team.name,
-      reason,
-    }).catch(console.error);
+    if (friendlyRequest.contactEmail) {
+      sendFriendlyRejectionEmail({
+        to: friendlyRequest.contactEmail,
+        requesterTeamName: friendlyRequest.requesterTeamName,
+        teamName: friendlyRequest.team.name,
+        reason,
+      }).catch(console.error);
+    }
 
     return NextResponse.json({
       request: {

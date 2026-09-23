@@ -55,6 +55,7 @@ export default async function FriendlyInvitePage({ params }: FriendlyInvitePageP
       friendlyInviteBufferBeforeDays: true,
       friendlyInviteBufferAfterDays: true,
       friendlyInviteAllowedWeekdays: true,
+      friendlyInviteWhatsapp: true,
     },
   });
 
@@ -104,6 +105,11 @@ export default async function FriendlyInvitePage({ params }: FriendlyInvitePageP
               <p className="mt-2 text-sm leading-relaxed text-slate-400">
                 Os dias com jogos confirmados e os intervalos de descanso definidos pelo clube já aparecem bloqueados.
               </p>
+              {team.friendlyInviteWhatsapp && (
+                <p className="mt-3 border border-emerald-900 bg-emerald-950/20 p-3 text-xs font-bold text-emerald-300">
+                  Após registrar o convite, você será encaminhado ao WhatsApp do time com a mensagem preenchida para confirmar o envio.
+                </p>
+              )}
             </div>
             <FriendlyRequestForm teamSlug={team.slug} initialSuggestedVenue={team.defaultVenue || ""} />
           </section>

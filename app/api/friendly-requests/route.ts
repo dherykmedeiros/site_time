@@ -5,6 +5,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { createFriendlyRequestSchema } from "@/lib/validations/friendly-request";
 import { extractClientIp } from "@/lib/request-ip";
 import { withErrorHandler } from "@/lib/api-handler";
+import { createWhatsappUrl } from "@/lib/whatsapp";
 import {
   buildFriendlyAvailability,
   dateKeyInTimeZone,
@@ -185,8 +186,8 @@ export const POST = withErrorHandler(async (request: Request) => {
   const friendlyRequest = await prisma.friendlyRequest.create({
     data: {
       requesterTeamName: data.requesterTeamName,
-      contactEmail: data.contactEmail,
-      contactPhone: data.contactPhone || null,
+      contactEmail: data.contactEmail || null,
+      contactPhone: data.contactPhone,
       suggestedDates: data.suggestedDates,
       requestedDate,
       suggestedVenue: data.suggestedVenue || null,
@@ -196,11 +197,35 @@ export const POST = withErrorHandler(async (request: Request) => {
     },
   });
 
+  const requestedDateText = requestedDate
+    ? requestedDate.toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        dateStyle: "short",
+        timeStyle: "short",
+      })
+    : data.suggestedDates;
+  const whatsappMessage = [
+    `⚽ Novo convite de amistoso para ${team.name}`,
+    `Time desafiante: ${data.requesterTeamName}`,
+    `Data: ${requestedDateText}`,
+    `Local: ${data.suggestedVenue || "A combinar"}`,
+    data.proposedFee != null ? `Taxa proposta: R$ ${data.proposedFee.toFixed(2).replace(".", ",")}` : null,
+    `WhatsApp para retorno: ${data.contactPhone}`,
+    data.contactEmail ? `E-mail: ${data.contactEmail}` : null,
+    `Protocolo: ${friendlyRequest.id}`,
+  ].filter(Boolean).join("\n");
+  const whatsappUrl = team.friendlyInviteWhatsapp
+    ? createWhatsappUrl(team.friendlyInviteWhatsapp, whatsappMessage)
+    : null;
+
   return NextResponse.json(
     {
       id: friendlyRequest.id,
       status: "PENDING",
-      message: "Solicitação enviada com sucesso. Você receberá uma resposta por e-mail.",
+      message: whatsappUrl
+        ? "Solicitação registrada. Confirme o envio no WhatsApp do time."
+        : "Solicitação registrada. O time responderá pelo WhatsApp informado.",
+      whatsappUrl,
     },
     { status: 201 }
   );

@@ -221,6 +221,7 @@ model Team {
   friendlyInviteBufferBeforeDays Int   @default(1)
   friendlyInviteBufferAfterDays Int    @default(1)
   friendlyInviteAllowedWeekdays Json   @default("[0,1,2,3,4,5,6]")
+  friendlyInviteWhatsapp String?
   foundedYear      Int?
   kitHomeUrl       String?
   kitAwayUrl       String?
@@ -490,7 +491,7 @@ model MatchStats {
 model FriendlyRequest {
   id                String                @id @default(cuid())
   requesterTeamName String
-  contactEmail      String
+  contactEmail      String?
   contactPhone      String?
   suggestedDates    String
   requestedDate     DateTime?

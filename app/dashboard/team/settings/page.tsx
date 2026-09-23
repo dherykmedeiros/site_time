@@ -42,6 +42,7 @@ interface TeamDiscoverySettings {
   friendlyInviteBufferBeforeDays: number;
   friendlyInviteBufferAfterDays: number;
   friendlyInviteAllowedWeekdays: number[];
+  friendlyInviteWhatsapp: string | null;
 }
 
 interface OpenMatchSlot {
@@ -104,6 +105,7 @@ export default function TeamSettingsPage() {
     friendlyInviteBufferBeforeDays: 1,
     friendlyInviteBufferAfterDays: 1,
     friendlyInviteAllowedWeekdays: [0, 1, 2, 3, 4, 5, 6],
+    friendlyInviteWhatsapp: null,
   });
   const [slots, setSlots] = useState<OpenMatchSlot[]>([]);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -397,6 +399,7 @@ export default function TeamSettingsPage() {
             friendlyInviteAllowedWeekdays: Array.isArray(data.team.friendlyInviteAllowedWeekdays)
               ? data.team.friendlyInviteAllowedWeekdays
               : [0, 1, 2, 3, 4, 5, 6],
+            friendlyInviteWhatsapp: data.team.friendlyInviteWhatsapp ?? null,
           });
         }
         setSlots(Array.isArray(data?.slots) ? data.slots : []);
@@ -409,6 +412,14 @@ export default function TeamSettingsPage() {
   }, [isAdmin, hasTeam]);
 
   async function saveDiscoverySettings() {
+    if (
+      settings.friendlyInvitesEnabled &&
+      (!settings.friendlyInviteWhatsapp || settings.friendlyInviteWhatsapp.replace(/\D/g, "").length < 10)
+    ) {
+      setFeedback("Informe o WhatsApp que receberá os convites, incluindo o DDD.");
+      return;
+    }
+
     setSettingsSaving(true);
     setFeedback(null);
 
@@ -428,6 +439,7 @@ export default function TeamSettingsPage() {
           friendlyInviteBufferBeforeDays: settings.friendlyInviteBufferBeforeDays,
           friendlyInviteBufferAfterDays: settings.friendlyInviteBufferAfterDays,
           friendlyInviteAllowedWeekdays: settings.friendlyInviteAllowedWeekdays,
+          friendlyInviteWhatsapp: settings.friendlyInviteWhatsapp || null,
         }),
       });
 
@@ -1018,6 +1030,14 @@ export default function TeamSettingsPage() {
             </label>
 
             <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                label="WhatsApp que recebe os convites *"
+                type="tel"
+                value={settings.friendlyInviteWhatsapp || ""}
+                onChange={(event) => setSettings((current) => ({ ...current, friendlyInviteWhatsapp: event.target.value }))}
+                maxLength={20}
+                placeholder="(11) 99999-9999"
+              />
               <Input
                 label="Antecedência mínima (dias)"
                 type="number"

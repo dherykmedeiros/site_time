@@ -7,12 +7,16 @@ export const createFriendlyRequestSchema = z.object({
     .trim()
     .min(2, "Nome do time deve ter no mínimo 2 caracteres")
     .max(100, "Nome do time deve ter no máximo 100 caracteres"),
-  contactEmail: z.string().trim().email("E-mail inválido"),
-  contactPhone: z
-    .string()
-    .max(20, "Telefone deve ter no máximo 20 caracteres")
+  contactEmail: z
+    .union([z.string().trim().email("E-mail inválido"), z.literal("")])
     .optional()
     .nullable(),
+  contactPhone: z
+    .string()
+    .trim()
+    .min(10, "Informe um WhatsApp com DDD")
+    .max(20, "WhatsApp deve ter no máximo 20 caracteres")
+    .refine((value) => value.replace(/\D/g, "").length >= 10, "Informe um WhatsApp com DDD"),
   suggestedDates: z
     .string()
     .min(5, "Datas sugeridas devem ter no mínimo 5 caracteres")

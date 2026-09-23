@@ -13,7 +13,7 @@ import { useSession } from "next-auth/react";
 interface FriendlyRequest {
   id: string;
   requesterTeamName: string;
-  contactEmail: string;
+  contactEmail: string | null;
   contactPhone: string | null;
   suggestedDates: string;
   requestedDate: string | null;
@@ -224,8 +224,8 @@ export default function FriendlyRequestsPage() {
                     )}
 
                     <p className="text-sm text-[var(--text-muted)]">
-                      📧 {req.contactEmail}
-                      {req.contactPhone && ` • 📞 ${req.contactPhone}`}
+                      📱 {req.contactPhone}
+                      {req.contactEmail && ` • 📧 ${req.contactEmail}`}
                     </p>
                     <p className="text-sm text-[var(--text-muted)]">
                       📅 {req.suggestedDates}

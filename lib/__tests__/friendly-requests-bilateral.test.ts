@@ -7,6 +7,7 @@ describe("Friendly Request Bilateral Enhancements", () => {
       teamSlug: "trovao-azul",
       requesterTeamName: "Azilados FC",
       contactEmail: "admin@azilados.com",
+      contactPhone: "(11) 99999-9999",
       suggestedDates: "Sábado às 16h",
       requesterTeamId: "team-azilados-id-123",
     };
@@ -22,7 +23,7 @@ describe("Friendly Request Bilateral Enhancements", () => {
     const validData = {
       teamSlug: "trovao-azul",
       requesterTeamName: "Time Bairro Amigos",
-      contactEmail: "contato@amigos.com",
+      contactPhone: "(11) 98888-7777",
       suggestedDates: "Domingo de manhã",
     };
 
@@ -30,6 +31,18 @@ describe("Friendly Request Bilateral Enhancements", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.requesterTeamId).toBeUndefined();
+      expect(result.data.contactEmail).toBeUndefined();
     }
+  });
+
+  it("requires a WhatsApp number with DDD", () => {
+    const result = createFriendlyRequestSchema.safeParse({
+      teamSlug: "trovao-azul",
+      requesterTeamName: "Time sem contato",
+      contactEmail: "",
+      suggestedDates: "Domingo de manhã",
+    });
+
+    expect(result.success).toBe(false);
   });
 });
