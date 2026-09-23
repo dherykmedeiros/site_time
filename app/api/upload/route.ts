@@ -145,7 +145,7 @@ export async function POST(request: Request) {
 
     // Re-encode through sharp to strip any embedded payloads. Load the native
     // module separately so a missing Linux runtime is not reported as a bad file.
-    let sharp: typeof import("sharp").default;
+    let sharp: (input: Buffer) => import("sharp").Sharp;
     try {
       sharp = (await import("sharp")).default;
     } catch (processorError) {

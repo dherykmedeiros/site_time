@@ -18,7 +18,7 @@ export async function renderHtmlToImage(
       height: opts.height,
       deviceScaleFactor: 1,
     });
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.setContent(html, { waitUntil: ["load", "domcontentloaded"] });
     // Ensure web fonts have loaded before screenshotting
     await page.evaluateHandle("document.fonts.ready");
 
