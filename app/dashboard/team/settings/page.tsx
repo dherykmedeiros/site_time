@@ -109,10 +109,30 @@ export default function TeamSettingsPage() {
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [slotSaving, setSlotSaving] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
   const [slotDate, setSlotDate] = useState("");
   const [slotTimeLabel, setSlotTimeLabel] = useState("");
   const [slotVenueLabel, setSlotVenueLabel] = useState("");
   const [slotNotes, setSlotNotes] = useState("");
+
+  async function copyFriendlyInviteLink() {
+    if (!team?.slug) return;
+    const inviteUrl = `${window.location.origin}/${team.slug}/amistosos`;
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(inviteUrl);
+    } else {
+      const input = document.createElement("textarea");
+      input.value = inviteUrl;
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      input.remove();
+    }
+    setInviteLinkCopied(true);
+    window.setTimeout(() => setInviteLinkCopied(false), 2500);
+  }
 
   // Configurações Disciplinares e Acúmulos state
   const [punishmentTypes, setPunishmentTypes] = useState<any[]>([]);
@@ -887,6 +907,30 @@ export default function TeamSettingsPage() {
                 /{team.slug}
               </a>
             </p>
+            <div className="mt-4 rounded-[14px] border border-emerald-500/20 bg-emerald-500/[0.06] p-4">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-400">
+                Link direto para marcar amistoso
+              </p>
+              <p className="mt-1 break-all text-sm text-white">
+                {`/${team.slug}/amistosos`}
+              </p>
+              <p className="mt-2 text-xs text-[var(--text-muted)]">
+                Compartilhe este endereço nos grupos. Quem abrir verá diretamente o calendário e o formulário de convite.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button type="button" size="sm" onClick={copyFriendlyInviteLink}>
+                  {inviteLinkCopied ? "Link copiado!" : "Copiar link de amistosos"}
+                </Button>
+                <a
+                  href={`/${team.slug}/amistosos`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-9 items-center justify-center rounded-[10px] border border-emerald-500/20 bg-emerald-500/10 px-3 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/20"
+                >
+                  Abrir página pública
+                </a>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
