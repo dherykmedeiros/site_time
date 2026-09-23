@@ -1,6 +1,12 @@
 @import "tailwindcss";
 
 :root {
+  /* Fontes locais evitam downloads externos durante o build na VPS. */
+  --font-manrope: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+  --font-space-grotesk: "Arial Narrow", "Segoe UI", Arial, sans-serif;
+  --font-sans: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+  --font-serif: Georgia, "Times New Roman", serif;
+  --font-mono: Consolas, "Liberation Mono", "Courier New", monospace;
   --bg: #f6f5f2;
   --bg-elevated: #faf9f6;
   --bg-card: #ffffff;
