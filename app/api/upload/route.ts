@@ -143,10 +143,24 @@ export async function POST(request: Request) {
     const fileName = `${generateUUID()}.${ext}`;
     const mimeType = MIME_BY_EXT[ext];
 
-    // Re-encode through sharp to strip any embedded payloads
+    // Re-encode through sharp to strip any embedded payloads. Load the native
+    // module separately so a missing Linux runtime is not reported as a bad file.
+    let sharp: typeof import("sharp").default;
+    try {
+      sharp = (await import("sharp")).default;
+    } catch (processorError) {
+      console.error("Image processor is unavailable", processorError);
+      return NextResponse.json(
+        {
+          error: "Processador de imagens indisponível no servidor",
+          code: "IMAGE_PROCESSOR_UNAVAILABLE",
+        },
+        { status: 500 }
+      );
+    }
+
     let cleanBuffer: Buffer;
     try {
-      const sharp = (await import("sharp")).default;
       if (ext === "png") {
         cleanBuffer = await sharp(buffer).png().toBuffer();
       } else if (ext === "webp") {
