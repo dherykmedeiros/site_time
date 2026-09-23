@@ -1158,6 +1158,7 @@ export default function PortalView({
                   teamSlug={team.slug}
                   initialSuggestedDates={suggestedDatesInitialValue}
                   initialSuggestedVenue={suggestedVenueInitialValue}
+                  initialRequestedDate={selectedSlot?.date ? new Date(selectedSlot.date).toISOString() : undefined}
                 />
               </div>
             </div>

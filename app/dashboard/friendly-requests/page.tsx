@@ -16,6 +16,7 @@ interface FriendlyRequest {
   contactEmail: string;
   contactPhone: string | null;
   suggestedDates: string;
+  requestedDate: string | null;
   suggestedVenue: string | null;
   proposedFee: number | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
@@ -129,7 +130,11 @@ export default function FriendlyRequestsPage() {
   function openApproveModal(req: FriendlyRequest) {
     setSelectedRequest(req);
     setActionType("approve");
-    setMatchDate(parseSuggestedDateTimeToISO(req.suggestedDates));
+    setMatchDate(
+      req.requestedDate
+        ? new Date(req.requestedDate).toISOString().slice(0, 16)
+        : parseSuggestedDateTimeToISO(req.suggestedDates)
+    );
     setMatchVenue(req.suggestedVenue || "");
     setActionError("");
   }

@@ -6,6 +6,11 @@ import { processFriendlyRequestSchema } from "@/lib/validations/friendly-request
 import { sendFriendlyApprovalEmail, sendFriendlyRejectionEmail } from "@/lib/email";
 import { rateLimitMutation } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
+import {
+  buildFriendlyAvailability,
+  dateKeyInTimeZone,
+  normalizeAllowedWeekdays,
+} from "@/lib/friendly-availability";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -54,6 +59,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     contactEmail: friendlyRequest.contactEmail,
     contactPhone: friendlyRequest.contactPhone,
     suggestedDates: friendlyRequest.suggestedDates,
+    requestedDate: friendlyRequest.requestedDate?.toISOString() ?? null,
     suggestedVenue: friendlyRequest.suggestedVenue,
     proposedFee: friendlyRequest.proposedFee ? Number(friendlyRequest.proposedFee) : null,
     status: friendlyRequest.status,
@@ -100,7 +106,19 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   const friendlyRequest = await prisma.friendlyRequest.findFirst({
     where: { id, teamId: session.user.teamId },
     include: {
-      team: { select: { name: true, defaultVenue: true, badgeUrl: true } },
+      team: {
+        select: {
+          name: true,
+          defaultVenue: true,
+          badgeUrl: true,
+          friendlyInvitesEnabled: true,
+          friendlyInviteMinNoticeDays: true,
+          friendlyInviteMaxAdvanceDays: true,
+          friendlyInviteBufferBeforeDays: true,
+          friendlyInviteBufferAfterDays: true,
+          friendlyInviteAllowedWeekdays: true,
+        },
+      },
       requesterTeam: { select: { id: true, name: true, badgeUrl: true } },
     },
   });
@@ -145,7 +163,47 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   if (action === "approve") {
     const venue = matchVenue || friendlyRequest.suggestedVenue || friendlyRequest.team.defaultVenue || "A definir";
-    const date = matchDate ? new Date(matchDate) : new Date();
+    const requestedMatchDate = matchDate ? new Date(matchDate) : friendlyRequest.requestedDate;
+    if (!requestedMatchDate) {
+      return NextResponse.json(
+        { error: "Informe a data da partida", code: "MATCH_DATE_REQUIRED" },
+        { status: 400 }
+      );
+    }
+    const date = new Date(requestedMatchDate);
+    const rangeStart = new Date(date);
+    rangeStart.setUTCDate(rangeStart.getUTCDate() - friendlyRequest.team.friendlyInviteBufferAfterDays - 2);
+    const rangeEnd = new Date(date);
+    rangeEnd.setUTCDate(rangeEnd.getUTCDate() + friendlyRequest.team.friendlyInviteBufferBeforeDays + 2);
+    const scheduledMatches = await prisma.match.findMany({
+      where: {
+        teamId: session.user.teamId,
+        status: "SCHEDULED",
+        date: { gte: rangeStart, lte: rangeEnd },
+      },
+      select: { date: true },
+    });
+    const rules = {
+      enabled: friendlyRequest.team.friendlyInvitesEnabled,
+      minNoticeDays: friendlyRequest.team.friendlyInviteMinNoticeDays,
+      maxAdvanceDays: friendlyRequest.team.friendlyInviteMaxAdvanceDays,
+      bufferBeforeDays: friendlyRequest.team.friendlyInviteBufferBeforeDays,
+      bufferAfterDays: friendlyRequest.team.friendlyInviteBufferAfterDays,
+      allowedWeekdays: normalizeAllowedWeekdays(friendlyRequest.team.friendlyInviteAllowedWeekdays),
+    };
+    const availability = buildFriendlyAvailability({
+      rules,
+      scheduledMatches: scheduledMatches.map((match) => match.date),
+    }).find((day) => day.date === dateKeyInTimeZone(date));
+    if (!availability?.available) {
+      return NextResponse.json(
+        {
+          error: availability?.reason || "A data não está disponível pelas regras do time",
+          code: "DATE_UNAVAILABLE",
+        },
+        { status: 409 }
+      );
+    }
 
     try {
       // Create match + update request in transaction

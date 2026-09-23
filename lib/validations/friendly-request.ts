@@ -17,6 +17,7 @@ export const createFriendlyRequestSchema = z.object({
     .string()
     .min(5, "Datas sugeridas devem ter no mínimo 5 caracteres")
     .max(500, "Datas sugeridas devem ter no máximo 500 caracteres"),
+  requestedDate: z.string().datetime({ offset: true }).optional().nullable(),
   suggestedVenue: z
     .string()
     .max(200, "Local sugerido deve ter no máximo 200 caracteres")

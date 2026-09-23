@@ -51,6 +51,12 @@ export const GET = withErrorHandler(async () => {
         fieldType: true,
         competitiveLevel: true,
         publicDirectoryOptIn: true,
+        friendlyInvitesEnabled: true,
+        friendlyInviteMinNoticeDays: true,
+        friendlyInviteMaxAdvanceDays: true,
+        friendlyInviteBufferBeforeDays: true,
+        friendlyInviteBufferAfterDays: true,
+        friendlyInviteAllowedWeekdays: true,
       },
     }),
     prisma.openMatchSlot.findMany({
@@ -226,6 +232,24 @@ export const PATCH = withErrorHandler(async (request: Request) => {
       ...(parsedTeam.data.publicDirectoryOptIn !== undefined
         ? { publicDirectoryOptIn: parsedTeam.data.publicDirectoryOptIn }
         : {}),
+      ...(parsedTeam.data.friendlyInvitesEnabled !== undefined
+        ? { friendlyInvitesEnabled: parsedTeam.data.friendlyInvitesEnabled }
+        : {}),
+      ...(parsedTeam.data.friendlyInviteMinNoticeDays !== undefined
+        ? { friendlyInviteMinNoticeDays: parsedTeam.data.friendlyInviteMinNoticeDays }
+        : {}),
+      ...(parsedTeam.data.friendlyInviteMaxAdvanceDays !== undefined
+        ? { friendlyInviteMaxAdvanceDays: parsedTeam.data.friendlyInviteMaxAdvanceDays }
+        : {}),
+      ...(parsedTeam.data.friendlyInviteBufferBeforeDays !== undefined
+        ? { friendlyInviteBufferBeforeDays: parsedTeam.data.friendlyInviteBufferBeforeDays }
+        : {}),
+      ...(parsedTeam.data.friendlyInviteBufferAfterDays !== undefined
+        ? { friendlyInviteBufferAfterDays: parsedTeam.data.friendlyInviteBufferAfterDays }
+        : {}),
+      ...(parsedTeam.data.friendlyInviteAllowedWeekdays !== undefined
+        ? { friendlyInviteAllowedWeekdays: parsedTeam.data.friendlyInviteAllowedWeekdays }
+        : {}),
     },
     select: {
       id: true,
@@ -234,6 +258,12 @@ export const PATCH = withErrorHandler(async (request: Request) => {
       fieldType: true,
       competitiveLevel: true,
       publicDirectoryOptIn: true,
+      friendlyInvitesEnabled: true,
+      friendlyInviteMinNoticeDays: true,
+      friendlyInviteMaxAdvanceDays: true,
+      friendlyInviteBufferBeforeDays: true,
+      friendlyInviteBufferAfterDays: true,
+      friendlyInviteAllowedWeekdays: true,
       updatedAt: true,
     },
   });

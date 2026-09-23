@@ -36,6 +36,12 @@ interface TeamDiscoverySettings {
   fieldType: "GRASS" | "SYNTHETIC" | "FUTSAL" | "SOCIETY" | "OTHER" | null;
   competitiveLevel: "CASUAL" | "INTERMEDIATE" | "COMPETITIVE" | null;
   publicDirectoryOptIn: boolean;
+  friendlyInvitesEnabled: boolean;
+  friendlyInviteMinNoticeDays: number;
+  friendlyInviteMaxAdvanceDays: number;
+  friendlyInviteBufferBeforeDays: number;
+  friendlyInviteBufferAfterDays: number;
+  friendlyInviteAllowedWeekdays: number[];
 }
 
 interface OpenMatchSlot {
@@ -77,6 +83,8 @@ const levelLabels: Record<string, string> = {
   COMPETITIVE: "Competitivo",
 };
 
+const weekdayLabels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
 export default function TeamSettingsPage() {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "ADMIN";
@@ -90,6 +98,12 @@ export default function TeamSettingsPage() {
     fieldType: null,
     competitiveLevel: null,
     publicDirectoryOptIn: false,
+    friendlyInvitesEnabled: true,
+    friendlyInviteMinNoticeDays: 2,
+    friendlyInviteMaxAdvanceDays: 90,
+    friendlyInviteBufferBeforeDays: 1,
+    friendlyInviteBufferAfterDays: 1,
+    friendlyInviteAllowedWeekdays: [0, 1, 2, 3, 4, 5, 6],
   });
   const [slots, setSlots] = useState<OpenMatchSlot[]>([]);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -355,6 +369,14 @@ export default function TeamSettingsPage() {
             fieldType: data.team.fieldType ?? null,
             competitiveLevel: data.team.competitiveLevel ?? null,
             publicDirectoryOptIn: Boolean(data.team.publicDirectoryOptIn),
+            friendlyInvitesEnabled: data.team.friendlyInvitesEnabled !== false,
+            friendlyInviteMinNoticeDays: data.team.friendlyInviteMinNoticeDays ?? 2,
+            friendlyInviteMaxAdvanceDays: data.team.friendlyInviteMaxAdvanceDays ?? 90,
+            friendlyInviteBufferBeforeDays: data.team.friendlyInviteBufferBeforeDays ?? 1,
+            friendlyInviteBufferAfterDays: data.team.friendlyInviteBufferAfterDays ?? 1,
+            friendlyInviteAllowedWeekdays: Array.isArray(data.team.friendlyInviteAllowedWeekdays)
+              ? data.team.friendlyInviteAllowedWeekdays
+              : [0, 1, 2, 3, 4, 5, 6],
           });
         }
         setSlots(Array.isArray(data?.slots) ? data.slots : []);
@@ -380,6 +402,12 @@ export default function TeamSettingsPage() {
           fieldType: settings.fieldType || null,
           competitiveLevel: settings.competitiveLevel || null,
           publicDirectoryOptIn: settings.publicDirectoryOptIn,
+          friendlyInvitesEnabled: settings.friendlyInvitesEnabled,
+          friendlyInviteMinNoticeDays: settings.friendlyInviteMinNoticeDays,
+          friendlyInviteMaxAdvanceDays: settings.friendlyInviteMaxAdvanceDays,
+          friendlyInviteBufferBeforeDays: settings.friendlyInviteBufferBeforeDays,
+          friendlyInviteBufferAfterDays: settings.friendlyInviteBufferAfterDays,
+          friendlyInviteAllowedWeekdays: settings.friendlyInviteAllowedWeekdays,
         }),
       });
 
@@ -917,6 +945,105 @@ export default function TeamSettingsPage() {
             </div>
             <Button onClick={saveDiscoverySettings} loading={settingsSaving}>
               Salvar configuracoes de descoberta
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {hasTeam && (
+        <Card className="rounded-[18px]">
+          <CardHeader>
+            <h2 className="text-lg font-semibold text-[var(--text)]">Disponibilidade para convites</h2>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <p className="text-xs text-[var(--text-muted)]">
+              O calendário público libera automaticamente os dias sem partida confirmada e aplica estas regras de descanso.
+            </p>
+
+            <label className="flex items-center justify-between gap-4 rounded-[12px] border border-white/5 bg-white/[0.02] p-4 text-sm text-[var(--text)]">
+              <span>
+                <strong className="block text-white">Receber convites para amistosos</strong>
+                <span className="text-xs text-[var(--text-muted)]">Quando desligado, todas as datas ficam indisponíveis.</span>
+              </span>
+              <input
+                type="checkbox"
+                checked={settings.friendlyInvitesEnabled}
+                onChange={(event) => setSettings((current) => ({ ...current, friendlyInvitesEnabled: event.target.checked }))}
+                className="h-5 w-5 accent-emerald-500"
+              />
+            </label>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                label="Antecedência mínima (dias)"
+                type="number"
+                min="0"
+                max="30"
+                value={settings.friendlyInviteMinNoticeDays}
+                onChange={(event) => setSettings((current) => ({ ...current, friendlyInviteMinNoticeDays: Number(event.target.value) }))}
+              />
+              <Input
+                label="Agenda aberta pelos próximos (dias)"
+                type="number"
+                min="7"
+                max="365"
+                value={settings.friendlyInviteMaxAdvanceDays}
+                onChange={(event) => setSettings((current) => ({ ...current, friendlyInviteMaxAdvanceDays: Number(event.target.value) }))}
+              />
+              <Input
+                label="Bloquear dias antes de uma partida"
+                type="number"
+                min="0"
+                max="14"
+                value={settings.friendlyInviteBufferBeforeDays}
+                onChange={(event) => setSettings((current) => ({ ...current, friendlyInviteBufferBeforeDays: Number(event.target.value) }))}
+              />
+              <Input
+                label="Bloquear dias depois de uma partida"
+                type="number"
+                min="0"
+                max="14"
+                value={settings.friendlyInviteBufferAfterDays}
+                onChange={(event) => setSettings((current) => ({ ...current, friendlyInviteBufferAfterDays: Number(event.target.value) }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-[var(--text)]">Dias da semana aceitos</p>
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+                {weekdayLabels.map((label, day) => {
+                  const checked = settings.friendlyInviteAllowedWeekdays.includes(day);
+                  return (
+                    <label
+                      key={label}
+                      className={`cursor-pointer rounded-[10px] border p-2 text-center text-xs font-bold ${
+                        checked
+                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
+                          : "border-white/5 bg-white/[0.02] text-[var(--text-muted)]"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() =>
+                          setSettings((current) => ({
+                            ...current,
+                            friendlyInviteAllowedWeekdays: checked
+                              ? current.friendlyInviteAllowedWeekdays.filter((value) => value !== day)
+                              : [...current.friendlyInviteAllowedWeekdays, day].sort((a, b) => a - b),
+                          }))
+                        }
+                        className="sr-only"
+                      />
+                      {label}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <Button onClick={saveDiscoverySettings} loading={settingsSaving}>
+              Salvar regras de disponibilidade
             </Button>
           </CardContent>
         </Card>

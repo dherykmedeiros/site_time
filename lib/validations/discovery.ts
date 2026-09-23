@@ -31,8 +31,27 @@ export const updateTeamDiscoverySchema = z
     fieldType: teamFieldTypeSchema.optional().nullable(),
     competitiveLevel: teamCompetitiveLevelSchema.optional().nullable(),
     publicDirectoryOptIn: z.boolean().optional(),
+    friendlyInvitesEnabled: z.boolean().optional(),
+    friendlyInviteMinNoticeDays: z.number().int().min(0).max(30).optional(),
+    friendlyInviteMaxAdvanceDays: z.number().int().min(7).max(365).optional(),
+    friendlyInviteBufferBeforeDays: z.number().int().min(0).max(14).optional(),
+    friendlyInviteBufferAfterDays: z.number().int().min(0).max(14).optional(),
+    friendlyInviteAllowedWeekdays: z.array(z.number().int().min(0).max(6)).max(7).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((data, ctx) => {
+    if (
+      data.friendlyInviteMinNoticeDays !== undefined &&
+      data.friendlyInviteMaxAdvanceDays !== undefined &&
+      data.friendlyInviteMinNoticeDays > data.friendlyInviteMaxAdvanceDays
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["friendlyInviteMaxAdvanceDays"],
+        message: "O horizonte da agenda deve ser maior que a antecedência mínima",
+      });
+    }
+  });
 
 export const createOpenSlotSchema = z
   .object({

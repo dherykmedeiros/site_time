@@ -215,6 +215,12 @@ model Team {
   fieldType        TeamFieldType?
   competitiveLevel TeamCompetitiveLevel?
   publicDirectoryOptIn Boolean         @default(false)
+  friendlyInvitesEnabled Boolean       @default(true)
+  friendlyInviteMinNoticeDays Int      @default(2)
+  friendlyInviteMaxAdvanceDays Int     @default(90)
+  friendlyInviteBufferBeforeDays Int   @default(1)
+  friendlyInviteBufferAfterDays Int    @default(1)
+  friendlyInviteAllowedWeekdays Json   @default("[0,1,2,3,4,5,6]")
   foundedYear      Int?
   kitHomeUrl       String?
   kitAwayUrl       String?
@@ -487,6 +493,7 @@ model FriendlyRequest {
   contactEmail      String
   contactPhone      String?
   suggestedDates    String
+  requestedDate     DateTime?
   suggestedVenue    String?
   proposedFee       Decimal?              @db.Decimal(10, 2)
   status            FriendlyRequestStatus @default(PENDING)
@@ -501,6 +508,7 @@ model FriendlyRequest {
   @@index([teamId])
   @@index([requesterTeamId])
   @@index([teamId, status])
+  @@index([teamId, requestedDate])
   @@map("friendly_requests")
 }
 

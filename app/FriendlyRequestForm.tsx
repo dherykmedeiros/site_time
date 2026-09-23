@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useSession } from "next-auth/react";
@@ -18,12 +18,50 @@ interface FriendlyRequestFormProps {
   teamSlug: string;
   initialSuggestedDates?: string;
   initialSuggestedVenue?: string;
+  initialRequestedDate?: string;
+}
+
+interface AvailabilityDay {
+  date: string;
+  available: boolean;
+  reason: string | null;
+}
+
+interface AvailabilityResponse {
+  rules: {
+    enabled: boolean;
+    minNoticeDays: number;
+    maxAdvanceDays: number;
+    bufferBeforeDays: number;
+    bufferAfterDays: number;
+    allowedWeekdays: number[];
+  };
+  days: AvailabilityDay[];
+}
+
+function getSaoPauloDateParts(value: string) {
+  const date = new Date(value);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return {
+    date: `${values.year}-${values.month}-${values.day}`,
+    time: `${values.hour}:${values.minute}`,
+  };
 }
 
 export function FriendlyRequestForm({
   teamSlug,
   initialSuggestedDates = "",
   initialSuggestedVenue = "",
+  initialRequestedDate,
 }: FriendlyRequestFormProps) {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
@@ -37,11 +75,63 @@ export function FriendlyRequestForm({
   const [requesterTeamName, setRequesterTeamName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
+  const initialDateParts = initialRequestedDate ? getSaoPauloDateParts(initialRequestedDate) : null;
+  const [selectedDate, setSelectedDate] = useState(initialDateParts?.date ?? "");
+  const [selectedTime, setSelectedTime] = useState(initialDateParts?.time ?? "");
+  const [availability, setAvailability] = useState<AvailabilityResponse | null>(null);
+  const [availabilityLoading, setAvailabilityLoading] = useState(true);
+  const [availabilityError, setAvailabilityError] = useState("");
+  const [calendarMonth, setCalendarMonth] = useState(
+    (initialDateParts?.date ?? new Date().toISOString().slice(0, 10)).slice(0, 7)
+  );
   const [dateNotes, setDateNotes] = useState("");
   const [suggestedVenue, setSuggestedVenue] = useState(initialSuggestedVenue);
   const [proposedFee, setProposedFee] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadAvailability() {
+      setAvailabilityLoading(true);
+      setAvailabilityError("");
+      try {
+        const res = await fetch(
+          `/api/friendly-requests/availability?teamSlug=${encodeURIComponent(teamSlug)}`,
+          { signal: controller.signal }
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Não foi possível carregar a agenda");
+        setAvailability(data);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setAvailabilityError(err instanceof Error ? err.message : "Erro ao carregar agenda");
+      } finally {
+        if (!controller.signal.aborted) setAvailabilityLoading(false);
+      }
+    }
+    loadAvailability();
+    return () => controller.abort();
+  }, [teamSlug]);
+
+  const availabilityByDate = useMemo(
+    () => new Map(availability?.days.map((day) => [day.date, day]) ?? []),
+    [availability]
+  );
+  const availableMonths = useMemo(
+    () => [...new Set(availability?.days.map((day) => day.date.slice(0, 7)) ?? [])],
+    [availability]
+  );
+  const calendarCells = useMemo(() => {
+    const [year, month] = calendarMonth.split("-").map(Number);
+    const firstWeekday = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
+    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    return [
+      ...Array.from({ length: firstWeekday }, () => null),
+      ...Array.from({ length: daysInMonth }, (_, index) =>
+        `${year}-${String(month).padStart(2, "0")}-${String(index + 1).padStart(2, "0")}`
+      ),
+    ];
+  }, [calendarMonth]);
+  const monthIndex = availableMonths.indexOf(calendarMonth);
 
   // 1. Fetch public registered teams for fallback dropdown
   useEffect(() => {
@@ -118,6 +208,13 @@ export function FriendlyRequestForm({
       return;
     }
 
+    const selectedAvailability = availabilityByDate.get(selectedDate);
+    if (!selectedDate || !selectedTime || !selectedAvailability?.available) {
+      setError(selectedAvailability?.reason || "Selecione uma data disponível e o horário da partida.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/friendly-requests", {
         method: "POST",
@@ -128,6 +225,7 @@ export function FriendlyRequestForm({
           contactEmail,
           contactPhone: contactPhone || undefined,
           suggestedDates: computedSuggestedDates,
+          requestedDate: new Date(`${selectedDate}T${selectedTime}:00-03:00`).toISOString(),
           suggestedVenue: suggestedVenue || undefined,
           proposedFee: proposedFee ? parseFloat(proposedFee) : undefined,
           requesterTeamId: selectedTeamId || undefined,
@@ -290,24 +388,103 @@ export function FriendlyRequestForm({
         className="rounded-none border-2 border-slate-800 bg-black/40 text-white placeholder-gray-600 focus:border-[var(--team-primary)] focus:shadow-[3px_3px_0px_0px_var(--team-primary)] shadow-none transition-all focus:ring-0"
       />
 
-      {/* Structured Calendar & Time Selection */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input
-          label="Data sugerida para a partida *"
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          required={!initialSuggestedDates}
-          min={new Date().toISOString().split("T")[0]}
-          className="rounded-none border-2 border-slate-800 bg-black/40 text-white focus:border-[var(--team-primary)] focus:shadow-[3px_3px_0px_0px_var(--team-primary)] shadow-none transition-all focus:ring-0"
-        />
+      {/* Interactive availability calendar */}
+      <div className="space-y-3 rounded-none border-2 border-slate-800 bg-black/30 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-wider text-white">Data disponível *</p>
+            <p className="mt-1 text-[10px] font-bold uppercase text-slate-500">
+              Verde: disponível · Cinza: bloqueado pelas regras ou por outro jogo
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={monthIndex <= 0}
+              onClick={() => setCalendarMonth(availableMonths[monthIndex - 1])}
+              className="h-8 w-8 border border-slate-700 text-white disabled:cursor-not-allowed disabled:opacity-30"
+              aria-label="Mês anterior"
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              disabled={monthIndex < 0 || monthIndex >= availableMonths.length - 1}
+              onClick={() => setCalendarMonth(availableMonths[monthIndex + 1])}
+              className="h-8 w-8 border border-slate-700 text-white disabled:cursor-not-allowed disabled:opacity-30"
+              aria-label="Próximo mês"
+            >
+              →
+            </button>
+          </div>
+        </div>
 
+        {availabilityLoading ? (
+          <p className="py-6 text-center text-xs font-bold uppercase text-slate-500">Carregando agenda...</p>
+        ) : availabilityError ? (
+          <p className="border border-red-800 bg-red-950/20 p-3 text-xs font-bold text-red-400">{availabilityError}</p>
+        ) : (
+          <>
+            <p className="text-center text-sm font-black uppercase text-[var(--team-primary)]">
+              {new Date(`${calendarMonth}-15T12:00:00Z`).toLocaleDateString("pt-BR", {
+                month: "long",
+                year: "numeric",
+                timeZone: "UTC",
+              })}
+            </p>
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((label, index) => (
+                <span key={`${label}-${index}`} className="py-1 text-[10px] font-black text-slate-600">{label}</span>
+              ))}
+              {calendarCells.map((date, index) => {
+                if (!date) return <span key={`empty-${index}`} />;
+                const day = availabilityByDate.get(date);
+                const isAvailable = Boolean(day?.available);
+                const isSelected = selectedDate === date;
+                return (
+                  <button
+                    key={date}
+                    type="button"
+                    disabled={!isAvailable}
+                    title={day?.reason || "Disponível"}
+                    onClick={() => setSelectedDate(date)}
+                    className={`aspect-square min-h-9 border text-xs font-black transition-colors ${
+                      isSelected
+                        ? "border-[var(--team-primary)] bg-[var(--team-primary)] text-black"
+                        : isAvailable
+                          ? "border-emerald-700 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/25"
+                          : "cursor-not-allowed border-slate-900 bg-slate-950/70 text-slate-700 line-through"
+                    }`}
+                  >
+                    {Number(date.slice(-2))}
+                  </button>
+                );
+              })}
+            </div>
+            {availability && (
+              <p className="text-[10px] font-bold uppercase leading-relaxed text-slate-500">
+                Antecedência: {availability.rules.minNoticeDays} dia(s) · descanso: {availability.rules.bufferBeforeDays} antes e {availability.rules.bufferAfterDays} depois de jogos confirmados.
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="rounded-none border-2 border-slate-800 bg-black/40 p-3">
+          <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Data selecionada</p>
+          <p className="mt-1 text-sm font-black text-white">
+            {selectedDate
+              ? new Date(`${selectedDate}T12:00:00Z`).toLocaleDateString("pt-BR", { dateStyle: "full", timeZone: "UTC" })
+              : "Escolha uma data verde no calendário"}
+          </p>
+        </div>
         <Input
           label="Horário sugerido (Início) *"
           type="time"
           value={selectedTime}
           onChange={(e) => setSelectedTime(e.target.value)}
-          required={!initialSuggestedDates}
+          required
           className="rounded-none border-2 border-slate-800 bg-black/40 text-white focus:border-[var(--team-primary)] focus:shadow-[3px_3px_0px_0px_var(--team-primary)] shadow-none transition-all focus:ring-0"
         />
       </div>

@@ -3,6 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { withErrorHandler } from "@/lib/api-handler";
 import { z } from "zod";
 import { sendEmail } from "@/lib/email";
+import {
+  buildFriendlyAvailability,
+  dateKeyInTimeZone,
+  normalizeAllowedWeekdays,
+} from "@/lib/friendly-availability";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -28,6 +33,12 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
         select: {
           id: true,
           name: true,
+          friendlyInvitesEnabled: true,
+          friendlyInviteMinNoticeDays: true,
+          friendlyInviteMaxAdvanceDays: true,
+          friendlyInviteBufferBeforeDays: true,
+          friendlyInviteBufferAfterDays: true,
+          friendlyInviteAllowedWeekdays: true,
           users: {
             where: { role: "ADMIN" },
             select: { email: true },
@@ -39,6 +50,40 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
 
   if (!slot) {
     return NextResponse.json({ error: "Vaga não encontrada ou não disponível", code: "NOT_FOUND" }, { status: 404 });
+  }
+
+  const rangeStart = new Date(slot.date);
+  rangeStart.setUTCDate(rangeStart.getUTCDate() - slot.team.friendlyInviteBufferAfterDays - 2);
+  const rangeEnd = new Date(slot.date);
+  rangeEnd.setUTCDate(rangeEnd.getUTCDate() + slot.team.friendlyInviteBufferBeforeDays + 2);
+  const scheduledMatches = await prisma.match.findMany({
+    where: {
+      teamId: slot.teamId,
+      status: "SCHEDULED",
+      date: { gte: rangeStart, lte: rangeEnd },
+    },
+    select: { date: true },
+  });
+  const rules = {
+    enabled: slot.team.friendlyInvitesEnabled,
+    minNoticeDays: slot.team.friendlyInviteMinNoticeDays,
+    maxAdvanceDays: slot.team.friendlyInviteMaxAdvanceDays,
+    bufferBeforeDays: slot.team.friendlyInviteBufferBeforeDays,
+    bufferAfterDays: slot.team.friendlyInviteBufferAfterDays,
+    allowedWeekdays: normalizeAllowedWeekdays(slot.team.friendlyInviteAllowedWeekdays),
+  };
+  const availability = buildFriendlyAvailability({
+    rules,
+    scheduledMatches: scheduledMatches.map((match) => match.date),
+  }).find((day) => day.date === dateKeyInTimeZone(slot.date));
+  if (!availability?.available) {
+    return NextResponse.json(
+      {
+        error: availability?.reason || "Este horário não está mais disponível",
+        code: "DATE_UNAVAILABLE",
+      },
+      { status: 409 }
+    );
   }
 
   let body: unknown;
@@ -84,6 +129,7 @@ export const POST = withErrorHandler(async (request: Request, { params }: RouteP
       contactEmail,
       contactPhone: contactPhone || null,
       suggestedDates,
+      requestedDate: slot.date,
       suggestedVenue,
       proposedFee: proposedFee ? proposedFee : null,
       status: "PENDING",
