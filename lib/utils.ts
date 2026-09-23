@@ -108,9 +108,14 @@ export function maskCpf(cpf: string | null | undefined): string {
 const BLOCKED_HOSTS_RE =
   /^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|169\.254\.\d+\.\d+|\[::1\]|0\.0\.0\.0)/i;
 
+const LOCAL_UPLOAD_PATH_RE =
+  /^\/(?:uploads|api\/assets)\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+$/;
+
 export function isSafeUrl(value: string): boolean {
   if (!value) return true;
-  if (value.startsWith("/uploads/")) return true;
+  // `/uploads/` is kept for existing records. New files stored on the VPS are
+  // exposed through the dynamic `/api/assets/` route.
+  if (LOCAL_UPLOAD_PATH_RE.test(value)) return true;
   if (!value.startsWith("https://")) return false;
 
   try {
